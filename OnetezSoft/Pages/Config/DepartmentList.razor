@@ -1,0 +1,103 @@
+﻿@page "/config/system"
+@page "/config/system/department/list"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+@if (Layout.User.role != 1 && !Layout.User.role_manage.system)
+{
+  <PopupNoRole />
+}
+else
+{
+  <section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+    <div class="column is-narrow">
+      <div class="card p-3 menu_left">
+        <a class="is-active" href="/config/system/department/list">
+          Phòng ban
+        </a>
+        <a href="/config/system/user/list">
+          Nhân sự
+        </a>
+        <a href="/config/system/dayoff">
+          Thiết lập ngày nghỉ
+        </a>
+      </div>
+    </div>
+    <div class="column">
+      <div class="card p-5">
+        <ul class="columns is-vcentered">
+          <li class="column is-narrow">
+            <h1 class="title is-5 has-text-info is-uppercase">
+              Danh sách phòng ban
+            </h1>
+          </li>
+          <li class="column has-text-right">
+            <a class="button" href="/config/system/department/add">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-6">add</span>
+              </span>
+              <span>Thêm mới</span>
+            </a>
+          </li>
+        </ul>
+        <div class="menu">
+          <ul class="menu-list">
+            @foreach (var child in dataList)
+            {
+              <_Department CompanyId="@Layout.Company.id" DepartmentAll="@database" Current="child" />
+            }
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+}
+
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Danh sách phòng ban";
+
+  private List<DepartmentModel> database = new();
+  private List<DepartmentModel> dataList = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    database = DbDepartment.GetAll(Layout.Company.id);
+    dataList = database.Where(x => x.parent == null).ToList();
+    _loaded = true;
+
+    await UpdateUserDepartmentName();
+  }
+
+
+  private async Task UpdateUserDepartmentName()
+  {
+    var companyId = Layout.Company.id;
+    var userList = DbUser.GetAll(companyId);
+    foreach (var user in userList)
+    {
+      var department = DbDepartment.GetNameListOfUser(companyId, user.departments_id, database);
+      user.departments_name = String.Join(" / ", department);
+      await DbUser.Update(companyId, user);
+    }
+    await Layout.RefreshData();
+  }
+}

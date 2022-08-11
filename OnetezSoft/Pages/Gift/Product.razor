@@ -1,0 +1,620 @@
+﻿@page "/gift/product"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+<section class="columns p-4 @(_loaded ? "" : "is-loading")">
+  <div class="column is-two-thirds">
+    @if (banners.Count > 0)
+    {
+      <ul class="columns is-multiline">
+        <li class="column is-full">
+          <h2 class="title is-5 has-text-info">
+            ƯU ĐÃI LỚN TRONG THÁNG !
+          </h2>
+        </li>
+        @foreach (var item in banners)
+        {
+          <li class="column is-half">
+            <a class="image is-16by9 is_radius hover_blur" @onclick="() => BannerClick(item)">
+              <img src="@item.image" alt="IMG">
+              <label class="has-text-weight-bold is-size-5">
+                @item.name
+              </label>
+            </a>
+          </li>
+        }
+      </ul>
+    }
+    <div class="card p-5">
+      <ul class="columns is-multiline is-mobile">
+        <li class="column is-full">
+          <h2 class="title is-5 has-text-info">
+            CỬA HÀNG ĐỔI SAO
+          </h2>
+        </li>
+        @foreach (var item in DbGiftProduct.Category())
+        {
+          <li class="column is-one-quarter-tablet is-half-mobile">
+            <a class="category_item py-5 px-3 is-block @(filterCategory == item.id ? "is-active" : "")"
+             @onclick="() => CategoryClick(item.id)">
+              <div class="is-flex is-vcentered is-centered" style="height: 64px;">
+                <img src="@item.icon" alt="IMG">
+              </div>
+              <div class="mt-2 is-size-6 has-text-dark has-text-centered text_1_line">
+                @item.name
+              </div>
+            </a>
+          </li>
+        }
+      </ul>
+      <hr style="height: 2px;" />
+      <div class="p-4">
+        <ul class="columns is-multiline is-striped is-variable is-4">
+          @for (int i = 0; i < filterCount; i++)
+          {
+            if (i >= products.Count)
+              break;
+            var item = products[i];
+
+            <li class="column is-full">
+              <article class="columns is-multiline is-vcentered is-mobile">
+                @if (buyId == item.id)
+                {
+                  <div class="column is-one-quarter">
+                    <div class="image is_radius is-square">
+                      <img src="@item.image" alt="IMG">
+                    </div>
+                  </div>
+                  <div class="column is-three-quarters">
+                    <ul class="columns is-vcentered is-multiline is-mobile is-variable is-1">
+                      <li class="column is-three-quarters">
+                        <div class="has-text-weight-semibold">@item.name</div>
+                        <div class="has-text-grey is-size-7 text_1_line" onclick="toggleText(this)">
+                          @((MarkupString)Shared.GetLinks(item.description))
+                        </div>
+                      </li>
+                      <li class="column is-one-quarter has-text-centered">
+                        <div class="has-text-grey">Giá đổi</div>
+                        <span class="icon-text">
+                          <span class="icon">
+                            <i class="material-icons-outlined has-text-warning">star</i>
+                          </span>
+                          @if (item.price_sale > 0)
+                          {
+                            <span class="has-text-weight-semibold">@item.price_sale</span>
+                            <del class="ml-2">@item.price_list</del>
+                          }
+                          else
+                          {
+                            <span class="has-text-weight-semibold">@item.price_list</span>
+                          }
+                        </span>
+                      </li>
+                      <li class="column is-full">
+                        <div class="field has-addons">
+                          <div class="control">
+                            <div class="input is-small">
+                              <a class="icon-text" @onclick="() => isGift = !isGift">
+                                <span class="icon">
+                                  @if (isGift)
+                                  {
+                                    <i class="material-icons is-size-6 has-text-link">check_box</i>
+                                  }
+                                  else
+                                  {
+                                    <i class="material-icons is-size-6 has-text-link">check_box_outline_blank</i>
+                                  }
+                                </span>
+                                <span>Tặng</span>
+                              </a>
+                            </div>
+                          </div>
+                          <div class="control is-expanded has-icons-right has_suggest">
+                            @if (isGift)
+                            {
+                              <input class="input is-small" type="text" placeholder="Nhập tên người nhận"
+                               autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
+                              <ul class="suggest">
+                                @foreach (var user in userSuggests)
+                                {
+                                  <li class="rsitem" @onclick="() => SelectUser(user)">
+                                    <div class="user_item">
+                                      <img class="image is-24x24 mr-2" src="@user.avatar">
+                                      <span>@user.FullName</span>
+                                    </div>
+                                  </li>
+                                }
+                              </ul>
+                              <span class="icon is-right">
+                                <i class="material-icons-outlined">search</i>
+                              </span>
+                            }
+                            else
+                            {
+                              <input class="input is-rounded is-small" type="text"
+                               placeholder="Nhập tên người nhận" readonly />
+                              <ul class="suggest"></ul>
+                              <span class="icon is-right">
+                                <i class="material-icons-outlined">search</i>
+                              </span>
+                            }
+                          </div>
+                        </div>
+                      </li>
+                      <li class="column is-full">
+                        <textarea @bind="note" class="textarea is-small" rows="2"
+                              placeholder="Nhập ghi chú cho người nhận..." />
+                        <div class="field is-grouped is-grouped-multiline mt-2 is-size-7">
+                          <div class="control has-text-grey">
+                            Số lượng:
+                          </div>
+                          <div class="control" style="width: 50px;">
+                            <input @bind="quantity" class="input is-small" type="number" min="1" />
+                          </div>
+                          <div class="control is-expanded"></div>
+                          <div class="control">
+                            <a class="icon-text has-text-link" @onclick="() => AddItem(item)">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-6">add_shopping_cart</i>
+                              </span>
+                              <span>Thêm vào giỏ</span>
+                            </a>
+                          </div>
+                          <div class="control">|</div>
+                          <div class="control">
+                            <a class="icon-text has-text-danger" @onclick="() => buyId = null">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-6">cancel</i>
+                              </span>
+                              <span>Hủy</span>
+                            </a>
+                          </div>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+                }
+                else
+                {
+                  <div class="column is-narrow-tablet is-one-quarter-mobile">
+                    <div class="image is_radius is-64x64">
+                      <img src="@item.image" alt="IMG">
+                    </div>
+                  </div>
+                  <div class="column is-three-quarters-mobile">
+                    <div class="has-text-weight-semibold">@item.name</div>
+                    <div class="has-text-grey is-size-7 text_2_line" onclick="toggleText(this)">
+                      @((MarkupString)Shared.GetLinks(item.description))
+                    </div>
+                    <div class="field is-grouped mt-2 is-size-7">
+                      <div class="control">
+                        <a class="icon-text has-text-link" @onclick="() => buyId = item.id">
+                          <span class="icon">
+                            <i class="material-icons-outlined is-size-6">account_balance_wallet</i>
+                          </span>
+                          <span>Mua hoặc tặng</span>
+                        </a>
+                      </div>
+                      <div class="control">|</div>
+                      <div class="control">
+                        <a class="icon-text has-text-link" @onclick="() => AddItem(item)">
+                          <span class="icon">
+                            <i class="material-icons-outlined is-size-6">add_shopping_cart</i>
+                          </span>
+                          <span>Thêm vào giỏ</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="column is-one-fifth-tablet is-half-mobile has-text-centered">
+                    <div class="has-text-grey">Số lượt đổi</div>
+                    <strong>@item.sold</strong>
+                  </div>
+                  <div class="column is-one-fifth-tablet is-half-mobile has-text-centered">
+                    <div class="has-text-grey">Giá đổi</div>
+                    <span class="icon-text">
+                      <span class="icon">
+                        <i class="material-icons-outlined has-text-warning">star</i>
+                      </span>
+                      @if (item.price_sale > 0)
+                      {
+                        <span class="has-text-weight-semibold">@item.price_sale</span>
+                        <del class="ml-2">@item.price_list</del>
+                      }
+                      else
+                      {
+                        <span class="has-text-weight-semibold">@item.price_list</span>
+                      }
+                    </span>
+                  </div>
+                }
+              </article>
+            </li>
+          }
+          @if (filterCount < products.Count)
+          {
+            <li class="column is-full has-text-centered has-background-white">
+              <a @onclick="() => filterCount = products.Count">Hiện tất cả</a>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="column is-one-third">
+    <div class="card p-5">
+      <div class="user_item">
+        <img class="image is-64x64 mr-2" src="@User.avatar" alt="IMG" />
+        <div>
+          <div class="has-text-grey">Mừng bạn trở lại,</div>
+          <strong class="has-text-info">@User.FullName</strong>
+        </div>
+      </div>
+      <div class="field is-grouped mt-3">
+        <div class="control is-expanded has-text-info">
+          <strong>Tổng sao hiện có của bạn</strong>
+        </div>
+        <div class="control">
+          <span class="icon-text">
+            <span class="has-text-weight-semibold">@User.star_total</span>
+            <span class="icon">
+              <i class="material-icons-outlined has-text-warning">star</i>
+            </span>
+          </span>
+        </div>
+      </div>
+      <hr style="height: 2px;">
+      <div class="has-text-info mb-2">Giỏ hàng:</div>
+      @if (buyList.Count > 0)
+      {
+        <table class="table is-fullwidth is-noborder is-vcentered">
+          <tbody>
+            @foreach (var item in buyList)
+            {
+              <tr>
+                <td width="20px" align="center">
+                  @if (buyCheck.Contains(item.id))
+                  {
+                    <input type="checkbox" @onclick="() => ChangeBuy(item.id)" checked />
+                  }
+                  else
+                  {
+                    <input type="checkbox" @onclick="() => ChangeBuy(item.id)" />
+                  }
+                </td>
+                <td width="84px" align="center">
+                  <div class="image is_radius is-64x64">
+                    <img src="@item.image" alt="IMG">
+                  </div>
+                </td>
+                <td>
+                  <div class="has-text-link">@item.name</div>
+                  <div class="field is-grouped mt-2 is-size-7">
+                    <div class="control">
+                      <span class="icon-text">
+                        <span class="icon">
+                          <i class="material-icons-outlined has-text-warning">star</i>
+                        </span>
+                        <span class="has-text-weight-semibold">@item.price</span>
+                        <span class="has-text-weight-semibold ml-2">x @item.quantity</span>
+                      </span>
+                    </div>
+                    <div class="control is-expanded">
+                      @if (item.user_buy != item.user_give)
+                      {
+                        <span>(Tặng)</span>
+                      }
+                    </div>
+                    <div class="control">
+                      <a class="icon-text has-text-danger" @onclick="() => DeleteItem(item)">
+                        <span class="icon">
+                          <i class="material-icons-outlined">cancel</i>
+                        </span>
+                        <span>Xóa</span>
+                      </a>
+                    </div>
+                  </div>
+                  <div class="icon-text is-size-7">
+                    <span class="has-text-weight-semibold">Ghi chú</span>
+                    @if (string.IsNullOrEmpty(item.note))
+                    {
+                      <span class="icon has-text-link">
+                        <i class="material-icons-outlined">add</i>
+                      </span>
+                      <a @onclick="() => buyNote.Add(item.id)">Thêm ghi chú</a>
+                    }
+                    else
+                    {
+                      <span class="icon has-text-link">
+                        <i class="material-icons-outlined">edit</i>
+                      </span>
+                      <a @onclick="() => buyNote.Add(item.id)">Chỉnh sửa</a>
+                    }
+                  </div>
+                  @if (buyNote.Contains(item.id))
+                  {
+                    <textarea @bind="item.note" class="textarea is-small" rows="2" />
+                    <div class="has-text-right">
+                      <a class="icon-text has-text-link is-size-7" @onclick="() => NoteItem(item)">
+                        <span class="icon">
+                          <i class="material-icons-outlined">done</i>
+                        </span>
+                        <span>Cập nhật</span>
+                      </a>
+                    </div>
+                  }
+                  else
+                  {
+                    <div class="is-size-7 has-text-grey is-italic">
+                      @item.note
+                    </div>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <hr>
+        <div class="field is-grouped">
+          <div class="control is-expanded">
+            Tổng cộng:
+          </div>
+          <div class="control">
+            <span class="icon-text">
+              <span class="has-text-weight-semibold">@total</span>
+              <span class="icon">
+                <i class="material-icons-outlined has-text-warning">star</i>
+              </span>
+            </span>
+          </div>
+        </div>
+        <div class="buttons is-right">
+          <a class="button is-link mr-0" @onclick="Update">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">account_balance_wallet</i>
+            </span>
+            <span>Mua ngay</span>
+          </a>
+        </div>
+      }
+      else
+      {
+        <div class="py-3">Bạn chưa chọn sản phẩm nào</div>
+      }
+    </div>
+  </div>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Cửa hàng đổi quà";
+
+  private UserModel User = new();
+  private List<GiftBannerModel> banners = new();
+  private List<GiftProductModel> products = new();
+  private List<GiftExchangeModel> buyList = new();
+  private List<string> buyCheck = new();
+  private List<string> buyNote = new();
+  private int filterCount = 0;
+  private int filterCategory = 0;
+
+  private string buyId = string.Empty;
+  private string userGive = string.Empty;
+  private string note = string.Empty;
+  private bool isGift = false;
+  private int quantity = 1;
+  private int total = 0;
+
+  private List<UserModel> userSuggests = new();
+  private string filterUser = string.Empty;
+
+  protected override async Task OnInitializedAsync()
+  {
+    User = await DbUser.Get(Layout.Company.id, Layout.User.id);
+    banners = await DbGiftBanner.GetList(Layout.Company.id, null, null);
+    products = await DbGiftProduct.GetListShow(Layout.Company.id);
+
+    filterCount = filterCount > products.Count ? products.Count : 5;
+
+    await OnLoad();
+  }
+
+  protected override void OnAfterRender(bool firstRender)
+  {
+    _message = string.Empty;
+  }
+
+  private async Task OnLoad()
+  {
+    buyList = await DbGiftExchange.GetListBuy(Layout.Company.id, User.id, false);
+    buyCheck = (from x in buyList select x.id).ToList();
+
+    total = (from x in buyList where buyCheck.Contains(x.id) select x.price * x.quantity).Sum();
+
+    _loaded = true;
+  }
+
+  private async Task BannerClick(GiftBannerModel banner)
+  {
+    var list = await DbGiftProduct.GetListShow(Layout.Company.id);
+    if (!string.IsNullOrEmpty(banner.products))
+    {
+      products.Clear();
+      var keys = banner.products.Split(",");
+      foreach (var item in list)
+      {
+        foreach (var key in keys)
+        {
+          if (item.name.ToLower().Contains(key.Trim()))
+          {
+            products.Add(item);
+            break;
+          }
+        }
+      }
+    }
+    else
+      products = list;
+    filterCount = products.Count;
+  }
+
+  private async Task CategoryClick(int category)
+  {
+    if (filterCategory == category)
+      filterCategory = 0;
+    else
+      filterCategory = category;
+
+    var list = await DbGiftProduct.GetListShow(Layout.Company.id);
+    if (filterCategory != 0)
+      products = list.Where(x => x.category == category).ToList();
+    else
+      products = list;
+    filterCount = products.Count;
+  }
+
+  private async Task AddItem(GiftProductModel product)
+  {
+    var item = new GiftExchangeModel()
+      {
+        id = Mongo.RandomId(),
+        user_buy = User.id,
+        user_give = isGift ? userGive : User.id,
+        product = product.id,
+        name = product.name,
+        image = string.IsNullOrEmpty(product.image) ? "/images/default.jpg" : product.image,
+        price = product.price_sale > 0 ? product.price_sale : product.price_list,
+        quantity = quantity,
+        note = note
+      };
+    await DbGiftExchange.Create(Layout.Company.id, item);
+
+    buyList.Insert(0, item);
+    buyCheck.Add(item.id);
+    total = (from x in buyList where buyCheck.Contains(x.id) select x.price * x.quantity).Sum();
+
+    buyId = string.Empty;
+    filterUser = string.Empty;
+    userGive = string.Empty;
+    isGift = false;
+    quantity = 1;
+    note = string.Empty;
+  }
+
+  private void ChangeBuy(string id)
+  {
+    if (buyCheck.Contains(id))
+      buyCheck.Remove(id);
+    else
+      buyCheck.Add(id);
+
+    total = (from x in buyList where buyCheck.Contains(x.id) select x.price * x.quantity).Sum();
+  }
+
+  private async Task DeleteItem(GiftExchangeModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {item.name}?"))
+      return;
+
+    buyList.Remove(item);
+    buyCheck.Remove(item.id);
+    await DbGiftExchange.Delete(Layout.Company.id, item.id);
+
+    total = (from x in buyList where buyCheck.Contains(x.id) select x.price * x.quantity).Sum();
+  }
+
+  private async Task NoteItem(GiftExchangeModel item)
+  {
+    await DbGiftExchange.Update(Layout.Company.id, item);
+    buyNote.Remove(item.id);
+  }
+
+  private string UserSearch
+  {
+    get => filterUser;
+    set
+    {
+      filterUser = value;
+      userGive = string.Empty;
+      userSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in Layout.UserList)
+        {
+          if (Handled.Shared.SearchKeyword(filterUser, item.FullName))
+            userSuggests.Add(item);
+        }
+      }
+    }
+  }
+
+  private void SelectUser(UserModel user)
+  {
+    filterUser = user.FullName;
+    userGive = user.id;
+    userSuggests = new();
+  }
+
+  private async Task Update()
+  {
+    if (buyCheck.Count == 0)
+    {
+      _message = "Bạn chưa chọn sản phẩm nào để đổi sao!";
+    }
+    else if (total > User.star_total)
+    {
+      _message = "Bạn không đủ sao để đổi các quà này!";
+    }
+    else
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn mua {buyCheck.Count} sản phẩm đã chọn?"))
+        return;
+
+      foreach (var item in buyList)
+      {
+        if (buyCheck.Contains(item.id))
+        {
+          item.buy = true;
+          item.status = 1;
+          await DbGiftExchange.Update(Layout.Company.id, item);
+
+          // Gửi thông báo chuông
+          var managerList = await DbUser.GetManager(Layout.Company.id, false);
+          foreach (var user in managerList)
+          {
+            if ((user.role == 1 && user.noti_store) || (user.role == 2 && user.role_manage.store))
+              await DbNotify.Create(Layout.Company.id, 300, item.id, user.id, item.user_buy);
+          }
+        }
+      }
+
+      User.star_total -= total;
+      User = await DbUser.Update(Layout.Company.id, User);
+
+      await OnLoad();
+
+      _message = "Bạn đã đổi quà thành công, vui lòng chờ quản lý duyệt. Bạn có thể kiểm tra trạng thái trong mục Lịch sử đổi quà.";
+      _success = true;
+    }
+
+    await Task.Delay(10000);
+    _message = string.Empty;
+  }
+}

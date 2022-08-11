@@ -1,0 +1,169 @@
+﻿@page "/admin/config/promotions"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="px-4">
+  <ul class="menu_bar mb-4">
+    <li>
+      <a class="icon-text has-text-white" href="/admin/config/products">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">apps</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Sản phẩm</span>
+      </a>
+    </li>
+    <li>
+      <a class="icon-text has-text-white is-active" href="/admin/config/promotions">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">auto_awesome</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Ưu đãi</span>
+      </a>
+    </li>
+    <li>
+      <a class="icon-text has-text-white" href="/admin/config/users">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">account_circle</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Tài khoản admin</span>
+      </a>
+    </li>
+    <li>
+      <a class="icon-text has-text-white" href="/admin/config/banners">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">celebration</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Banner quảng cáo</span>
+      </a>
+    </li>
+  </ul>
+
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-4">
+    <li class="column">
+      <h1 class="title is-5">
+        @_title
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <a class="icon-text has-text-link" @onclick="() => EditItem(null)">
+        <span class="icon">
+          <i class="material-icons-outlined">add</i>
+        </span>
+        <span class="is-size-7 has-text-weight-medium">Tạo ưu đãi</span>
+      </a>
+    </li>
+  </ul>
+
+  <table class="table is-fullwidth is-vcentered is-responsive is_head_bg is-size-7">
+    <thead>
+      <tr>
+        <th width="20%">Tiêu đề</th>
+        <th width="15%">Loại ưu đãi</th>
+        <th width="15%">Ưu đãi (%)</th>
+        <th>Điều kiện áp dụng</th>
+        <th width="80px" align="center">Xử lý</th>
+      </tr>
+    </thead>
+    <tbody class="has-text-weight-medium">
+      @foreach (var item in dataList)
+      {
+        <tr>
+          <td>
+            <label class="td-label">Tiêu đề</label>
+            <div class="td-value has-text-weight-bold">
+              @item.title
+            </div>
+          </td>
+          <td>
+            <label class="td-label">Loại ưu đãi</label>
+            <div class="td-value">
+              @(item.type == 1 ? "Thời gian" : "Người dùng")
+            </div>
+          </td>
+          <td>
+            <label class="td-label">Ưu đãi</label>
+            <div class="td-value">
+              @item.discount%
+            </div>
+          </td>
+          <td>
+            <label class="td-label">Điều kiện</label>
+            <div class="td-value">
+              @item.condition @(item.type == 1 ? "tháng" : "người")
+            </div>
+          </td>
+          <td align="center">
+            <label class="td-label">Xử lý</label>
+            <div class="td-value">
+              <a class="icon has-text-dark" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                <i class="material-icons-round is-size-6">edit</i>
+              </a>
+              <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                <i class="material-icons-round is-size-6">delete</i>
+              </a>
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  @if (dataList.Count == 0)
+  {
+    <div class="has-text-grey has-text-centered py-6">
+      Không tìm thấy dữ liệu phù hợp
+    </div>
+  }
+</section>
+
+<_PromotionEdit model="model" OnUpdate="OnUpdate" />
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+
+  private string _title = "Ưu đãi";
+  private List<PromotionModel> dataList = new();
+  private PromotionModel model = null;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await GetList();
+  }
+
+  private async Task GetList()
+  {
+    dataList = await DbMainPromotion.GetList();
+  }
+
+  private async Task DeleteItem(PromotionModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa ưu đãi {item.title} ?"))
+      return;
+
+    dataList.Remove(item);
+    await DbMainPromotion.Delete(item.id);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa ưu đãi: " + item.title);
+  }
+
+  private async Task EditItem(PromotionModel item)
+  {
+    if (item == null)
+      model = new PromotionModel() { type = 1, condition = 1, discount = 5 };
+    else
+      model = await DbMainPromotion.Get(item.id);
+  }
+
+  private async Task OnUpdate(bool isUpdate)
+  {
+    if (isUpdate)
+    {
+      var message = string.IsNullOrEmpty(model.id) ? "Đã tạo ưu đãi thành công!" : "Đã cập nhật ưu đãi thành công!";
+      await JSRuntime.InvokeVoidAsync("tagline", true, message);
+      await GetList();
+    }
+    model = null;
+  }
+}

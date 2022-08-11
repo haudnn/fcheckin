@@ -1,0 +1,473 @@
+﻿@page "/config/system/user/add"
+@page "/config/system/user/edit/{Id}"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+@if (Layout.User.role != 1 && !Layout.User.role_manage.system)
+{
+  <PopupNoRole />
+}
+else if (Layout.User.role == 2 && user.role == 1)
+{
+  <PopupNoRole />
+}
+else
+{
+  <section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+    <div class="column is-narrow">
+      <div class="card p-3 menu_left">
+        <a href="/config/system/department/list">
+          Phòng ban
+        </a>
+        <a class="is-active" href="/config/system/user/list">
+          Nhân sự
+        </a>
+        <a href="/config/system/dayoff">
+          Thiết lập ngày nghỉ
+        </a>
+      </div>
+    </div>
+    <div class="column">
+      <div class="card p-5">
+        <ul class="columns is-vcentered">
+          <li class="column is-narrow">
+            <h1 class="title is-5 has-text-info is-uppercase">
+              @(string.IsNullOrEmpty(user.id) ? "Tạo tài khoản mới" : "Thông tin tài khoản")
+            </h1>
+          </li>
+        </ul>
+        <form @onsubmit="Update">
+          <ul class="columns is-multiline">
+            <li class="column is-full">
+              <div class="field">
+                <label class="label">Địa chỉ email *</label>
+                <div class="control">
+                  @if (string.IsNullOrEmpty(user.id))
+                  {
+                    <input @onchange="ChangeEmail" value="@email" type="email" class="input" 
+                      placeholder="Email sẽ dùng để đăng nhập..." />
+                  }
+                  else
+                  {
+                    <input @bind="user.email" type="email" class="input" readonly />
+                  }
+                </div>
+              </div>
+            </li>
+            @if(string.IsNullOrEmpty(user.id))
+            {
+              <li class="@(exist ? "is-hidden" : "column is-full")">
+                <div class="field">
+                  <label class="label">Mật khẩu</label>
+                  <div class="control">
+                    <input @bind="password" type="text" class="input" />
+                  </div>
+                </div>
+              </li>
+            }
+            <li class="column is-half">
+              <div class="field">
+                <label class="label">Họ *</label>
+                <div class="control">
+                  <input @bind="user.last_name" type="text" class="input" />
+                </div>
+              </div>
+            </li>
+            <li class="column is-half">
+              <div class="field">
+                <label class="label">Tên *</label>
+                <div class="control">
+                  <input @bind="user.first_name" type="text" class="input" />
+                </div>
+              </div>
+            </li>
+            <li class="column is-half">
+              <div class="field">
+                <label class="label">Hình đại diện</label>
+                <div class="field has-addons">
+                  <div class="control">
+                    <a class="image is-square">
+                      <img src="@user.avatar" alt="IMG">
+                    </a>
+                  </div>
+                  <div class="control is-expanded">
+                    <InputFile OnChange="Upload" accept="image/*" class="input" />
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li class="column is-half">
+              <div class="field">
+                <label class="label">Quyền hạn *</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select @onchange="ChangeRole">
+                      @foreach (var sl in DbUser.Role())
+                      {
+                        if (user.role == sl.id)
+                        {
+                          <option value="@sl.id" selected>@sl.name</option>
+                        }
+                        else
+                        {
+                          <option value="@sl.id">@sl.name</option>
+                        }
+                      }
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </li>
+            @*<li class="column is-full">
+              <div class="field">
+                <div class="control">
+                  <label class="checkbox">
+                    <input type="checkbox" @bind="user.no_report" />
+                    <span class="has-text-weight-bold has-text-link">KHÔNG THỐNG KÊ</span>
+                  </label>
+                </div>
+                <div class="control has-text-grey mt-2">
+                  Tất cả chỉ số của người dùng này sẽ không được tính vào thống kê
+                </div>
+              </div>
+            </li>*@
+            <li class="column is-full">
+              @if (user.role == 1)
+              {
+                <hr class="mt-0" />
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.noti_store" />
+                      <span class="has-text-weight-bold has-text-link">THÔNG BÁO ĐỔI QUÀ</span>
+                    </label>
+                  </div>
+                  <div class="control has-text-grey mt-2">
+                    Nhận thông báo khi có người yêu cầu <b>Đổi quà</b>
+                  </div>
+                </div>
+              }
+              else if (user.role == 2)
+              {
+                <hr class="mt-0" />
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.role_manage.system" />
+                      <span class="has-text-weight-bold has-text-link">CƠ CẤU</span>
+                    </label>
+                  </div>
+                  <div class="control has-text-grey mt-2">
+                    Truy cập tất cả chức năng trong trang <b>Cấu hình - Cơ cấu</b> bao gồm:
+                    <b>Phòng ban, Nhân sự, Thiết lập ngày nghỉ</b>
+                  </div>
+                </div>
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.role_manage.okrs" />
+                      <span class="has-text-weight-bold has-text-link">OKRs - CFRs</span>
+                    </label>
+                  </div>
+                  <div class="control has-text-grey mt-2">
+                    Truy cập tất cả chức năng trong trang <b>Cấu hình - OKRs-CFRs</b> bao gồm:
+                    <b>Đơn vị tính, Chu kỳ OKRs, Phiếu góp ý, Tiêu chí đánh giá, Cấp sao</b>
+                  </div>
+                </div>
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.role_manage.kaizen" />
+                      <span class="has-text-weight-bold has-text-link">KAIZEN</span>
+                    </label>
+                  </div>
+                  <div class="control has-text-grey mt-2">
+                    Truy cập tất cả chức năng trong trang <b>Cấu hình - Kaizen</b>
+                    <br />
+                    Truy cập tất cả chức năng nâng cao tại trang <b>Kaizen</b> bao gồm:
+                    <b>Xóa góp ý Kaizen, Đánh giá quản lý cho góp ý Kaizen, Ghim, Xóa phản hồi Kaizen</b>
+                  </div>
+                </div>
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.role_manage.educate" />
+                      <span class="has-text-weight-bold has-text-link">ĐÀO TẠO</span>
+                    </label>
+                  </div>
+                  <div class="control has-text-grey mt-2">
+                    Truy cập tất cả chức năng trong trang <b>Cấu hình - Đào tạo</b> bao gồm:
+                    <b>Danh mục, Mẫu chứng chỉ</b>
+                    <br />
+                    Truy cập, chỉnh sửa tất cả các khóa học tại trang <b>Đào tạo - Quản lý khóa học</b>
+                  </div>
+                </div>
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.role_manage.store" />
+                      <span class="has-text-weight-bold has-text-link">ĐỔI QUÀ</span>
+                    </label>
+                  </div>
+                  <div class="control has-text-grey mt-2">
+                    Truy cập tất cả chức năng trong trang <b>Cấu hình - Đổi quà</b> bao gồm:
+                    <b>Cửa hàng, Đơn hàng, Ưu đãi</b>
+                  </div>
+                </div>
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.role_manage.other" />
+                      <span class="has-text-weight-bold has-text-link">TIỆN ÍCH</span>
+                    </label>
+                  </div>
+                  <div class="control has-text-grey mt-2">
+                    Truy cập tất cả chức năng trong trang <b>Cấu hình - Tiện ích</b> bao gồm:
+                    <b>Banner, Điểm tin, Châm ngôn, Thành tựu</b>
+                  </div>
+                </div>
+                <hr class="mb-0" />
+              }
+            </li>
+          </ul>
+          <div class="field mt-5">
+            <div class="buttons is-right">
+              <a class="button" onclick="goBack()">
+                <span>Quay lại</span>
+              </a>
+              @if (string.IsNullOrEmpty(user.id))
+              {
+                <a class="button is-link" @onclick="Update">
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6">add</i>
+                  </span>
+                  <span>Thêm mới</span>
+                </a>
+              }
+              else
+              {
+                <a class="button is-link" @onclick="Update">
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6">done</i>
+                  </span>
+                  <span>Cập nhật</span>
+                </a>
+              }
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  [Parameter]
+  public string Id { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Thông tin tài khoản";
+
+  private UserModel user = new();
+  private string password = string.Empty;
+  private string email = string.Empty;
+  private bool exist = false;
+  
+  protected override async Task OnParametersSetAsync()
+  {
+    await OnLoad();
+    _loaded = true;
+  }
+
+  private async Task OnLoad()
+  {
+    user = await DbUser.Get(Layout.Company.id, Id);
+    if (user == null)
+    {
+      _title = "Tạo tài khoản mới";
+      user = new() { companys = new(), role_manage = new(), role = 3, active = true };
+      user.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
+      password = string.Empty;
+      email = string.Empty;
+      exist = false;
+    }
+    else
+    {
+      _title = "Thông tin tài khoản";
+      if (user.role_manage == null)
+        user.role_manage = new();
+    }
+  }
+
+  private async Task ChangeEmail(ChangeEventArgs e)
+  {
+    email = e.Value.ToString().Trim();
+    user.email = email;
+    // Kiểm tra tài khoản
+    var checkUser = await DbMainUser.GetbyEmail(email);
+    if (checkUser != null)
+    {
+      var companyUser = await DbUser.Get(Layout.Company.id, checkUser.id);
+      if(companyUser != null)
+      {
+        navigation.NavigateTo("/config/system/user/edit/" + checkUser.id);
+      }
+      else
+      {
+        user.first_name = checkUser.first_name;
+        user.last_name = checkUser.last_name;
+        user.avatar = checkUser.avatar;
+        exist = true;
+      }
+    }
+    else
+      exist = false;
+  }
+
+  private void ChangeRole(ChangeEventArgs e)
+  {
+    user.role = Convert.ToInt32(e.Value);
+    if (user.role == 1)
+    {
+      user.role_manage.system = true;
+      user.role_manage.okrs = true;
+      user.role_manage.kaizen = true;
+      user.role_manage.educate = true;
+      user.role_manage.store = true;
+      user.role_manage.other = true;
+    }
+    else if (user.role == 3)
+    {
+      user.role_manage.system = false;
+      user.role_manage.okrs = false;
+      user.role_manage.kaizen = false;
+      user.role_manage.educate = false;
+      user.role_manage.store = false;
+      user.role_manage.other = false;
+    }
+  }
+
+  private async Task Upload(InputFileChangeEventArgs e)
+  {
+    foreach (var file in e.GetMultipleFiles())
+    {
+      _success = false;
+      _message = "Đang upload file lên...";
+
+      try
+      {
+        if (file.Size <= Layout.MaxFileSize)
+        {
+          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
+
+          var fileLink = await Files.SaveFileAsync(fileContent, file.Name);
+
+          user.avatar = fileLink;
+          _message = string.Empty;
+        }
+        else
+        {
+          _success = false;
+          _message = $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB";
+        }
+      }
+      catch (Exception ex)
+      {
+        _success = false;
+        _message = $"ERROR: {ex.Message}";
+      }
+    }
+  }
+
+  private async Task Update()
+  {
+    _success = false;
+    _message = string.Empty;
+
+    if (string.IsNullOrEmpty(user.email) || !user.email.Contains("@"))
+    {
+      _message = "Bạn chưa nhập địa chỉ email, hoặc địa chỉ email không đúng !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else if (string.IsNullOrEmpty(user.first_name) || string.IsNullOrEmpty(user.last_name))
+    {
+      _message = "Bạn chưa nhập họ và tên cho tài khoản !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else if (string.IsNullOrEmpty(user.id) && string.IsNullOrEmpty(password) && !exist)
+    {
+      _message = "Bạn chưa nhật mật khẩu cho tài khoản !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else
+    {
+      if (string.IsNullOrEmpty(user.id))
+      {
+        user.email = user.email.Trim();
+        // Kiểm tra tài khoản
+        var checkUser = await DbMainUser.GetbyEmail(user.email);
+        if (checkUser == null)
+        {
+          user.password = password;
+          checkUser = await DbMainUser.Create(user);
+        }
+
+        // Tạo User của công ty
+        var checkEmail = await DbUser.GetDelete(Layout.Company.id, null, user.email);
+        if (checkEmail != null)
+        {
+          user = checkEmail;
+          user.active = true;
+          user.delete = false;
+          await DbUser.Update(Layout.Company.id, user);
+        }
+        else
+        {
+          user.id = checkUser.id;
+          user.active = true;
+          await DbUser.Create(Layout.Company.id, user);
+        }
+
+        // Liên kết Users → Company
+        checkUser.active = true;
+        checkUser.companys = checkUser.companys == null ? new() : checkUser.companys;
+        checkUser.companys.Add(new UserModel.Company { id = Layout.Company.id, name = Layout.Company.name });
+        await DbMainUser.Update(checkUser);
+
+        _message = $"Đã tạo tài khoản: {user.email}<br/>Bạn có thể tiếp tục tạo thêm tài khoản.";
+        _success = true;
+
+        await OnLoad();
+      }
+      else
+      {
+        user = await DbUser.Update(Layout.Company.id, user);
+        // Cập nhật cho tất cả database
+        user = await DbMainUser.Update(user);
+
+        _message = "Đã cập nhật thông tin thành công !";
+        _success = true;
+      }
+    }
+  }
+}

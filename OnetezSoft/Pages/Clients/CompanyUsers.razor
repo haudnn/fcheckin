@@ -1,0 +1,373 @@
+@page "/client/companys/{Id}/users"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (company != null && company.admin_id == Layout.User.id)
+{
+  <section class="px-4">
+    <ul class="menu_bar mb-4">
+      <li>
+        <a class="icon-text has-text-white" href="/client/companys/@company.id/products">
+          <span class="icon">
+            <i class="material-icons-round is-size-5">apps</i>
+          </span>
+          <span class="is-size-7 has-text-weight-bold">Sản phẩm</span>
+        </a>
+      </li>
+      <li>
+        <a class="icon-text has-text-white is-active" href="/client/companys/@company.id/users">
+          <span class="icon">
+            <i class="material-icons-round is-size-5">group_add</i>
+          </span>
+          <span class="is-size-7 has-text-weight-bold">Người dùng</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="mb-4">
+      <_CompanyInfo company="company" members="members" products="productList" />
+    </div>
+
+    <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
+      <li class="column">
+        <h1 class="title is-5">@_title</h1>
+      </li>
+      <li class="column is-narrow">
+        <div class="control has-icons-left">
+          <div class="select is-small has-text-weight-medium">
+            <select @onchange="FilterProduct">
+              <option value="">Sản phẩm</option>
+              @foreach (var sl in company.products)
+              {
+                <option value="@sl.id">@sl.title</option>
+              }
+            </select>
+          </div>
+          <span class="icon is-left has-text-dark">
+            <i class="material-icons-round is-size-6">filter_list</i>
+          </span>
+        </div>
+      </li>
+      <li class="column is-narrow">
+        <div class="control has-icons-left">
+          <div class="select is-small has-text-weight-medium">
+            <select @onchange="FilterRole">
+              <option value="0">Quyền hạn</option>
+              @foreach (var sl in DbUser.Role())
+              {
+                <option value="@sl.id">@sl.name</option>
+              }
+            </select>
+          </div>
+          <span class="icon is-left has-text-dark">
+            <i class="material-icons-round is-size-6">filter_list</i>
+          </span>
+        </div>
+      </li>
+      <li class="column is-narrow">
+        <div class="control has-icons-left">
+          <div class="select is-small has-text-weight-medium">
+            <select @onchange="FilterStatus">
+              <option value="0">Trạng thái</option>
+              <option value="1">Đang hoạt động</option>
+              <option value="2">Dừng hoạt động</option>
+            </select>
+          </div>
+          <span class="icon is-left has-text-dark">
+            <i class="material-icons-round is-size-6">filter_list</i>
+          </span>
+        </div>
+      </li>
+      <li class="column is-narrow">
+        <div class="control is-expanded has-icons-left" style="width: 200px;">
+          <input @bind="filterKey" @onkeyup="ChangeKeyword" type="text" class="input is-small"
+          placeholder="Email, họ và tên..." />
+          <span class="icon is-left has-text-dark">
+            <i class="material-icons-round is-size-6">search</i>
+          </span>
+        </div>
+      </li>
+      <li class="column is-narrow">
+        <span class="is-size-4 has-text-grey-lighter">|</span>
+      </li>
+      <li class="column is-narrow">
+        <div class="control has-icons-left">
+          <div class="select is-small has-text-weight-medium">
+            <select @onchange="ChangeSort">
+              <option value="">Sắp xếp</option>
+              <option value="role">Quyền hạn</option>
+              <option value="online">Truy cập</option>
+              <option value="name">Tên tài khoản</option>
+            </select>
+          </div>
+          <span class="icon is-left has-text-dark">
+            <i class="material-icons-round is-size-6">sort</i>
+          </span>
+        </div>
+      </li>
+    </ul>
+
+    <table class="table is-fullwidth is-vcentered is-responsive is-hoverable is_head_bg is-size-7">
+      <thead>
+        <tr>
+          <th width="25%">Tài khoản</th>
+          <th>Quyền hạn</th>
+          @foreach (var product in company.products.Where(x => x.active))
+          {
+            <th width="120px">
+              @product.title - @product.used/@product.total
+            </th>
+          }
+          <th width="100px" align="center">Truy cập</th>
+          <th width="100px" align="center">Trạng thái</th>
+          <th width="80px" align="center">Xử lý</th>
+        </tr>
+      </thead>
+      <tbody class="has-text-weight-medium">
+        @foreach (var item in dataList)
+        {
+          <tr>
+            <td>
+              <a class="user_item has-text-dark" @onclick="() => EditItem(item)">
+                <img class="image is-32x32 mr-2" src="@item.avatar" alt="IMG" />
+                <div>
+                  <p>@item.email</p>
+                  <p>@item.FullName</p>
+                </div>
+              </a>
+            </td>
+            <td>
+              @if (item.role != 3)
+              {
+                var role = DbUser.Role(item.role);
+                <span class="tag @role.color">@role.name</span>
+              }
+            </td>
+            @foreach (var product in company.products.Where(x => x.active))
+            {
+              var access = ProductService.CheckAccess(item.products, product.id);
+              <td align="center">
+                <a class="icon" @onclick="() => AccessProduct(item, product)">
+                  <i class="material-icons-round is-size-5 has-text-@(access ? "success" : "grey")">
+                    toggle_@(access ? "on" : "off")
+                  </i>
+                </a>
+              </td>
+            }
+            <td align="center">
+              @if (item.online > 0)
+              {
+                <span class="text_inline">
+                  @Handled.Shared.ConvertDate(new DateTime(item.online)).Replace(" trước", "")
+                </span>
+              }
+            </td>
+            <td align="center">
+              <a class="icon" @onclick="() => ActiveItem(item)">
+                <i class="material-icons-round is-size-5 has-text-@(item.active ? "success" : "grey")">
+                  toggle_@(item.active ? "on" : "off")
+                </i>
+              </a>
+            </td>
+            <td align="center">
+              <a class="icon has-text-dark" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                <i class="material-icons-round is-size-6">edit</i>
+              </a>
+              <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                <i class="material-icons-round is-size-6">delete</i>
+              </a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (dataList.Count == 0)
+    {
+      <div class="has-text-grey has-text-centered py-6">
+        Không tìm thấy dữ liệu phù hợp
+      </div>
+    }
+  </section>
+}
+else
+{
+  <section class="p-4">
+    <div class="has-text-grey has-text-centered py-6">
+      Dữ liệu không tồn tại hoặc đã xóa
+    </div>
+  </section>
+}
+
+<_StaffEdit model="model" company="company" OnUpdate="OnUpdate" />
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+
+  [Parameter]
+  public string Id { get; set; }
+
+  private string _title = "Người dùng sản phẩm";
+  private CompanyModel company = null;
+  private List<UserModel> members = new();
+  private List<ProductModel> productList = new();
+  private List<UserModel> dataList = new();
+  private UserModel model = null;
+  private string filterKey = string.Empty;
+  private string filterSort = string.Empty;
+  private string filterProduct = string.Empty;
+  private int filterStatus = 0;
+  private int filterRole = 0;
+
+  protected override async Task OnInitializedAsync()
+  {
+    company = await DbMainCompany.Get(Id);
+    if (company != null)
+    {
+      members = DbUser.GetAll(company.id);
+      productList = await DbMainProduct.GetList();
+
+      // Cập nhật số lượng người dùng
+      company.members = members.Count;
+      await DbMainCompany.Update(company);
+
+      await GetList();
+    }
+  }
+
+  private async Task FilterProduct(ChangeEventArgs e)
+  {
+    filterProduct = e.Value.ToString();
+    await GetList();
+  }
+
+  private async Task FilterRole(ChangeEventArgs e)
+  {
+    filterRole = Convert.ToInt32(e.Value);
+    await GetList();
+  }
+
+  private async Task FilterStatus(ChangeEventArgs e)
+  {
+    filterStatus = Convert.ToInt32(e.Value);
+    await GetList();
+  }
+
+  private async Task ChangeSort(ChangeEventArgs e)
+  {
+    filterSort = e.Value.ToString();
+    await GetList();
+  }
+
+  private async Task ChangeKeyword(KeyboardEventArgs args)
+  {
+    if (args.Key == "Enter")
+    {
+      await GetList();
+    }
+    else if (args.Key == "Escape")
+    {
+      filterKey = string.Empty;
+      await GetList();
+    }
+  }
+
+  private async Task GetList()
+  {
+    dataList = await DbUser.GetList(company.id, filterKey, null, filterStatus);
+    if (!string.IsNullOrEmpty(filterProduct))
+      dataList = dataList.Where(x => x.products.Contains(filterProduct)).ToList();
+    if (filterRole != 0)
+      dataList = dataList.Where(x => x.role == filterRole).ToList();
+    if (filterSort == "online")
+      dataList = dataList.OrderByDescending(x => x.online).ToList();
+    else if (filterSort == "name")
+      dataList = dataList.OrderBy(x => x.first_name).ToList();
+    else
+      dataList = dataList.OrderBy(x => x.role).ToList();
+  }
+
+  private async Task AccessProduct(UserModel item, CompanyModel.Product product)
+  {
+    if (item.active)
+    {
+      var access = ProductService.CheckAccess(item.products, product.id);
+      if (access)
+      {
+        // Có quyền rồi → Thì xóa
+        item.products.Remove(product.id);
+        await DbUser.Update(company.id, item);
+      }
+      else if (product.used < product.total)
+      {
+        // Chưa có → Thì thêm quyền sử dụng
+        item.products.Add(product.id);
+        await DbUser.Update(company.id, item);
+      }
+      else
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Đã hết số lượng người dùng sản phẩm " + product.title);
+      }
+      company = await CompanyService.UpdateProductAccess(company.id);
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Người dùng này đã bị vô hiệu hóa.");
+  }
+
+  private async Task ActiveItem(UserModel item)
+  {
+    // Xóa quyền dùng sản phẩm khi hủy kích hoạt
+    if (item.active)
+      item.products = new();
+    item.active = !item.active;
+    await DbUser.Update(company.id, item);
+    company = await CompanyService.UpdateProductAccess(company.id);
+  }
+
+  private async Task EditItem(UserModel item)
+  {
+    model = await DbUser.Get(company.id, item.id);
+  }
+
+  private async Task DeleteItem(UserModel item)
+  {
+    if (item.role == 1)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể xóa tài khoản Admin");
+    }
+    else
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?"))
+        return;
+
+      // Xóa trong databse tổ chức
+      item.delete = true;
+      await DbUser.Update(company.id, item);
+      dataList.Remove(item);
+
+      // Cập nhật trong database chính
+      var user = await DbMainUser.Get(item.id);
+      if (user != null && user.companys != null)
+      {
+        user.companys.RemoveAll(x => x.id == company.id);
+        await DbMainUser.Update(user);
+      }
+
+      company = await CompanyService.UpdateProductAccess(company.id);
+    }
+  }
+
+  private async Task OnUpdate(bool isUpdate)
+  {
+    if (isUpdate)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin tài khoản NDSP!");
+      await GetList();
+    }
+    model = null;
+    company = await CompanyService.UpdateProductAccess(company.id);
+  }
+}

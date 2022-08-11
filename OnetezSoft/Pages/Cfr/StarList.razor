@@ -1,0 +1,43 @@
+﻿@page "/cfr/star"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="p-4">
+  <ul class="columns is-multiline">
+    <li class="column is-half">
+      <_StarCreate departments="@departments" User="@User" />
+    </li>
+
+    <li class="column is-half">
+      <_StarLogs departments="@departments" />
+    </li>
+
+    <li class="column is-half">
+      <_StarChart />
+    </li>
+
+    <li class="column is-half">
+      <_StarRank departments="@departments" />
+    </li>
+  </ul>
+</section>
+
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private string _title = "CFRs - Ghi nhận & Tặng sao";
+
+  private UserModel User = new();
+  private List<DepartmentModel.SelectList> departments = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+
+    User = await DbUser.Get(Layout.Company.id, Layout.User.id);
+  }
+}

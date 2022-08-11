@@ -1,0 +1,232 @@
+@page "/admin/transactions/cashout"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="px-4">
+  <ul class="menu_bar mb-4">
+    <li>
+      <a class="icon-text has-text-white" href="/admin/transactions/requests">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">request_quote</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Yêu cầu nạp tiền</span>
+      </a>
+    </li>
+    <li>
+      <a class="icon-text has-text-white" href="/admin/transactions/purchase">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">shopping_bag</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Lệnh mua sản phẩm</span>
+      </a>
+    </li>
+    <li>
+      <a class="icon-text has-text-white" href="/admin/transactions/recharge">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">add</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Nạp tiền</span>
+      </a>
+    </li>
+    <li>
+      <a class="icon-text has-text-white is-active" href="/admin/transactions/cashout">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">remove</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Rút tiền</span>
+      </a>
+    </li>
+    <li class="is-right">
+      <div class="icon-text has-text-white py-0">
+        <span class="icon mr-3">
+          <i class="material-icons-round is-size-3">account_balance_wallet</i>
+        </span>
+        <div class="has-text-centered" style="line-height: 1.4;">
+          <span class="is-size-7 is-block">Tổng hệ thống rút</span>
+          <span class="font_14 is-block has-text-weight-bold">
+            @string.Format("{0:0,0} VNĐ", totalMoney)
+          </span>
+        </div>
+      </div>
+    </li>
+  </ul>
+
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-4">
+    <li class="column">
+      <h1 class="title is-5">
+        @_title
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <div class="control has-icons-left">
+        <div class="select is-small has-text-weight-medium">
+          <select @onchange="FilterTimes">
+            <option value="0">Thời gian</option>
+            <option value="2">Tháng này</option>
+            <option value="22">Tháng trước</option>
+            <option value="5">3 tháng trước</option>
+            <option value="6">6 tháng trước</option>
+          </select>
+        </div>
+        <span class="icon is-left has-text-dark">
+          <i class="material-icons-round is-size-6">filter_list</i>
+        </span>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <div class="control has-icons-left" style="width: 180px;">
+        <div class="input is-small">
+          <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE" OnRangeSelect="FilterDates" />
+        </div>
+        <span class="icon is-left has-text-grey">
+          <i class="material-icons-round is-size-6">calendar_today</i>
+        </span>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <div class="control is-expanded has-icons-left" style="width: 230px;">
+        <input @bind="filterKeyword" @onkeyup="ChangeKeyword" type="text" class="input is-small" 
+          placeholder="Email, họ và tên KH, mã giao dịch..." />
+        <span class="icon is-left has-text-dark">
+          <i class="material-icons-round is-size-6">search</i>
+        </span>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <span class="is-size-4 has-text-grey-lighter">|</span>
+    </li>
+    <li class="column is-narrow">
+      <a class="icon-text has-text-link" @onclick="AddItem">
+        <span class="icon">
+          <i class="material-icons-outlined">remove</i>
+        </span>
+        <span class="is-size-7 has-text-weight-medium">Rút tiền khách hàng</span>
+      </a>
+    </li>
+  </ul>
+
+  <table class="table is-fullwidth is-vcentered is-hoverable is_head_bg is-size-7">
+    <thead>
+      <tr>
+        <th width="10%">Mã giao dịch</th>
+        <th width="10%">Thời gian</th>
+        <th width="20%">Khách hàng</th>
+        <th width="20%">Người thực hiện</th>
+        <th width="12%">Số tiền</th>
+        <th>Nội dung</th>
+      </tr>
+    </thead>
+    <tbody class="has-text-weight-medium">
+      @foreach (var item in dataList)
+      {
+        <tr>
+          <td>
+            <span>@item.id</span>
+          </td>
+          <td>
+            <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))</span>
+          </td>
+          <td>
+            <div class="user_item has-text-dark">
+              <img class="image is-32x32 mr-2" src="@item.customer.avatar" alt="IMG" />
+              <div>
+                <p>@item.customer.email</p>
+                <p>@item.customer.name</p>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="user_item has-text-dark">
+              <img class="image is-32x32 mr-2" src="@item.creator.avatar" alt="IMG" />
+              <div>
+                <p>@item.creator.email</p>
+                <p>@item.creator.name</p>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="has-text-weight-bold">@string.Format("{0:0,0} VNĐ", item.money)</span>
+          </td>
+          <td>
+            @((MarkupString)Shared.TextToHtml(item.content))
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  @if (dataList.Count == 0)
+  {
+    <div class="has-text-grey has-text-centered py-5">
+      Không tìm thấy dữ liệu phù hợp
+    </div>
+  }
+</section>
+
+<_TransCashout members="members" OnUpdate="OnUpdate" />
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  private string _title = "Hệ thống rút tiền";
+  private List<TransactionModel> dataList = new();
+  private long totalMoney = 0;
+  private List<UserModel> members = null;
+  private string filterKeyword = string.Empty;
+  private DateTimeOffset? filterDateS = DateTime.Today.AddDays(-30);
+  private DateTimeOffset? filterDateE = DateTime.Today;
+
+  protected override void OnInitialized()
+  {
+    GetList();
+  }
+
+  private void FilterTimes(ChangeEventArgs e)
+  {
+    Shared.GetTimeSpan(Convert.ToInt32(e.Value), out DateTime dateS, out DateTime dateE);
+    filterDateS = dateS;
+    filterDateE = dateE;
+    GetList();
+  }
+
+  private void FilterDates(DateRange range)
+  {
+    GetList();
+  }
+
+  private void ChangeKeyword(KeyboardEventArgs args)
+  {
+    if (args.Key == "Enter")
+    {
+      GetList();
+    }
+    else if (args.Key == "Escape")
+    {
+      filterKeyword = string.Empty;
+      GetList();
+    }
+  }
+
+  private void GetList()
+  {
+    dataList = DbMainTransaction.GetListCashout(filterKeyword, filterDateS, filterDateE);
+    totalMoney = dataList.Select(x => x.money).Sum();
+  }
+
+  private void AddItem()
+  {
+    members = DbMainUser.GetListCustomer();
+  }
+
+  private async Task OnUpdate(int count)
+  {
+    members = null;
+    if (count > 0)
+    {
+      GetList();
+      await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã rút tiền của {count} khách hàng!");
+    }
+  }
+}

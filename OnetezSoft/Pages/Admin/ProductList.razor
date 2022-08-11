@@ -1,0 +1,162 @@
+﻿@page "/admin/config"
+@page "/admin/config/products"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="px-4">
+  <ul class="menu_bar mb-4">
+    <li>
+      <a class="icon-text has-text-white is-active" href="/admin/config/products">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">apps</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Sản phẩm</span>
+      </a>
+    </li>
+    <li>
+      <a class="icon-text has-text-white" href="/admin/config/promotions">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">auto_awesome</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Ưu đãi</span>
+      </a>
+    </li>
+    <li>
+      <a class="icon-text has-text-white" href="/admin/config/users">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">account_circle</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Tài khoản admin</span>
+      </a>
+    </li>
+    <li>
+      <a class="icon-text has-text-white" href="/admin/config/banners">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">celebration</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Banner quảng cáo</span>
+      </a>
+    </li>
+  </ul>
+
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-4">
+    <li class="column">
+      <h1 class="title is-5">
+        @_title
+      </h1>
+    </li>
+  </ul>
+
+  <ul class="columns is-multiline is-variable is-2">
+    @foreach (var item in dataList)
+    {
+      <li class="column is-one-third">
+        <a class="card_product @(item.show ? "" : "is_opacity")" @onclick="() => EditItem(item)"
+          style="background-color: @item.color; background-image: url('@item.cover')">
+          <img class="item_icon" src="@item.icon" />
+          <span class="item_title">@item.title</span>
+          <span class="item_desc">@item.desc</span>
+          <span class="tag is-link mt-5">Chỉnh sửa</span>
+        </a>
+      </li>
+    }
+  </ul>
+</section>
+
+<_ProductEdit model="model" OnUpdate="OnUpdate" />
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+
+  private string _title = "Nội dung sản phẩm";
+  private List<ProductModel> dataList = new();
+  private ProductModel model = null;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await GetList();
+  }
+
+  private async Task GetList()
+  {
+    dataList = await DbMainProduct.GetAll();
+    if (dataList.Count == 0)
+    {
+      var okrs = new ProductModel()
+        {
+          id = "okrs",
+          title = "fOKRs",
+          color = "#c4e6ff",
+          icon = "/images/icon/fOKRs.png",
+          cover = "/images/illustrations/fokrs.png"
+        };
+      var work = new ProductModel()
+        {
+          id = "work",
+          title = "fWork",
+          color = "#ffb852",
+          icon = "/images/icon/fWork.png",
+          cover = "/images/illustrations/fwork.png"
+        };
+      var space = new ProductModel()
+        {
+          id = "space",
+          title = "fSpace",
+          color = "#83fac1",
+          icon = "/images/icon/fSpace.png",
+          cover = "/images/illustrations/fspace.png"
+        };
+      var todolist = new ProductModel()
+        {
+          id = "todolist",
+          title = "fTodolist",
+          color = "#fdb7af",
+          icon = "/images/icon/fTodo.png",
+          cover = "/images/illustrations/ftodolist.png"
+        };
+      var train = new ProductModel()
+        {
+          id = "train",
+          title = "fTrain",
+          color = "#94b7ff",
+          icon = "/images/icon/fEdu.png",
+          cover = "/images/illustrations/ftodolist.png"
+        };
+      var kaizen = new ProductModel()
+        {
+          id = "kaizen",
+          title = "fKaizen",
+          color = "#ffc4c4",
+          icon = "/images/icon/fKaizen.png",
+          cover = "/images/illustrations/fkaizen.png"
+        };
+
+      await DbMainProduct.Create(okrs);
+      await DbMainProduct.Create(work);
+      await DbMainProduct.Create(space);
+      await DbMainProduct.Create(todolist);
+      await DbMainProduct.Create(train);
+      await DbMainProduct.Create(kaizen);
+    }
+  }
+
+  private async Task EditItem(ProductModel item)
+  {
+    model = await DbMainProduct.Get(item.id);
+  }
+
+  private async Task OnUpdate(bool isUpdate)
+  {
+    model = null;
+    StateHasChanged();
+    if (isUpdate)
+    {
+      await GetList();
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật sản phẩn thành công!");
+    }
+  }
+}

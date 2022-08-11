@@ -1,0 +1,146 @@
+﻿@page "/admin/customers/{Id}"
+@page "/admin/customers/{Id}/company"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (customer != null)
+{
+  <section class="px-4">
+    <_CustomerInfo model="customer" />
+
+    <ul class="menu_bar mb-4">
+      <li>
+        <a class="icon-text has-text-white is-active" href="/admin/customers/@customer.id/company">
+          <span class="icon">
+            <i class="material-icons-round is-size-5">people</i>
+          </span>
+          <span class="is-size-7 has-text-weight-bold">Tổ chức</span>
+        </a>
+      </li>
+      <li>
+        <a class="icon-text has-text-white" href="/admin/customers/@customer.id/transaction">
+          <span class="icon">
+            <i class="material-icons-round is-size-5">attach_money</i>
+          </span>
+          <span class="is-size-7 has-text-weight-bold">Lịch sử giao dịch</span>
+        </a>
+      </li>
+    </ul>
+
+    <ul class="columns is-vcentered is-multiline is-variable is-2 mb-2">
+      <li class="column">
+        <h1 class="title is-5">
+          @_title
+        </h1>
+      </li>
+      <li class="column is-narrow">
+        <a class="icon-text has-text-link" @onclick="CreateItem">
+          <span class="icon">
+            <i class="material-icons-outlined">add</i>
+          </span>
+          <span class="is-size-7 has-text-weight-medium">Tạo tổ chức</span>
+        </a>
+      </li>
+    </ul>
+
+    <section>
+      @foreach (var item in dataList)
+      {
+        <_CompanyInfo company="item" members="memberList[item.id]" products="productList" />
+      }
+      @if (dataList.Count == 0)
+      {
+        <div class="has-text-grey has-text-centered py-6">
+          Không tìm thấy dữ liệu phù hợp
+        </div>
+      }
+    </section>
+
+  </section>
+}
+else
+{
+  <section class="p-4">
+    <div class="has-text-grey has-text-centered py-6">
+      Dữ liệu không tồn tại hoặc đã xóa
+    </div>
+  </section>
+}
+
+<_CompanyEdit model="model" manager="manager" OnUpdate="OnUpdate" />
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+
+  [Parameter]
+  public string Id { get; set; }
+
+  private string _title = "Tổ chức sở hữu";
+  private UserModel customer = null;
+  private List<CompanyModel> dataList = new();
+  private List<ProductModel> productList = new();
+  private Dictionary<string, List<UserModel>> memberList = new();
+  private CompanyModel model = null;
+  private UserModel manager = null;
+
+  protected override async Task OnInitializedAsync()
+  {
+    customer = await DbMainUser.Get(Id);
+    productList = await DbMainProduct.GetList();
+    if (customer != null)
+      await GetList();
+  }
+
+  private async Task GetList()
+  {
+    // Danh sách công ty
+    dataList = await DbMainCompany.GetListOfCustomer(customer.id);
+
+    // Dữ liệu thành viên
+    memberList = new();
+    foreach (var item in dataList)
+    {
+      var members = DbUser.GetAll(item.id);
+      memberList.Add(item.id, members);
+    }
+  }
+
+  private async Task DeleteItem(CompanyModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tổ chức: {item.name} ?"))
+      return;
+
+    dataList.Remove(item);
+    item.delete = true;
+    await DbMainCompany.Update(item);
+  }
+
+  private void CreateItem()
+  {
+    model = new CompanyModel() { status = true, admin_id = customer.id };
+    manager = new()
+      {
+        companys = new(),
+        email = customer.email,
+        avatar = customer.avatar,
+        first_name = customer.first_name,
+        last_name = customer.last_name
+      };
+  }
+
+  private async Task OnUpdate(bool isUpdate)
+  {
+    if (isUpdate)
+    {
+      var message = string.IsNullOrEmpty(model.id) ? "Đã tạo tổ chức thành công!" : "Đã cập nhật thông tin tổ chức!";
+      await JSRuntime.InvokeVoidAsync("tagline", true, message);
+      await GetList();
+    }
+    manager = null;
+    model = null;
+  }
+}

@@ -1,0 +1,719 @@
+﻿@page "/kaizen"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+<section class="p-4">
+  <ul class="columns is-multiline">
+    @foreach (var item in DbKaizen.Status())
+    {
+      var count = database.Where(x => x.status == item.id).Count();
+      <li class="column is-one-quarter">
+        <div class="card py-5 px-2 has-text-centered">
+          <div class="icon-text is-inline-flex pl-2 @item.color">
+            <span class="icon is-large">
+              <i class="material-icons-outlined is-size-1">@item.icon</i>
+            </span>
+            <div class="ml-4 has-text-left">
+              <div class="is-size-4 has-text-weight-bold">@count</div>
+              <div class="is-size-6-widescreen has-text-weight-medium has-text-grey">@item.name</div>
+            </div>
+          </div>
+        </div>
+      </li>
+    }
+
+    <li class="column is-full">
+      <div class="card p-5">
+        <ul class="columns is-vcentered is-multiline is-variable is-2">
+          <li class="column is-full">
+            <h1 class="title is-5 has-text-info">
+              DIỄN ĐÀN KAIZEN
+            </h1>
+          </li>
+          <li class="column is-one-fifth">
+            <div class="select is-fullwidth">
+              <select @onchange="ChangeType">
+                <option value="">Chọn loại Kaizen</option>
+                @foreach (var sl in Layout.Company.kaizen.Where(x => string.IsNullOrEmpty(x.parent)).ToList())
+                {
+                  var childs = Layout.Company.kaizen.Where(x => x.parent == sl.id).ToList();
+                  <option value="@sl.id">@sl.name</option>
+                  foreach (var child in childs)
+                  {
+                    <option value="@child.id">└─ @child.name</option>
+                  }
+                }
+              </select>
+            </div>
+          </li>
+          <li class="column is-one-fifth">
+            <div class="select is-fullwidth">
+              <select @onchange="ChangeStatus">
+                <option value="">Mức độ đánh giá</option>
+                @foreach (var sl in DbKaizen.Status())
+                {
+                  <option value="@sl.id">@sl.name</option>
+                }
+                @if (Layout.User.role == 1 || Layout.User.role_manage.kaizen)
+                {
+                  <option value="-1">Chưa đánh giá</option>
+                }
+              </select>
+            </div>
+          </li>
+          <li class="column is-one-fifth">
+            <div class="select is-fullwidth">
+              <select @onchange="ChangeDepartment" class="is-family-code">
+                <option value="">Tất cả phòng ban</option>
+                @foreach (var item in departments)
+                {
+                  <option value="@item.id">@item.name</option>
+                }
+              </select>
+            </div>
+          </li>
+          <li class="column">
+            <div class="field has-addons">
+              <div class="control">
+                <span class="button is-link">
+                  <span class="icon">
+                    <i class="material-icons-outlined">calendar_today</i>
+                  </span>
+                </span>
+              </div>
+              <div class="control" style="width: 190px;">
+                <div class="input">
+                  <DateRangePicker @bind-StartDate="filterStart" @bind-EndDate="filterEnd"
+                                   OnRangeSelect="ChangeDate" />
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-narrow">
+            @if (current == null)
+            {
+              <a class="button is-link" @onclick="ToggleAdd">
+                <span class="icon">
+                  <i class="material-icons-outlined">add</i>
+                </span>
+                <span>Tạo Kaizen mới</span>
+              </a>
+            }
+            else
+            {
+              <a class="button is-info" @onclick="ToggleAdd">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">cancel</i>
+                </span>
+                <span>Hủy tạo mới</span>
+              </a>
+            }
+          </li>
+        </ul>
+      </div>
+    </li>
+    @if (current != null)
+    {
+      <li class="column is-7">
+        <div class="scrolly" style="height: 520px;">
+          <ul class="columns is-multiline is-mobile">
+            @foreach (var item in Layout.Company.kaizen.Where(x => string.IsNullOrEmpty(x.parent)).ToList())
+            {
+              <li class="column is-one-third-tablet is-half-mobile">
+                <a class="category_item p-5 is-block @(typeParent != null && typeParent.id == item.id ? "is-active" : "")"
+               @onclick="() => ChangeParent(item)">
+                  <div class="is-flex is-vcentered is-centered mt-3" style="height: 64px;">
+                    <img src="@item.image" alt="IMG" style="height: 100%;">
+                  </div>
+                  <div class="mt-2 is-size-6 has-text-centered text_2_line" style="height: 3rem;">
+                    <span class="has-text-dark has-text-weight-medium">@item.name</span>
+                  </div>
+                </a>
+              </li>
+            }
+          </ul>
+        </div>
+      </li>
+      <li class="column is-5">
+        <div class="card p-5" style="min-height: 522px;">
+          @if (typeParent != null)
+          {
+            var childs = Layout.Company.kaizen.Where(x => x.parent == typeParent.id).ToList();
+            <h3 class="is-size-6 has-text-weight-semibold mb-3">
+              @typeParent.name
+            </h3>
+            <div class="has-text-weight-semibold has-text-grey mb-2">
+              Loại phiếu
+            </div>
+            <div class="scrolly" style="height: 150px;">
+              <ul class="columns is-multiline is-mobile is-variable is-2">
+                @foreach (var item in childs)
+                {
+                  <li class="column is-full">
+                    <a class="icon-text" @onclick="() => current.type = item.id">
+                      <span class="icon">
+                        <i class="material-icons@(current.type == item.id ? "" : "-outlined") is-size-6">circle</i>
+                      </span>
+                      <span>@item.name</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            </div>
+            <hr class="my-3" />
+            <div class="field">
+              <label class="label">Tiêu đề</label>
+              <div class="control">
+                <input @bind="current.name" type="text" class="input is_bg" placeholder="Nhập tiêu đề.." />
+              </div>
+            </div>
+            <div class="field">
+              <label class="label">Nội dung</label>
+              <div class="control">
+                <textarea @bind="current.content" class="textarea is_bg"
+                      placeholder="Nhập nội dung góp ý Kaizen của bạn..." rows="3" />
+              </div>
+            </div>
+            <div class="field is-grouped is-grouped-right">
+              <div class="control">
+                <a class="button is-info" @onclick="ToggleAdd">
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6">cancel</i>
+                  </span>
+                  <span>Hủy</span>
+                </a>
+              </div>
+              <div class="control">
+                <a class="button is-link" @onclick="Update">
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6">send</i>
+                  </span>
+                  <span>Gửi</span>
+                </a>
+              </div>
+            </div>
+          }
+          else
+          {
+            <h3 class="is-size-6 has-text-weight-semibold text_2_line">
+              Chưa chọn chủ đề
+            </h3>
+          }
+        </div>
+      </li>
+    }
+    else
+    {
+      <li class="column is-full">
+        @foreach (var item in dataList)
+        {
+          var status = DbKaizen.Status(item.status);
+          var type = Layout.Company.kaizen.SingleOrDefault(x => x.id == item.type);
+          var user = Layout.UserList.SingleOrDefault(x => x.id == item.user_create);
+          var avatar = user != null ? user.avatar : "/images/avatar.png";
+
+          <div class="card p-5">
+            <article class="media">
+              <figure class="media-left">
+                <div class="image is-40x40 is-rounded">
+                  <img src="@avatar" alt="IMG" />
+                </div>
+              </figure>
+              <div class="media-content has-text-dark">
+                <ul class="columns is-vcentered is-variable is-2 mb-1">
+                  <li class="column">
+                    <a class="has-text-weight-semibold is-size-6" href="/kaizen/@item.id">
+                      @item.name
+                    </a>
+                    <div class="field is-grouped is-multiline has-text-grey is-size-7">
+                      <div class="control">
+                        @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date_create))
+                      </div>
+                      @if (user != null)
+                      {
+                        <div class="control">•</div>
+                        <div class="control">@user.FullName</div>
+                        <div class="control">•</div>
+                        <div class="control text_1_line" style="max-width: 280px;">
+                          @user.departments_name
+                        </div>
+                      }
+                    </div>
+                  </li>
+                  <li class="column is-narrow">
+                    <span class="icon-text @status.color">
+                      <span class="icon mr-2">
+                        <i class="material-icons-outlined is-size-4">@status.icon</i>
+                      </span>
+                      <span>@status.name</span>
+                    </span>
+                  </li>
+                  @if (Layout.User.role == 1 || Layout.User.role_manage.kaizen)
+                  {
+                    <li class="column is-narrow">
+                      <div class="dropdown is-hoverable is-right">
+                        <div class="dropdown-trigger">
+                          <a class="button is-white">
+                            <span class="icon">
+                              <i class="material-icons-outlined is-size-5">more_horiz</i>
+                            </span>
+                          </a>
+                        </div>
+                        <div class="dropdown-menu">
+                          <div class="dropdown-content">
+                            <a class="dropdown-item" @onclick="() => ReviewPopup(item)">
+                              Đánh giá Kaizen
+                            </a>
+                            <a class="dropdown-item has-text-danger" @onclick="() => DeleteItem(item)">
+                              Xóa Kaizen
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  }
+                </ul>
+                @if (type != null)
+                {
+                  <div class="has-text-weight-bold mb-1">@type.name</div>
+                }
+                <div class="content">
+                  @((MarkupString)Shared.GetLinks(item.content))
+                </div>
+                <div class="level is-mobile mb-3">
+                  <ul class="level-left">
+                    <li class="level-item">
+                      <a class="icon-text @(item.likes.Contains(Layout.User.id) ? "has-text-success" : "has-text-grey")"
+                     @onclick="() => LikeItem(item)">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">arrow_circle_up</i>
+                        </span>
+                        <span>@item.likes.Count</span>
+                      </a>
+                    </li>
+                    <li class="level-item">
+                      <a class="icon-text @(item.hates.Contains(Layout.User.id) ? "has-text-danger" : "has-text-grey")"
+                     @onclick="() => HateItem(item)">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">arrow_circle_down</i>
+                        </span>
+                        <span>@item.hates.Count</span>
+                      </a>
+                    </li>
+                    <li class="level-item">
+                      <a class="icon-text" href="/kaizen/@item.id">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-6">mode_comment</i>
+                        </span>
+                        <span>@item.comments.Count bình luận</span>
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+
+                @if (item.comments.Count > 0)
+                {
+                  var comments = (from x in item.comments orderby x.pin descending, x.date descending select x).ToList();
+                  var comment = comments[0];
+                  var commentUser = Layout.UserList.SingleOrDefault(x => x.id == comment.user);
+
+                  <article class="media">
+                    <figure class="media-left">
+                      <div class="image is-32x32 is-rounded">
+                        <img src="@(commentUser != null ? commentUser.avatar : "/images/avatar.png")" alt="IMG" />
+                      </div>
+                    </figure>
+                    <div class="media-content">
+                      <ul class="columns is-variable is-2  is-vcentered mb-1">
+                        <li class="column @(comment.pin ? "" : "is-full")">
+                          <div class="has-text-weight-semibold">
+                            @(commentUser != null ? commentUser.FullName : comment.user)
+                          </div>
+                          <div class="field is-grouped is-multiline has-text-grey is-size-7">
+                            <div class="control mb-0">
+                              @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(comment.date))
+                            </div>
+                            @if (commentUser != null)
+                            {
+                              <div class="control mb-0">•</div>
+                              <div class="control text_1_line" style="max-width: 280px;">
+                                @commentUser.departments_name
+                              </div>
+                            }
+                          </div>
+                        </li>
+                        @if (comment.pin)
+                        {
+                          <li class="column is-narrow">
+                            <span class="icon has-text-link">
+                              <i class="material-icons-outlined is-size-5">push_pin</i>
+                            </span>
+                          </li>
+                        }
+                      </ul>
+                      <div class="content">
+                        @((MarkupString)Shared.GetLinks(comment.content))
+                      </div>
+                    </div>
+                  </article>
+                }
+              </div>
+            </article>
+          </div>
+        }
+      </li>
+    }
+  </ul>
+</section>
+
+@if (review != null)
+{
+  var user = Layout.UserList.SingleOrDefault(x => x.id == review.user_create);
+  var type = Layout.Company.kaizen.SingleOrDefault(x => x.id == review.type);
+
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <form class="modal-card-body">
+        <ul class="columns is-multiline is-variable is-2">
+          @if (user != null)
+          {
+            var department = DbDepartment.GetNameListOfUser(Layout.Company.id, user.departments_id, departmentAll);
+            <li class="column is-narrow">
+              <div class="image is-40x40 is-rounded">
+                <img src="@user.avatar" alt="IMG" />
+              </div>
+            </li>
+            <li class="column">
+              <div class="has-text-weight-semibold">
+                @user.FullName
+              </div>
+              <div class="field is-grouped is-multiline has-text-grey is-size-7">
+                <div class="control">
+                  @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(review.date_create))
+                </div>
+                <div class="control">•</div>
+                <div class="control text_1_line" style="max-width: 280px;">
+                  @String.Join(" / ", department)
+                </div>
+              </div>
+            </li>
+          }
+          @if (type != null)
+          {
+            <li class="column is-full">
+              <span class="has-text-dark">Loại phiếu:</span>
+              <span class="has-text-weight-semibold">@type.name</span>
+            </li>
+          }
+          <li class="column is-full">
+            <hr class="my-0" />
+          </li>
+          <li class="column is-full">
+            <div class="has-text-weight-semibold is-size-6 mb-2">
+              @review.name
+            </div>
+            <div class="content has-text-grey">
+              @((MarkupString)Shared.GetLinks(review.content))
+            </div>
+          </li>
+          @foreach (var item in DbKaizen.Status())
+          {
+            <li class="column is-one-quarter">
+              <a class="is-block has-text-centered @item.color" @onclick="() => review.status = item.id">
+                <span class="icon is-medium">
+                  <i class="material-icons-outlined is-size-3">@item.icon</i>
+                </span>
+                <br />
+                <span class="icon-text mt-2">
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6">
+                      @(item.id == review.status ? "radio_button_checked" : "circle")
+                    </i>
+                  </span>
+                  <span class="has-text-weight-semibold">@item.name</span>
+                </span>
+              </a>
+            </li>
+          }
+          <li class="column is-full">
+            <hr class="my-0" />
+          </li>
+          <li class="column is-full">
+            <div class="field">
+              <div class="buttons is-right">
+                <a class="button" @onclick="ReviewCancel">
+                  Hủy
+                </a>
+                <a class="button is-link" @onclick="ReviewItem">
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6">done</i>
+                  </span>
+                  <span>Xác nhận</span>
+                </a>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </form>
+    </div>
+  </div>
+}
+
+@if(!CheckAccess())
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-content" style="max-width: 360px;">
+      <div class="box has-text-centered pt-5">
+        <span class="icon is-large has-text-danger">
+          <i class="material-icons-outlined is-size-1">error_outline</i>
+        </span>
+        <div class="is-size-6 py-4 has-text-weight-semibold">
+          @msgAccess
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Diễn đàn Kaizen";
+
+  private KaizenModel current = null;
+  private List<KaizenModel> database = new();
+  private List<KaizenModel> dataList = new();
+  private CompanyModel.Kaizen typeParent = null;
+  private KaizenModel review = null;
+  private int reviewStatus = -1;
+
+  private List<DepartmentModel> departmentAll = new();
+  private List<DepartmentModel.SelectList> departments = new();
+  private string filterType = string.Empty;
+  private string filterStatus = string.Empty;
+  private string filterDepartment = string.Empty;
+  private DateTimeOffset? filterStart { get; set; }
+  private DateTimeOffset? filterEnd { get; set; }
+
+  protected override async Task OnInitializedAsync()
+  {
+    Shared.GetTimeSpan(5, out DateTime start, out DateTime end);
+    filterStart = start;
+    filterEnd = end;
+
+    departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+    await GetList();
+  }
+
+  protected override void OnAfterRender(bool firstRender)
+  {
+    _message = string.Empty;
+  }
+  
+  private string msgAccess = string.Empty;
+  private bool CheckAccess()
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, "kaizen", out msgAccess);
+  }
+
+  private async Task ChangeType(ChangeEventArgs e)
+  {
+    filterType = e.Value.ToString();
+    await GetList();
+  }
+
+  private async Task ChangeStatus(ChangeEventArgs e)
+  {
+    filterStatus = e.Value.ToString();
+    await GetList();
+  }
+
+  private async Task ChangeDepartment(ChangeEventArgs e)
+  {
+    filterDepartment = e.Value.ToString();
+    await GetList();
+  }
+
+  private async Task ChangeDate(DateRange range)
+  {
+    await GetList();
+  }
+
+  private async Task GetList()
+  {
+    DateTime? start = null;
+    if (filterStart != null) start = filterStart.Value.DateTime;
+    DateTime? end = null;
+    if (filterEnd != null) end = filterEnd.Value.DateTime;
+
+    database = await DbKaizen.GetList(Layout.Company.id, null, null, start, end);
+
+    dataList = database;
+    if (!string.IsNullOrEmpty(filterType))
+    {
+      var childs = (from x in Layout.Company.kaizen where x.parent == filterType select x.id).ToList();
+      var typeList = new List<string> { filterType };
+      typeList.AddRange(childs);
+      dataList = dataList.Where(x => typeList.Contains(x.type)).ToList();
+    }
+    if (!string.IsNullOrEmpty(filterDepartment))
+    {
+      var usersId = (from x in Layout.UserList where x.departments_id.Contains(filterDepartment) select x.id).ToList();
+      dataList = dataList.Where(x => usersId.Contains(x.user_create)).ToList();
+    }
+    if (!string.IsNullOrEmpty(filterStatus))
+      dataList = dataList.Where(x => x.status == Convert.ToInt32(filterStatus)).ToList();
+  }
+
+  private void ToggleAdd()
+  {
+    if (current == null)
+      current = new();
+    else
+    {
+      current = null;
+      typeParent = null;
+    }
+  }
+
+  private void ChangeParent(CompanyModel.Kaizen item)
+  {
+    typeParent = item;
+    current.type = item.id;
+  }
+
+  private async Task Update()
+  {
+    _success = false;
+    _message = string.Empty;
+
+    if (string.IsNullOrEmpty(current.name) || string.IsNullOrEmpty(current.content))
+    {
+      _message = "Nhập đủ tiêu đề và nội dung !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else
+    {
+      current.user_create = Layout.User.id;
+      current.status = -1;
+      current.hates = new();
+      current.likes = new();
+      current.images = new();
+      current.comments = new();
+      current = await DbKaizen.Create(Layout.Company.id, current);
+      _message = "Đã gửi góp ý Kaizen thành công!";
+      _success = true;
+
+      // Gửi thông báo chuông
+      var managerList = await DbUser.GetManager(Layout.Company.id, false);
+      foreach (var user in managerList)
+      {
+        if (user.role == 1 || user.role_manage.kaizen)
+          await DbNotify.Create(Layout.Company.id, 100, current.id, user.id, Layout.User.id);
+      }
+
+      await GetList();
+      ToggleAdd();
+    }
+  }
+
+  private async Task DeleteItem(KaizenModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {item.name}?"))
+      return;
+
+    database.Remove(item);
+    dataList.Remove(item);
+    await DbKaizen.Delete(Layout.Company.id, item.id);
+
+    // Gửi thông báo chuông cho người tạo
+    await DbNotify.Create(Layout.Company.id, 101, item.id, item.user_create, Layout.User.id);
+
+    // Gửi thông báo chuông cho Admin
+    if (Layout.User.role == 2)
+    {
+      var adminList = await DbUser.GetManager(Layout.Company.id, true);
+      foreach (var user in adminList)
+      {
+        await DbNotify.Create(Layout.Company.id, 106, item.id, user.id, Layout.User.id);
+      }
+    }
+  }
+
+  private async Task LikeItem(KaizenModel item)
+  {
+    if (!item.likes.Contains(Layout.User.id))
+    {
+      item.likes.Add(Layout.User.id);
+      item.hates.Remove(Layout.User.id);
+      item = await DbKaizen.Update(Layout.Company.id, item);
+    }
+  }
+
+  private async Task HateItem(KaizenModel item)
+  {
+    if (!item.hates.Contains(Layout.User.id))
+    {
+      item.hates.Add(Layout.User.id);
+      item.likes.Remove(Layout.User.id);
+      item = await DbKaizen.Update(Layout.Company.id, item);
+    }
+  }
+
+  private void ReviewPopup(KaizenModel item)
+  {
+    review = item;
+    reviewStatus = item.status;
+  }
+
+  private async Task ReviewCancel()
+  {
+    var kaizen = await DbKaizen.Get(Layout.Company.id, review.id);
+    review.status = kaizen.status;
+    review = null;
+  }
+
+  private async Task ReviewItem()
+  {
+    review.date_status = DateTime.Now.Ticks;
+    await DbKaizen.Update(Layout.Company.id, review);
+
+    // Tính toán Thành tựu
+    if(reviewStatus == -1)
+      await DbKaizen.Achievement(Layout.Company.id, review.user_create);
+
+    // Gửi thông báo chuông cho người tạo
+    await DbNotify.Create(Layout.Company.id, 104, review.id, review.user_create, Layout.User.id);
+
+    // Gửi thông báo chuông cho Admin
+    if (Layout.User.role == 2)
+    {
+      var adminList = await DbUser.GetManager(Layout.Company.id, true);
+      foreach (var user in adminList)
+      {
+        await DbNotify.Create(Layout.Company.id, 105, review.id, user.id, Layout.User.id);
+      }
+    }
+
+    review = null;
+  }
+}

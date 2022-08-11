@@ -1,0 +1,67 @@
+﻿@page "/reports/todolist"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+<section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+  <div class="column is-narrow">
+    <_MenuLeft Company="Layout.Company" User="Layout.User" />
+  </div>
+  <div class="column">
+    <div class="tabs_white is_radius mb-4">
+      <a class="button is-size-5 has-text-weight-semibold has-text-@(tab == 1 ? "link is_bg" : "grey is-white")"
+          @onclick="() => tab = 1">
+        KỶ LUẬT
+      </a>
+      <a class="button is-size-5 has-text-weight-semibold has-text-@(tab == 2 ? "link is_bg" : "grey is-white")"
+          @onclick="() => tab = 2">
+        TỶ LỆ HOÀN THÀNH
+      </a>
+    </div>
+
+    @if (tab == 1)
+    {
+      <TodoDate departmentAll="departmentAll" departments="departments" />
+      <TodoList departmentAll="departmentAll" departments="departments" />
+      <TodoRank departmentAll="departmentAll" departments="departments" />
+    }
+    else
+    {
+      <TodoProgress departmentAll="departmentAll" departments="departments" />
+      <TodoDone departmentAll="departmentAll" departments="departments" />
+    }
+  </div>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Thống kê Todolist";
+
+  private List<DepartmentModel> departmentAll = new();
+  private List<DepartmentModel.SelectList> departments = new();
+  private int tab = 1;
+
+  protected override void OnInitialized()
+  {
+    departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+
+    _loaded = true;
+  }
+}

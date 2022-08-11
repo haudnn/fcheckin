@@ -1,0 +1,75 @@
+﻿@inherits LayoutComponentBase
+@inject ProtectedLocalStorage storage
+@inject NavigationManager navigation
+@inject IJSRuntime JSRuntime
+
+<CascadingValue Value="this">
+  @if(string.IsNullOrEmpty(link) || link.StartsWith("password"))
+  {
+    <main id="login">
+      <section class="login_fr">
+        @Body
+      </section>
+      <section class="login_bg">
+        <div class="carousel">
+          <BlazorSlickCarousel Configurations="configurations">
+            <BlazorSlickCarouselContent>
+              @foreach (var item in slides)
+              {
+                <div class="item">
+                  <div class="item_image">
+                    <img src="@item.Key" alt="img" />
+                  </div>
+                  <div class="item_desc">
+                    @((MarkupString)item.Value)
+                  </div>
+                </div>
+              }
+            </BlazorSlickCarouselContent>
+          </BlazorSlickCarousel>
+          <div class="dots"></div>
+          <div class="arrows"></div>
+        </div>
+      </section>
+    </main>
+  }
+  else
+  {
+    <main>
+      @Body
+    </main>
+  }
+</CascadingValue>
+
+@code {
+  public WMBSCInitialSettings configurations;
+  private Dictionary<string, string> slides = new();
+  private string link = string.Empty;
+
+  protected override void OnInitialized()
+  {
+    slides.Add("/images/login/1.png", "Doanh nghiệp dễ dàng thiết lập và theo dõi mục tiêu hiệu quả");
+    slides.Add("/images/login/2.png", "Nhân sự tăng hiệu suất vượt bậc khi dễ dàng thiết lập kế hoạch<br />công việc và tạo động lực làm việc vui vẻ hàng ngày");
+    slides.Add("/images/login/3.png", "Tương tác và thấu hiểu giữa những thành viên trong tổ chức.<br />Tạo động lực và thúc đẩy phát triển tổ chức");
+    slides.Add("/images/login/4.png", "Không chỉ là làm việc, Fastdo cung cấp không gian cho phép<br />mọi người phấn đấu và tận hưởng những thành tựu");
+
+    configurations = new WMBSCInitialSettings
+      {
+        arrows = true,
+        dots = true,
+        autoplay = true,
+        infinite = true,
+        slidesToShow = 1,
+        slidesToScroll = 1,
+        appendDots = ".dots",
+        appendArrows = ".arrows",
+        prevArrow = "<a class='material-icons-round'>chevron_left</a>",
+        nextArrow = "<span class='material-icons-round'>chevron_right</span>"
+      };
+  }
+
+  protected override void OnParametersSet()
+  {
+    link = navigation.Uri.Replace(navigation.BaseUri, "");
+  }
+}

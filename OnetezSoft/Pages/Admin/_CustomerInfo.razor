@@ -1,0 +1,284 @@
+﻿@inject IJSRuntime JSRuntime
+
+<ul class="columns">
+  <li class="column is-narrow">
+    <div class="image is-128x128 is-radius">
+      <img src="@model.avatar" />
+    </div>
+  </li>
+  <li class="column">
+    <ul class="columns is-multiline">
+      <li class="column is-half">
+        <div class="has-text-grey mb-3">
+          Thông tin tài khoản
+        </div>
+        <ul class="columns is-multiline is-variable is-2">
+          <li class="column is-full">
+            <div class="field">
+              <div class="control has-icons-left">
+                <input value="@model.id" type="text" class="input is_line has-text-weight-medium" readonly />
+                <span class="icon is-left has-text-black">
+                  <i class="material-icons-round is-size-6">vpn_key</i>
+                </span>
+              </div>
+            </div>
+          </li>
+          <li class="column is-full">
+            <div class="field">
+              <div class="control has-icons-left">
+                <input value="@model.email" type="text" class="input is_line has-text-weight-medium" readonly />
+                <span class="icon is-left has-text-black">
+                  <i class="material-icons-round is-size-6">account_circle</i>
+                </span>
+              </div>
+            </div>
+          </li>
+          <li class="column is-full">
+            <div class="field">
+              <div class="icon-text">
+                <span class="icon is-small mr-2">
+                  <i class="material-icons-round is-size-5 has-text-@(model.active ? "success" : "grey")">
+                    toggle_@(model.active ? "on" : "off")
+                  </i>
+                </span>
+                <span class="is-size-7 has-text-weight-medium">Kích hoạt</span>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </li>
+
+      <li class="column is-half">
+        <div class="has-text-grey mb-3">
+          Thông tin cơ bản
+        </div>
+        <ul class="columns is-multiline is-variable is-2">
+          <li class="column is-half">
+            <div class="field">
+              <div class="control has-icons-left">
+                <input value="@model.last_name" type="text" class="input is_line has-text-weight-medium"
+                  placeholder="Họ" readonly />
+                <span class="icon is-left has-text-black">
+                  <i class="material-icons-round is-size-6">person</i>
+                </span>
+              </div>
+            </div>
+          </li>
+          <li class="column is-half">
+            <div class="field">
+              <div class="control has-icons-left">
+                <input value="@model.first_name" type="text" class="input is_line has-text-weight-medium"
+                  placeholder="Tên" readonly />
+                <span class="icon is-left has-text-black">
+                  <i class="material-icons-round is-size-6">person</i>
+                </span>
+              </div>
+            </div>
+          </li>
+          <li class="column is-half">
+            <div class="field">
+              <div class="control has-icons-left">
+                <input value="@model.phone" type="text" class="input is_line has-text-weight-medium" 
+                  placeholder="Số điện thoại" readonly />
+                <span class="icon is-left has-text-black">
+                  <i class="material-icons-round is-size-6">call</i>
+                </span>
+              </div>
+            </div>
+          </li>
+          <li class="column is-half">
+            <div class="field">
+              <div class="control has-icons-left">
+                <input value="@model.social" type="text" class="input is_line has-text-weight-medium"
+                  placeholder="Liên hệ khác" readonly />
+                <span class="icon is-left has-text-black">
+                  <i class="material-icons-round is-size-6">share</i>
+                </span>
+              </div>
+            </div>
+          </li>
+          <li class="column is-half">
+            <div class="field">
+              <div class="control">
+                <div class="icon-text is-size-7 has-text-weight-medium">
+                  <span class="icon is-small has-text-black mr-2">
+                    <i class="material-icons-round is-size-6">account_balance_wallet</i>
+                  </span>
+                  <span>Số dư: @Shared.ConvertCurrency(model.balance) VNĐ</span>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-half">
+            <a class="icon-text has-text-link mr-4" @onclick="() => recharge = true">
+              <span class="icon">
+                <i class="material-icons-outlined">add</i>
+              </span>
+              <span class="is-size-7 has-text-weight-medium">Nạp tiền</span>
+            </a>
+            <a class="icon-text has-text-danger" @onclick="() => recharge = false">
+              <span class="icon">
+                <i class="material-icons-outlined">remove</i>
+              </span>
+              <span class="is-size-7 has-text-weight-medium">Rút tiền</span>
+            </a>
+          </li>
+        </ul>
+      </li>
+
+      @if (!string.IsNullOrEmpty(model.note))
+      {
+        <li class="column is-full pt-0">
+          <div class="field">
+            <div class="control has-icons-left">
+              <p class="textarea is_line" style="height: auto; min-height: 36px;">
+                @((MarkupString)Shared.TextToHtml(model.note))
+              </p>
+              <span class="icon is-left has-text-black">
+                <i class="material-icons-round is-size-6">note_add</i>
+              </span>
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+  </li>
+</ul>
+
+@if(recharge != null)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card has_bg">
+      <section class="modal-card-head is-danger" 
+        style="background-image: url('/images/illustrations/addmoney.png')">
+        <div class="modal-card-title">
+          <div class="title">
+            @(recharge == true ? "Hệ thống nạp tiền" : "Hệ thống rút tiền")
+          </div>
+          <div class="subtitle">
+            @(recharge == true ? "Nạp tiền thủ công cho khách hàng của Fastdo" : "Trừ tiền thủ công của khách hàng")
+          </div>
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body">
+        <div class="field mb-4">
+          <label class="label">Số tiền cần @(recharge == true ? "nạp" : "rút")</label>
+          <div class="control has-icons-left">
+            <input @bind="moneyFormat" @bind:event="oninput" type="text" 
+              class="input is_line has-text-weight-bold" placeholder="Nhập số tiền">
+            <span class="icon is-left has-text-black">
+              <i class="material-icons-round is-size-6">account_balance_wallet</i>
+            </span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Ghi chú</label>
+          <div class="control is-expanded has-icons-left">
+            <input @bind="content" class="input is_line" type="text" placeholder="Nhập ghi chú">
+            <span class="icon is-left has-text-black">
+              <i class="material-icons-round is-size-6">note_add</i>
+            </span>
+          </div>
+        </div>
+      </section>
+      <section class="modal-card-foot is-right">
+        <a class="button" @onclick="Cancel">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">chevron_left</i>
+          </span>
+          <span class="is-size-7">Trở về</span>
+        </a>
+        <a class="button is-link" @onclick="Update">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">done</i>
+          </span>
+          <span class="is-size-7">Xác nhận</span>
+        </a>
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  [Parameter]
+  public UserModel model { get; set; }
+
+  private bool? recharge = null;
+  private int money = 0;
+  private string content = string.Empty;
+
+  private string moneyFormat
+  {
+    get => money > 10 ? money.ToString("0,0") : money > 0 ? money.ToString() : "";
+    set
+    {
+      if (Int32.TryParse(value.Replace(",", ""), out int parse))
+        money = parse;
+      else
+        money = 0;
+    }
+  }
+
+  private void Cancel()
+  {
+    money = 0;
+    content = null;
+    recharge = null;
+  }
+
+  private async Task Update()
+  {
+    if(money <= 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa nhập số tiền cần nạp");
+    else
+    {
+      var customer = await DbMainUser.Get(model.id);
+      if (customer != null)
+      {
+        var transaction = new TransactionModel()
+        {
+          customer = UserService.ConvertToMember(customer),
+          creator = UserService.ConvertToMember(Layout.User),
+          status = 2,
+          type = 2
+        };
+
+        if(recharge == true)
+        {
+          transaction.money = money;
+          transaction.balance = customer.balance + money;
+          transaction.content = "Nạp tiền vào tài khoản Fastdo.";
+          // Cập nhật số dư tài khoản
+          customer.balance += money;
+        }
+        else
+        {
+          transaction.money = -money;
+          transaction.balance = customer.balance - money;
+          transaction.content = "Fastdo rút tiền khỏi tài khoản.";
+          // Cập nhật số dư tài khoản
+          customer.balance -= money;
+        }
+
+        if (!string.IsNullOrEmpty(content))
+            transaction.content += "<br/>Ghi chú: " + content;
+
+        // Tạo dữ liệu giao dịch
+        await DbMainTransaction.Create(transaction);
+        // Cập nhật dữ liệu khách hàng
+        await DbMainUser.Update(customer);
+        model = customer;
+        // Thông báo thành công
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã nạp tiền vào tài khoản thành công.");
+        Cancel();
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Tài khoản khách hàng không tồn tại.");
+    }
+  }
+}

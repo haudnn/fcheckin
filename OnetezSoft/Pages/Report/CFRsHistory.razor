@@ -1,0 +1,291 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="card p-5 @(_loaded ? "" : "is-loading")">
+  <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3">
+    <li class="column is-full">
+      <h1 class="title is-5 has-text-info">
+        LỊCH SỬ CHECK-IN
+      </h1>
+    </li>
+    <li class="column">
+      <div class="field has-addons">
+        <div class="control">
+          <span class="button is-link">
+            <i class="material-icons-outlined">calendar_today</i>
+          </span>
+        </div>
+        <div class="control" style="width: 190px;">
+          <div class="input">
+            <DateRangePicker @bind-StartDate="filterStart" @bind-EndDate="filterEnd" OnRangeSelect="ChangePicker" Drops="DropsType.Up" />
+          </div>
+        </div>
+        <div class="control">
+          <div class="select is-fullwidth">
+            <select @onchange="ChangeDate">
+              <option value="1">Tuần này</option>
+              <option value="11">Tuần trước</option>
+              <option value="2">Tháng này</option>
+              <option value="22">Tháng trước</option>
+              <option value="3">Quý này</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <div class="dropdown is-right @(departmentShow ? "is-active" : "")">
+        <div class="dropdown-trigger">
+          <a class="icon-text" @onclick="() => departmentShow = !departmentShow">
+            <span class="has-text-link">
+              @filterDepartment.name.Replace("└─", "").Replace("'", "")
+            </span>
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(null)">
+              Tất cả phòng ban
+            </a>
+            @foreach (var sl in departments)
+            {
+              <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(sl)">
+                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
+              </a>
+            }
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-one-quarter">
+      <div class="control has-icons-right has_suggest">
+        <input class="input is-rounded" type="text" placeholder="Nhập tên nhân viên..."
+               autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
+        <ul class="suggest">
+          @foreach (var item in userSuggests)
+          {
+            <li class="rsitem" @onclick="() => UserSelected(item)">
+              <div class="user_item">
+                <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
+                <span>@item.FullName</span>
+              </div>
+            </li>
+          }
+        </ul>
+        <span class="icon is-right">
+          <i class="material-icons-outlined">search</i>
+        </span>
+      </div>
+    </li>
+  </ul>
+  
+  <table class="table is-fullwidth is-vcentered is-responsive">
+    <thead>
+      <tr class="tr-hide">
+        <th width="25%">Người check-in</th>
+        <th width="8%"></th>
+        <th width="25%">Người được check-in</th>
+        <th>Ngày thực hiện check-in</th>
+        <th width="15%" align="right">Trạng thái</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var item in checkins)
+      {
+        var create = Layout.UserList.SingleOrDefault(x => x.id == item.user_create);
+        var checkin = Layout.UserList.SingleOrDefault(x => x.id == item.user_checkin);
+        if (create == null || checkin == null)
+          continue;
+        <tr>
+          <td>
+            <label class="td-label">Người check-in</label>
+            <div class="td-value">
+              <div class="user_item">
+                <img class="image is-32x32 mr-2" src="@checkin.avatar" alt="IMG">
+                <span>@checkin.FullName</span>
+              </div>
+            </div>
+          </td>
+          <td class="td-hide">
+            <span class="icon has-text-grey">
+              <i class="material-icons-outlined is-size-5">east</i>
+            </span>
+          </td>
+          <td>
+            <label class="td-label">Được check-in</label>
+            <div class="td-value">
+              <div class="user_item">
+                <img class="image is-32x32 mr-2" src="@create.avatar" alt="IMG">
+                <span>@create.FullName</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <label class="td-label">Ngày thực hiện</label>
+            <div class="td-value">
+              <a class="has-text-link has-text-weight-semibold" href="/cfr/checkin/@item.okr/overview">
+                @Shared.ConvertDateWeek(item.date_create)
+              </a>
+            </div>
+          </td>
+          <td align="right">
+            <label class="td-label">Trạng thái</label>
+            <div class="td-value">
+              @if (item.status_checkin != 2)
+              {
+                <span class="has-text-success">Đúng hạn</span>
+              }
+              else
+              {
+                <span class="has-text-danger">Trễ hạn</span>
+              }
+            </div>
+          </td>
+        </tr>
+      }
+      @if (checkins.Count == 0)
+      {
+        <tr>
+          <td colspan="5">
+            <div class="has-text-grey py-6">
+              Không có dữ liệu !
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<DepartmentModel> departmentAll { get; set; }
+  [Parameter]
+  public List<DepartmentModel.SelectList> departments { get; set; }
+
+  private bool _loaded = false;
+
+  private List<OkrCheckinModel> checkins = new();
+  private List<UserModel> userSuggests = new();
+  private string filterUserSearch = string.Empty;
+  private string filterUserId = string.Empty;
+  private DateTimeOffset? filterStart { get; set; }
+  private DateTimeOffset? filterEnd { get; set; }
+  private DepartmentModel.SelectList filterDepartment = new() { name = "Tất cả phòng ban" };
+  private bool departmentShow = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
+    filterStart = start;
+    filterEnd = end;
+
+    DepartmentModel.SelectList department = null;
+    if (!string.IsNullOrEmpty(Layout.User.department_default))
+      department = departments.SingleOrDefault(x => x.id == Layout.User.department_default);
+
+    await ChangeDepartment(department);
+
+    _loaded = true;
+  }
+
+  public async Task ChangePicker(DateRange range)
+  {
+    filterStart = range.Start;
+    filterEnd = range.End;
+    await GetData();
+  }
+
+  private async Task ChangeDate(ChangeEventArgs e)
+  {
+    departmentShow = false;
+    var type = Convert.ToInt32(e.Value);
+    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
+    filterStart = start;
+    filterEnd = end;
+    await GetData();
+  }
+
+  private async Task ChangeDepartment(DepartmentModel.SelectList item)
+  {
+    departmentShow = false;
+    userSuggests = new();
+    filterUserId = string.Empty;
+    filterUserSearch = string.Empty;
+    filterDepartment = item != null ? item : new() { name = "Tất cả phòng ban" };
+    await GetData();
+  }
+
+  private string UserSearch
+  {
+    get => filterUserSearch;
+    set
+    {
+      filterUserSearch = value;
+      userSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in Layout.UserList)
+        {
+          bool check = true;
+          if (!string.IsNullOrEmpty(filterDepartment.id))
+            if (item.departments_id == null || !item.departments_id.Contains(filterDepartment.id))
+              check = false;
+          if (!Handled.Shared.SearchKeyword(filterUserSearch, item.FullName))
+            check = false;
+
+          if (check)
+            userSuggests.Add(item);
+        }
+      }
+    }
+  }
+
+  private async Task UserSelected(UserModel item)
+  {
+    userSuggests = new();
+    filterUserId = item.id;
+    filterUserSearch = item.FullName;
+    await GetData();
+  }
+
+  private async Task GetData()
+  {
+    _loaded = false;
+
+    var data = await DbOkrCheckin.GetList(Layout.Company.id, Layout.CycleId, 
+      filterStart.Value.DateTime, filterEnd.Value.DateTime);
+
+    if (!string.IsNullOrEmpty(filterUserId))
+    {
+      checkins = (from x in data
+                  where x.user_create == filterUserId
+                  || x.user_checkin == filterUserId
+                  orderby x.date_create descending
+                  select x).ToList();
+    }
+    else if (!string.IsNullOrEmpty(filterDepartment.id))
+    {
+      var department = departmentAll.SingleOrDefault(x => x.id == filterDepartment.id);
+      if (department != null)
+      {
+        checkins = (from x in data
+                    where department.members_id.Contains(x.user_create)
+                    || department.members_id.Contains(x.user_checkin)
+                    orderby x.date_create descending
+                    select x).ToList();
+      }
+    }
+    else
+    {
+      checkins = data;
+    }
+
+    _loaded = true;
+  }
+}

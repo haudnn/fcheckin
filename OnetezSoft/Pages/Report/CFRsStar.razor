@@ -1,0 +1,367 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="card p-5 @(_loaded ? "" : "is-loading")">
+  <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3">
+    <li class="column is-full">
+      <h1 class="title is-5 has-text-info">
+        LỊCH SỬ @(type == 2 ? "GHI NHẬN" : "TẶNG SAO")
+      </h1>
+    </li>
+    <li class="column">
+      <div class="field has-addons">
+        <div class="control">
+          <span class="button is-link">
+            <i class="material-icons-outlined">calendar_today</i>
+          </span>
+        </div>
+        <div class="control">
+          <div class="input">
+            <DateRangePicker @bind-StartDate="filterStart" @bind-EndDate="filterEnd" OnRangeSelect="ChangePicker" />
+          </div>
+        </div>
+        <div class="control">
+          <div class="select is-fullwidth">
+            <select @onchange="ChangeDate">
+              <option value="1">Tuần này</option>
+              <option value="11">Tuần trước</option>
+              <option value="2">Tháng này</option>
+              <option value="22">Tháng trước</option>
+              <option value="3">Quý này</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <div class="dropdown is-right @(departmentShow ? "is-active" : "")">
+        <div class="dropdown-trigger">
+          <a class="icon-text" @onclick="() => departmentShow = !departmentShow">
+            <span class="has-text-link">
+              @filterDepartment.name.Replace("└─", "").Replace("'", "")
+            </span>
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(null)">
+              Tất cả phòng ban
+            </a>
+            @foreach (var sl in departments)
+            {
+              <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(sl)">
+                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
+              </a>
+            }
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-one-quarter">
+      <div class="control has-icons-right has_suggest">
+        <input class="input is-rounded" type="text" placeholder="Nhập tên nhân viên..."
+               autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
+        <ul class="suggest">
+          @foreach (var item in userSuggests)
+          {
+            <li class="rsitem" @onclick="() => UserSelected(item)">
+              <div class="user_item">
+                <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
+                <span>@item.FullName</span>
+              </div>
+            </li>
+          }
+        </ul>
+        <span class="icon is-right">
+          <i class="material-icons-outlined">search</i>
+        </span>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <div class="dropdown is-hoverable is-right">
+        <div class="dropdown-trigger">
+          <a class="icon-text has-text-link has-text-right">
+            @if (isCreate == null)
+            {
+              <span class="text_1_line" style="width: 80px;">Tất cả</span>
+            }
+            else if (isCreate == true)
+            {
+              <span class="text_1_line" style="width: 80px;">Người @(type == 2 ? "ghi nhận" : "tặng sao")</span>
+            }
+            else
+            {
+              <span class="text_1_line" style="width: 80px;">Người được @(type == 2 ? "ghi nhận" : "tặng sao")</span>
+            }
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item" @onclick="() => ChangeCreate(null)">
+              Tất cả
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeCreate(true)">
+              Người @(type == 2 ? "ghi nhận" : "tặng sao")
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeCreate(false)">
+              Người được @(type == 2 ? "ghi nhận" : "tặng sao")
+            </a>
+          </div>
+        </div>
+      </div>
+    </li>
+  </ul>
+
+  <div class="scrolly pr-2" style="max-height: 400px;">
+    <table class="table is-fullwidth is-noborder is-striped is-responsive">
+      <tbody>
+        @foreach (var item in cfrList)
+        {
+          var create = Layout.UserList.SingleOrDefault(x => x.id == item.user_create);
+          var receive = Layout.UserList.SingleOrDefault(x => x.id == item.user_receive);
+
+          <tr>
+            <td class="py-4" width="25%">
+              @if (create != null)
+              {
+                <div class="user_item mb-2">
+                  <img class="image is-36x36 mr-2" src="@create.avatar" alt="IMG">
+                  <span>@create.FullName</span>
+                </div>
+              }
+              @if (receive != null)
+              {
+                <div class="user_item pl-6" style="background: url(/images/arrow_sub.png) 20px 0px no-repeat;">
+                  <img class="image is-36x36 mr-2" src="@receive.avatar" alt="IMG">
+                  <span>@receive.FullName</span>
+                </div>
+              }
+            </td>
+            <td class="py-4" width="75%">
+              @if (!string.IsNullOrEmpty(item.evaluate_name))
+              {
+                <h3 class="title is-6 has-text-info mb-2">
+                  @item.evaluate_name
+                </h3>
+              }
+              <div class="text_3_line mb-2" onclick="toggleText(this)">
+                @((MarkupString)Shared.GetLinks(item.content))
+              </div>
+              <div class="field is-grouped">
+                <div class="control">
+                  <span class="icon-text">
+                    <span class="has-text-weight-semibold">@item.star</span>
+                    <span class="icon">
+                      <i class="material-icons-outlined has-text-warning">star</i>
+                    </span>
+                  </span>
+                </div>
+                @if (type == 2)
+                {
+                  <div class="control">•</div>
+                  <div class="control has-text-weight-semibold text_1_line">
+                    @if (string.IsNullOrEmpty(item.okr_name))
+                    {
+                      <span>Tất cả OKRs</span>
+                    }
+                    else
+                    {
+                      <span>@item.okr_name</span>
+                    }
+                  </div>
+                }
+                <div class="control">•</div>
+                <div class="control">
+                  @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date_create))
+                </div>
+              </div>
+            </td>
+          </tr>
+        }
+        @if (cfrList.Count == 0)
+        {
+          <tr class="has-background-white">
+            <td colspan="5">
+              <div class="has-text-grey py-6">
+                Không có dữ liệu !
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<DepartmentModel> departmentAll { get; set; }
+  [Parameter]
+  public List<DepartmentModel.SelectList> departments { get; set; }
+  [Parameter]
+  public int type { get; set; }
+
+  private bool _loaded = false;
+
+  private List<OkrCfrModel> cfrList = new();
+  private List<UserModel> userSuggests = new();
+  private string filterUserSearch = string.Empty;
+  private string filterUserId = string.Empty;
+  private DateTimeOffset? filterStart { get; set; }
+  private DateTimeOffset? filterEnd { get; set; }
+  private DepartmentModel.SelectList filterDepartment = new() { name = "Tất cả phòng ban" };
+  private bool departmentShow = false;
+  private bool? isCreate = null;
+
+  protected override async Task OnInitializedAsync()
+  {
+    Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
+    filterStart = start;
+    filterEnd = end;
+
+    DepartmentModel.SelectList department = null;
+    if (!string.IsNullOrEmpty(Layout.User.department_default))
+      department = departments.SingleOrDefault(x => x.id == Layout.User.department_default);
+
+    await ChangeDepartment(department);
+
+    _loaded = true;
+  }
+
+  public async Task ChangePicker(DateRange range)
+  {
+    filterStart = range.Start;
+    filterEnd = range.End;
+    await GetData();
+  }
+
+  private async Task ChangeDate(ChangeEventArgs e)
+  {
+    var type = Convert.ToInt32(e.Value);
+    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
+    filterStart = start;
+    filterEnd = end;
+    await GetData();
+  }
+
+  private async Task ChangeDepartment(DepartmentModel.SelectList item)
+  {
+    departmentShow = false;
+    userSuggests = new();
+    filterUserId = string.Empty;
+    filterUserSearch = string.Empty;
+    filterDepartment = item != null ? item : new() { name = "Tất cả phòng ban" };
+    await GetData();
+  }
+
+  private string UserSearch
+  {
+    get => filterUserSearch;
+    set
+    {
+      filterUserSearch = value;
+      userSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in Layout.UserList)
+        {
+          bool check = true;
+          if (!string.IsNullOrEmpty(filterDepartment.id))
+            if (item.departments_id == null || !item.departments_id.Contains(filterDepartment.id))
+              check = false;
+          if (!Handled.Shared.SearchKeyword(filterUserSearch, item.FullName))
+            check = false;
+
+          if (check)
+            userSuggests.Add(item);
+        }
+      }
+    }
+  }
+
+  private async Task UserSelected(UserModel item)
+  {
+    userSuggests = new();
+    filterUserId = item.id;
+    filterUserSearch = item.FullName;
+    await GetData();
+  }
+
+  private async Task ChangeCreate(bool? item)
+  {
+    isCreate = item;
+    await GetData();
+  }
+
+  private async Task GetData()
+  {
+    _loaded = false;
+    var data = await DbOkrCfr.GetList(Layout.Company.id, type, filterStart.Value.DateTime, filterEnd.Value.DateTime);
+    if (!string.IsNullOrEmpty(filterUserId))
+    {
+      if(isCreate == null)
+      {
+        cfrList = (from x in data
+                   where x.user_create == filterUserId || x.user_receive == filterUserId
+                   orderby x.date_create descending
+                   select x).ToList();
+      }
+      else if (isCreate == true)
+      {
+        cfrList = (from x in data
+                   where x.user_create == filterUserId
+                   orderby x.date_create descending
+                   select x).ToList();
+      }
+      else
+      {
+        cfrList = (from x in data
+                   where x.user_receive == filterUserId
+                   orderby x.date_create descending
+                   select x).ToList();
+      }
+    }
+    else if (!string.IsNullOrEmpty(filterDepartment.id))
+    {
+      var department = departmentAll.SingleOrDefault(x => x.id == filterDepartment.id);
+      if (department != null)
+      {
+        if (isCreate == null)
+        {
+          cfrList = (from x in data
+                     where department.members_id.Contains(x.user_create) || department.members_id.Contains(x.user_receive)
+                     orderby x.date_create descending
+                     select x).ToList();
+        }
+        else if (isCreate == true)
+        {
+          cfrList = (from x in data
+                     where department.members_id.Contains(x.user_create)
+                     orderby x.date_create descending
+                     select x).ToList();
+        }
+        else
+        {
+          cfrList = (from x in data
+                     where department.members_id.Contains(x.user_receive)
+                     orderby x.date_create descending
+                     select x).ToList();
+        }
+      }
+    }
+    else
+    {
+      cfrList = data;
+    }
+
+    _loaded = true;
+  }
+}

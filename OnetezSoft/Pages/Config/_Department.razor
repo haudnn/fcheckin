@@ -1,0 +1,80 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+@if(Current != null)
+{
+  <li>
+    <a>
+      <span class="has-text-weight-semibold" @onclick="() => ViewItem(Current)">
+        @Current.name
+      </span>
+      <span class="has-text-link" @onclick="() => StaffItem(Current)">
+        (@Current.members_id.Count nhân viên)
+      </span>
+      <span class="delete is-pulled-right" @onclick="() => DeleteItem(Current)"></span>
+    </a>
+    @if(childs.Count > 0)
+    {
+      <ul class="mr-0">
+        @foreach (var child in childs)
+        {
+          <_Department CompanyId="@CompanyId" DepartmentAll="@DepartmentAll" Current="child" />
+        }
+      </ul>
+    }
+  </li>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string CompanyId { get; set; }
+  [Parameter]
+  public List<DepartmentModel> DepartmentAll { get; set; }
+  [Parameter]
+  public DepartmentModel Current { get; set; }
+
+  private List<DepartmentModel> childs = new();
+
+  protected override void OnInitialized()
+  {
+    childs = DepartmentAll.Where(x => x.parent == Current.id).ToList();
+  }
+
+  private void ViewItem(DepartmentModel item)
+  {
+    navigation.NavigateTo("/config/system/department/edit/" + item.id, false);
+  }
+
+  private void StaffItem(DepartmentModel item)
+  {
+    navigation.NavigateTo("/config/system/department/staff/" + item.id, false);
+  }
+
+  private async Task DeleteItem(DepartmentModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", 
+        $"Khi xóa phòng ban toàn bộ dữ liệu của phòng ban sẽ bị xóa.\nBạn có chắc muốn xóa phòng ban {item.name} ?"))
+      return;
+
+    item.delete = true;
+    await DbDepartment.Update(CompanyId, item);
+    Current = null;
+
+    var childAll = await DbDepartment.GetAllChilds(CompanyId, item.id, null);
+    foreach (var child in childAll)
+    {
+      child.delete = true;
+      await DbDepartment.Update(CompanyId, child);
+    }
+
+    if (Layout.User.role == 2)
+    {
+      // Gửi thông báo chuông
+      var adminList = await DbUser.GetManager(Layout.Company.id, true);
+      foreach (var user in adminList)
+        await DbNotify.Create(Layout.Company.id, 23, item.name, user.id, Layout.User.id);
+    }
+  }
+}

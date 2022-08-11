@@ -1,0 +1,281 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="card p-5">
+  <ul class="columns is-vcentered is-variable is-2">
+    <li class="column">
+      <h1 class="title is-5 has-text-info">
+        BẢNG XẾP HẠNG
+      </h1>
+    </li>
+    <li class="column is-two-fifths has-text-right">
+      <div class="dropdown is-right @(rankdepartmentShow ? "is-active" : "")">
+        <div class="dropdown-trigger">
+          <a class="icon-text" @onclick="() => rankdepartmentShow = !rankdepartmentShow">
+            <span class="has-text-link">
+              @rankDepartment.name.Replace("└─", "").Replace("'", "")
+            </span>
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item is-family-code" @onclick="() => ChangeRankDepartment(null)">
+              Tất cả phòng ban
+            </a>
+            @foreach (var sl in departments)
+            {
+              <a class="dropdown-item is-family-code" @onclick="() => ChangeRankDepartment(sl)">
+                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
+              </a>
+            }
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-narrow has-text-right" style="width: 115px;">
+      <div class="dropdown is-hoverable is-right">
+        <div class="dropdown-trigger">
+          <a class="icon-text">
+            <span class="has-text-link">
+              @(rankDay == 2 ? "Tháng này" : rankDay == 3 ? "Quý này" : "Tất cả")
+            </span>
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item" @onclick="() => ChangeRankDay(2)">
+              Tháng này
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeRankDay(3)">
+              Quý này
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeRankDay(0)">
+              Tất cả
+            </a>
+          </div>
+        </div>
+      </div>
+    </li>
+  </ul>
+  <div class="tabs is-fullwidth pt-3">
+    <ul class="font_14">
+      <li class="@(rankTab == 1 ? "is-active" : "")">
+        <a @onclick="() => ChangeRankTab(1)">NHẬN ĐƯỢC</a>
+      </li>
+      <li class="@(rankTab == 2 ? "is-active" : "")">
+        <a @onclick="() => ChangeRankTab(2)">CHO ĐI</a>
+      </li>
+      <li class="@(rankTab == 3 ? "is-active" : "")">
+        <a @onclick="() => ChangeRankTab(3)">ĐẶC BIỆT</a>
+      </li>
+    </ul>
+  </div>
+  <div class="scrolly" style="height: 390px;">
+    @if (rankTab == 3)
+    {
+      <ul class="columns is-multiline is-variable is-2">
+        @foreach (var item in rankList)
+        {
+          var create = Layout.UserList.SingleOrDefault(x => x.id == item.user_create);
+          var receive = Layout.UserList.SingleOrDefault(x => x.id == item.user_receive);
+
+          <li class="column is-full">
+            @if (create != null)
+            {
+              <div class="user_item mb-2">
+                <img class="image is-36x36 mr-2" src="@create.avatar" alt="IMG">
+                <div>
+                  <p class="has-text-weight-medium has-text-info">
+                    <span class="mr-2">@create.FullName</span>
+                  </p>
+                  <p class="text_1_line is-size-7" style="width: 250px;">
+                    @create.departments_name
+                  </p>
+                </div>
+              </div>
+            }
+            @if (receive != null)
+            {
+              <div class="user_item mb-3 pl-6" style="background: url(/images/arrow_sub.png) 20px 0px no-repeat;">
+                <img class="image is-36x36 mr-2" src="@receive.avatar" alt="IMG">
+                <div>
+                  <p class="has-text-weight-medium has-text-info">@receive.FullName</p>
+                  <p class="text_1_line is-size-7" style="width: 250px;">
+                    @receive.departments_name
+                  </p>
+                </div>
+              </div>
+            }
+
+            @if (!string.IsNullOrEmpty(item.evaluate_name))
+            {
+              <h3 class="title is-6 has-text-info mb-2">
+                @item.evaluate_name
+              </h3>
+            }
+            <div class="text_3_line mb-2" onclick="toggleText(this)">
+              @((MarkupString)Shared.GetLinks(item.content))
+            </div>
+            <div class="field is-grouped">
+              <div class="control">
+                <span class="icon-text">
+                  <span class="has-text-weight-semibold">@item.star</span>
+                  <span class="icon">
+                    <i class="material-icons-outlined has-text-warning">star</i>
+                  </span>
+                </span>
+              </div>
+              <div class="control">•</div>
+              <div class="control has-text-weight-semibold text_1_line" style="max-width: 280px;">
+                @if (string.IsNullOrEmpty(item.okr_name))
+                {
+                  <span>Tất cả OKRs</span>
+                }
+                else
+                {
+                  <span>@item.okr_name</span>
+                }
+              </div>
+              <div class="control">•</div>
+              <div class="control">
+                @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date_create))
+              </div>
+            </div>
+            <hr class="mt-3 mb-0" />
+          </li>
+        }
+      </ul>
+    }
+    else
+    {
+      <ul class="columns is-multiline is-vcentered is-mobile is-variable is-2">
+        @foreach (var item in rankDict)
+        {
+          var user = Layout.UserList.SingleOrDefault(x => x.id == item.Key);
+          <li class="column is-three-quarters">
+            <div class="user_item">
+              <img class="image is-36x36 mr-2" src="@user.avatar" alt="IMG">
+              <div>
+                <p class="has-text-weight-semibold has-text-info">
+                  @user.FullName
+                </p>
+                <p class="text_1_line is-size-7" style="width: 250px;">
+                  @user.departments_name
+                </p>
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-quarter has-text-right">
+            <span class="icon-text">
+              <span class="has-text-weight-semibold">@item.Value</span>
+              <span class="icon">
+                <i class="material-icons-outlined has-text-warning">star</i>
+              </span>
+            </span>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<DepartmentModel.SelectList> departments { get; set; }
+
+  private int rankTab = 1;
+  private int rankDay = 2;
+  private bool rankdepartmentShow = false;
+  private DepartmentModel.SelectList rankDepartment = new() { name = "Tất cả phòng ban" };
+  private List<OkrCfrModel> rankList = new();
+  private Dictionary<string, int> rankDict = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    if (!string.IsNullOrEmpty(Layout.User.department_default))
+      rankDepartment = departments.SingleOrDefault(x => x.id == Layout.User.department_default);
+    if (rankDepartment == null)
+      rankDepartment = new() { name = "Tất cả phòng ban" };
+
+    await Start();
+  }
+
+  private async Task ChangeRankTab(int type)
+  {
+    rankTab = type;
+    await Start();
+  }
+
+  private async Task ChangeRankDay(int type)
+  {
+    rankDay = type;
+    await Start();
+  }
+
+  private async Task ChangeRankDepartment(DepartmentModel.SelectList item)
+  {
+    if (item == null)
+      rankDepartment = new() { name = "Tất cả phòng ban" };
+    else
+      rankDepartment = item;
+    rankdepartmentShow = false;
+    await Start();
+  }
+
+  private async Task Start()
+  {
+    DateTime? filterStart = null;
+    DateTime? filterEnd = null;
+    if (rankDay != 0)
+    {
+      Shared.GetTimeSpan(rankDay, out DateTime start, out DateTime end);
+      filterStart = start;
+      filterEnd = end;
+    }
+
+    var dataList = await DbOkrCfr.GetList(Layout.Company.id, filterStart, filterEnd);
+    var userList = string.IsNullOrEmpty(rankDepartment.id) ? Layout.UserList :
+      Layout.UserList.Where(x => x.departments_id.Contains(rankDepartment.id)).ToList();
+
+    if (rankTab == 1 || rankTab == 2)
+    {
+      rankDict.Clear();
+      foreach (var user in userList)
+      {
+        int total = 0;
+        if (rankTab == 1)
+        {
+          total = (from x in dataList
+                   where x.user_receive == user.id
+                   select x.star).Sum();
+        }
+        else
+        {
+          total = (from x in dataList
+                   where x.user_create == user.id
+                   select x.star).Sum();
+        }
+        rankDict.Add(user.id, total);
+      }
+
+      rankDict = rankDict.OrderByDescending(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
+    }
+    else
+    {
+      var userListId = (from x in userList select x.id).ToList();
+      rankList = (from x in dataList
+                  where x.special
+                  && (userListId.Contains(x.user_create) || userListId.Contains(x.user_receive))
+                  orderby x.date_create descending
+                  select x).ToList();
+    }
+  }
+}

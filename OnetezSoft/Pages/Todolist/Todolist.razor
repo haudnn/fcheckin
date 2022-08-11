@@ -1,0 +1,47 @@
+﻿@page "/todolist"
+@page "/todolist/{Day}"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>Todolist</PageTitle>
+
+<section class="p-4">
+  <h1 class="title is-4 is-size-5-mobile has-text-weight-bold has-text-link">
+    Chào buổi @Shared.DateSession(), @Layout.User.FullName
+  </h1>
+
+  <_TodoToday User="Layout.User" Day="@Day" />
+
+  <_TodoList />
+
+</section>
+
+@if(!CheckAccess())
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-content" style="max-width: 360px;">
+      <div class="box has-text-centered pt-5">
+        <span class="icon is-large has-text-danger">
+          <i class="material-icons-outlined is-size-1">error_outline</i>
+        </span>
+        <div class="is-size-6 py-4 has-text-weight-semibold">
+          @msgAccess
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string Day { get; set; }
+
+  private string msgAccess = string.Empty;
+  private bool CheckAccess()
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, "todolist", out msgAccess);
+  }
+}

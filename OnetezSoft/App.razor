@@ -1,0 +1,33 @@
+﻿<Router AppAssembly="@typeof(Program).Assembly" PreferExactMatches="@true">
+  <Found Context="routeData">
+    <RouteView RouteData="@routeData" DefaultLayout="@typeof(LayoutMain)" />
+  </Found>
+  <NotFound>
+    <LayoutView Layout="@typeof(LayoutLogin)">
+      <ul class="columns is-centered is-vcentered is-mobile is-gapless" style="min-height: 100vh">
+        <li class="column is-narrow">
+          <div class="box has-text-centered">
+            <i class="material-icons-round has-text-grey" style="font-size: 120px;">
+              sentiment_very_dissatisfied
+            </i>
+
+            <div class="title is-4 has-text-danger mt-5">
+              CẢNH BÁO TỪ HỆ THỐNG
+            </div>
+
+            <div class="has-text-weight-medium is-size-6 mb-5">
+              Đừng dẫn này không đúng hoặc không tồn tại.
+            </div>
+
+            <a class="button is-link is-outlined" onclick="history.back();">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-5">arrow_back</i>
+              </span>
+              <span class="has-text-weight-medium">Quay lại</span>
+            </a>
+          </div>
+        </li>
+      </ul>
+    </LayoutView>
+  </NotFound>
+</Router>

@@ -1,0 +1,256 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="card p-5 @(_loaded ? "" : "is-loading")">
+  <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3">
+    <li class="column">
+      <div class="dropdown is-hoverable">
+        <div class="dropdown-trigger">
+          <div class="icon-text">
+            <h1 class="title is-5 has-text-info">
+              TOP HOÀN THÀNH TODOLIST
+            </h1>
+            <span class="icon has-text-info">
+              <i class="material-icons-outlined is-size-5">info</i>
+            </span>
+          </div>
+        </div>
+        <div class="dropdown-menu" style="width: 250px;">
+          <div class="dropdown-content">
+            <div class="dropdown-item">
+              Xếp hạng tính theo tỉ lệ số công việc được hoàn thành trên tổng số công việc được tạo (mỗi Todolist bao gồm nhiều công việc được tạo).
+            </div>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-narrow has-text-right" style="width: 130px;">
+      <div class="dropdown is-hoverable is-right">
+        <div class="dropdown-trigger">
+          <a class="icon-text">
+            @if (filterDate == 1)
+            {
+              <span class="has-text-link">Tuần này</span>
+            }
+            else if (filterDate == 11)
+            {
+              <span class="has-text-link">Tuần trước</span>
+            }
+            else if (filterDate == 2)
+            {
+              <span class="has-text-link">Tháng này</span>
+            }
+            else if (filterDate == 22)
+            {
+              <span class="has-text-link">Tháng trước</span>
+            }
+            else if (filterDate == 3)
+            {
+              <span class="has-text-link">Quý này</span>
+            }
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item" @onclick="() => ChangeDate(1)">
+              Tuần này
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeDate(11)">
+              Tuần trước
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeDate(2)">
+              Tháng này
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeDate(22)">
+              Tháng trước
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeDate(3)">
+              Quý này
+            </a>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <div class="dropdown is-right @(departmentShow ? "is-active" : "")">
+        <div class="dropdown-trigger">
+          <a class="icon-text" @onclick="() => departmentShow = !departmentShow">
+            <span class="has-text-link">
+              @filterDepartment.name.Replace("└─", "").Replace("'", "")
+            </span>
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(null)">
+              Tất cả phòng ban
+            </a>
+            @foreach (var sl in departments)
+            {
+              <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(sl)">
+                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
+              </a>
+            }
+          </div>
+        </div>
+      </div>
+    </li>
+  </ul>
+  <ul class="columns is-variable is-8 rank_top">
+    @for (int i = 0; i < 3; i++)
+    {
+      if (i < rankList.Count)
+      {
+        var item = rankList[i];
+        <li class="column is-one-third">
+          <div class="has-text-centered pb-3 mb-3 is-relative">
+            <div class="title">@(i+1)</div>
+            <div class="subtitle">
+              @Shared.ConvertNumber(item.value)%
+            </div>
+          </div>
+          <div class="user_item">
+            <img class="image is-36x36 mr-3" src="@item.avatar" alt="IMG">
+            <div>
+              <strong class="is-block is-size-6 has-text-info">@item.name</strong>
+              <span class="text_1_line has-text-grey is-size-7" style="width: 240px;">
+                @item.departments
+              </span>
+            </div>
+          </div>
+        </li>
+      }
+    }
+  </ul>
+  <div class="scrolly pr-2 mt-5 rank_list" style="max-height: 160px;">
+    <ul class="columns is-multiline is-variable is-2">
+      @for (int i = 3; i < rankList.Count; i++)
+      {
+        if (i < rankList.Count)
+        {
+          var item = rankList[i];
+          <li class="column is-half px-6">
+            <ul class="columns is-vcentered is-variable is-2 is-mobile">
+              <li class="column is-1 is-size-6">#@(i+1)</li>
+              <li class="column is-9">
+                <div class="user_item">
+                  <img class="image is-36x36 mr-3" src="@item.avatar" alt="IMG">
+                  <div>
+                    <strong class="is-block is-size-6 has-text-info">@item.name</strong>
+                    <span class="text_1_line has-text-grey is-size-7" style="width: 240px;">
+                      @item.departments
+                    </span>
+                  </div>
+                </div>
+              </li>
+              <li class="column is-2 has-text-right has-text-info has-text-weight-semibold">
+                @Shared.ConvertNumber(item.value)%
+              </li>
+            </ul>
+          </li>
+        }
+      }
+    </ul>
+  </div>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<DepartmentModel> departmentAll { get; set; }
+  [Parameter]
+  public List<DepartmentModel.SelectList> departments { get; set; }
+
+  private bool _loaded = false;
+
+  private List<ProgressModel> rankList = new();
+  private List<string> userList = new();
+  private int filterDate = 1;
+  private DepartmentModel.SelectList filterDepartment = new() { name = "Tất cả phòng ban" };
+  private bool departmentShow = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    DepartmentModel.SelectList department = null;
+    if (!string.IsNullOrEmpty(Layout.User.department_default))
+      department = departments.SingleOrDefault(x => x.id == Layout.User.department_default);
+
+    await ChangeDepartment(department);
+
+    _loaded = true;
+  }
+
+  private async Task ChangeDate(int type)
+  {
+    filterDate = type;
+    await GetData();
+  }
+
+  private async Task ChangeDepartment(DepartmentModel.SelectList item)
+  {
+    departmentShow = false;
+    filterDepartment = item != null ? item : new() { name = "Tất cả phòng ban" };
+    if (item == null)
+      userList = (from x in Layout.UserList select x.id).ToList();
+    else
+      userList = (from x in Layout.UserList
+                  where x.departments_id.Contains(filterDepartment.id)
+                  select x.id).ToList();
+    await GetData();
+  }
+
+  private async Task GetData()
+  {
+    _loaded = false;
+
+    Shared.GetTimeSpan(filterDate, out DateTime start, out DateTime end);
+    var database = await DbTodolist.GetList(Layout.Company.id, start, end);
+
+    // Số ngày cần tạo Todolist
+    int day = 0;
+    for (DateTime date = end; date >= start; date = date.AddDays(-1))
+    {
+      if (date < DateTime.Now)
+      {
+        if (!DbDayOff.CheckOff(Layout.DaysOff, date))
+          day++;
+      }
+    }
+
+    rankList.Clear();
+    foreach (var userId in userList)
+    {
+      var user = Layout.UserList.SingleOrDefault(x => x.id == userId);
+      if (user != null)
+      {
+        var todolist = database.Where(x => x.user_create == user.id && !x.day_off).ToList();
+        int done = 0;
+        int total = 0;
+        foreach (var item in todolist)
+        {
+          done += item.todos.Where(x => x.status == 4).Count();
+          total += item.todos.Count();
+        }
+
+        rankList.Add(new ProgressModel()
+        {
+          id = user.id,
+          name = user.FullName,
+          avatar = user.avatar,
+          departments = user.departments_name,
+          value = Shared.Progress(done, total)
+        });
+      }
+    }
+    rankList = rankList.OrderByDescending(x => x.value).ToList();
+
+    _loaded = true;
+  }
+}

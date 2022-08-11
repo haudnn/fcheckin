@@ -1,0 +1,103 @@
+﻿@inherits LayoutComponentBase
+@inject IJSRuntime JSRuntime
+@inject ProtectedLocalStorage storage
+@inject NavigationManager navigation
+
+<CascadingValue Value="this">
+  <main id="main" class="columns is-gapless is-multiline has-background-white">
+    @if (User != null && User.active)
+    {
+      if (User.is_admin && navigation.Uri.Contains("/admin/"))
+      {
+        <aside class="column is-narrow">
+          <SidebarAdmin />
+        </aside>
+        <section id="content" class="column">
+          <HeaderAdmin />
+          @Body
+        </section>
+      }
+      else if(User.is_customer && navigation.Uri.Contains("/client/"))
+      {
+        <aside class="column is-narrow">
+          <SidebarClient />
+        </aside>
+        <section id="content" class="column">
+          <HeaderClient />
+          @Body
+        </section>
+      }
+      else
+      {
+        <section class="column is-full is-flex is-vcentered is-centered">
+          <div class="has-text-danger has-text-weight-semibold">
+            Bạn không có quyền truy cập vào trang này !
+          </div>
+        </section>
+      }
+    }
+    else if (User != null && !User.active)
+    {
+      <section class="column is-full is-flex is-vcentered is-centered">
+        <div class="has-text-danger has-text-weight-semibold">
+          Tài khoản của bạn đã bị khóa !
+        </div>
+      </section>
+    }
+    else
+    {
+      <section class="column is-full movingBallG"></section>
+    }
+  </main>
+</CascadingValue>
+
+@code {
+  public UserModel User = null;
+
+  public int PageSize = 25;
+
+  public long MaxFileSize = 10 * 1024000;
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    try
+    {
+      if (firstRender)
+      {
+        var userStorage = await storage.GetAsync<string>("user");
+        if (!userStorage.Success || string.IsNullOrEmpty(userStorage.Value))
+        {
+          await storage.DeleteAsync("user");
+          navigation.NavigateTo("/", true);
+          return;
+        }
+        else
+        {
+          User = await DbMainUser.GetbySession(userStorage.Value);
+          if (User == null)
+          {
+            await storage.DeleteAsync("user");
+            navigation.NavigateTo("/", true);
+            return;
+          }
+          else
+          {
+            User.online = DateTime.Now.Ticks;
+            await DbMainUser.Update(User);
+          }
+        }
+        await InvokeAsync(StateHasChanged);
+      }
+    }
+    catch (Exception ex)
+    {
+      await storage.DeleteAsync("company");
+      await storage.DeleteAsync("cycle");
+      await storage.DeleteAsync("navLess");
+      await JSRuntime.InvokeAsync<string>("console.log", ex.Message);
+
+      navigation.NavigateTo("/", true);
+      return;
+    }
+  }
+}

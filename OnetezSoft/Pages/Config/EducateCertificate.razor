@@ -1,0 +1,346 @@
+﻿@page "/config/educate/certificate"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+@if (Layout.User.role != 1 && !Layout.User.role_manage.educate)
+{
+  <PopupNoRole />
+}
+else
+{
+  <section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+    <div class="column is-narrow">
+      <div class="card p-3 menu_left">
+        <a href="/config/educate/category">
+          Danh mục
+        </a>
+        <a class="is-active" href="/config/educate/certificate">
+          Mẫu<br />Chứng chỉ
+        </a>
+      </div>
+    </div>
+    <div class="column">
+      <div class="card p-5">
+        <ul class="columns is-vcentered">
+          <li class="column">
+            <h1 class="title is-5 has-text-info is-uppercase">
+              @_title
+            </h1>
+          </li>
+          <li class="column is-narrow">
+            <a class="button is-link" @onclick="() => EditItem(null)">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-6">add</span>
+              </span>
+              <span>Thêm mới</span>
+            </a>
+          </li>
+        </ul>
+        <ul class="columns is-variable is-2">
+          <li class="column">
+            <input @bind="filterKey" type="text" class="input" placeholder="Từ khóa: tên chứng chỉ..." />
+          </li>
+          <li class="column is-narrow">
+            <a class="button is-link is-outlined" @onclick="GetList">
+              <span class="icon">
+                <i class="material-icons-outlined">search</i>
+              </span>
+              <span>Tìm kiếm</span>
+            </a>
+          </li>
+        </ul>
+        <table class="table is-fullwidth is-vcentered is-responsive mt-5">
+          <thead>
+            <tr>
+              <th width="150px">Hình</th>
+              <th>Tên mẫu chứng chỉ</th>
+              <th width="10%">Ngày đăng</th>
+              <th width="10%">Áp dụng</th>
+              <th width="70px" align="center">Xử lý</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var item in dataList)
+            {
+              <tr>
+                <td>
+                  <a class="image" href="@item.image" target="_blank">
+                    <img src="@item.image" alt="IMG" />
+                  </a>
+                </td>
+                <td>
+                  <label class="td-label">Tên mẫu</label>
+                  <div class="td-value">
+                    <a class="has-text-weight-semibold" @onclick="() => EditItem(item)">
+                      @item.name
+                    </a>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Ngày đăng</label>
+                  <div class="td-value">
+                    @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Áp dụng</label>
+                  <div class="td-value">
+                    <a class="icon" @onclick="() => ToggleItem(item)">
+                      @if (item.pin)
+                      {
+                        <span class="material-icons-outlined is-size-4 has-text-success">
+                          check_box
+                        </span>
+                      }
+                      else
+                      {
+                        <span class="material-icons-outlined is-size-4 has-text-black">
+                          check_box_outline_blank
+                        </span>
+                      }
+                    </a>
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Xử lý</label>
+                  <div class="td-value">
+                    <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                      <i class="material-icons-outlined is-size-5">
+                        edit
+                      </i>
+                    </a>
+                    <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                      <i class="material-icons-outlined is-size-5">
+                        delete
+                      </i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+}
+
+@if (current != null)
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card" style="width: 880px;">
+      <form @onsubmit="Update" class="modal-card-body p-0">
+        <ul class="columns is-gapless">
+          <li class="column is-narrow">
+            <div style="width: 330px; padding: 25px 25px 20px;">
+              <div class="field">
+                <label class="label">Tên mẫu chứng chỉ</label>
+                <div class="control">
+                  <input @bind="current.name" type="text" class="input" id="input_name" />
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Mẫu nền chứng chỉ: 500x360px</label>
+                <div class="control">
+                  <InputFile OnChange="Upload" accept="image/*" class="input" />
+                </div>
+                <div class="image mt-3">
+                  <img src="@current.image" />
+                </div>
+              </div>
+              <div class="field is-grouped">
+                <div class="control is-expanded">
+                  <div class="field has-addons">
+                    <div class="control">
+                      <label class="button">Màu chữ</label>
+                    </div>
+                    <div class="control">
+                      <input @bind="current.color" type="text" class="input" placeholder="VD: #565C7C" />
+                    </div>
+                  </div>
+                </div>
+                <div class="control">
+                  <label class="checkbox">
+                    <input type="checkbox" @bind="current.pin" />
+                    <span>Áp dụng</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field is-grouped">
+                <div class="control">
+                  <a class="button is-link" @onclick="Update">
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-6">done</i>
+                    </span>
+                    <span>Cập nhật</span>
+                  </a>
+                </div>
+                <div class="control">
+                  <a class="button" @onclick="() => current = null">
+                    Hủy
+                  </a>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column has_bg">
+            <div style="padding: 25px;">
+              <div class="has-text-weight-semibold">BẢN XEM TRƯỚC</div>
+              <hr />
+              <div class="certificate" style="background-image: url('@current.image'); color: @current.color">
+                <div class="is_user">Tên học viên</div>
+                <div class="is_course">Tên khóa học tại đây</div>
+                <div class="is_date">20.02.2022</div>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </form>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Quản lý mẫu chứng chỉ";
+
+  private EducateCertificateModel current = null;
+  private List<EducateCertificateModel> dataList = new();
+  private string filterKey = string.Empty;
+
+  protected override void OnInitialized()
+  {
+    GetList();
+
+    _loaded = true;
+  }
+
+  private void GetList()
+  {
+    dataList = DbEducateCertificate.GetList(Layout.Company.id, filterKey);
+  }
+
+  private async Task DeleteItem(EducateCertificateModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+      return;
+
+    dataList.Remove(item);
+    await DbEducateCertificate.Delete(Layout.Company.id, item.id);
+  }
+
+  private async Task ToggleItem(EducateCertificateModel item)
+  {
+    if (!item.pin)
+    {
+      foreach (var other in dataList)
+      {
+        if(other.id != item.id && other.pin)
+        {
+          other.pin = false;
+          await DbEducateCertificate.Update(Layout.Company.id, other);
+        }
+      }
+    }
+    item.pin = !item.pin;
+    item = await DbEducateCertificate.Update(Layout.Company.id, item);
+  }
+
+  private async Task EditItem(EducateCertificateModel item)
+  {
+    if (item == null)
+    {
+      current = new();
+    }
+    else
+    {
+      current = item;
+    }
+    await JSRuntime.InvokeVoidAsync("setFocus", "input_name");
+  }
+
+  private async Task Upload(InputFileChangeEventArgs e)
+  {
+    _success = false;
+    foreach (var file in e.GetMultipleFiles())
+    {
+      _message = "Đang upload file lên...";
+      try
+      {
+        if (file.Size <= Layout.MaxFileSize)
+        {
+          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
+          current.image = await Files.SaveFileAsync(fileContent, file.Name);
+          _message = string.Empty;
+        }
+        else
+        {
+          _message = $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB";
+        }
+      }
+      catch (Exception ex)
+      {
+        _message = $"ERROR: {ex.Message}";
+      }
+    }
+  }
+
+  private async Task Update()
+  {
+    _success = false;
+    _message = string.Empty;
+
+    if (string.IsNullOrEmpty(current.name) || string.IsNullOrEmpty(current.image))
+    {
+      _message = "Nhập các trường bắt buộc (*)";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else
+    {
+      if (string.IsNullOrEmpty(current.id))
+      {
+        current = await DbEducateCertificate.Create(Layout.Company.id, current);
+        dataList.Insert(0, current);
+      }
+      else
+      {
+        current = await DbEducateCertificate.Update(Layout.Company.id, current);
+      }
+
+      if (current.pin)
+      {
+        foreach (var other in dataList)
+        {
+          if (other.id != current.id && other.pin)
+          {
+            other.pin = false;
+            await DbEducateCertificate.Update(Layout.Company.id, other);
+          }
+        }
+      }
+
+      dataList = dataList.OrderByDescending(x => x.pin).ToList();
+
+      current = null;
+    }
+  }
+}

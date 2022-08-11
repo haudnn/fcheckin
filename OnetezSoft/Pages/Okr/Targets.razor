@@ -1,0 +1,354 @@
+﻿@page "/okr/setup/target"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+<section class="p-4 @(_loaded ? "" : "is-loading")">
+  <div class="card p-5 p-4-mobile">
+    <ul class="columns is-vcentered is-variable is-2 is-mobile is-multiline">
+      <li class="column is-two-thirds-mobile">
+        <h1 class="title is-5 is-size-6-mobile has-text-info">
+          OKRs - CÔNG BỐ MỤC TIÊU
+        </h1>
+      </li>
+      @if (department != null && roleEdit)
+      {
+        <li class="column is-narrow-tablet is-one-third-mobile has-text-right">
+          <a class="button is-link" @onclick="Edit">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">add</i>
+            </span>
+            <span>Thêm</span>
+            <span class="ml-1 is-hidden-mobile">mục tiêu</span>
+          </a>
+        </li>
+      }
+      <li class="column is-narrow-tablet is-two-thirds-mobile">
+        <div class="select is-fullwidth">
+          <select @onchange="@((ChangeEventArgs e) => ChangeDepartment(e.Value.ToString()))" class="is-family-code">
+            <option value="">TỔNG CÔNG TY</option>
+            @foreach (var sl in departments)
+            {
+              if (department != null && department.id == sl.id)
+              {
+                <option value="@sl.id" selected>@sl.name</option>
+              }
+              else
+              {
+                <option value="@sl.id">@sl.name</option>
+              }
+            }
+          </select>
+        </div>
+      </li>
+      @if(department != null)
+      {
+        <li class="column is-narrow-tablet is-one-third-mobile has-text-right">
+          <a class="button is-link is-outlined" @onclick="BackDepartment">
+            <span class="icon"><i class="material-icons-outlined">arrow_back</i></span>
+            <span>Quay lại</span>
+          </a>
+        </li>
+      }
+    </ul>
+    <table class="table is-fullwidth is-noborder is-responsive mt-5 is-treeview">
+      <thead>
+        <tr>
+          <th width="25%">Phòng ban</th>
+          <th>Mục tiêu</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (departmentAll.Count > 0)
+        {
+          var mains = departmentAll.Where(x => x.parent == departmentId).ToList();
+          foreach (var main in mains)
+          {
+            var childs = departmentAll.Where(x => x.parent == main.id).ToList();
+            var mainTargets = dataList.Where(x => x.department == main.id).ToList();
+            <tr>
+              <td width="25%" class="has-text-weight-bold @(childs.Count > 0 ? "is_title" : "")">
+                <a class="is-size-6" @onclick="() => ChangeDepartment(main.id)">
+                  @main.name
+                </a>
+              </td>
+              <td class="td-block">
+                <label class="td-label">Mục tiêu</label>
+                <div class="td-value">
+                  @if (mainTargets.Count > 0)
+                  {
+                    <div class="content">
+                      <ol class="mt-0 ml-4 has-text-weight-semibold">
+                        @foreach (var item in mainTargets)
+                        {
+                          <li>@item.name</li>
+                        }
+                      </ol>
+                    </div>
+                  }
+                  else
+                  {
+                    <i>Chưa công bố mục tiêu</i>
+                  }
+                </div>
+              </td>
+            </tr>
+            @if (childs.Count > 0)
+            {
+              <tr>
+                <td colspan="2">
+                  <table class="table is-fullwidth is-noborder is-responsive has-text-info">
+                    <tbody>
+                      @foreach (var child in childs)
+                      {
+                        var childTargets = dataList.Where(x => x.department == child.id).ToList();
+
+                        <tr>
+                          <td width="25%" class="has-text-weight-bold is_title">
+                            <a class="is-size-6" @onclick="() => ChangeDepartment(child.id)">
+                              @child.name
+                            </a>
+                          </td>
+                          <td class="td-block">
+                            <label class="td-label">Mục tiêu</label>
+                            <div class="td-value">
+                              @if (childTargets.Count > 0)
+                              {
+                                <div class="content">
+                                  <ol class="mt-0 ml-4 has-text-weight-semibold">
+                                    @foreach (var item in childTargets)
+                                    {
+                                      <li>@item.name</li>
+                                    }
+                                  </ol>
+                                </div>
+                              }
+                              else
+                              {
+                                <i>Chưa công bố mục tiêu</i>
+                              }
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            }
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+@if (drafts != null)
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card is-medium">
+      <div class="modal-card-head">
+        <div class="modal-card-title is-uppercase">
+          Tạo công bố mục tiêu
+        </div>
+        <a class="delete" @onclick="() => drafts = null"></a>
+      </div>
+      <div class="modal-card-body">
+        <div class="field has-text-weight-bold has-text-link">
+          PHÒNG BAN: @department.name
+        </div>
+        @for (int i = 0; i < drafts.Count; i++)
+        {
+          var item = drafts[i];
+
+          <div class="field has-addons">
+            <div class="control">
+              <label class="button is-static">@(i + 1)</label>
+            </div>
+            <div class="control is-expanded">
+              <input @bind="item.name" type="text" class="input" placeholder="Nhập mục tiêu..." />
+            </div>
+            <div class="control">
+              <a class="button has-text-danger" @onclick="() => DeleteItem(item)">
+                <span class="icon">
+                  <i class="material-icons-outlined">close</i>
+                </span>
+              </a>
+            </div>
+          </div>
+        }
+        <div class="field mt-5">
+          <div class="buttons is-right">
+            <a class="button" @onclick="Add">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">add</i>
+              </span>
+              <span>Thêm</span>
+            </a>
+            <a class="button is-link" @onclick="() => Update()">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">done</i>
+              </span>
+              <span>Cập nhật</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "OKRs - Công bố mục tiêu";
+
+  private List<TargetModel> dataList = new();
+  private List<TargetModel> drafts = null;
+
+  private List<DepartmentModel> departmentAll = new();
+  private List<DepartmentModel.SelectList> departments = new();
+  private DepartmentModel department = null;
+  private string departmentId = null;
+  private List<string> departmentLogs = new();
+  private bool roleEdit = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+    dataList = DbOkrTarget.GetAll(Layout.Company.id, Layout.CycleId);
+    _loaded = false;
+    await Start();
+    _loaded = true;
+  }
+
+  private async Task Start()
+  {
+    roleEdit = false;
+    departmentAll.Clear();
+
+    if (string.IsNullOrEmpty(departmentId))
+    {
+      departmentAll.AddRange(await DbDepartment.GetAllChilds(Layout.Company.id, null, null));
+      departmentId = null;
+      department = null;
+    }
+    else
+    {
+      var main = await DbDepartment.Get(Layout.Company.id, departmentId);
+      if (main != null)
+      {
+        department = main;
+        departmentAll.Add(main);
+        departmentAll.AddRange(await DbDepartment.GetAllChilds(Layout.Company.id, main.id, null));
+        departmentId = main.parent;
+
+        int roleId = DbDepartment.GetRole(Layout.Company.id, department.id, Layout.User.id, out string title);
+        if (roleId == 1 || roleId == 2)
+          roleEdit = true;
+      }
+      else
+      {
+        departmentAll.AddRange(await DbDepartment.GetAllChilds(Layout.Company.id, null, null));
+        departmentId = null;
+      }
+    }
+  }
+
+  private async Task ChangeDepartment(string id)
+  {
+    if (department != null)
+      departmentLogs.Add(department.id);
+
+    departmentId = id;
+    
+    await Start();
+
+  }
+
+  private async Task BackDepartment()
+  {
+    int count = departmentLogs.Count;
+    if(count > 0)
+    {
+      departmentId = departmentLogs[count -1];
+      departmentLogs.RemoveAt(count - 1);
+    }
+    else
+    {
+      departmentId = null;
+    }
+
+    await Start();
+  }
+
+  private async Task DeleteItem(TargetModel item)
+  {
+    if(string.IsNullOrEmpty(item.name))
+    {
+      drafts.Remove(item);
+    }
+    else
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {item.name}"))
+        return;
+
+      drafts.Remove(item);
+      await DbOkrTarget.Delete(Layout.Company.id, item.id);
+    }
+  }
+
+  private void Add()
+  {
+    var item = new TargetModel()
+    {
+      id = Mongo.RandomId(),
+      cycle = Layout.CycleId,
+      department = department.id
+    };
+
+    drafts.Add(item);
+  }
+
+  private void Edit()
+  {
+    drafts = dataList.Where(x => x.department == department.id).ToList();
+
+    if (drafts.Count == 0)
+      Add();
+  }
+
+  private async Task Update()
+  {
+    _success = false;
+    _message = string.Empty;
+
+    foreach (var item in drafts)
+    {
+      if (item.date == 0)
+        await DbOkrTarget.Create(Layout.Company.id, item);
+      else
+        await DbOkrTarget.Update(Layout.Company.id, item);
+    }
+
+    drafts = null;
+
+    dataList = DbOkrTarget.GetAll(Layout.Company.id, Layout.CycleId);
+  }
+}

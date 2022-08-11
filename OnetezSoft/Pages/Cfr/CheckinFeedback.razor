@@ -1,0 +1,394 @@
+﻿@page "/cfr/checkin/{Id}/feedback"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+@if (okr != null)
+{
+  <section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+    <div class="column is-narrow">
+      <div class="card p-3 menu_left">
+        <a class="button is-transparent has-text-link mb-5" href="/cfr/checkin?user=@okr.user_create">
+          <span class="icon">
+            <i class="material-icons-outlined">
+              arrow_back
+            </i>
+          </span>
+          <span>Trở về</span>
+        </a>
+        <a href="/cfr/checkin/@okr.id/info">
+          Check-in<br />1:1
+        </a>
+        <a class="is-active" href="/cfr/checkin/@okr.id/feedback">
+          Phản hồi
+        </a>
+        <a href="/cfr/checkin/@okr.id/overview">
+          Tổng quan
+        </a>
+      </div>
+    </div>
+    <div class="column">
+      <div class="card p-5 p-4-mobile">
+        <ul class="columns is-vcentered is-variable is-2 mb-3">
+          <li class="column">
+            <h1 class="title is-5 has-text-info">
+              PHẢN HỒI CHECK-IN
+            </h1>
+          </li>
+          <li class="column is-narrow">
+            <div class="field is-grouped">
+              <div class="control has-text-weight-semibold">
+                Chu kỳ Check-in:
+              </div>
+              <div class="control is-expanded">
+                <div class="select is-fullwidth">
+                  <select @onchange="ChangeCheckin">
+                    @foreach (var sl in dataList)
+                    {
+                      <option value="@sl.id">
+                        @string.Format("{0:dd/MM/yyyy}", new DateTime(sl.date_create))
+                        @(sl.draft ? " - Bản nháp" : "")
+                      </option>
+                    }
+                    @if (dataList.Count == 0)
+                    {
+                      <option value="">Chưa có Check-in</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </div>
+          </li>
+        </ul>
+        @if (current == null)
+        {
+          <div class="py-6 has-text-grey">
+            Chưa có dữ liệu check-in
+          </div>
+        }
+        else
+        {
+          var confident = DbOkr.Confident(current.confident);
+          var progress = DbOkrCheckin.GetProgress(current.key_results, okr.key_results);
+          var okrColor = Shared.ProgressColor(progress);
+
+          <div id="feedback" class="scrolly" style="height: calc(100vh - 282px);">
+            <table class="table is-fullwidth is-vcentered is-noborder is-responsive">
+              <thead>
+                <tr>
+                  <th>Mục tiêu</th>
+                  <th width="200px" align="center">Tiến độ</th>
+                  <th width="100px" align="center">Thay đổi</th>
+                  <th width="70px" align="center" class="pl-0">Tự tin</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="is-flex">
+                      <span class="has-text-weight-semibold has-text-link">@okr.name</span>
+                      @if (okr.done)
+                      {
+                        <span class="ml-1 icon" title="OKRs đã hoàn thành">
+                          <i class="material-icons is-size-6 has-text-success">check_circle</i>
+                        </span>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    <label class="td-label">Tiến độ</label>
+                    <div class="td-value">
+                      <div class="progress_has_value">
+                        <progress class="progress is-small @okrColor" value="@progress" max="100"></progress>
+                        <span>@Shared.ConvertNumber(progress)%</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Thay đổi</label>
+                    <div class="td-value has-text-weight-semibold">
+                      @Shared.ConvertNumber(progress - current.progress_prev)%
+                    </div>
+                  </td>
+                  <td align="center" class="pl-0">
+                    <label class="td-label">Tự tin</label>
+                    <div class="td-value has-text-weight-semibold">
+                      <span class="@confident.color">@confident.name</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="tr-hide">
+                  <td colspan="4">
+                    <hr class="m-0" />
+                  </td>
+                </tr>
+                @foreach (var checkin in current.key_results)
+                {
+                  var kr = okr.key_results.SingleOrDefault(x => x.id == checkin.id);
+                  if (kr != null)
+                  {
+                    <tr>
+                      <td colspan="4">
+                        <span class="has-text-weight-semibold has-text-link">
+                          @kr.name
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td colspan="3" class="pr-0">
+                        <div class="has_bg is_radius p-3 is-word-break">
+                          @((MarkupString)Shared.GetLinks(checkin.feedback))
+                        </div>
+                      </td>
+                      <td align="center" class="pl-0">
+                        <a class="icon has-text-link" @onclick="() => Reply(kr.id)" title="Trả lời phản hồi">
+                          <i class="material-icons-outlined is-size-5">reply</i>
+                        </a>
+                      </td>
+                    </tr>
+                  }
+                }
+                @if (current.feedbacks != null)
+                {
+                  <tr>
+                    <td colspan="4" class="pt-3 pr-3">
+                      <ul class="columns is-multiline is-mobile">
+                        @foreach (var item in current.feedbacks)
+                        {
+                          var checkin = current.key_results.SingleOrDefault(x => x.id == item.kr);
+                          var keyResult = okr.key_results.SingleOrDefault(x => x.id == item.kr);
+
+                          if (item.user == Layout.User.id)
+                          {
+                            <li class="column is-two-fifths is-hidden-mobile"></li>
+                            <li class="column is-three-fifths-tablet is-full-mobile">
+                              <div class="has-background-link has-text-white is-word-break p-3 is_radius">
+                                @if (checkin != null && keyResult != null)
+                                {
+                                  <div class="notification lighter is-italic px-3 py-2 is-size-7 mb-3">
+                                    <p class="text_2_line has-text-link mb-1">@keyResult.name</p>
+                                    <p class="text_2_line has-text-grey">@checkin.feedback</p>
+                                  </div>
+                                }
+                                @((MarkupString)Shared.TextToHtml(item.content))
+                              </div>
+                              <div class="is-clearfix"></div>
+                              <div class="is-size-7 has-text-right pt-1">
+                                @string.Format("{0:HH:mm - dd/MM}", new DateTime(item.date))
+                              </div>
+                            </li>
+                          }
+                          else
+                          {
+                            var user = Layout.UserList.SingleOrDefault(x => x.id == item.user);
+                            <li class="column is-three-fifths-tablet is-full-mobile">
+                              @if (user != null)
+                              {
+                                <div class="user_item mb-2">
+                                  <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                                  <span class="has-text-weight-medium">@user.FullName</span>
+                                </div>
+                              }
+                              <div class="has_bg is-word-break is-pulled-left p-3 is_radius">
+                                @if (checkin != null && keyResult != null)
+                                {
+                                  <div class="notification lighter is-italic px-3 py-2 is-size-7 mb-3">
+                                    <p class="text_2_line has-text-link mb-1">@keyResult.name</p>
+                                    <p class="text_2_line has-text-grey">@checkin.feedback</p>
+                                  </div>
+                                }
+                                @((MarkupString)Shared.TextToHtml(item.content))
+                              </div>
+                              <div class="is-clearfix"></div>
+                              <div class="is-size-7 has-text-left pt-1">
+                                @string.Format("{0:HH:mm - dd/MM}", new DateTime(item.date))
+                              </div>
+                            </li>
+                            <li class="column is-two-fifths is-hidden-mobile"></li>
+                          }
+                        }
+                      </ul>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="field pr-3" style="height: 60px;">
+            @if (!string.IsNullOrEmpty(replyId))
+            {
+              var checkin = current.key_results.SingleOrDefault(x => x.id == replyId);
+              var keyResult = okr.key_results.SingleOrDefault(x => x.id == checkin.id);
+
+              <div class="notification is-italic p-3 is-size-7">
+                <a class="delete" @onclick="CancelReply"></a>
+                <p class="text_1_line has-text-link">@keyResult.name</p>
+                <p class="text_1_line has-text-grey">@checkin.feedback</p>
+              </div>
+            }
+          </div>
+          <div class="field is-grouped pr-3" style="height: 75px;">
+            <div class="control is-expanded has-icons-right">
+              <textarea @bind="replyContent" id="replyInput" class="textarea scrolly" rows="1" placeholder="Nội dung phản hồi..." />
+              <a class="icon is-right has-text-link" onclick="document.getElementById('file').click()"
+             title="Đính kèm hình ảnh" style="pointer-events: auto;">
+                <i class="material-icons-outlined is-size-5">image</i>
+              </a>
+              <InputFile OnChange="Upload" accept="image/*" class="is-hidden" id="file" />
+            </div>
+            <div class="control">
+              <a class="button is-link" @onclick="Send">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">send</i>
+                </span>
+                <span>Gửi</span>
+              </a>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+}
+else
+{
+  <section class="p-4">
+    <div class="card p-5">
+      Dữ liệu không tồn tại hoặc đã bị xóa
+    </div>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  [Parameter]
+  public string Id { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "CFRs - Phản hồi Check-in";
+
+  private List<OkrCheckinModel> dataList = new();
+  private OkrCheckinModel current = null;
+  private OkrModel okr = null;
+
+  private string replyId = string.Empty;
+  private string replyContent = string.Empty;
+
+  protected override async Task OnInitializedAsync()
+  {
+    okr = await DbOkr.Get(Layout.Company.id, Id, Layout.CycleId);
+    if (okr != null)
+    {
+      dataList.AddRange(DbOkrCheckin.GetList(Layout.Company.id, Layout.CycleId, okr.id, true));
+      if (dataList.Count > 0)
+        current = dataList[0];
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "#replyInput");
+    }
+    _loaded = true;
+  }
+
+  private void ChangeCheckin(ChangeEventArgs e)
+  {
+    current = dataList.SingleOrDefault(x => x.id == e.Value.ToString());
+  }
+
+  private async Task Reply(string id)
+  {
+    replyId = id;
+    await JSRuntime.InvokeVoidAsync("setFocus", "replyInput");
+  }
+
+  private void CancelReply()
+  {
+    replyId = string.Empty;
+  }
+
+  private async Task Upload(InputFileChangeEventArgs e)
+  {
+    foreach (var file in e.GetMultipleFiles())
+    {
+      _success = false;
+      _message = "Đang upload file lên...";
+
+      try
+      {
+        if (file.Size <= Layout.MaxFileSize)
+        {
+          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
+
+          var fileLink = await Files.SaveFileAsync(fileContent, file.Name);
+
+          _message = string.Empty;
+          replyContent += $" [img]{fileLink}[/img] ";
+          await JSRuntime.InvokeVoidAsync("setFocus", "replyInput");
+        }
+        else
+        {
+          _success = false;
+          _message = $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB";
+        }
+      }
+      catch (Exception ex)
+      {
+        _success = false;
+        _message = $"ERROR: {ex.Message}";
+      }
+    }
+  }
+
+  private async Task Send()
+  {
+    _success = false;
+    _message = string.Empty;
+
+    if (string.IsNullOrEmpty(replyContent))
+    {
+      _message = "Bạn chưa nhập nội dung phản hồi !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else
+    {
+      current = await DbOkrCheckin.Get(Layout.Company.id, current.id);
+      if (current.feedbacks == null)
+        current.feedbacks = new();
+
+      current.feedbacks.Add(new()
+        {
+          id = Mongo.RandomId(),
+          user = Layout.User.id,
+          date = DateTime.Now.Ticks,
+          content = replyContent.Replace("[img]", "<img src=\"").Replace("[/img]", "\" alt=\"IMG\" />"),
+          kr = replyId
+        });
+
+      current = await DbOkrCheckin.Update(Layout.Company.id, current);
+
+      // Gửi thông báo chuông
+      if (okr.user_create == Layout.User.id)
+        await DbNotify.Create(Layout.Company.id, 506, okr.id, okr.user_checkin, Layout.User.id);
+      else
+        await DbNotify.Create(Layout.Company.id, 507, okr.id, okr.user_create, Layout.User.id);
+
+      replyId = string.Empty;
+      replyContent = string.Empty;
+      await JSRuntime.InvokeVoidAsync("setFocus", "replyInput");
+      await JSRuntime.InvokeVoidAsync("scrollDiv", "feedback", 10000);
+    }
+  }
+}

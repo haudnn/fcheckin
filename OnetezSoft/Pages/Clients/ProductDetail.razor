@@ -1,0 +1,278 @@
+@page "/client/products/{Id}"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if(model != null)
+{
+  <section class="px-4 pb-4">
+    <div class="detail_product" style="max-width: 1600px; margin: 0 auto;">
+      <ul class="columns is-multiline">
+        <li class="column is-full">
+          <div class="item_head" style="background-color: @model.color; background-image: url('@model.cover')">
+            <img class="item_icon" src="@model.icon" />
+            <span class="item_title">@model.title</span>
+            <span class="item_version">@model.version</span>
+            <span class="item_desc">@model.desc</span>
+            <a class="button is-small is-link px-6" @onclick="BuyItem">
+              Mua ngay
+            </a>
+            <span class="item_price">
+              @model.price.ToString("0,0") VNĐ/người/tháng
+            </span>
+          </div>
+        </li>
+        <li class="column is-two-thirds">
+          <div class="columns is-multiline is-variable is-1">
+            <div class="column is-full">
+              @if (string.IsNullOrEmpty(model.video.link))
+              {
+                <a class="image is-2by1 is-radius has-background-grey-lighter">
+                  <img src="@model.video.thumb" />
+                </a>
+              }
+              else
+              {
+                if (showvideo)
+                {
+                  <div class="image is-2by1 is-radius is-youtube">
+                    <iframe src="@model.video.link" allowfullscreen></iframe>
+                  </div>
+                }
+                else
+                {
+                  <a class="image is-2by1 is-radius is-video" @onclick="() => showvideo = true">
+                    <img src="@model.video.thumb" alt="video" />
+                    <span class="icon">
+                      <i class="material-icons-outlined">play_circle_filled</i>
+                    </span>
+                  </a>
+                }
+              }
+            </div>
+            @foreach (var image in model.images)
+            {
+              <div class="column is-one-third">
+                <a class="image is-2by1 is-radius">
+                  <img src="@image" alt="img" />
+                </a>
+              </div>
+            }
+          </div>
+        </li>
+        <li class="column is-one-third">
+          <div class="has-text-weight-bold has-text-info">
+            <span class="is-size-4 mr-2">@model.title</span>
+            <span class="font_14">@model.version</span>
+          </div>
+          <div class="has-text-weight-semibold is-size-7 pb-3">
+            @model.detail
+          </div>
+          <div class="columns is-multiline is-vcentered is-variable is-1 font_14">
+            <div class="column is-7">
+              <span class="has-text-weight-bold">Sản phẩm</span>
+              <span class="is-block is-size-7">Bộ giải phép đi kèm</span>
+              <hr class="mt-2 mb-0" />
+            </div>
+            <div class="column is-5 has-text-centered">
+              <span class="has-text-weight-bold">Professional</span>
+              <span class="is-block is-size-7">@model.price.ToString("0,0") VNĐ/người/tháng</span>
+              <hr class="mt-2 mb-0" />
+            </div>
+            @foreach (var item in model.pricelist)
+            {
+              <div class="column is-7 has-text-weight-bold">
+                @item.title
+              </div>
+              <div class="column is-5 has-text-centered">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">done</i>
+                </span>
+              </div>
+              @foreach (var content in item.content)
+              {
+                <div class="column is-7">
+                  @content.value
+                </div>
+                <div class="column is-5 has-text-centered">
+                  <span class="icon has-text-grey-light">
+                    <i class="material-icons-outlined is-size-6">done</i>
+                  </span>
+                </div>
+              }
+            }
+          </div>
+          <div class="buttons is-right pt-3">
+            <a class="button is-link is-small px-5" @onclick="BuyItem">
+              <span class="px-3">Mua ngay</span>
+            </a>
+          </div>
+        </li>
+        @if (!string.IsNullOrEmpty(model.update))
+        {
+          <li class="column is-full">
+            <div class="title is-5 mb-3">Chi tiết cập nhật</div>
+            <div class="content">
+              @((MarkupString)model.update)
+            </div>
+          </li>
+        }
+        @if (model.features.Count > 0)
+        {
+          <li class="column is-full">
+            <div class="title is-5 mb-3">Tính năng sản phẩm</div>
+            <div class="carousel">
+              <BlazorSlickCarousel Configurations="configurations">
+                <BlazorSlickCarouselContent>
+                  @foreach (var item in model.features)
+                  {
+                    <div class="item">
+                      <div class="columns is-variable is-2">
+                        <div class="column is-half">
+                          <img src="@item.image" alt="img" />
+                        </div>
+                        <div class="column is-half">
+                          <div class="content pb-6">
+                            <div class="has-text-weight-bold">
+                              @item.title
+                            </div>
+                            <ul class="ml-5">
+                              @foreach (var content in item.content)
+                              {
+                                <li>@content.value</li>
+                              }
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </BlazorSlickCarouselContent>
+              </BlazorSlickCarousel>
+              <div class="WMBSC-nav">
+                <div class="dots"></div>
+                <div class="arrows"></div>
+              </div>
+            </div>
+          </li>
+        }
+        @if (model.modules.Count > 0)
+        {
+          <li class="column is-full">
+            <div class="title is-5 mb-3">Bận nhận được gì khi sử dụng @model.title</div>
+            <div class="columns is-multiline is-variable is-2">
+              @foreach (var item in model.modules)
+              {
+                <div class="column is-one-third">
+                  <div class="box" style="height: 100%">
+                    <div class="has-text-weight-bold mb-3">
+                      @item.title
+                    </div>
+                    @foreach (var content in item.content)
+                    {
+                      <div class="icon-text is-multiline mt-2">
+                        <span class="icon has-text-link">
+                          <i class="material-icons-outlined is-size-5">done</i>
+                        </span>
+                        <span class="has-text-grey">@content.value</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </li>
+        }
+        @if (products.Count > 0)
+        {
+          <li class="column is-full">
+            <div class="title is-5 mb-3 mt-3">Khuyến nghị mua kèm</div>
+            <ul class="columns is-multiline is-variable is-2">
+              @foreach (var item in products)
+              {
+                <li class="column is-one-third">
+                  <a class="card_product" href="/client/products/@item.id"
+                    style="background-color: @item.color; background-image: url('@item.cover')">
+                    <img class="item_icon" src="@item.icon" />
+                    <span class="item_title">@item.title</span>
+                    <span class="item_desc">@item.desc</span>
+                    <span class="tag is-link mt-5">Mua ngay</span>
+                  </a>
+                </li>
+              }
+            </ul>
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+}
+else
+{
+  <section class="p-4">
+    <div class="has-text-grey has-text-centered py-6">
+      Dữ liệu không tồn tại hoặc đã xóa
+    </div>
+  </section>
+}
+
+<_ProductBuy product="product" companys="companys" promotions="promotions" OnUpdate="OnUpdate" />
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  [Parameter]
+  public string Id { get; set; }
+
+  private string _title = "Chi tiết sản phẩm";
+  private ProductModel model = null;
+  private List<ProductModel> products = new();
+  private List<CompanyModel> companys = new();
+  private List<PromotionModel> promotions = new();
+  private WMBSCInitialSettings configurations;
+  private bool showvideo = false;
+  private ProductModel product = null;
+
+  protected override async Task OnInitializedAsync()
+  {
+    model = await DbMainProduct.Get(Id);
+    if(model != null)
+    {
+      _title = "Sản phẩm " + model.title;
+
+      // Sản phẩm đề xuất
+      products = await DbMainProduct.GetList();
+      products = products.Where(x => x.id != model.id).Take(3).ToList();
+      // Danh sách công ty
+      companys = await DbMainCompany.GetListOfCustomer(Layout.User.id);
+      // Chương trình khuyến mãi
+      promotions = await DbMainPromotion.GetList();
+
+      configurations = new WMBSCInitialSettings
+      {
+        arrows = true,
+        dots = true,
+        autoplay = true,
+        infinite = true,
+        slidesToShow = 1,
+        slidesToScroll = 1,
+        appendDots = ".dots",
+        appendArrows = ".arrows",
+        prevArrow = "<a class='material-icons-round'>chevron_left</a>",
+        nextArrow = "<span class='material-icons-round'>chevron_right</span>"
+      };
+    }
+  }
+
+  private async Task BuyItem()
+  {
+    product = await DbMainProduct.Get(model.id);
+  }
+
+  private void OnUpdate(bool isUpdate)
+  {
+    product = null;
+  }
+}

@@ -1,0 +1,361 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+<ul class="columns is-variable is-2 mb-4">
+  <li class="column is-one-third">
+    <div class="card p-2 has-text-centered">
+      <span class="button is-fullwidth is-white has-text-link is-size-5 has-background-white">
+        <span class="icon is-large">
+          <i class="material-icons-outlined">grade</i>
+        </span>
+        <strong>
+          @User.star_total
+        </strong>
+      </span>
+      <span>Số sao của bạn</span>
+    </div>
+  </li>
+  <li class="column is-one-third">
+    <div class="card p-2 has-text-centered">
+      <span class="button is-fullwidth is-white has-text-warning is-size-5 has-background-white">
+        <span class="icon is-large">
+          <i class="material-icons-outlined">grade</i>
+        </span>
+        <strong>
+          @(User.star_distribute + User.star_receive - User.star_total)
+        </strong>
+      </span>
+      <span>Số sao đã cho</span>
+    </div>
+  </li>
+  <li class="column is-one-third">
+    <a class="card is-block" href="/gift/product"
+       style="padding: 32px 0px 31px; background: linear-gradient(260.19deg, #FFFFFF 0%, #355CAA 0.01%, #565C7C 99.78%);">
+      <div class="is-flex is-centered is-vcentered has-text-white">
+        <i class="material-icons-outlined is-size-4">card_giftcard</i>
+        <strong class="is-size-6 ml-3">ĐỔI QUÀ</strong>
+      </div>
+    </a>
+  </li>
+</ul>
+
+<div class="card p-5">
+  <ul class="columns is-multiline is-vcentered is-mobile is-variable is-2">
+    <li class="column is-full">
+      <h1 class="title is-5 has-text-info">
+        GHI NHẬN - TẶNG SAO
+      </h1>
+    </li>
+    <li class="column is-full">
+      <div class="dropdown @(departmentShow ? "is-active" : "")">
+        <div class="dropdown-trigger">
+          <a class="icon-text" @onclick="() => departmentShow = !departmentShow">
+            <span class="has-text-link">
+              @department.name.Replace("└─", "").Replace("'", "")
+            </span>
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            @foreach (var sl in departments)
+            {
+              <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(sl)">
+                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
+              </a>
+            }
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-two-thirds">
+      <div class="field">
+        <label class="label">Người nhận</label>
+        <div class="control has-icons-right has_suggest">
+          <input class="input is_bg" type="text" placeholder="Nhập tên nhân viên..."
+                 autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
+          <ul class="suggest">
+            @foreach (var item in userSuggests)
+            {
+              <li class="rsitem" @onclick="() => UserSelected(item)">
+                <div class="user_item">
+                  <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
+                  <span>@item.FullName</span>
+                </div>
+              </li>
+            }
+          </ul>
+          <span class="icon is-right">
+            <i class="material-icons-outlined">search</i>
+          </span>
+        </div>
+      </div>
+    </li>
+    <li class="column is-one-third">
+      <div class="field">
+        <label class="label">&nbsp;</label>
+        <div class="control">
+          <div class="select is-fullwidth is_bg">
+            <select @bind="current.type">
+              <option value="2">Ghi nhận</option>
+              <option value="3">Tặng sao</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-full">
+      @if (current.type == 2)
+      {
+        <div class="field">
+          <label class="label">Ghi nhận cho</label>
+          <div class="control">
+            <div class="select is-fullwidth is_bg">
+              <select @bind="current.okr">
+                <option>Tất cả OKRs</option>
+                @foreach (var sl in okrList)
+                {
+                  <option value="@sl.id">@sl.name</option>
+                }
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">Tiêu chí</label>
+          <div class="control">
+            <div class="select is-fullwidth is_bg">
+              <select @bind="current.evaluate">
+                <option>Chọn tiêu chí</option>
+                @foreach (var sl in Layout.OkrConfig.evaluates.Where(x => x.type == 2).ToList())
+                {
+                  <option value="@sl.id">@sl.name (@sl.star)</option>
+                }
+              </select>
+            </div>
+          </div>
+        </div>
+      }
+      else
+      {
+        <div class="field">
+          <label class="label">Số sao muốn tặng</label>
+          <div class="control">
+            <input @bind="current.star" type="number" class="input is_bg" placeholder="Nhập số sao" min="0" />
+          </div>
+        </div>
+      }
+      <div class="field">
+        <label class="label">Nội dung</label>
+        <div class="control">
+          <textarea @bind="current.content" class="textarea is_bg" rows="3" placeholder="Nhập nội dung..."
+                    style="height: @(current.type == 2 ? "84px" : "159px")" />
+        </div>
+      </div>
+      <div class="field is-grouped is-grouped-right mt-4">
+        <div class="control">
+          <a class="button is-info" @onclick="Cancel">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">refresh</i>
+            </span>
+            <span>Nhập lại</span>
+          </a>
+        </div>
+        <div class="control">
+          <a class="button is-link" @onclick="Send" style="width: 90px;">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">send</i>
+            </span>
+            <span>Gửi</span>
+          </a>
+        </div>
+      </div>
+    </li>
+  </ul>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<DepartmentModel.SelectList> departments { get; set; }
+  [Parameter]
+  public UserModel User { get; set; }
+
+  private bool _success = false;
+  private string _message = string.Empty;
+
+  private OkrCfrModel current = new() { type = 2 };
+  private DepartmentModel.SelectList department = new() { name = "Tất cả phòng ban" };
+  private List<OkrModel> okrList = new();
+  private List<UserModel> userSuggests = new();
+  private string filterUserName = string.Empty;
+  private bool departmentShow = false;
+
+  private void ChangeDepartment(DepartmentModel.SelectList item)
+  {
+    department = item;
+    departmentShow = false;
+  }
+
+  private string UserSearch
+  {
+    get => filterUserName;
+    set
+    {
+      filterUserName = value;
+      current.user_receive = string.Empty;
+      userSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in Layout.UserList)
+        {
+          bool check = true;
+          if (!string.IsNullOrEmpty(department.id))
+            if (item.departments_id == null || !item.departments_id.Contains(department.id))
+              check = false;
+          if (!Handled.Shared.SearchKeyword(filterUserName, item.FullName))
+            check = false;
+
+          if (check)
+            userSuggests.Add(item);
+        }
+      }
+      okrList = new();
+    }
+  }
+
+  private void UserSelected(UserModel item)
+  {
+    current.user_receive = item.id;
+    filterUserName = item.FullName;
+    userSuggests = new();
+    okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, current.user_receive);
+  }
+
+  private void Cancel()
+  {
+    filterUserName = null;
+    current.user_receive = string.Empty;
+    current.id = string.Empty;
+    current.okr = null;
+    current.evaluate = null;
+    current.content = null;
+    current.star = 0;
+  }
+
+  private async Task Send()
+  {
+    _success = false;
+    _message = string.Empty;
+
+    if (string.IsNullOrEmpty(current.user_receive))
+    {
+      _message = "Bạn chưa chọn người nhận !";
+      await Task.Delay(10000);
+      _message = string.Empty;
+    }
+    else if (current.user_receive == Layout.User.id)
+    {
+      _message = "Bạn không thể ghi nhận - tặng sao cho chính mình !";
+      await Task.Delay(10000);
+      _message = string.Empty;
+    }
+    else if (current.type == 2 && string.IsNullOrEmpty(current.evaluate))
+    {
+      _message = "Bạn chưa chọn tiêu chí ghi nhận !";
+      await Task.Delay(10000);
+      _message = string.Empty;
+    }
+    else if (current.type == 3 && current.star == 0)
+    {
+      _message = "Bạn chưa chọn số sao muốn tặng !";
+      await Task.Delay(10000);
+      _message = string.Empty;
+    }
+    else if (string.IsNullOrEmpty(current.content))
+    {
+      _message = "Bạn chưa nhập nội dung !";
+      await Task.Delay(10000);
+      _message = string.Empty;
+    }
+    else if (User == null || User.star_total < current.star)
+    {
+      _message = "Bạn không đủ số sao để ghi nhận - tặng sao !";
+      await Task.Delay(10000);
+      _message = string.Empty;
+    }
+    else
+    {
+      if (current.type == 2)
+      {
+        var evaluate = Layout.OkrConfig.evaluates.SingleOrDefault(x => x.id == current.evaluate);
+        if (evaluate != null)
+        {
+          current.star = evaluate.star;
+          current.evaluate_name = evaluate.name;
+          current.special = evaluate.special;
+        }
+        else
+          current.star = 0;
+
+        var okr = okrList.SingleOrDefault(x => x.id == current.okr);
+        if (okr != null)
+        {
+          current.okr = okr.id;
+          current.okr_name = okr.name;
+        }
+        else
+          current.okr = null;
+      }
+      else
+      {
+        current.okr = null;
+        current.evaluate = null;
+      }
+      current.cycle = Layout.CycleId;
+      current.user_create = Layout.User.id;
+      await DbOkrCfr.Create(Layout.Company.id, current);
+
+      // Update start of User Create
+      User.star_total -= current.star;
+      User = await DbUser.Update(Layout.Company.id, User);
+
+      // Update start of User Receive
+      var userReceive = await DbUser.Get(Layout.Company.id, current.user_receive);
+      if (userReceive != null)
+      {
+        userReceive.star_total += current.star;
+        userReceive.star_receive += current.star;
+        await DbUser.Update(Layout.Company.id, userReceive);
+      }
+
+      // Tính thành tựu
+      if (current.type == 2)
+        await DbOkrCfr.Achievement(Layout.Company.id, current.user_receive);
+
+      // Gửi thông báo chuông
+      var notifyType = current.type == 2 ? 501 : 502;
+      await DbNotify.Create(Layout.Company.id, notifyType, current.star.ToString(), current.user_receive, Layout.User.id);
+
+      if (current.type == 2)
+        _message = $"Bạn đã Gửi ghi nhận cho {filterUserName} thành công!";
+      else
+        _message = $"Bạn đã Tặng {current.star} sao cho {filterUserName} thành công!";
+      _success = true;
+      Cancel();
+    }
+  }
+}

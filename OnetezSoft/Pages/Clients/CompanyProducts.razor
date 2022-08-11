@@ -1,0 +1,182 @@
+@page "/client/companys/{Id}/products"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (company != null && company.admin_id == Layout.User.id)
+{
+  <section class="px-4">
+    <ul class="menu_bar mb-4">
+      <li>
+        <a class="icon-text has-text-white is-active" href="/client/companys/@company.id/products">
+          <span class="icon">
+            <i class="material-icons-round is-size-5">apps</i>
+          </span>
+          <span class="is-size-7 has-text-weight-bold">Sản phẩm</span>
+        </a>
+      </li>
+      <li>
+        <a class="icon-text has-text-white" href="/client/companys/@company.id/users">
+          <span class="icon">
+            <i class="material-icons-round is-size-5">group_add</i>
+          </span>
+          <span class="is-size-7 has-text-weight-bold">Người dùng</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="mb-4">
+      <_CompanyInfo company="company" members="members" products="productList" />
+    </div>
+
+    <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
+      <li class="column">
+        <h1 class="title is-5">@_title</h1>
+      </li>
+    </ul>
+
+    <table class="table is-fullwidth is-vcentered is-responsive is_head_bg is-size-7">
+      <thead>
+        <tr>
+          <th width="15%">Sản phẩm</th>
+          <th>Số lượng người dùng</th>
+          <th width="15%">Ngày mua/gia hạn</th>
+          <th width="15%">Ngày hết hạn</th>
+          <th width="15%">Đơn giá</th>
+          <th width="110px" align="center">Gia hạn</th>
+          <th width="110px" align="center">Nâng cấp</th>
+        </tr>
+      </thead>
+      <tbody class="has-text-weight-medium">
+        @foreach (var item in productList)
+        {
+          var module = company.products.SingleOrDefault(x => x.id == item.id);
+
+          <tr class="@(module == null ? "is_opacity" : "")">
+            <td>
+              <div class="icon-text">
+                <span class="image is-40x40 mr-2">
+                  <img src="@item.icon" alt="icon" />
+                </span>
+                <span class="has-text-weight-bold">@item.title</span>
+              </div>
+            </td>
+            @if (module != null)
+            {
+              <td>
+                @module.used/@module.total
+              </td>
+              <td>
+                @string.Format("{0:dd/MM/yyyy}", new DateTime(module.start))
+              </td>
+              <td>
+                <span class="@(module.end < DateTime.Today.Ticks ? "has-text-danger" : "")">
+                  @string.Format("{0:dd/MM/yyyy}", new DateTime(module.end))
+                </span>
+              </td>
+              <td>
+                <span class="has-text-weight-semibold">@string.Format("{0:0,0}", item.price)</span>
+                <span>VNĐ/người/tháng</span>
+              </td>
+              <td align="center">
+                <a class="icon-text has-text-dark" @onclick="() => RenewItem(item)">
+                  <span class="icon">
+                    <i class="material-icons-round is-size-6">refresh</i>
+                  </span>
+                  <span>Gia hạn</span>
+                </a>
+              </td>
+              <td align="center">
+                <a class="icon-text has-text-dark" @onclick="() => UpgradeItem(item)">
+                  <span class="icon">
+                    <i class="material-icons-round is-size-6">file_upload</i>
+                  </span>
+                  <span>Nâng cấp</span>
+                </a>
+              </td>
+            }
+            else
+            {
+              <td colspan="6">Chưa kích hoạt</td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    @if (productList.Count == 0)
+    {
+      <div class="has-text-grey has-text-centered py-6">
+        Không tìm thấy dữ liệu phù hợp
+      </div>
+    }
+  </section>
+}
+else
+{
+  <section class="p-4">
+    <div class="has-text-grey has-text-centered py-6">
+      Dữ liệu không tồn tại hoặc đã xóa
+    </div>
+  </section>
+}
+
+<_ProductRenew model="renew" company="company" product="product" promotions="promotions" OnUpdate="OnUpdate" />
+<_ProductUpgrade model="upgrade" company="company" product="product" promotions="promotions" OnUpdate="OnUpdate" />
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+
+  [Parameter]
+  public string Id { get; set; }
+
+  private string _title = "Sản phẩm sở hữu";
+  private CompanyModel company = null;
+  private List<UserModel> members = new();
+  private List<ProductModel> productList = new();
+  private ProductModel product = null;
+  private CompanyModel.Product renew = null;
+  private CompanyModel.Product upgrade = null;
+  private List<PromotionModel> promotions = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    company = await DbMainCompany.Get(Id);
+    if (company != null)
+    {
+      members = DbUser.GetAll(company.id);
+      productList = await DbMainProduct.GetList();
+
+      // Cập nhật số lượng người dùng
+      company.members = members.Count;
+      await DbMainCompany.Update(company);
+    }
+  }
+
+  private void RenewItem(ProductModel item)
+  {
+    product = item;
+    renew = company.products.SingleOrDefault(x => x.id == item.id);
+    // Chương trình khuyến mãi
+    promotions = DbMainPromotion.GetList(1);
+  }
+
+  private void UpgradeItem(ProductModel item)
+  {
+    product = item;
+    upgrade = company.products.SingleOrDefault(x => x.id == item.id);
+    // Chương trình khuyến mãi
+    promotions = DbMainPromotion.GetList(2);
+  }
+
+  private async Task OnUpdate(bool isUpdate)
+  {
+    renew = null;
+    upgrade = null;
+    if(isUpdate)
+      company = await CompanyService.UpdateProductAccess(company.id);
+  }
+}

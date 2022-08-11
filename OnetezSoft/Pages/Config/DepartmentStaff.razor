@@ -1,0 +1,333 @@
+﻿@page "/config/system/department/staff/{Id}"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+@if (Layout.User.role != 1 && !Layout.User.role_manage.system)
+{
+  <PopupNoRole />
+}
+else if (current != null)
+{
+  <section class="columns is-gapless has_menu_left  @(_loaded ? "" : "is-loading")">
+    <div class="column is-narrow">
+      <div class="card p-3 menu_left">
+        <a class="is-active" href="/config/system/department/list">
+          Phòng ban
+        </a>
+        <a href="/config/system/user/list">
+          Nhân sự
+        </a>
+        <a href="/config/system/dayoff">
+          Thiết lập ngày nghỉ
+        </a>
+      </div>
+    </div>
+    <div class="column">
+      <div class="card p-5">
+        <ul class="columns is-vcentered">
+          <li class="column is-narrow">
+            <h1 class="title is-5 has-text-info is-uppercase">
+              @current.name
+            </h1>
+          </li>
+          <li class="column has-text-right">
+            <a class="button" onclick="goBack()">
+              <span class="icon">
+                <i class="material-icons-outlined">arrow_back_ios</i>
+              </span>
+              <span>Quay lại</span>
+            </a>
+          </li>
+        </ul>
+        <ul class="columns is-variable is-2">
+          <li class="column is-one-third">
+            <div class="control has-icons-right has_suggest">
+              <input class="input" type="text" placeholder="Chọn nhân viên"
+                     autocomplete="off" @bind="MemberSuggest" @bind:event="oninput" />
+              <ul class="suggest">
+                @foreach (var item in memberList)
+                {
+                  <li class="rsitem" @onclick="() => SelectMember(item)">
+                    <div class="user_item">
+                      <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
+                      <span>@item.FullName</span>
+                    </div>
+                  </li>
+                }
+              </ul>
+              <span class="icon is-right">
+                <i class="material-icons-outlined">search</i>
+              </span>
+            </div>
+          </li>
+          <li class="column is-one-quarter">
+            <div class="field has-addons">
+              <div class="control">
+                <label class="button is-static">Chức vụ</label>
+              </div>
+              <div class="control is-expanded">
+                <div class="select is-fullwidth">
+                  <select @bind="memnberRole">
+                    <option value="1">@current.manager</option>
+                    <option value="2">@current.deputy</option>
+                    <option value="3">Nhân viên</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column"></li>
+          <li class="column is-narrow">
+            <a class="button is-small is-link" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">add</i>
+              </span>
+              <span>Thêm nhân sự</span>
+            </a>
+          </li>
+        </ul>
+        <table class="table is-fullwidth is-vcentered is-responsive mt-5">
+          <thead>
+            <tr>
+              <th width="30%">Nhân viên</th>
+              <th>Phòng ban</th>
+              <th width="15%">Chức vụ</th>
+              <th width="50px" align="center">Xử lý</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var item in current.members_list)
+            {
+              var user = Layout.UserList.SingleOrDefault(x => x.id == item.id);
+              if (user != null)
+              {
+                <tr>
+                  <td>
+                    <div class="user_item">
+                      <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG">
+                      <span>@user.FullName</span>
+                    </div>
+                  </td>
+                  <td>
+                    <label class="td-label">Phòng ban</label>
+                    <div class="td-value">
+                      <div class="text_1_line">
+                        @user.departments_name
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <label class="td-label">Quyền hạn</label>
+                    <div class="td-value">
+                      @if (item.role == 1)
+                      {
+                        <span class="tag is-danger">@current.manager</span>
+                      }
+                      else if (item.role == 2)
+                      {
+                        <span class="tag is-warning">@current.deputy</span>
+                      }
+                      else
+                      {
+                        <span class="tag">Nhân viên</span>
+                      }
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Xử lý</label>
+                    <div class="td-value">
+                      <a class="icon has-text-danger" @onclick="() => DeleteItem(item)">
+                        <i class="material-icons-outlined is-size-5">
+                          delete
+                        </i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              }
+              else
+              {
+                <tr>
+                  <td colspan="3">
+                    <i>Nhân viên đã bị xóa</i>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Xử lý</label>
+                    <div class="td-value">
+                      <a class="delete" @onclick="() => DeleteItem(item)"></a>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  [Parameter]
+  public string Id { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Nhân sự phòng ban";
+
+  private DepartmentModel current = new() { members_id = new(), members_list = new() };
+  private List<UserModel> memberList = new();
+  private List<DepartmentModel> departmentAll = new();
+  private string memberKey = string.Empty;
+  private string memberId = string.Empty;
+  private int memnberRole = 3;
+
+  protected override async Task OnInitializedAsync()
+  {
+    departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    current = await DbDepartment.Get(Layout.Company.id, Id);
+    if (current == null)
+    {
+      _message = "Dữ liệu không tồn tại hoặc đã bị xóa !";
+    }
+    else
+    {
+      if (current.members_id == null)
+        current.members_id = new();
+      if (current.members_list == null)
+        current.members_list = new();
+    }
+    _loaded = true;
+  }
+
+  private string MemberSuggest
+  {
+    get => memberKey;
+    set
+    {
+      memberKey = value;
+      memberList = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in Layout.UserList)
+        {
+          bool check = Handled.Shared.SearchKeyword(value, item.email + item.first_name + item.last_name);
+          if (check)
+            memberList.Add(item);
+        }
+      }
+    }
+  }
+
+  private void SelectMember(UserModel item)
+  {
+    memberId = item.id;
+    memberKey = item.first_name + " " + item.last_name;
+    memberList = new();
+  }
+
+  private async Task DeleteItem(DepartmentModel.MembersList item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản này ra khỏi phòng ban ?"))
+      return;
+
+    current.members_list.Remove(item);
+    current.members_id.Remove(item.id);
+    current = await DbDepartment.Update(Layout.Company.id, current);
+
+    // Lấy thông tin nhân viên
+    var user = Layout.UserList.SingleOrDefault(x => x.id == item.id);
+    if(user != null)
+    {
+      if (user.departments_id == null)
+        user.departments_id = new();
+
+      // Xóa trong data user
+      user.departments_id.Remove(current.id);
+      // Xóa chức danh
+      if(item.role != 3 && item.role == user.title)
+        user.title = 3;
+
+      // Xóa luôn ở phòng ban con
+      var childs = await DbDepartment.GetAllChilds(Layout.Company.id, current.id, null);
+      foreach (var child in childs)
+      {
+        if(child.members_list != null)
+        {
+          var delete = child.members_list.SingleOrDefault(x => x.id == item.id);
+          if(delete != null)
+          {
+            child.members_list.Remove(delete);
+            child.members_id.Remove(delete.id);
+            await DbDepartment.Update(Layout.Company.id, child);
+
+            // Xóa trong data user
+            user.departments_id.Remove(child.id);
+            // Xóa chức danh
+            if (delete.role != 3 && delete.role == user.title)
+              user.title = 3;
+          }
+        }
+      }
+
+      // Update data user
+      await DbUser.Update(Layout.Company.id, user);
+
+      await UpdateUserDepartmentName(user.id);
+    }
+  }
+
+  private async Task Update()
+  {
+    _success = false;
+    _message = string.Empty;
+
+    if (string.IsNullOrEmpty(memberId))
+    {
+      _message = "Bạn chưa chọn nhân viên !";
+    }
+    else
+    {
+      current = await DbDepartment.AddMember(Layout.Company.id, current, memberId, memnberRole);
+
+      await UpdateUserDepartmentName(memberId);
+
+      // Gửi thông báo chuông
+      var notifyType = memnberRole ==3 ? 10 : memnberRole == 1 ? 11 : 12;
+      await DbNotify.Create(Layout.Company.id, notifyType, current.id, memberId, Layout.User.id);
+
+      memnberRole = 3;
+      memberId = string.Empty;
+      memberKey = string.Empty;
+    }
+  }
+
+
+  private async Task UpdateUserDepartmentName(string userId)
+  {
+    var user = await DbUser.Get(Layout.Company.id, userId);
+    if(user != null)
+    {
+      var department = DbDepartment.GetNameListOfUser(Layout.Company.id, user.departments_id, departmentAll);
+      user.departments_name = String.Join(" / ", department);
+      await DbUser.Update(Layout.Company.id, user);
+    }
+    await Layout.RefreshData();
+  }
+}

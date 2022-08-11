@@ -1,0 +1,428 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+<div class="card p-5 @(_loaded ? "" : "is-loading")">
+  <ul class="columns is-vcentered is-variable is-2">
+    <li class="column">
+      <h1 class="title is-5 has-text-info">
+        DANH SÁCH TODOLIST
+      </h1>
+    </li>
+    <li class="column is-narrow has-text-right" style="width: 130px;">
+      <div class="dropdown is-hoverable is-right">
+        <div class="dropdown-trigger">
+          <a class="icon-text">
+            @if (dateType == 1)
+            {
+              <span class="has-text-link">Tuần này</span>
+            }
+            else if (dateType == 11)
+            {
+              <span class="has-text-link">Tuần trước</span>
+            }
+            else if (dateType == 2)
+            {
+              <span class="has-text-link">Tháng này</span>
+            }
+            else if (dateType == 22)
+            {
+              <span class="has-text-link">Tháng trước</span>
+            }
+            else if (dateType == 3)
+            {
+              <span class="has-text-link">Quý này</span>
+            }
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item" @onclick="() => ChangeDate(1)">
+              Tuần này
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeDate(11)">
+              Tuần trước
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeDate(2)">
+              Tháng này
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeDate(22)">
+              Tháng trước
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeDate(3)">
+              Quý này
+            </a>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <div class="dropdown is-right @(departmentShow ? "is-active" : "")">
+        <div class="dropdown-trigger">
+          <a class="icon-text" @onclick="() => departmentShow = !departmentShow">
+            <span class="has-text-link">
+              @filterDepartment.name.Replace("└─", "").Replace("'", "")
+            </span>
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(null)">
+              Todolist của tôi
+            </a>
+            @foreach (var sl in departments)
+            {
+              <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(sl)">
+                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
+              </a>
+            }
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-one-quarter">
+      <div class="control has-icons-right has_suggest">
+        <input class="input is-rounded" type="text" placeholder="Nhập tên nhân viên..."
+               autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
+        <ul class="suggest">
+          @foreach (var item in userSuggests)
+          {
+            <li class="rsitem" @onclick="() => UserSelected(item)">
+              <div class="user_item">
+                <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
+                <span>@item.FullName</span>
+              </div>
+            </li>
+          }
+        </ul>
+        <span class="icon is-right">
+          <i class="material-icons-outlined">search</i>
+        </span>
+      </div>
+    </li>
+  </ul>
+
+  <table class="table is-noborder is-fullwidth is-vcentered is-responsive mt-3">
+    <thead>
+      <tr class="has-text-weight-semibold">
+        <th>Thành viên</th>
+        <th width="190px">Ngày check-in</th>
+        <th width="190px">Ngày check-out</th>
+        <th width="120px">Hoàn thành</th>
+        <th width="120px">Trạng thái</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var user in userList)
+      {
+        var todolist = database.Where(x => x.user_create == user.id).ToList();
+        <tr>
+          <td colspan="5">
+            <hr class="m-0" />
+          </td>
+        </tr>
+        <tr>
+          <td colspan="5">
+            <div class="user_item">
+              <img class="image is-36x36 mr-2" src="@user.avatar" alt="IMG">
+              <div>
+                <p class="has-text-weight-semibold has-text-info is-size-6">
+                  @user.FullName
+                </p>
+                <p class="text_1_line has-text-grey is-size-7" style="width: 400px;">
+                  @user.departments_name
+                </p>
+              </div>
+            </div>
+          </td>
+        </tr>
+        for (DateTime date = filterEnd; date >= filterStart; date = date.AddDays(-1))
+        {
+          // Ngày nghỉ
+          var dayOff = DbDayOff.CheckOff(Layout.DaysOff, date);
+          var item = todolist.SingleOrDefault(x => x.date == date.Ticks);
+          if (item != null)
+          {
+            var done = item.todos.Where(x => x.status == 4).Count();
+            var progress = Shared.Progress(done, item.todos.Count);
+            <tr>
+              <td class="pl-6">
+                <label class="td-label">Ngày</label>
+                <div class="td-value">
+                  <a class="icon-text has-text-link" @onclick="() => ShowTodoItems(item.id)">
+                    <span class="has-text-weight-semibold">@string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))</span>
+                    <span class="icon" title="Xem nhanh các công việc">
+                      <i class="material-icons-outlined is-size-5">
+                        @(showTodoItems.Contains(item.id) ? "arrow_drop_down" : "arrow_right")
+                      </i>
+                    </span>
+                    @if (item.day_off)
+                    {
+                      <i class="has-text-grey">(Ngày nghỉ)</i>
+                    }
+                  </a>
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Ngày check-in</label>
+                <div class="td-value">
+                  <span class="mr-3">@string.Format("{0:dd/MM - HH:mm}", new DateTime(item.date_checkin))</span>
+                  @if (item.ontime_checkin)
+                  {
+                    <span class="has-text-success">Đúng hạn</span>
+                  }
+                  else
+                  {
+                    <span class="has-text-danger">Trễ hạn</span>
+                  }
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Ngày check-out</label>
+                <div class="td-value">
+                  @if (item.date_checkout > 0)
+                  {
+                    <span class="mr-3">@string.Format("{0:dd/MM - HH:mm}", new DateTime(item.date_checkout))</span>
+                    @if (item.ontime_checkout)
+                    {
+                      <span class="has-text-success">Đúng hạn</span>
+                    }
+                    else
+                    {
+                      <span class="has-text-danger">Trễ hạn</span>
+                    }
+                  }
+                  else
+                  {
+                    <span>Chưa Check-out</span>
+                  }
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Hoàn thành</label>
+                <div class="td-value has-text-weight-semibold">
+                  @string.Format("{0}/{1} - {2:0,0}%", done, item.todos.Count, progress)
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Trạng thái</label>
+                <div class="td-value has-text-weight-semibold">
+                  @if (string.IsNullOrEmpty(item.user_confirm))
+                  {
+                    if (DbDepartment.CheckManagerRole(Layout.Company.id, user, Layout.User.id, departmentAll))
+                    {
+                      <a class="has-text-link" @onclick="() => ConfirmItem(item)">
+                        Xác nhận ngay
+                      </a>
+                    }
+                    else
+                    {
+                      <span class="has-text-grey">Chờ xác nhận</span>
+                    }
+                  }
+                  else if (item.user_confirm == "auto")
+                  {
+                    <span title="Hệ thống tự động xác nhận">Đã xác nhận</span>
+                  }
+                  else
+                  {
+                    var userConfirm = Layout.UserList.SingleOrDefault(x => x.id == item.user_confirm);
+                    <span title="@(userConfirm != null ? userConfirm.FullName : "Quản lý") đã xác nhận Todolist">
+                      Đã xác nhận
+                    </span>
+                  }
+                </div>
+              </td>
+            </tr>
+            if (showTodoItems.Contains(item.id))
+            {
+              foreach (var todo in item.todos)
+              {
+                var type = DbTodolist.Type(todo.type);
+                var level = DbTodolist.Level(todo.level);
+                var status = DbTodolist.Status(todo.status);
+                <tr>
+                  <td class="pl-6">
+                    <div class="ml-3 text_1_line" onclick="toggleText(this)">• @todo.name</div>
+                  </td>
+                  <td>
+                    <label class="has-text-grey">Phân loại:</label>
+                    <span class="@type.color">@type.name</span>
+                  </td>
+                  <td>
+                    <label class="has-text-grey">Ưu tiên:</label>
+                    <span class="@level.color">@level.name</span>
+                  </td>
+                  <td>
+                    <label class="td-label">Thời gian</label>
+                    <div class="td-value">
+                      <span>@todo.start - @todo.end</span>
+                    </div>
+                  </td>
+                  <td>
+                    <label class="td-label">Trạng thái</label>
+                    <div class="td-value @status.color">
+                      @status.name
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          }
+          else if (date < DateTime.Now && !dayOff)
+          {
+            <tr>
+              <td class="pl-6">
+                <label class="td-label">Ngày</label>
+                <div class="td-value">
+                  <span class="has-text-weight-semibold has-text-grey">@string.Format("{0:dd/MM/yyyy}", date)</span>
+                </div>
+              </td>
+              <td colspan="4" class="is-italic has-text-grey">
+                Không nộp Todolist
+              </td>
+            </tr>
+          }
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+
+  private List<DepartmentModel> departmentAll = new();
+  private List<DepartmentModel.SelectList> departments = new();
+  private DepartmentModel.SelectList filterDepartment = new() { name = "Todolist của tôi" };
+  private List<UserModel> userSuggests = new();
+  private List<UserModel> userList = new();
+  private string filterUserName = string.Empty;
+  private bool departmentShow = false;
+  private int dateType = 1;
+
+  private List<TodolistModel> database = new();
+  private List<string> showTodoItems = new();
+  private DateTime filterStart = DateTime.Now;
+  private DateTime filterEnd = DateTime.Now;
+
+  protected override async Task OnInitializedAsync()
+  {
+    departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+
+    await ChangeDepartment(null);
+  }
+
+  private async Task ChangeDate(int type)
+  {
+    dateType = type;
+    await GetTodolist();
+  }
+
+  private async Task ChangeDepartment(DepartmentModel.SelectList item)
+  {
+    departmentShow = false;
+    userSuggests = new();
+    userList.Clear();
+    filterDepartment = item != null ? item : new() { name = "Todolist của tôi" };
+    if (item == null)
+      userList = new() { Layout.User }; 
+    else
+      userList = Layout.UserList.Where(x => x.departments_id.Contains(filterDepartment.id)).ToList();
+
+    await GetTodolist();
+  }
+
+  private string UserSearch
+  {
+    get => filterUserName;
+    set
+    {
+      filterUserName = value;
+      departmentShow = false;
+      userSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in Layout.UserList)
+        {
+          bool check = true;
+          if (!string.IsNullOrEmpty(filterDepartment.id))
+            if (item.departments_id == null || !item.departments_id.Contains(filterDepartment.id))
+              check = false;
+          if (!Handled.Shared.SearchKeyword(filterUserName, item.FullName))
+            check = false;
+
+          if (check)
+            userSuggests.Add(item);
+        }
+      }
+    }
+  }
+
+  private async Task UserSelected(UserModel item)
+  {
+    userSuggests = new();
+    filterUserName = item.FullName;
+    userList = Layout.UserList.Where(x => x.id == item.id).ToList();
+    await GetTodolist();
+  }
+
+  private void ShowTodoItems(string id)
+  {
+    if (showTodoItems.Contains(id))
+      showTodoItems.Remove(id);
+    else
+      showTodoItems.Add(id);
+  }
+
+  private async Task ConfirmItem(TodolistModel item)
+  {
+    item.date_confirm = DateTime.Now.Ticks;
+    item.user_confirm = Layout.User.id;
+    foreach (var todo in item.todos)
+      todo.confirm = true;
+    await DbTodolist.Update(Layout.Company.id, item);
+
+    // Gửi thông báo chuông
+    await DbNotify.Create(Layout.Company.id, 200, item.id, item.user_create, Layout.User.id);
+  }
+
+  private async Task GetTodolist()
+  {
+    _loaded = false;
+
+    database.Clear();
+    showTodoItems.Clear();
+    Shared.GetTimeSpan(dateType, out filterStart, out filterEnd);
+
+    if(userList.Count == 1)
+      database = await DbTodolist.GetList(Layout.Company.id, userList[0].id, filterStart, filterEnd);
+    else if(userList.Count > 1)
+      database = await DbTodolist.GetList(Layout.Company.id, filterStart, filterEnd);
+
+    await TodolistService.AutoConfirm(database, Layout.Company.todolist.time_confirm, Layout.Company.id);
+
+    _loaded = true;
+  }
+}

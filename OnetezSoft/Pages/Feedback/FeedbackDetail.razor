@@ -1,0 +1,300 @@
+﻿@page "/feedback/{Id}"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+<section class="p-4">
+  <div class="card py-5 pl-4 pr-5">
+    <ul class="columns is-vcentered is-multiline is-variable is-1 is-mobile">
+      <li class="column is-four-fifths">
+        <h1 class="title is-5 has-text-info pl-2 pb-4">
+          CHI TIẾT GÓP Ý
+        </h1>
+      </li>
+      <li class="column is-one-fifth has-text-right pb-4">
+        <a class="button is-link is-outlined" href="/feedback">
+          <span class="icon">
+            <i class="material-icons-outlined">arrow_back</i>
+          </span>
+          <span>Trở lại</span>
+        </a>
+      </li>
+      @if (feedback != null)
+      {
+        var status = DbMainFeedback.Status(feedback.status);
+
+        <li class="column">
+          <div class="box_color_left ml-2 pl-3 @status.color.Replace("has-text-", "is-")">
+            <div class="has-text-weight-bold has-text-info is-size-6 pb-1">
+              @feedback.name
+            </div>
+            <div class="is-itatic is-size-7 has-text-grey">
+              @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(feedback.date))
+            </div>
+          </div>
+        </li>
+        <li class="column is-narrow">
+          <span class="icon-text @status.color">
+            <span class="icon">
+              <i class="material-icons">fiber_manual_record</i>
+            </span>
+            <span class="has-text-weight-bold">@status.name</span>
+          </span>
+          @if (feedback.new_admin)
+          {
+            <span class="icon-text has-text-danger ml-3">
+              <span class="icon">
+                <i class="material-icons">fiber_manual_record</i>
+              </span>
+              <span class="has-text-weight-bold">Mới</span>
+            </span>
+          }
+        </li>
+        <li class="column is-full has-text-grey">
+          <div class="has-text-grey pl-2">
+            @((MarkupString)Shared.TextToHtml(feedback.content))
+          </div>
+        </li>
+        @foreach (var file in feedback.files)
+        {
+          var fileName = Files.FileName(file);
+          <li class="column is-narrow">
+            <a class="icon-text has-text-link" href="@file" target="_blank">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">description</i>
+              </span>
+              <span class="font_14">@fileName</span>
+            </a>
+          </li>
+        }
+        <li class="column is-full">
+          <hr class="my-2" />
+          @foreach (var item in feedback.comments)
+          {
+            var avatar = item.user_admin ? Configuration["Icon"] + ".png" : item.user_avatar;
+            var fullname = item.user_admin ? Configuration["Title"] : item.user_name;
+
+            <article class="media pt-2 my-2">
+              <div class="media-left">
+                <div class="image is-32x32 is-rounded">
+                  <img src="@avatar" alt="IMG" />
+                </div>
+              </div>
+              <div class="media-content">
+                <ul class="columns is-multiline is-variable is-1 is-mobile">
+                  <li class="column is-full pl-2">
+                    <div class="has-text-weight-bold has-text-info">
+                      @fullname - @item.company_name
+                    </div>
+                    <div class="is-size-7 has-text-grey">
+                      @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
+                    </div>
+                    <div class="pt-1">
+                      @((MarkupString)Shared.TextToHtml(item.content))
+                    </div>
+                  </li>
+                  @foreach (var file in item.files)
+                  {
+                    var fileName = Files.FileName(file);
+                    <li class="column is-narrow">
+                      <a class="icon-text has-text-link" href="@file" target="_blank">
+                        <span class="icon">
+                          <i class="material-icons-outlined">description</i>
+                        </span>
+                        <span class="font_13">@fileName</span>
+                      </a>
+                    </li>
+                  }
+                </ul>
+              </div>
+            </article>
+          }
+          <hr class="my-3" />
+          <div class="field is-grouped">
+            <div class="control has-text-grey has-text-weight-semibold">
+              Phản hồi góp ý
+            </div>
+            @foreach (var file in files)
+            {
+              var fileName = Files.FileName(file);
+              <div class="control">
+                <div class="icon-text has-text-link">
+                  <span class="icon">
+                    <i class="material-icons-outlined">description</i>
+                  </span>
+                  <a class="font_13" href="@file" target="_blank">@fileName</a>
+                  <a class="icon has-text-danger" @onclick="() => files.Remove(file)" title="Xoá">
+                    <i class="material-icons-outlined">close</i>
+                  </a>
+                </div>
+              </div>
+            }
+          </div>
+          <div class="field is-grouped">
+            <div class="control is-expanded has-icons-right">
+              <textarea @bind="content" id="replyInput" class="textarea scrolly" rows="1" placeholder="Nội dung bình luận..." />
+              <a class="icon is-right has-text-link" onclick="document.getElementById('file').click()"
+               title="Đính kèm hình ảnh" style="pointer-events: auto;">
+                <i class="material-icons-outlined is-size-5">attachment</i>
+              </a>
+              <InputFile OnChange="Upload" class="is-hidden" id="file"
+                       accept=".pdf,.png,.jpg,.jpeg,.mp4,.doc,.docx,.xls,.xlsx" multiple />
+            </div>
+            <div class="control">
+              <a class="button is-link @(_upload ? "is-loading" : "")" @onclick="Comment">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">send</i>
+                </span>
+                <span>Gửi</span>
+              </a>
+            </div>
+          </div>
+        </li>
+      }
+      else
+      {
+        <li class="column is-full">
+          <div class="py-6 has-text-grey">
+            Dữ liệu không tồn tại hoặc đã bị xoá !
+          </div>
+        </li>
+      }
+    </ul>
+  </div>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string Id { get; set; }
+
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Góp ý hệ thống";
+  private bool _upload = false;
+  private long MaxFileSize = 2 * 1024000;
+
+  private FeedbackModel feedback = new();
+  private string content = string.Empty;
+  private List<string> files = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    feedback = DbMainFeedback.Get(Id);
+    if (feedback != null)
+    {
+      feedback.new_admin = false;
+      DbMainFeedback.Update(feedback);
+
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "#replyInput");
+      ListenCallback();
+    }
+  }
+
+  private async Task Upload(InputFileChangeEventArgs e)
+  {
+    _upload = true;
+    _success = true;
+    var filesUpload = e.GetMultipleFiles();
+    if (filesUpload.Count < 6)
+    {
+      _message = "Đang tải file lên....";
+      foreach (var file in filesUpload)
+      {
+        try
+        {
+          if (files.Count < 5)
+          {
+            if (Files.CheckExtension(file.Name, null))
+            {
+              if (file.Size <= MaxFileSize)
+              {
+                var fileStream = new StreamContent(file.OpenReadStream(MaxFileSize));
+                var fileLink = await Files.SaveFileAsync(fileStream, file.Name);
+                files.Add(fileLink);
+              }
+              else
+              {
+                _message += $"<br/>{file.Name}: dung lượng file lớn hơn 2 MB";
+                _success = false;
+              }
+            }
+            else
+            {
+              _message += $"<br/>{file.Name}: định dạng file không hợp lệ";
+              _success = false;
+            }
+          }
+          else
+          {
+            _message = $"Đã đủ số lượng file cho phép tải";
+            _success = false;
+          }
+        }
+        catch (Exception ex)
+        {
+          _message += $"{file.Name}: {ex.Message}";
+          _success = false;
+        }
+      }
+      _upload = false;
+      if (_message == "Đang tải file lên....")
+        _message = string.Empty;
+    }
+    else
+    {
+      _upload = false;
+      _success = false;
+      _message = "Chỉ cho phép tải lên 5 file đính kèm !";
+    }
+  }
+
+  private async Task Comment()
+  {
+    _success = false;
+    _message = string.Empty;
+
+    if (string.IsNullOrEmpty(content))
+    {
+      _message = "Chưa nhập nội dung phản hồi!";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else
+    {
+      DbMainFeedback.Comment(feedback.id, content, files, Layout.User, Layout.Company.name, false);
+      content = string.Empty;
+      files = new();
+
+      MessagingCenter.Send(this, "feedback_" + feedback.id, feedback.id);
+    }
+  }
+
+  public void ListenCallback()
+  {
+    MessagingCenter.Subscribe<Pages.Admin.FeedbackDetail, string>(this, "feedback_" + feedback.id, (sender, value) =>
+    {
+      feedback = DbMainFeedback.Get(value);
+      InvokeAsync(StateHasChanged);
+    });
+
+    MessagingCenter.Subscribe<Pages.Feedback.FeedbackDetail, string>(this, "feedback_" + feedback.id, (sender, value) =>
+    {
+      feedback = DbMainFeedback.Get(value);
+      InvokeAsync(StateHasChanged);
+    });
+  }
+}

@@ -1,0 +1,154 @@
+﻿@inject IJSRuntime JSRuntime
+
+@if (model != null)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card has_bg">
+      <section class="modal-card-head is-warning" style="background-image: url('/images/illustrations/promotion.png')">
+        <div class="modal-card-title">
+          <div class="title">
+            @(string.IsNullOrEmpty(model.id) ? "Tạo" : "Thông tin") ưu đãi
+          </div>
+          <div class="subtitle">
+            Ưu đãi áp dụng khi khách hàng mua sản phẩm của Fastdo
+          </div>
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body">
+        <div class="field mb-5">
+          <label class="label has-text-weight-bold">Tiêu đề</label>
+          <div class="control has-icons-left">
+            <input @bind="model.title" type="text" class="input is_line has-text-weight-bold" placeholder="Tiêu đề ưu đãi" />
+            <span class="icon is-left has-text-black">
+              <i class="material-icons-round is-size-6">edit</i>
+            </span>
+          </div>
+        </div>
+
+        <div class="field mb-5">
+          <label class="label has-text-weight-bold">Ưu đãi (%)</label>
+          <div class="control has-icons-left">
+            <input @bind="model.discount" type="number" class="input is_line has-text-weight-bold" min="1" />
+            <span class="icon is-left has-text-black">
+              <i class="material-icons-round is-size-6">percent</i>
+            </span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label has-text-weight-bold">Điều kiện áp dụng</label>
+          <div class="field is-grouped mb-0" style="opacity: @(model.type == 1 ? "1" : "0.5")">
+            <div class="control" style="width: 200px;">
+              <a class="icon-text has-text-dark" @onclick="() => model.type = 1">
+                <span class="icon">
+                  <i class="material-icons-round is-size-6">
+                    radio_button_@(model.type == 1 ? "checked" : "unchecked")
+                  </i>
+                </span>
+                <span class="is-size-7 has-text-weight-medium">Ưu đãi theo tháng</span>
+              </a>
+            </div>
+            <div class="control is-expanded has-icons-left">
+              @if(model.type == 1)
+              {
+                <input @bind="model.condition" class="input is_line has-text-weight-bold" type="number" min="1" />
+              }
+              else
+              {
+                <input class="input is_line" type="number" min="1" readonly />
+              }
+              <span class="icon is-left has-text-black">
+                <i class="material-icons-round is-size-5">event</i>
+              </span>
+            </div>
+          </div>
+          <div class="field is-grouped" style="opacity: @(model.type == 2 ? "1" : "0.5")">
+            <div class="control" style="width: 200px;">
+              <a class="icon-text has-text-dark" @onclick="() => model.type = 2">
+                <span class="icon">
+                  <i class="material-icons-round is-size-6">
+                    radio_button_@(model.type == 2 ? "checked" : "unchecked")
+                  </i>
+                </span>
+                <span class="is-size-7 has-text-weight-medium">Ưu đãi theo người dùng</span>
+              </a>
+            </div>
+            <div class="control is-expanded has-icons-left">
+              @if(model.type == 2)
+              {
+                <input @bind="model.condition" class="input is_line has-text-weight-bold" type="number" min="1" />
+              }
+              else
+              {
+                <input class="input is_line" type="number" min="1" readonly />
+              }
+              <span class="icon is-left has-text-black">
+                <i class="material-icons-round is-size-5">person_add_alt</i>
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="modal-card-foot is-right">
+        <a class="button" @onclick="Cancel">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">chevron_left</i>
+          </span>
+          <span class="is-size-7">Trở về</span>
+        </a>
+        @if (string.IsNullOrEmpty(model.id))
+        {
+          <a class="button is-link" @onclick="Update">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">add</i>
+            </span>
+            <span class="is-size-7">Tạo mới</span>
+          </a>
+        }
+        else
+        {
+          <a class="button is-link" @onclick="Update">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">done</i>
+            </span>
+            <span class="is-size-7">Cập nhật</span>
+          </a>
+        }
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  [Parameter]
+  public PromotionModel model { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+  }
+
+  private async Task Update()
+  {
+    if(string.IsNullOrEmpty(model.title) || string.IsNullOrEmpty(model.title.Trim()))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập tiêu đề ưu đãi");
+    else if(model.discount <= 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập phần trăm ưu đãi");
+    else if(model.condition <= 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập điều kiện áp dụng");
+    else
+    {
+      if (string.IsNullOrEmpty(model.id))
+        await DbMainPromotion.Create(model);
+      else
+        await DbMainPromotion.Update(model);
+      await OnUpdate.InvokeAsync(true);
+    }
+  }
+}

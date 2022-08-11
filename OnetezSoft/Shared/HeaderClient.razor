@@ -1,0 +1,299 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<section class="p-4">
+  <div class="columns is-vcentered is-variable is-2 has-text-weight-medium">
+    <div class="column has-text-weight-bold">
+      <div class="field is-grouped is-multiline">
+        @foreach (var item in breadcrumb)
+        {
+          <div class="control mr-1">
+            @if (item.Key.StartsWith("#"))
+            {
+              <span class="icon-text has-text-info">
+                <span>@item.Value</span>
+                @if (item.Key != "#")
+                {
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">chevron_right</i>
+                  </span>
+                }
+              </span>
+            }
+            else
+            {
+              <a class="icon-text has-text-info" href="@item.Key">
+                <span>@item.Value</span>
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">chevron_right</i>
+                </span>
+              </a>
+            }
+          </div>
+        }
+      </div>
+    </div>
+    <div class="column is-narrow">
+      <a class="icon-text is-size-7" title="Thông báo">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">notifications_active</i>
+        </span>
+        <span>Thông báo</span>
+      </a>
+    </div>
+    <div class="column is-narrow">
+      <a class="icon-text is-size-7">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">book</i>
+        </span>
+        <span>Hướng dẫn sử dụng</span>
+      </a>
+    </div>
+    <div class="column is-narrow">
+      <a class="icon-text is-size-7">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">paid</i>
+        </span>
+        <span>Số dư: <b>@Shared.ConvertCurrency(Layout.User.balance) VNĐ</b></span>
+      </a>
+    </div>
+    <div class="column is-narrow">
+      <a class="button is-small is-link" style="height: 24px;" @onclick="() => step = 1">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">add</i>
+        </span>
+        <span>Nạp tiền</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+@if(step > 0)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card has_bg">
+      <section class="modal-card-head is-success" style="background-image: url('/images/illustrations/tutorial-4.4.png')">
+        <div class="modal-card-title">
+          <div class="title has-text-white">
+            Nạp tiền vào ví
+          </div>
+          <div class="subtitle has-text-white">
+            Bạn đang thực hiện yêu cầu nạo tiền vào ví,
+            <br>
+            số dư sẽ được cộng sau khi yêu cầu được phê duyệt
+          </div>
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body">
+        <div class="field mb-5">
+          <label class="label has-text-weight-bold">Chuyển khoản đến</label>
+          <div class="control">
+            <div class="icon-text">
+              <span class="icon image is-64x64 mr-3">
+                <img src="/images/favicon.png" alt="bank" />
+              </span>
+              <div>
+                <span class="has-text-weight-bold">Ngân hàng Vietinbank</span>
+                <br>
+                <span>0123456789</span>
+                <br>
+                <span>Công ty FASTDO</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        @if(step == 1)
+        {
+          <div class="field mb-4">
+            <label class="label">Số tiền cần nạp</label>
+            <div class="control has-icons-left">
+              <input @bind="moneyFormat" @bind:event="oninput" type="text" 
+                class="input is_line font_14 has-text-weight-bold" placeholder="Nhập số tiền nạp">
+              <span class="icon is-left has-text-black">
+                <i class="material-icons-round is-size-6">account_balance_wallet</i>
+              </span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Nội dung chuyển khoản</label>
+            <div class="control">
+              <div class="icon-text">
+                <span class="icon has-text-black is-small">
+                  <i class="material-icons-round is-size-6">note_add</i>
+                </span>
+                <span class="has-text-weight-semibold font_14">
+                  @Layout.User.email chuyen khoan thanh toan Fastdo
+                </span>
+              </div>
+            </div>
+          </div>
+        }
+        else 
+        {
+          <div class="field mb-4">
+            <label class="label">Số tiền cần nạp</label>
+            <div class="control has-text-weight-bold font_14">
+              @if(money > 0)
+              {
+                <span>@money.ToString("0,0") VNĐ</span>
+              }
+              else
+              {
+                <span class="has-text-danger">Chưa nhập số tiền</span>
+              }
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Nội dung chuyển khoản</label>
+            <div class="control has-text-weight-semibold font_14">
+              @Layout.User.email chuyen khoan thanh toan Fastdo
+            </div>
+          </div>
+        }
+        
+      </section>
+      <section class="modal-card-foot is-right">
+        @if(step == 1)
+        {
+          <a class="button" @onclick="Cancel">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">chevron_left</i>
+            </span>
+            <span class="is-size-7">Trở về</span>
+          </a>
+          <a class="button is-link" @onclick="() => step = 2">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">send</i>
+            </span>
+            <span class="is-size-7">Gửi yêu cầu</span>
+          </a>
+        }
+        else
+        {
+          <a class="button" @onclick="() => step = 1">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">chevron_left</i>
+            </span>
+            <span class="is-size-7">Trở về</span>
+          </a>
+          <a class="button is-link" @onclick="Update">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">done</i>
+            </span>
+            <span class="is-size-7">Xác nhận</span>
+          </a>
+        }
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  private Dictionary<string, string> breadcrumb = new();
+
+  private int step = 0;
+  private int money = 0;
+
+  private string moneyFormat
+  {
+    get => money > 10 ? money.ToString("0,0") : money > 0 ? money.ToString() : "";
+    set
+    {
+      if (Int32.TryParse(value.Replace(",", ""), out int parse))
+        money = parse;
+      else
+        money = 0;
+    }
+  }
+  
+  private void Cancel()
+  {
+    step = 0;
+    money = 0;
+  }
+
+  private async Task Update()
+  {
+    if(money <= 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa nhập số tiền cần nạp");
+    else
+    {
+      var customer = await DbMainUser.Get(Layout.User.id);
+      if (customer != null)
+      {
+        var transaction = new TransactionModel()
+        {
+          customer = UserService.ConvertToMember(customer),
+          creator = UserService.ConvertToMember(customer),
+          balance = customer.balance,
+          money = money,
+          content = "Nạp tiền vào tài khoản Fastdo",
+          status = 1,
+          type = 1
+        };
+        await DbMainTransaction.Create(transaction);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã gửi yêu cầu nạp tiền, số dư sẽ được cộng sau khi yêu cầu được phê duyệt");
+        
+        if(navigation.Uri.Contains("/client/transactions"))
+          navigation.NavigateTo("/client/transactions", true);
+        else
+          Cancel();
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Tài khoản khách hàng không tồn tại.");
+    }
+  }
+
+  protected override void OnParametersSet()
+  {
+    breadcrumb.Clear();
+    var url = navigation.Uri.Replace(navigation.BaseUri, "");
+
+    if (url.StartsWith("client/user/info"))
+    {
+      breadcrumb.Add("#", "Thông tin tài khoản");
+    }
+    else if (url.StartsWith("client/companys"))
+    {
+      if (url.Contains("products"))
+      {
+        breadcrumb.Add("client/companys", "Quản lý tổ chức");
+        breadcrumb.Add("#", "Sản phẩm");
+      }
+      else if (url.Contains("users"))
+      {
+        breadcrumb.Add("client/companys", "Quản lý tổ chức");
+        breadcrumb.Add("#", "Người dùng");
+      }
+      else
+        breadcrumb.Add("#", "Quản lý tổ chức");
+    }
+    else if (url.StartsWith("client/transactions"))
+    {
+      breadcrumb.Add("#", "Quản lý giao dịch");
+    }
+    else if (url.StartsWith("client/products"))
+    {
+      var id = url.Replace("client/products/", "");
+      var product = DbMainProduct.GetById(id);
+      if(product != null)
+      {
+        breadcrumb.Add("client/products", "Cửa hàng Fastdo");
+        breadcrumb.Add("#", product.title);
+      }
+      else
+        breadcrumb.Add("#", "Cửa hàng Fastdo");
+    }
+    else if(Layout.User != null)
+    {
+      breadcrumb.Add("#", "Chào, " + Layout.User.FullName);
+    }
+  }
+}

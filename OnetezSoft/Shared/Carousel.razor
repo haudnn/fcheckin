@@ -1,0 +1,66 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+@if (dataList.Count > 0)
+{
+  <section class="pt-4 px-4">
+    <div class="card banner">
+      <ul class="slideshow-container">
+        @foreach (var item in dataList)
+        {
+          <li class="mySlides animated fadeInRight">
+            <a class="image" href="@item.link" target="_blank" title="@item.name">
+              <img src="@item.image" alt="img" />
+            </a>
+          </li>
+        }
+      </ul>
+      <div class="slideshow-dots">
+        @for (int i = 1; i <= dataList.Count; i++)
+        {
+          <a class="dot" onclick="currentSlide(@i)"></a>
+        }
+      </div>
+    </div>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private List<BannerModel> dataList = new();
+
+  protected override async Task OnParametersSetAsync()
+  {
+    dataList.Clear();
+    var url = navigation.Uri.Replace(navigation.BaseUri, "/");
+    if (!url.StartsWith("/config/"))
+    {
+      var database = await DbBanner.GetList(Layout.Company.id);
+      foreach (var item in database)
+      {
+        if (Layout.User.departments_id.Contains(item.department))
+        {
+          foreach (var page in item.pages)
+          {
+            if (url.Contains(page.Key))
+            {
+              dataList.Add(item);
+              break;
+            }
+          }
+        }
+      }
+      dataList = (from x in dataList orderby x.pin descending, x.date select x).ToList();
+    }
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (dataList.Count > 0)
+    {
+      await JSRuntime.InvokeAsync<string>("showSlides", 0);
+    }
+  }
+}

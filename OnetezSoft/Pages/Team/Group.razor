@@ -1,0 +1,1000 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<section class="column">
+  <ul class="columns is-multiline">
+    <li class="column is-full">
+      <div class="card p-5 p-4-mobile">
+        <ul class="columns is-vcentered is-variable is-3 is-mobile is-multiline">
+          <li class="column is-narrow">
+            <div class="card p-2" style="background: #355CAA; border-radius: 10px; ">
+              <i class="material-icons-outlined is-size-1 has-text-white">group</i>
+            </div>
+          </li>
+          <li class="column">
+            <div class="has-text-weight-bold has-text-info is-size-5">
+              @department.name
+            </div>
+            <div class="avatar_list pt-2">
+              @for (int i = 0; i < 4; i++)
+              {
+                if (i < department.members_list.Count)
+                {
+                  var user = Layout.UserList.SingleOrDefault(x => x.id == department.members_list[i].id);
+                  if (user != null)
+                  {
+                    <a class="image is-rounded is-24x24">
+                      <img src="@user.avatar" alt="IMG">
+                    </a>
+                  }
+                }
+              }
+              @if (department.members_list.Count > 4)
+              {
+                <a class="image is-rounded is-24x24 has-background-grey-light is-size-7 has-text-white"
+                 style="justify-content: center; align-items: center;">
+                  +@(department.members_list.Count - 4)
+                </a>
+              }
+            </div>
+          </li>
+          @if (manager != null)
+          {
+            <li class="column is-narrow is-full-mobile">
+              <div class="user_item">
+                <img class="image is-24x24 mr-2" src="@manager.avatar" alt="IMG">
+                <div style="white-space: nowrap;">
+                  <span class="has-text-weight-semibold mr-3">@manager.FullName</span>
+                  <span class="tag is-warning">@department.manager</span>
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+      </div>
+    </li>
+    <li class="column is-full">
+      <div class="card p-5">
+        <ul class="columns is-vcentered is-variable is-2 mb-3">
+          <li class="column">
+            <h1 class="title is-5 has-text-info">
+              THÀNH TỰU
+            </h1>
+          </li>
+          <li class="column is-narrow has-text-weight-semibold">
+            Còn <span class="has-text-danger">@(dayMonth - DateTime.Now.Day)</span> ngày kết thúc tháng
+          </li>
+          <li class="column is-narrow">
+            <div class="select">
+              <select @onchange="ChangeMonthAchievement">
+                @for (DateTime date = DateTime.Now; date >= DateTime.Now.AddMonths(-6); date = date.AddMonths(-1))
+                {
+                  <option value="@date.ToString("yyyy-MM-01")">Tháng @date.ToString("MM, yyyy")</option>
+                }
+              </select>
+            </div>
+          </li>
+        </ul>
+        <ul class="columns is-multiline is-mobile">
+          @if(CheckAccess("todolist"))
+          { 
+            foreach (var item in DbAchievement.Todolist())
+            {
+              var achievement = achievementList.Where(x => x.type == "todolist" && x.name == item.name);
+              var userId = achievement.Select(x => x.user).ToList();
+              var userList = Layout.UserList.Where(x => userId.Contains(x.id)).ToList();
+              <li class="column is-one-fifth-tablet is-half-mobile">
+                <div class="achi_item @(achievement.Count() > 0 ? "is-active" : "")">
+                  <div class="achi_todolist">@item.icon</div>
+                  <div class="item_title my-3">@item.name</div>
+                  <div class="avatar_list is-centered">
+                    @for (int i = 0; i < 4; i++)
+                    {
+                      if (i < userList.Count)
+                      {
+                        var user = userList[i];
+                        <img class="image is-24x24 is-rounded" src="@user.avatar" title="@user.FullName" />
+                      }
+                    }
+                    @if (userList.Count > 4)
+                    {
+                      <a class="image is-rounded is-24x24 has-background-grey-light is-size-7 has-text-white"
+                     style="justify-content: center; align-items: center;">
+                        +@(userList.Count - 4)
+                      </a>
+                    }
+                  </div>
+                </div>
+              </li>
+            }
+          }
+
+          @if(CheckAccess("okrs"))
+          {
+            foreach (var item in DbAchievement.CFRs())
+            {
+              var achievement = achievementList.Where(x => x.type == "cfrs" && x.name == item.name);
+              var userId = achievement.Select(x => x.user).ToList();
+              var userList = Layout.UserList.Where(x => userId.Contains(x.id)).ToList();
+              <li class="column is-one-fifth-tablet is-half-mobile">
+                <div class="achi_item @(achievement.Count() > 0 ? "is-active" : "")">
+                  <div class="achi_cfrs">@item.icon</div>
+                  <div class="item_title my-3">@item.name</div>
+                  <div class="avatar_list is-centered">
+                    @for (int i = 0; i < 4; i++)
+                    {
+                      if (i < userList.Count)
+                      {
+                        var user = userList[i];
+                        <img class="image is-24x24 is-rounded" src="@user.avatar" title="@user.FullName" />
+                      }
+                    }
+                    @if (userList.Count > 4)
+                    {
+                      <a class="image is-rounded is-24x24 has-background-grey-light is-size-7 has-text-white"
+                     style="justify-content: center; align-items: center;">
+                        +@(userList.Count - 4)
+                      </a>
+                    }
+                  </div>
+                </div>
+              </li>
+            }
+          }
+
+          @if(CheckAccess("kaizen"))
+          { 
+            foreach (var item in DbAchievement.Kaizen())
+            {
+              var achievement = achievementList.Where(x => x.type == "kaizen" && x.name == item.name);
+              var userId = achievement.Select(x => x.user).ToList();
+              var userList = Layout.UserList.Where(x => userId.Contains(x.id)).ToList();
+              <li class="column is-one-fifth-tablet is-half-mobile">
+                <div class="achi_item @(achievement.Count() > 0 ? "is-active" : "")">
+                  <div class="achi_kaizen">@item.icon</div>
+                  <div class="item_title my-3">@item.name</div>
+                  <div class="avatar_list is-centered">
+                    @for (int i = 0; i < 4; i++)
+                    {
+                      if (i < userList.Count)
+                      {
+                        var user = userList[i];
+                        <img class="image is-24x24 is-rounded" src="@user.avatar" title="@user.FullName" />
+                      }
+                    }
+                    @if (userList.Count > 4)
+                    {
+                      <a class="image is-rounded is-24x24 has-background-grey-light is-size-7 has-text-white"
+                     style="justify-content: center; align-items: center;">
+                        +@(userList.Count - 4)
+                      </a>
+                    }
+                  </div>
+                </div>
+              </li>
+            }
+          }
+
+          @if(CheckAccess("train"))
+          { 
+            foreach (var item in DbAchievement.Educate())
+            {
+              var achievement = achievementList.Where(x => x.type == "educate" && x.name == item.name);
+              var userId = achievement.Select(x => x.user).ToList();
+              var userList = Layout.UserList.Where(x => userId.Contains(x.id)).ToList();
+              <li class="column is-one-fifth-tablet is-half-mobile">
+                <div class="achi_item @(achievement.Count() > 0 ? "is-active" : "")">
+                  <div class="achi_educate">@item.icon</div>
+                  <div class="item_title my-3">@item.name</div>
+                  <div class="avatar_list is-centered">
+                    @for (int i = 0; i < 4; i++)
+                    {
+                      if (i < userList.Count)
+                      {
+                        var user = userList[i];
+                        <img class="image is-24x24 is-rounded" src="@user.avatar" title="@user.FullName" />
+                      }
+                    }
+                    @if (userList.Count > 4)
+                    {
+                      <a class="image is-rounded is-24x24 has-background-grey-light is-size-7 has-text-white"
+                     style="justify-content: center; align-items: center;">
+                        +@(userList.Count - 4)
+                      </a>
+                    }
+                  </div>
+                </div>
+              </li>
+            }
+          }
+        </ul>
+      </div>
+    </li>
+
+    @if(CheckAccess("okrs"))
+    {
+      <li class="column is-half">
+        <div class="card p-5">
+          <ul class="columns is-vcentered is-variable is-2 mb-3">
+            <li class="column">
+              <h1 class="title is-5 has-text-info">
+                TIẾN ĐỘ OKRs
+              </h1>
+            </li>
+          </ul>
+          <div class="scrolly pr-2" style="height: 175px">
+            <ul class="columns is-vcentered is-multiline is-mobile is-variable is-2">
+              @foreach (var item in okrProgress)
+              {
+                var progressColor = Shared.ProgressColor(item.value);
+                <li class="column is-6">
+                  <a class="user_item" href="/teams/personal/@item.id">
+                    <img class="image is-32x32 mr-3" src="@item.avatar" alt="IMG">
+                    <span class="has-text-weight-semibold text_1_line">@item.name</span>
+                  </a>
+                </li>
+                <li class="column is-5">
+                  <div class="progress_has_value">
+                    <progress class="progress is-small @progressColor" value="@item.value" max="100"></progress>
+                    <span>@Shared.ConvertNumber(item.value)%</span>
+                  </div>
+                </li>
+                <li class="column is-1">
+                  <a class="icon has-text-link" href="/teams/personal/@item.id">
+                    <i class="material-icons-outlined is-size-5">
+                      arrow_circle_right
+                    </i>
+                  </a>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+      </li>
+      <li class="column is-half">
+        <div class="card p-5">
+          <ul class="columns is-vcentered is-variable is-2 mb-3">
+            <li class="column">
+              <h1 class="title is-5 has-text-info">
+                LỊCH CHECK-IN OKRs
+              </h1>
+            </li>
+            <li class="column is-narrow">
+              <div class="dropdown is-hoverable is-right">
+                <div class="dropdown-trigger">
+                  <a class="icon-text">
+                    @if (dateCheckin == 1)
+                    {
+                      <span class="has-text-link">Tuần này</span>
+                    }
+                    else if (dateCheckin == 11)
+                    {
+                      <span class="has-text-link">Tuần trước</span>
+                    }
+                    else if (dateCheckin == 2)
+                    {
+                      <span class="has-text-link">Tháng này</span>
+                    }
+                    else if (dateCheckin == 22)
+                    {
+                      <span class="has-text-link">Tháng trước</span>
+                    }
+                    else if (dateCheckin == 3)
+                    {
+                      <span class="has-text-link">Quý này</span>
+                    }
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                    </span>
+                  </a>
+                </div>
+                <div class="dropdown-menu">
+                  <div class="dropdown-content">
+                    <a class="dropdown-item" @onclick="() => GetCheckins(1)">
+                      Tuần này
+                    </a>
+                    <a class="dropdown-item" @onclick="() => GetCheckins(11)">
+                      Tuần trước
+                    </a>
+                    <a class="dropdown-item" @onclick="() => GetCheckins(2)">
+                      Tháng này
+                    </a>
+                    <a class="dropdown-item" @onclick="() => GetCheckins(22)">
+                      Tháng trước
+                    </a>
+                    <a class="dropdown-item" @onclick="() => GetCheckins(3)">
+                      Quý này
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+          <div class="scrolly" style="height: 175px">
+            <ul class="columns is-vcentered is-multiline is-mobile is-variable is-2">
+              @foreach (var item in checkins)
+              {
+                var create = Layout.UserList.SingleOrDefault(x => x.id == item.user_create);
+                var checkin = Layout.UserList.SingleOrDefault(x => x.id == item.user_checkin);
+                if (create == null || checkin == null)
+                  continue;
+                <li class="column is-one-third">
+                  <div class="field is-grouped">
+                    <div class="control" title="@create.FullName">
+                      <img class="image is-32x32 is-rounded" src="@create.avatar" alt="IMG">
+                    </div>
+                    <div class="control is-expanded has-text-centered">
+                      <span class="icon has-text-grey">
+                        <i class="material-icons-outlined is-size-5">east</i>
+                      </span>
+                    </div>
+                    <div class="control" title="@checkin.FullName">
+                      <img class="image is-32x32 is-rounded" src="@checkin.avatar" alt="IMG">
+                    </div>
+                  </div>
+                </li>
+                <li class="column is-one-third has-text-centered" title="OKRs: @item.okr_name">
+                  <a class="has-text-link" href="/cfr/checkin/@item.okr/overview">
+                    @Shared.ConvertDateWeek(item.date_checkin)
+                  </a>
+                </li>
+                <li class="column is-one-third has-text-centered">
+                  @if (item.status == 1)
+                  {
+                    <span class="has-text-success">Đúng hạn</span>
+                  }
+                  else if (item.status == 2)
+                  {
+                    <span class="has-text-danger">Trễ hạn</span>
+                  }
+                  else
+                  {
+                    <span class="has-text-grey" title="Chưa check-in">...</span>
+                  }
+                </li>
+              }
+              @if (checkins.Count == 0)
+              {
+                <li class="column is-full">
+                  <div class="has-text-grey py-6">
+                    Không có dữ liệu !
+                  </div>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+      </li>
+    }
+
+    @if(CheckAccess("todolist"))
+    { 
+      <li class="column is-half">
+        <div class="card p-5">
+          <ul class="columns is-vcentered is-variable is-2 mb-3">
+            <li class="column">
+              <h1 class="title is-5 has-text-info">
+                TODOLIST
+              </h1>
+            </li>
+            <li class="column is-narrow">
+              <div class="dropdown is-hoverable is-right">
+                <div class="dropdown-trigger">
+                  <a class="icon-text">
+                    @if (dateTodo == 1)
+                    {
+                      <span class="has-text-link">Tuần này</span>
+                    }
+                    else if (dateTodo == 11)
+                    {
+                      <span class="has-text-link">Tuần trước</span>
+                    }
+                    else if (dateTodo == 2)
+                    {
+                      <span class="has-text-link">Tháng này</span>
+                    }
+                    else if (dateTodo == 22)
+                    {
+                      <span class="has-text-link">Tháng trước</span>
+                    }
+                    else if (dateTodo == 3)
+                    {
+                      <span class="has-text-link">Quý này</span>
+                    }
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                    </span>
+                  </a>
+                </div>
+                <div class="dropdown-menu">
+                  <div class="dropdown-content">
+                    <a class="dropdown-item" @onclick="() => GetTodos(1)">
+                      Tuần này
+                    </a>
+                    <a class="dropdown-item" @onclick="() => GetTodos(11)">
+                      Tuần trước
+                    </a>
+                    <a class="dropdown-item" @onclick="() => GetTodos(2)">
+                      Tháng này
+                    </a>
+                    <a class="dropdown-item" @onclick="() => GetTodos(22)">
+                      Tháng trước
+                    </a>
+                    <a class="dropdown-item" @onclick="() => GetTodos(3)">
+                      Quý này
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+          <div class="scrolly pr-2" style="height: 175px">
+            <ul class="columns is-vcentered is-multiline is-mobile is-variable is-2">
+              @foreach (var item in todoProgress)
+              {
+                <li class="column is-6">
+                  <a class="user_item" href="/teams/personal/@item.id?tab=2">
+                    <img class="image is-32x32 mr-3" src="@item.avatar" alt="IMG">
+                    <span class="has-text-weight-semibold text_1_line">@item.name</span>
+                  </a>
+                </li>
+                <li class="column is-4">
+                  @item.desc
+                </li>
+                <li class="column is-2 has-text-right has-text-weight-semibold">
+                  @Shared.ConvertNumber(item.value)%
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+      </li>
+    }
+
+    @if(CheckAccess("kaizen"))
+    { 
+      <li class="column is-half">
+        <div class="card p-5">
+          <ul class="columns is-vcentered is-variable is-2 mb-3">
+            <li class="column">
+              <h1 class="title is-5 has-text-info">
+                KAIZEN
+              </h1>
+            </li>
+          </ul>
+          <div class="scrolly pt-1 pr-2" style="height: 175px">
+            <ul class="columns is-vcentered is-multiline is-mobile is-variable is-2">
+              @foreach (var item in kaizens)
+              {
+                var user = Layout.UserList.SingleOrDefault(x => x.id == item.user_create);
+                if (user != null)
+                {
+                  <li class="column is-full">
+                    <div class="user_item">
+                      <img class="image is-32x32 mr-3" src="@user.avatar" alt="IMG">
+                      <a class="has-text-grey" href="/kaizen/@item.id">
+                        @if (item.status == -1)
+                        {
+                          <span class="has-text-weight-semibold has-text-link">@user.FullName</span>
+                          <span>đã thêm một góp ý Kaizen mới</span>
+                          <i>- @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date_create))</i>
+                        }
+                        else
+                        {
+                          var status = DbKaizen.Status(item.status);
+                          <span>Quản lý đã đánh giá Kaizen của</span>
+                          <span class="has-text-weight-semibold has-text-link">@user.FullName</span>
+                          <span> - @status.name</span>
+                          <i>- @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date_status))</i>
+                        }
+                      </a>
+                    </div>
+                  </li>
+                }
+              }
+              @if (kaizens.Count == 0)
+              {
+                <li class="column is-full">
+                  <div class="has-text-grey py-6">
+                    Không có dữ liệu !
+                  </div>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+      </li>
+    }
+
+    @if(CheckAccess("okrs"))
+    {
+      <li class="column is-full">
+        <div class="card p-5">
+          <ul class="columns is-multiline is-mobile is-vcentered is-variable is-2">
+            <li class="column is-full-mobile">
+              <h1 class="title is-5 has-text-info">
+                GHI NHẬN - TẶNG SAO
+              </h1>
+            </li>
+            <li class="column is-narrow">
+              <div class="dropdown is-hoverable is-right">
+                <div class="dropdown-trigger">
+                  <a class="icon-text">
+                    @if (tabStar == 2)
+                    {
+                      <span class="has-text-link">Ghi nhận</span>
+                    }
+                    else if (tabStar == 3)
+                    {
+                      <span class="has-text-link">Tặng sao</span>
+                    }
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                    </span>
+                  </a>
+                </div>
+                <div class="dropdown-menu">
+                  <div class="dropdown-content">
+                    <a class="dropdown-item" @onclick="() => TabCFRs(2)">
+                      Ghi nhận
+                    </a>
+                    <a class="dropdown-item" @onclick="() => TabCFRs(3)">
+                      Tặng sao
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li class="column is-narrow">
+              <div class="dropdown is-hoverable is-right">
+                <div class="dropdown-trigger">
+                  <a class="icon-text">
+                    @if (dateStar == 1)
+                    {
+                      <span class="has-text-link">Tuần này</span>
+                    }
+                    else if (dateStar == 11)
+                    {
+                      <span class="has-text-link">Tuần trước</span>
+                    }
+                    else if (dateStar == 2)
+                    {
+                      <span class="has-text-link">Tháng này</span>
+                    }
+                    else if (dateStar == 22)
+                    {
+                      <span class="has-text-link">Tháng trước</span>
+                    }
+                    else if (dateStar == 3)
+                    {
+                      <span class="has-text-link">Quý này</span>
+                    }
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                    </span>
+                  </a>
+                </div>
+                <div class="dropdown-menu">
+                  <div class="dropdown-content">
+                    <a class="dropdown-item" @onclick="() => GetCFRs(1)">
+                      Tuần này
+                    </a>
+                    <a class="dropdown-item" @onclick="() => GetCFRs(11)">
+                      Tuần trước
+                    </a>
+                    <a class="dropdown-item" @onclick="() => GetCFRs(2)">
+                      Tháng này
+                    </a>
+                    <a class="dropdown-item" @onclick="() => GetCFRs(22)">
+                      Tháng trước
+                    </a>
+                    <a class="dropdown-item" @onclick="() => GetCFRs(3)">
+                      Quý này
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li class="column is-one-quarter-tablet">
+              <div class="control has-icons-right has_suggest">
+                <input class="input is-rounded" type="text" placeholder="Nhập tên nhân viên..."
+                       autocomplete="off" @bind="CFRsUserSearch" @bind:event="oninput" />
+                <ul class="suggest">
+                  @foreach (var item in cfrsUserSuggests)
+                  {
+                    <li class="rsitem" @onclick="() => CFRsUserSelected(item)">
+                      <div class="user_item">
+                        <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
+                        <span>@item.FullName</span>
+                      </div>
+                    </li>
+                  }
+                </ul>
+                <span class="icon is-right">
+                  <i class="material-icons-outlined">search</i>
+                </span>
+              </div>
+            </li>
+            <li class="column is-full">
+              <div class="scrolly" style="max-height: 390px;">
+                <ul class="columns is-multiline is-variable is-2 my-0">
+                  @foreach (var item in cftList)
+                  {
+                    var create = Layout.UserList.SingleOrDefault(x => x.id == item.user_create);
+                    var receive = Layout.UserList.SingleOrDefault(x => x.id == item.user_receive);
+
+                    <li class="column is-full">
+                      <hr class="mt-0 mb-3" />
+                      @if (create != null)
+                      {
+                        <div class="user_item mb-2">
+                          <img class="image is-36x36 mr-2" src="@create.avatar" alt="IMG">
+                          <div>
+                            <p class="has-text-weight-medium has-text-info">
+                              <span class="mr-2">@create.FullName</span>
+                            </p>
+                            <p class="text_1_line is-size-7" style="width: 250px;">
+                              @create.departments_name
+                            </p>
+                          </div>
+                        </div>
+                      }
+                      @if (receive != null)
+                      {
+                        <div class="user_item mb-3 pl-6" style="background: url(/images/arrow_sub.png) 20px 0px no-repeat;">
+                          <img class="image is-36x36 mr-2" src="@receive.avatar" alt="IMG">
+                          <div>
+                            <p class="has-text-weight-medium has-text-info">@receive.FullName</p>
+                            <p class="text_1_line is-size-7" style="width: 250px;">
+                              @receive.departments_name
+                            </p>
+                          </div>
+                        </div>
+                      }
+
+                      @if (!string.IsNullOrEmpty(item.evaluate_name))
+                      {
+                        <h3 class="title is-6 has-text-info mb-2">
+                          @item.evaluate_name
+                        </h3>
+                      }
+                      <div class="text_3_line mb-2" onclick="toggleText(this)">
+                        @((MarkupString)Shared.GetLinks(item.content))
+                      </div>
+                      <div class="field is-grouped">
+                        <div class="control">
+                          <span class="icon-text">
+                            <span class="has-text-weight-semibold">@item.star</span>
+                            <span class="icon">
+                              <i class="material-icons-outlined has-text-warning">star</i>
+                            </span>
+                          </span>
+                        </div>
+                        @if (tabStar == 2)
+                        {
+                          <div class="control">•</div>
+                          <div class="control has-text-weight-semibold text_1_line" style="max-width: 280px;">
+                            @if (string.IsNullOrEmpty(item.okr_name))
+                            {
+                              <span>Tất cả OKRs</span>
+                            }
+                            else
+                            {
+                              <span>@item.okr_name</span>
+                            }
+                          </div>
+                        }
+                        <div class="control">•</div>
+                        <div class="control">
+                          @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date_create))
+                        </div>
+                      </div>
+                    </li>
+                  }
+                  @if (cftList.Count == 0)
+                  {
+                    <li class="column is-full">
+                      <div class="has-text-grey py-5">
+                        Không có dữ liệu !
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </li>
+    }
+
+    @if(CheckAccess("train"))
+    { 
+      <li class="column is-full">
+        <div class="card p-5">
+          <ul class="columns is-vcentered is-variable is-2 mb-3">
+            <li class="column">
+              <h1 class="title is-5 has-text-info">
+                ĐÀO TẠO
+              </h1>
+            </li>
+          </ul>
+          <div class="scrolly pt-1 pr-2" style="max-height: 175px">
+            <ul class="columns is-vcentered is-multiline is-mobile is-variable is-2">
+              @foreach (var item in educateList)
+              {
+                var user = Layout.UserList.SingleOrDefault(x => x.id == item.user);
+                if (user != null)
+                {
+                  <li class="column is-full">
+                    <div class="user_item">
+                      <img class="image is-32x32 mr-3" src="@user.avatar" alt="IMG">
+                      <p class="has-text-grey">
+                        <span class="has-text-weight-semibold has-text-link">@user.FullName</span>
+                        <span>đã đạt được chứng chỉ khóa học</span>
+                        <span class="has-text-weight-semibold has-text-info">@item.course_name</span>
+                        <i>- @string.Format("{0:dd/MM/yyyy}", new DateTime(item.certificate_date))</i>
+                      </p>
+                    </div>
+                  </li>
+                }
+              }
+              @if (educateList.Count == 0)
+              {
+                <li class="column is-full">
+                  <div class="has-text-grey py-6">
+                    Không có dữ liệu !
+                  </div>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+      </li>
+    }
+  </ul>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public DepartmentModel department { get; set; }
+
+  private UserModel manager = null;
+  private List<AchievementModel> achievementList = new();
+  private List<ProgressModel> okrProgress = new();
+  private List<ProgressModel> todoProgress = new();
+  private List<KaizenModel> kaizens = new();
+  private List<OkrCfrModel> cftList = new();
+  private List<DayCheckinModel> checkins = new();
+  private List<EducateLearnedModel> educateList = new();
+
+  private int dateCheckin = 1;
+  private int dateTodo = 1;
+  private int dateStar = 1;
+  private int tabStar = 2;
+
+  private int dayMonth = DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month);
+
+  protected override async Task OnParametersSetAsync()
+  {
+    var managerId = department.members_list.SingleOrDefault(x => x.role == 1);
+    if (managerId != null)
+      manager = Layout.UserList.SingleOrDefault(x => x.id == managerId.id);
+
+    GetOkrs();
+    await GetAchievement();
+    await GetCheckins(1);
+    await GetTodos(1);
+    await GetKaizen();
+    await GetCFRs(1);
+    await GetEducate();
+  }
+
+  private bool CheckAccess(string productId)
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, productId, out string message);
+  }
+
+  #region Thành tựu
+
+  private async Task GetAchievement()
+  {
+    Handled.Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
+    var data = await DbAchievement.GetList(Layout.Company.id, null, null, start, end);
+    achievementList = data.Where(x => department.members_id.Contains(x.user)).ToList();
+  }
+
+  private async Task ChangeMonthAchievement(ChangeEventArgs e)
+  {
+    var start = Convert.ToDateTime(e.Value);
+    var end = start.AddMonths(1).AddDays(-1);
+    var data = await DbAchievement.GetList(Layout.Company.id, null, null, start, end);
+    achievementList = data.Where(x => department.members_id.Contains(x.user)).ToList();
+  }
+
+  #endregion
+
+
+  #region OKRs
+
+  private void GetOkrs()
+  {
+    okrProgress.Clear();
+    foreach (var userId in department.members_id)
+    {
+      var user = Layout.UserList.SingleOrDefault(x => x.id == userId);
+      if (user != null)
+      {
+        var okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, user.id);
+        double totalProgress = 0;
+        foreach (var okr in okrList)
+        {
+          totalProgress += DbOkr.GetProgress(okr.key_results);
+        }
+
+        okrProgress.Add(new ProgressModel()
+          {
+            id = user.id,
+            name = user.FullName,
+            avatar = user.avatar,
+            value = totalProgress > 0 ? totalProgress / okrList.Count : 0
+          });
+      }
+    }
+    okrProgress = okrProgress.OrderByDescending(x => x.value).ToList();
+  }
+
+  private async Task GetCheckins(int type)
+  {
+    dateCheckin = type;
+    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
+    var data = await DbDayCheckin.GetList(Layout.Company.id, Layout.CycleId, start, end);
+    checkins = (from x in data
+                where department.members_id.Contains(x.user_create)
+                || department.members_id.Contains(x.user_checkin)
+                orderby x.date_checkin descending
+                select x).ToList();
+  }
+
+  #endregion
+
+
+  #region Todolist
+
+  private async Task GetTodos(int type)
+  {
+    dateTodo = type;
+    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
+    var data = await DbTodolist.GetList(Layout.Company.id, start, end);
+
+    todoProgress.Clear();
+    foreach (var userId in department.members_id)
+    {
+      var user = Layout.UserList.SingleOrDefault(x => x.id == userId);
+      if (user != null)
+      {
+        var todolist = data.Where(x => x.user_create == user.id && !x.day_off);
+        int done = 0;
+        int total = 0;
+        foreach (var item in todolist)
+        {
+          done += item.todos.Where(x => x.status == 4).Count();
+          total += item.todos.Count();
+        }
+
+        todoProgress.Add(new ProgressModel()
+          {
+            id = user.id,
+            name = user.FullName,
+            avatar = user.avatar,
+            desc = $"Hoàn thành {done}/{total}",
+            value = Shared.Progress(done, total)
+          });
+      }
+    }
+    todoProgress = todoProgress.OrderByDescending(x => x.value).ToList();
+  }
+
+  #endregion
+
+
+  #region Kaizen
+
+  private async Task GetKaizen()
+  {
+    Shared.GetTimeSpan(3, out DateTime start, out DateTime end);
+    var data = await DbKaizen.GetList(Layout.Company.id, null, null, start, end);
+    kaizens = (from x in data
+               where department.members_id.Contains(x.user_create)
+               orderby x.date_status descending, x.date_create descending
+               select x).ToList();
+  }
+
+  #endregion
+
+
+  #region CFRs
+
+  private List<UserModel> cfrsUserSuggests = new();
+  private string cfrsUserSearch = string.Empty;
+  private string cfrsUserId = string.Empty;
+
+  private string CFRsUserSearch
+  {
+    get => cfrsUserSearch;
+    set
+    {
+      cfrsUserSearch = value;
+      cfrsUserSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in Layout.UserList)
+        {
+          bool check = true;
+          if (!item.departments_id.Contains(department.id))
+            check = false;
+          if (!Handled.Shared.SearchKeyword(cfrsUserSearch, item.FullName))
+            check = false;
+          if (check)
+            cfrsUserSuggests.Add(item);
+        }
+      }
+    }
+  }
+
+  private async Task CFRsUserSelected(UserModel item)
+  {
+    cfrsUserSuggests = new();
+    cfrsUserSearch = item.FullName;
+    cfrsUserId = item.id;
+    await TabCFRs(tabStar);
+  }
+
+  private async Task TabCFRs(int type)
+  {
+    tabStar = type;
+    await GetCFRs(dateStar);
+  }
+
+  private async Task GetCFRs(int type)
+  {
+    dateStar = type;
+    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
+    var data = await DbOkrCfr.GetList(Layout.Company.id, start, end);
+    if (string.IsNullOrEmpty(cfrsUserId))
+    {
+      cftList = (from x in data
+                 where x.type == tabStar
+                 && (department.members_id.Contains(x.user_create)
+                 || department.members_id.Contains(x.user_receive))
+                 orderby x.date_create descending
+                 select x).ToList();
+    }
+    else
+    {
+      cftList = (from x in data
+                 where x.type == tabStar
+                 && (x.user_create == cfrsUserId || x.user_receive == cfrsUserId)
+                 orderby x.date_create descending
+                 select x).ToList();
+    }
+  }
+
+  #endregion
+
+
+  #region Đào tạo
+
+  private async Task GetEducate()
+  {
+    Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
+    var data = await DbEducateLearned.DataAchievement(Layout.Company.id, null, start, end);
+    educateList = (from x in data
+                   where department.members_id.Contains(x.user)
+                   orderby x.certificate_date descending
+                   select x).ToList();
+  }
+
+  #endregion
+}

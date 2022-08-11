@@ -1,0 +1,68 @@
+﻿@page "/admin/test"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+<div class="card p-5">
+  <div class="field is-grouped">
+    <div class="control">
+      <input @bind="count" type="number" class="input" />
+    </div>
+    <div class="control">
+      <a class="button" @onclick="Testing">Testing</a>
+    </div>
+    <div class="control">
+      ERROR: @error
+    </div>
+  </div>
+  <ul class="columns is-multiline">
+    @foreach (var id in list)
+    {
+      var check = list.Where(x => x == id).Count() > 1;
+      <li class="column is-1 has-text-@(check ? "danger" : "success")">
+        @id
+      </li>
+    }
+  </ul>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Admin - Test chức năng";
+
+  private List<string> list = new();
+  private int count = 100;
+  private int error = 0;
+
+  private void Testing()
+  {
+    error = 0;
+    list.Clear();
+    for (var i = 0; i < count; i++)
+    {
+      list.Add(Mongo.RandomId());
+    }
+    foreach (var id in list)
+    {
+      var check = list.Where(x => x == id).Count() > 1;
+      if (check)
+        error++;
+    }
+  }
+}

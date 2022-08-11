@@ -1,0 +1,217 @@
+﻿@page "/admin/config/users"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="px-4">
+  <ul class="menu_bar mb-4">
+    <li>
+      <a class="icon-text has-text-white" href="/admin/config/products">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">apps</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Sản phẩm</span>
+      </a>
+    </li>
+    <li>
+      <a class="icon-text has-text-white" href="/admin/config/promotions">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">auto_awesome</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Ưu đãi</span>
+      </a>
+    </li>
+    <li>
+      <a class="icon-text has-text-white is-active" href="/admin/config/users">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">account_circle</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Tài khoản admin</span>
+      </a>
+    </li>
+    <li>
+      <a class="icon-text has-text-white" href="/admin/config/banners">
+        <span class="icon">
+          <i class="material-icons-round is-size-5">celebration</i>
+        </span>
+        <span class="is-size-7 has-text-weight-bold">Banner quảng cáo</span>
+      </a>
+    </li>
+  </ul>
+
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-4">
+    <li class="column">
+      <h1 class="title is-5">
+        @_title
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <div class="control has-icons-left" style="width: 120px;">
+        <div class="select is-small has-text-weight-medium">
+          <select @onchange="ChangeStatus">
+            <option value="0">Trạng thái</option>
+            <option value="1">Đang hoạt động</option>
+            <option value="2">Dừng hoạt động</option>
+          </select>
+        </div>
+        <span class="icon is-left has-text-dark">
+          <i class="material-icons-round is-size-6">filter_list</i>
+        </span>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <span class="is-size-4 has-text-grey-lighter">|</span>
+    </li>
+    <li class="column is-narrow">
+      <a class="icon-text has-text-link" @onclick="() => EditItem(null)">
+        <span class="icon">
+          <i class="material-icons-outlined">add</i>
+        </span>
+        <span class="is-size-7 has-text-weight-medium">Tạo tài khoản</span>
+      </a>
+    </li>
+  </ul>
+
+  <table class="table is-fullwidth is-vcentered is-responsive is_head_bg is-size-7">
+    <thead>
+      <tr>
+        <th width="30%">Tài khoản</th>
+        <th>Họ và tên</th>
+        <th width="15%" align="center">Trạng thái</th>
+        <th width="15%">Lần truy cập cuối</th>
+        <th width="80px" align="center">Xử lý</th>
+      </tr>
+    </thead>
+    <tbody class="has-text-weight-medium">
+      @foreach (var item in dataList)
+      {
+        <tr>
+          <td>
+            <div class="user_item">
+              <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG" />
+              <a class="has-text-dark" @onclick="() => EditItem(item)">@item.email</a>
+            </div>
+          </td>
+          <td>
+            <label class="td-label">Họ tên</label>
+            <div class="td-value">
+              @item.FullName
+            </div>
+          </td>
+          <td align="center">
+            <label class="td-label">Trạng thái</label>
+            <div class="td-value">
+              <a class="icon" @onclick="() => ActiveItem(item)">
+                <i class="material-icons-round is-size-5 has-text-@(item.active ? "success" : "grey")">
+                  toggle_@(item.active ? "on" : "off")
+                </i>
+              </a>
+            </div>
+          </td>
+          <td>
+            <label class="td-label">Truy cập</label>
+            <div class="td-value">
+              @if (item.online > 0)
+              {
+                <span class="text_inline">
+                  @Handled.Shared.ConvertDate(new DateTime(item.online)).Replace(" trước", "")
+                </span>
+              }
+            </div>
+          </td>
+          <td align="center">
+            <label class="td-label">Xử lý</label>
+            <div class="td-value">
+              <a class="icon has-text-dark" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                <i class="material-icons-round is-size-6">edit</i>
+              </a>
+              <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                <i class="material-icons-round is-size-6">delete</i>
+              </a>
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  @if (dataList.Count == 0)
+  {
+    <div class="has-text-grey has-text-centered py-6">
+      Không tìm thấy dữ liệu phù hợp
+    </div>
+  }
+</section>
+
+<_UserEdit model="model" OnUpdate="OnUpdate" />
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+
+  private string _title = "Admin hệ thống";
+  private List<UserModel> dataList = new();
+  private UserModel model = null;
+  private int filterStatus = 0;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await GetList();
+  }
+
+  private async Task GetList()
+  {
+    dataList = await DbMainUser.GetListAdmin();
+    if (filterStatus == 1)
+      dataList = dataList.Where(x => x.active).ToList();
+    else if (filterStatus == 2)
+      dataList = dataList.Where(x => !x.active).ToList();
+  }
+
+  private async Task ChangeStatus(ChangeEventArgs e)
+  {
+    filterStatus = Convert.ToInt32(e.Value);
+    await GetList();
+  }
+
+  private async Task ActiveItem(UserModel item)
+  {
+    item.active = !item.active;
+    await DbMainUser.Update(item);
+  }
+
+  private async Task DeleteItem(UserModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?"))
+      return;
+
+    item.delete = true;
+    await DbMainUser.Update(item);
+    dataList.Remove(item);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa tài khoản " + item.email);
+  }
+
+  private async Task EditItem(UserModel item)
+  {
+    if (item == null)
+    {
+      model = new UserModel();
+      model = new() { companys = new(), role_manage = new(), is_admin = true, active = true };
+      model.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
+    }
+    else
+      model = await DbMainUser.Get(item.id); ;
+  }
+
+  private async Task OnUpdate(bool isUpdate)
+  {
+    if (isUpdate)
+    {
+      var message = string.IsNullOrEmpty(model.id) ? "Đã tạo tài khoản thành công!" : "Đã cập nhật tài khoản thành công!";
+      await JSRuntime.InvokeVoidAsync("tagline", true, message);
+      await GetList();
+    }
+    model = null;
+  }
+}

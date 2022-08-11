@@ -1,0 +1,74 @@
+@page "/client/products"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="px-4 pb-4">
+  <section class="cover_blue mb-4 py-6 px-6">
+    <ul class="columns is-multiline is-vcentered">
+      <li class="column is-half has-text-right">
+        <span class="image is-inline-block">
+          <img src="/images/cover_products.png" alt="img">
+        </span>
+      </li>
+      <li class="column is-half has-text-white">
+        <div class="title is-5 mb-2">
+          Quản lý doanh nghiệp
+        </div>
+        <div class="title is-2 mb-2">
+          Hiệu quả - chuyên nghiệp
+        </div>
+        <div class="content">
+          <div>Trọng bộ giải pháp quản lý doanh nghiệp, bao gồm:</div>
+          <ul>
+            <li>
+              Bộ quản trị OKRs - <b>fOKRs</b>
+            </li>
+            <li>
+              Bộ quản trị kế hoạch hằng ngày - <b>fTodolist</b>
+            </li>
+            <li>
+              Bộ hệ thống đào tạo - <b>fTrain</b>
+            </li>
+            <li>
+              Bộ quản lý công việc - <b>fWork</b>
+            </li>
+          </ul>
+        </div>
+      </li>
+    </ul>
+  </section>
+  
+  <_Banner />
+
+  <ul class="columns is-multiline is-variable is-2">
+    @foreach (var item in dataList)
+    {
+      <li class="column is-one-third">
+        <a class="card_product" href="/client/products/@item.id"
+          style="background-color: @item.color; background-image: url('@item.cover')">
+          <img class="item_icon" src="@item.icon" />
+          <span class="item_title">@item.title</span>
+          <span class="item_desc">@item.desc</span>
+          <span class="tag is-link mt-5">Mua ngay</span>
+        </a>
+      </li>
+    }
+  </ul>
+  
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+
+  private string _title = "Cửa hàng Fastdo";
+  private List<ProductModel> dataList = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    dataList = await DbMainProduct.GetList();
+  }
+}

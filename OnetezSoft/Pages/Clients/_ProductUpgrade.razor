@@ -1,0 +1,349 @@
+@inject IJSRuntime JSRuntime
+
+@if (model != null)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card has_bg">
+      <section class="modal-card-head is-warning" 
+        style="background-image: url('/images/illustrations/upgrade.png')">
+        <div class="modal-card-title">
+          <div class="title">
+            Nâng cấp sản phẩm
+          </div>
+          <div class="subtitle">
+            Bạn đang tiến hành nâng cấp sản phẩm đã sở hữu,
+            <br>
+            hãy lựa chọn số người nâng cấp phù hợp
+          </div>
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body">
+        <ul class="columns is-multiline">
+          <li class="column is-narrow" style="width: 164px;">
+            <ul class="steps py-1">
+              <li class="step-item @(step == 1 ? "is-active" : "")">
+                <span class="step-marker"></span>
+              </li>
+              <li class="step-item @(step == 2 ? "is-active" : "")">
+                <span class="step-marker"></span>
+              </li>
+              <li class="step-item @(step == 3 ? "is-active" : "")">
+                <span class="step-marker"></span>
+              </li>
+            </ul>
+          </li>
+          <li class="column has-text-weight-bold">
+            @if(step == 1)
+            {
+              <span>Sản phẩm sở hữu</span>
+            }
+            else if(step == 2)
+            {
+              <span>Xác nhận đơn hàng</span>
+            }
+            else if(step >= 3)
+            {
+              <span class="has-text-success">Hoàn tất</span>
+            }
+          </li>
+          <li class="column is-full">
+            @if(step < 3)
+            {
+              <div class="field mb-4">
+                <label class="label">Tổ chức sử dụng</label>
+                <div class="control">
+                  <div class="icon-text">
+                    <span class="icon image is-32x32 mr-2">
+                      @if (!string.IsNullOrEmpty(company.logo))
+                      {
+                        <img src="@company.logo" alt="logo" />
+                      }
+                      else
+                      {
+                        <i class="material-icons-round is-size-2 has-text-grey">help</i>
+                      }
+                    </span>
+                    <span class="has-text-weight-bold">@company.name</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="field mb-4">
+                <label class="label">Sản phẩm nâng cấp</label>
+                <div class="control">
+                  <div class="icon-text">
+                    <span class="icon image is-32x32 mr-2">
+                      <img src="@product.icon" alt="icon">
+                    </span>
+                    <span class="has-text-weight-bold">@product.title</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field mb-4">
+                <label class="label">
+                  <span class="mr-2">Số lượng người dùng</span>
+                  @if(quantity > model.total)
+                  {
+                    <span class="has-text-success">(+@(quantity - model.total))</span>
+                  }
+                </label>
+                @if(step == 1)
+                {
+                  <div class="control has-icons-left">
+                    <div class="dropdown is-fullwidth @(toggle ? "is-active" : "")">
+                      <div class="dropdown-trigger" @onclick="() => toggle = !toggle">
+                        <input value="@quantity" @onchange="ChangeQuantity" type="number" 
+                            class="input is_line font_14" min="1" />
+                        <span class="icon is-left has-text-black">
+                          <i class="material-icons-round is-size-6">person_add</i>
+                        </span>
+                      </div>
+                      <div class="dropdown-menu">
+                        <div class="dropdown-content">
+                          @foreach (var item in promotions)
+                          {
+                            <a class="dropdown-item" @onclick="() => ChangePromotion(item.condition + model.total)">
+                              +@item.condition người (ưu đãi @item.discount%)
+                            </a>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                }
+                else 
+                {
+                  <div class="control py-2">
+                    <div class="icon-text">
+                      <span class="icon is-small has-text-black mr-2">
+                        <i class="material-icons-round is-size-6">person_add</i>
+                      </span>
+                      <span class="has-text-weight-medium">@quantity</span>
+                    </div>
+                  </div>
+                }
+                <div class="has-text-grey has-text-weight-medium is-size-7 pt-2 is-italic">
+                  Số lượng nhân sự của tổ chức: @company.members
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="has-text-link mb-2">
+                  <span class="has-text-weight-bold mr-2">Chi phí tạm tính</span>
+                  @if(discount > 0)
+                  {
+                    <span>(ưu đãi @discount%)</span>
+                  }
+                </div>
+                <div class="control has-text-link">
+                  @if(discount > 0)
+                  {
+                    <span class="is-size-6 has-text-weight-bold">
+                      @string.Format("{0:0,0}", money - (money * discount / 100)) VNĐ
+                    </span>
+                    <del class="is-size-7 has-text-weight-medium ml-2">
+                      @money.ToString("0,0") VNĐ
+                    </del>
+                  }
+                  else
+                  {
+                    <span class="is-size-6 has-text-weight-bold">
+                      @money.ToString("0,0") VNĐ
+                    </span>
+                  }
+                </div>
+                <div class="has-text-grey has-text-weight-medium is-size-7 pt-2 is-italic">
+                  Chi phí nâng cấp được tính từ 
+                  @string.Format("{0:dd/MM/yyyy}", new DateTime(model.start))
+                  đến
+                  @string.Format("{0:dd/MM/yyyy}", new DateTime(model.end))
+                </div>
+              </div>
+            }
+            else 
+            {
+              <div class="has-text-weight-bold">
+                Nâng cấp sản phẩm thành công.
+              </div>
+              <div class="has-text-weight-bold">
+                Số lượng người dùng: @model.used/@model.total
+              </div>
+            }
+          </li>
+        </ul>
+      </section>
+      <section class="modal-card-foot is-right">
+        @if(step < 3)
+        {
+          <a class="button" @onclick="() => Step(false)">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">chevron_left</i>
+            </span>
+            <span class="is-size-7">Trở về</span>
+          </a>
+          @if(step == 1)
+          {
+            <a class="button is-link" @onclick="() => Step(true)">
+              <span class="is-size-7">Tiếp tục</span>
+              <span class="icon">
+                <i class="material-icons-round is-size-6">chevron_right</i>
+              </span>
+            </a>
+          }
+          else if(step == 2)
+          {
+            <a class="button is-link" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">done</i>
+              </span>
+              <span class="is-size-7">Xác nhận</span>
+            </a>
+          }
+        }
+        else
+        {
+          <a class="button" href="/client/products">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">chevron_left</i>
+            </span>
+            <span class="is-size-7">Quay lại cửa hàng</span>
+          </a>
+          <a class="button is-link" onclick="location.reload()">
+            <span class="is-size-7">Truy cập tổ chức</span>
+            <span class="icon">
+              <i class="material-icons-round is-size-6">chevron_right</i>
+            </span>
+          </a>
+        }
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  [Parameter]
+  public CompanyModel.Product model { get; set; }
+  [Parameter]
+  public CompanyModel company { get; set; }
+  [Parameter]
+  public ProductModel product { get; set; }
+  [Parameter]
+  public List<PromotionModel> promotions { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+  private int step = 1;
+  private int money = 0;
+  private int discount = 0;
+  private int quantity = 0;
+  private bool toggle = false;
+
+  private void Reset()
+  {
+    step = 1;
+    money = 0;
+    discount = 0;
+    quantity = 0;
+    toggle = false;
+  }
+
+  private async Task Step(bool next)
+  {
+    if(next)
+      step++;
+    else
+      step--;
+    
+    if(step == 0)
+      await Cancel();
+    else if(step == 2)
+    {
+      if(quantity < 1)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập số lượng người dùng.");
+        step = 1;
+      }
+    }
+  }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+    Reset();
+  }
+
+  private async Task Update()
+  {
+    var customer = await DbMainUser.Get(Layout.User.id);
+    if(customer != null)
+    {
+      // Số tiền cần thanh toán
+      int price = discount > 0 ? money - (money * discount / 100) : money;
+      if(quantity < model.total)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Số lượng người dùng đang ít hơn trước khi nâng cấp");
+      else if(customer.balance < price)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Số dư của bạn không đủ để thanh toán, vui lòng nạp thêm.");
+      else
+      {
+        // Lấy sản phẩm cần nâng cấp
+        model = company.products.SingleOrDefault(x => x.id == model.id);
+        // Tính số người dùng tăng thêm
+        var staff = quantity - model.total;
+        // Cập nhật số lượng người dùng
+        model.title = product.title;
+        model.price = price;
+        model.total = quantity;
+        model.start = DateTime.Today.Ticks;
+        await DbMainCompany.Update(company);
+
+        // Tạo giao dịch
+        var transaction = new TransactionModel()
+        {
+          customer = UserService.ConvertToMember(customer),
+          creator = UserService.ConvertToMember(customer),
+          product = product.id,
+          Company = company.id,
+          balance = customer.balance - price,
+          money = -price,
+          content = $"Nâng cấp sản phẩm <b>{product.title}</b> thêm <b>{staff} NDSP</b> (hết hạn vào {string.Format("{0:dd/MM/yyyy}", new DateTime(model.end))}) cho <b>{company.name}</b>",
+          status = 2,
+          type = 3
+        };
+        await DbMainTransaction.Create(transaction);
+
+        // Cập nhật số dư
+        customer.balance -= money;
+        await DbMainUser.Update(customer);
+
+        step = 3;
+        return;
+      }
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Tài khoản khách hàng không tồn tại.");
+      
+    step = 2;
+    return;
+  }
+
+  private void ChangePromotion(int item)
+  {
+    quantity = item;
+    money = ProductService.CalculateUpgrade(quantity - model.total, product.price, model.end);
+    discount = ProductService.Promotion(2, quantity - model.total);
+    toggle = false;
+  }
+
+  private void ChangeQuantity(ChangeEventArgs e)
+  {
+    quantity = !string.IsNullOrEmpty(e.Value.ToString()) ? Convert.ToInt32(e.Value) : 0;
+    money = ProductService.CalculateUpgrade(quantity - model.total, product.price, model.end);
+    discount = ProductService.Promotion(2, quantity - model.total);
+    toggle = false;
+  }
+}

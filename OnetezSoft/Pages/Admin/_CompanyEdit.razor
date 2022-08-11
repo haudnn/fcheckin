@@ -1,0 +1,408 @@
+﻿@inject IJSRuntime JSRuntime
+
+@if (model != null)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card is-medium has_bg">
+      <section class="modal-card-head is-success" style="background-image: url('/images/illustrations/org.png')">
+        <div class="modal-card-title">
+          <div class="title has-text-white">
+            @(string.IsNullOrEmpty(model.id) ? "Tạo" : "Thông tin") tổ chức
+          </div>
+          <div class="subtitle has-text-white">
+            Tổ chức dùng để quản lý các tài khoản người dùng
+            <br />
+            sử dụng sản phẩm của Fastdo.
+          </div>
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body" style="min-height: 350px;">
+        <form class="columns is-multiline" autocomplete="off">
+          @if (!string.IsNullOrEmpty(model.id))
+          {
+            <div class="column is-2">
+              <ul class="steps py-1">
+                <li class="step-item">
+                  <span class="step-marker"></span>
+                </li>
+                <li class="step-item">
+                  <span class="step-marker"></span>
+                </li>
+                <li class="step-item is-active">
+                  <span class="step-marker"></span>
+                </li>
+              </ul>
+            </div>
+            <div class="column is-10">
+              <span class="has-text-weight-bold">
+                Thông tin tổ chức
+              </span>
+            </div>
+          }
+          else
+          {
+            <div class="column is-2">
+              <ul class="steps py-1">
+                <li class="step-item @(step == 1 ? "is-active" : "")">
+                  <span class="step-marker"></span>
+                </li>
+                <li class="step-item @(step == 2 ? "is-active" : "")">
+                  <span class="step-marker"></span>
+                </li>
+                <li class="step-item">
+                  <span class="step-marker"></span>
+                </li>
+              </ul>
+            </div>
+            <div class="column is-10">
+              <span class="has-text-weight-bold">
+                @(step == 1 ? "Tài khoản quản lý" : "Thông tin tổ chức")
+              </span>
+            </div>
+          }
+          <div class="column is-2">
+            <div class="image is-1by1 is-radius mb-3 has-background-grey-light">
+              @if (step == 2 || !string.IsNullOrEmpty(model.id))
+              {
+                <img src="@model.logo" />
+              }
+              else
+              {
+                <img src="@manager.avatar" />
+              }
+            </div>
+            <a class="button is-white is-small is-fullwidth @(uploading ? "is-loading" : "")"
+            onclick="document.getElementById('file').click()">
+              <span class="icon">
+                <i class="material-icons-sharp is-size-6">file_upload</i>
+              </span>
+              <span>Tải ảnh lên</span>
+              <InputFile OnChange="Upload" accept="image/*" class="is-hidden" id="file" />
+            </a>
+          </div>
+          <div class="column is-10">
+            <div class="columns is-multiline">
+              @if (step == 2 || !string.IsNullOrEmpty(model.id))
+              {
+                <div class="column is-half">
+                  <div class="field has-text-weight-bold">
+                    Thông tin cơ bản
+                  </div>
+                  <div class="field">
+                    <div class="control has-icons-left">
+                      <input @bind="model.name" type="text" class="input is_line" placeholder="Tên tổ chức" />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">business</i>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <div class="control has-icons-left">
+                      <input @bind="model.address" type="text" class="input is_line" placeholder="Địa chỉ" />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">place</i>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="field mt-5">
+                    <label class="checkbox is-size-7">
+                      <input @bind="model.status" type="checkbox" />
+                      <span>Kích hoạt</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="column is-half">
+                  <div class="field has-text-weight-bold">
+                    Thông tin liên hệ
+                  </div>
+                  <div class="field">
+                    <div class="control has-icons-left">
+                      <input @bind="model.phone" type="text" class="input is_line" placeholder="Số điện thoại người đại diện" />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">call</i>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <div class="control has-icons-left">
+                      <input @bind="model.email" type="email" class="input is_line" placeholder="Địa chỉ email tổ chức" />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">email</i>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <div class="control has-icons-left">
+                      <input @bind="model.website" type="text" class="input is_line" placeholder="Website tổ chức" />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">language</i>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="column is-full">
+                  <div class="field">
+                    <div class="control has-icons-left">
+                      <textarea @bind="model.note" id="note" class="textarea is_line" rows="2" placeholder="Mô tả thêm" />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">note_add</i>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              }
+              else
+              {
+                <div class="column is-half">
+                  <div class="field has-text-weight-bold">
+                    Thông tin tài khoản
+                  </div>
+                  <div class="field">
+                    <div class="control has-icons-left">
+                      <input @bind="manager.email" type="text" class="input is_line" placeholder="Sử dụng email khác?" />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">account_circle</i>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <div class="control has-icons-left">
+                      <input @bind="manager.password" type="text" class="input is_line" placeholder="Sử dụng mật khẩu khác?" />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">lock</i>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="column is-half">
+                  <div class="field has-text-weight-bold">
+                    Thông tin cơ bản
+                  </div>
+                  <div class="field">
+                    <div class="control has-icons-left">
+                      <input @bind="manager.last_name" type="text" class="input is_line" placeholder="Nhập họ" />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">person</i>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <div class="control has-icons-left">
+                      <input @bind="manager.first_name" type="text" class="input is_line" placeholder="Nhập tên" />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">person</i>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </form>
+      </section>
+      <section class="modal-card-foot is-right">
+        <label class="has-text-weight-semibold has-text-danger">@message</label>
+        @if (!string.IsNullOrEmpty(model.id))
+        {
+          <a class="button" @onclick="Cancel">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">chevron_left</i>
+            </span>
+            <span class="is-size-7">Trở về</span>
+          </a>
+          <a class="button is-link" @onclick="Update">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">done</i>
+            </span>
+            <span class="is-size-7">Cập nhật</span>
+          </a>
+        }
+        else
+        {
+          if (step == 1)
+          {
+            <a class="button" @onclick="Cancel">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">chevron_left</i>
+              </span>
+              <span class="is-size-7">Trở về</span>
+            </a>
+            <a class="button is-link" @onclick="Next">
+              <span class="is-size-7">Tiếp tục</span>
+              <span class="icon">
+                <i class="material-icons-round is-size-6">chevron_right</i>
+              </span>
+            </a>
+          }
+          else
+          {
+            <a class="button" @onclick="() => step = 1">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">chevron_left</i>
+              </span>
+              <span class="is-size-7">Trở về</span>
+            </a>
+            <a class="button is-link" @onclick="Create">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">add</i>
+              </span>
+              <span class="is-size-7">Tạo mới</span>
+            </a>
+          }
+        }
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  [Parameter]
+  public CompanyModel model { get; set; }
+  [Parameter]
+  public UserModel manager { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+  private string message = string.Empty;
+  private int step = 1;
+
+  protected override void OnAfterRender(bool firstRender)
+  {
+    message = string.Empty;
+  }
+
+  private void Reset()
+  {
+    step = 1;
+  }
+
+  private async Task Next()
+  {
+    step = 2;
+    await JSRuntime.InvokeVoidAsync("textAutoSize", "note");
+  }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+    Reset();
+  }
+
+  private async Task Create()
+  {
+    if (Validation())
+    {
+      // Tạo tài khoản trong database chính
+      var checkUser = await DbMainUser.GetbyEmail(manager.email);
+      if (checkUser == null)
+      {
+        if (string.IsNullOrEmpty(manager.email) || string.IsNullOrEmpty(manager.email.Trim()))
+        {
+          message = "Bạn chưa nhập email tài khoản quản lý.";
+          step = 1;
+          return;
+        }
+        else if (string.IsNullOrEmpty(manager.password) || string.IsNullOrEmpty(manager.password.Trim()))
+        {
+          message = "Bạn chưa nhập mật khẩu tài khoản quản lý.";
+          step = 1;
+          return;
+        }
+        else if (string.IsNullOrEmpty(manager.last_name) || string.IsNullOrEmpty(manager.first_name))
+        {
+          message = "Bạn chưa nhập họ tên tài khoản quản lý.";
+          step = 1;
+          return;
+        }
+        else
+          manager = await DbMainUser.Create(manager);
+      }
+      else
+        manager = checkUser;
+
+      // Tạo tổ chức trong database chính
+      model.members = 1;
+      model = await DbMainCompany.Create(model);
+
+      // Liên kết tài khoản với tổ chức
+      manager.companys.Add(new UserModel.Company { id = model.id, name = model.name });
+      manager.active = true;
+      await DbMainUser.Update(manager);
+
+      // Tạo tài khoản trong database tổ chức
+      manager.role = 1;
+      manager.role_manage = new();
+      manager.role_manage.system = true;
+      manager.role_manage.okrs = true;
+      manager.role_manage.kaizen = true;
+      manager.role_manage.educate = true;
+      manager.role_manage.store = true;
+      manager.role_manage.other = true;
+      await DbUser.Create(model.id, manager);
+
+      await OnUpdate.InvokeAsync(true);
+      Reset();
+    }
+  }
+
+  private async Task Update()
+  {
+    if (Validation())
+    {
+      await DbMainCompany.Update(model);
+      await OnUpdate.InvokeAsync(true);
+      Reset();
+    }
+  }
+
+  private bool Validation()
+  {
+    if (string.IsNullOrEmpty(model.name) || string.IsNullOrEmpty(model.name.Trim()))
+      message = "Bạn chưa nhập tên tổ chức.";
+    else if (string.IsNullOrEmpty(model.address) || string.IsNullOrEmpty(model.address.Trim()))
+      message = "Bạn chưa nhập địa chỉ tổ chức.";
+    else if (string.IsNullOrEmpty(model.phone) || string.IsNullOrEmpty(model.phone.Trim()))
+      message = "Bạn chưa nhập Số điện thoại người đại diện.";
+    else if (string.IsNullOrEmpty(model.email) || string.IsNullOrEmpty(model.email.Trim()))
+      message = "Bạn chưa nhập email tổ chức.";
+    else
+      return true;
+    return false;
+  }
+
+  private bool uploading = false;
+  private async Task Upload(InputFileChangeEventArgs e)
+  {
+    uploading = true;
+    foreach (var file in e.GetMultipleFiles())
+    {
+      try
+      {
+        if (file.Size <= Layout.MaxFileSize)
+        {
+          var fileStream = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
+          var fileLink = await Files.SaveFileAsync(fileStream, file.Name);
+          if (step == 1)
+            manager.avatar = fileLink;
+          else
+            model.logo = fileLink;
+        }
+        else
+          await JSRuntime.InvokeVoidAsync("tagline", false,
+          $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB");
+      }
+      catch (Exception ex)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.Message}");
+      }
+    }
+    uploading = false;
+  }
+}

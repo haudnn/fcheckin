@@ -1,0 +1,338 @@
+@inject IJSRuntime JSRuntime
+
+@if (model!= null)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card has_bg">
+      <section class="modal-card-head is-danger" 
+        style="background-image: url('/images/illustrations/refresh.png')">
+        <div class="modal-card-title">
+          <div class="title">
+            Gia hạn sản phẩm
+          </div>
+          <div class="subtitle">
+            Bạn đang tiến hành gia hạn sản phẩm đã sở hữu,
+            <br>
+            hãy lựa chọn thời gian gia hạn phù hợp.
+          </div>
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body" style="min-height: 426px;">
+        <ul class="columns is-multiline">
+          <li class="column is-narrow" style="width: 164px;">
+            <ul class="steps py-1">
+              <li class="step-item @(step == 1 ? "is-active" : "")">
+                <span class="step-marker"></span>
+              </li>
+              <li class="step-item @(step == 2 ? "is-active" : "")">
+                <span class="step-marker"></span>
+              </li>
+              <li class="step-item @(step == 3 ? "is-active" : "")">
+                <span class="step-marker"></span>
+              </li>
+            </ul>
+          </li>
+          <li class="column has-text-weight-bold">
+            @if(step == 1)
+            {
+              <span>Sản phẩm sở hữu</span>
+            }
+            else if(step == 2)
+            {
+              <span>Xác nhận đơn hàng</span>
+            }
+            else if(step >= 3)
+            {
+              <span class="has-text-success">Hoàn tất</span>
+            }
+          </li>
+          <li class="column is-full">
+            <div class="field mb-4">
+              <label class="label">Tổ chức sử dụng</label>
+              <div class="control">
+                <div class="icon-text">
+                  <span class="icon image is-32x32 mr-2">
+                    @if (!string.IsNullOrEmpty(company.logo))
+                    {
+                      <img src="@company.logo" alt="logo" />
+                    }
+                    else
+                    {
+                      <i class="material-icons-round is-size-2 has-text-grey">help</i>
+                    }
+                  </span>
+                  <span class="has-text-weight-bold">@company.name</span>
+                </div>
+              </div>
+            </div>
+            <div class="field mb-4">
+              <label class="label">Sản phẩm gia hạn</label>
+              <div class="control">
+                <div class="icon-text">
+                  <span class="icon image is-32x32 mr-2">
+                    <img src="@product.icon" alt="icon">
+                  </span>
+                  <span class="has-text-weight-bold">@product.title</span>
+                </div>
+              </div>
+            </div>
+            @if(step < 3)
+            {
+              <div class="field mb-4">
+                <label class="label">Số tháng gia hạn</label>
+                @if(step == 1)
+                {
+                  <div class="control has-icons-left">
+                    <div class="dropdown is-fullwidth @(toggle ? "is-active" : "")">
+                      <div class="dropdown-trigger" @onclick="() => toggle = !toggle">
+                        <input value="@quantity" @onchange="ChangeQuantity" type="number" 
+                            class="input is_line font_14" min="1" />
+                        <span class="icon is-left has-text-black">
+                          <i class="material-icons-round is-size-6">event</i>
+                        </span>
+                      </div>
+                      <div class="dropdown-menu">
+                        <div class="dropdown-content">
+                          @foreach (var item in promotions)
+                          {
+                            <a class="dropdown-item" @onclick="() => ChangePromotion(item.condition)">
+                              @item.condition tháng (ưu đãi @item.discount%)
+                            </a>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                }
+                else
+                {
+                  <div class="control py-2">
+                    <div class="icon-text">
+                      <span class="icon is-small has-text-black mr-2">
+                        <i class="material-icons-round is-size-6">event</i>
+                      </span>
+                      <span class="has-text-weight-medium">@quantity</span>
+                    </div>
+                  </div>
+                }
+                <div class="has-text-grey has-text-weight-medium is-size-7 pt-2 is-italic">
+                  Tối thiểu 1 tháng. Thời gian gia hạn được tính sau khi gói hiện tại hết hạn.
+                </div>
+              </div>
+              <div class="field">
+                <div class="has-text-link mb-2">
+                  <span class="has-text-weight-bold mr-2">Chi phí tạm tính</span>
+                  @if(discount > 0)
+                  {
+                    <span>(ưu đãi @discount%)</span>
+                  }
+                </div>
+                <div class="control has-text-link">
+                  @if(discount > 0)
+                  {
+                    <span class="is-size-6 has-text-weight-bold">
+                      @string.Format("{0:0,0}", money - (money * discount / 100)) VNĐ
+                    </span>
+                    <del class="is-size-7 has-text-weight-medium ml-2">
+                      @money.ToString("0,0") VNĐ
+                    </del>
+                  }
+                  else
+                  {
+                    <span class="is-size-6 has-text-weight-bold">
+                      @money.ToString("0,0") VNĐ
+                    </span>
+                  }
+                </div>
+                <div class="has-text-grey has-text-weight-medium is-size-7 pt-2 is-italic">
+                  Chi phí gia hạn được tính cho gói @model.total người dùng
+                </div>
+              </div>
+            }
+            else 
+            {
+              <div class="has-text-weight-bold">
+                Gia hạn sản phẩm thành công.
+              </div>
+              <div class="has-text-weight-bold">
+                Ngày hết hạn: @string.Format("{0:dd/MM/yyyy}", new DateTime(model.end))
+              </div>
+            }
+          </li>
+        </ul>
+      </section>
+      <section class="modal-card-foot is-right">
+        @if(step < 3)
+        {
+          <a class="button" @onclick="() => Step(false)">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">chevron_left</i>
+            </span>
+            <span class="is-size-7">Trở về</span>
+          </a>
+          @if(step == 1)
+          {
+            <a class="button is-link" @onclick="() => Step(true)">
+              <span class="is-size-7">Tiếp tục</span>
+              <span class="icon">
+                <i class="material-icons-round is-size-6">chevron_right</i>
+              </span>
+            </a>
+          }
+          else if(step == 2)
+          {
+            <a class="button is-link" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">done</i>
+              </span>
+              <span class="is-size-7">Xác nhận</span>
+            </a>
+          }
+        }
+        else
+        {
+          <a class="button" href="/client/products">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">chevron_left</i>
+            </span>
+            <span class="is-size-7">Quay lại cửa hàng</span>
+          </a>
+          <a class="button is-link" onclick="location.reload()">
+            <span class="is-size-7">Truy cập tổ chức</span>
+            <span class="icon">
+              <i class="material-icons-round is-size-6">chevron_right</i>
+            </span>
+          </a>
+        }
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  [Parameter]
+  public CompanyModel.Product model { get; set; }
+  [Parameter]
+  public CompanyModel company { get; set; }
+  [Parameter]
+  public ProductModel product { get; set; }
+  [Parameter]
+  public List<PromotionModel> promotions { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+  private int step = 1;
+  private int money = 0;
+  private int discount = 0;
+  private int quantity = 0;
+  private bool toggle = false;
+
+  private void Reset()
+  {
+    step = 1;
+    money = 0;
+    discount = 0;
+    quantity = 0;
+    toggle = false;
+  }
+
+  private async Task Step(bool next)
+  {
+    if(next)
+      step++;
+    else
+      step--;
+    
+    if(step == 0)
+      await Cancel();
+    else if(step == 2)
+    {
+      if(quantity < 1)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập số tháng gia hạn");
+        step = 1;
+      }
+    }
+  }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+    Reset();
+  }
+
+  private async Task Update()
+  {
+    var customer = await DbMainUser.Get(Layout.User.id);
+    if(customer != null)
+    {
+      // Số tiền cần thanh toán
+      int price = discount > 0 ? money - (money * discount / 100) : money;
+      if(quantity < 1)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập số tháng gia hạn");
+      else if(customer.balance < price)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Số dư của bạn không đủ để thanh toán, vui lòng nạp thêm.");
+      else
+      {
+        // Lấy sản phẩm cần gia hạn
+        model = company.products.SingleOrDefault(x => x.id == model.id);
+        // Tính thời gian hết hạn
+        var endDate = new DateTime(model.end);
+        endDate = endDate > DateTime.Today ? endDate.AddMonths(quantity) : DateTime.Today.AddMonths(quantity);
+        // Cập nhật thời hạn
+        model.title = product.title;
+        model.price = price;
+        model.start = DateTime.Today.Ticks;
+        model.end = endDate.Ticks;
+        await DbMainCompany.Update(company);
+
+        // Tạo giao dịch
+        var transaction = new TransactionModel()
+        {
+          customer = UserService.ConvertToMember(customer),
+          creator = UserService.ConvertToMember(customer),
+          product = product.id,
+          Company = company.id,
+          balance = customer.balance - price,
+          money = -price,
+          content = $"Gia hạn sản phẩm <b>{product.title}</b> thêm <b>{quantity}</b> (hết hạn vào {endDate.ToString("dd/MM/yyyy")}) cho <b>{company.name}</b>",
+          status = 2,
+          type = 3
+        };
+        await DbMainTransaction.Create(transaction);
+
+        // Cập nhật số dư
+        customer.balance -= money;
+        await DbMainUser.Update(customer);
+
+        step = 3;
+        return;
+      }
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Tài khoản khách hàng không tồn tại.");
+      
+    step = 2;
+    return;
+  }
+
+  private void ChangePromotion(int item)
+  {
+    quantity = item;
+    money = ProductService.CalculateRenew(model.total, product.price,quantity);
+    discount = ProductService.Promotion(1, quantity);
+    toggle = false;
+  }
+
+  private void ChangeQuantity(ChangeEventArgs e)
+  {
+    quantity = !string.IsNullOrEmpty(e.Value.ToString()) ? Convert.ToInt32(e.Value) : 0;
+    money = ProductService.CalculateRenew(model.total, product.price,quantity);
+    discount = ProductService.Promotion(1, quantity);
+    toggle = false;
+  }
+}

@@ -1,0 +1,100 @@
+﻿
+<ul class="columns is-multiline is-mobile is-variable is-1 box_border p-4 p-2-mobile my-2"
+    style="@(!string.IsNullOrEmpty(Color) ? $"border-left-color: {Color};" : "")">
+  <li class="column is-full-mobile has-text-weight-semibold">
+    <a @onclick="ToggleChilds">
+      @Current.name
+    </a>
+  </li>
+  <li class="column is-3-tablet is-full-mobile">
+    @if (manger != null)
+    {
+      <a class="user_item" @onclick="ShowOKRsUser">
+        <img class="image is-24x24 mr-2" src="@manger.avatar" alt="IMG" />
+        <span class="text_1_line">@manger.FullName</span>
+      </a>
+    }
+  </li>
+  <li class="column is-narrow-tablet is-full-mobile">
+    <div style="width: 100px;">@Current.members_id.Count nhân sự</div>
+  </li>
+  <li class="column is-2-tablet is-full-mobile has-text-right has-text-weight-semibold">
+    <div class="progress_has_value">
+      <progress class="progress is-small @progressColor" value="@progress" max="100"></progress>
+      <span>@Shared.ConvertNumber(progress)%</span>
+    </div>
+  </li>
+</ul>
+
+@if (ShowChilds)
+{
+  <div class="pl-6 pl-4-mobile">
+    @for (int i = 0; i < childs.Count; i++)
+    {
+      var child = childs[i];
+      var color = string.IsNullOrEmpty(Color) ? Shared.ColorRandom(i + 1) : Color;
+
+      <ComponentOkrView CompanyId="@CompanyId" CycleId="@CycleId" UserId="@UserId"
+                    UserList="@UserList" Current="child" ShowChilds="false" Color="@color" />
+    }
+    @if (childs.Count == 0)
+    {
+      <div class="box_border p-4 my-2" style="border-left-color: #ddd;">
+        Không có phòng ban nhỏ hơn.
+      </div>
+    }
+  </div>
+}
+
+@code {
+  [Parameter]
+  public string UserId { get; set; }
+  [Parameter]
+  public string CompanyId { get; set; }
+  [Parameter]
+  public string CycleId { get; set; }
+  [Parameter]
+  public List<UserModel> UserList { get; set; }
+  [Parameter]
+  public DepartmentModel Current { get; set; }
+  [Parameter]
+  public bool ShowChilds { get; set; }
+  [Parameter]
+  public string Color { get; set; }
+
+  private List<DepartmentModel> childs = null;
+  private UserModel manger = null;
+  private double progress = 0;
+  private string progressColor = string.Empty;
+
+  protected override void OnInitialized()
+  {
+    childs = DbDepartment.GetList(CompanyId, Current.id);
+
+    if (Current.members_id.Count > 0)
+    {
+      var role = Current.members_list.SingleOrDefault(x => x.role == 1);
+      if (role != null)
+        manger = UserList.SingleOrDefault(x => x.id == role.id);
+
+      var okrList = DbOkr.GetList(CompanyId, CycleId, Current.members_id);
+      double totalProgress = 0;
+      foreach (var okr in okrList)
+      {
+        totalProgress += DbOkr.GetProgress(okr.key_results);
+      }
+      progress = totalProgress > 0 ? totalProgress / okrList.Count : 0;
+      progressColor = Shared.ProgressColor(progress);
+    }
+  }
+
+  private void ToggleChilds()
+  {
+    ShowChilds = !ShowChilds;
+  }
+
+  private void ShowOKRsUser()
+  {
+    MessagingCenter.Send(this, "okrs_" + UserId, manger);
+  }
+}

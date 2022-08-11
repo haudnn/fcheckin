@@ -1,0 +1,388 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+@if (gift != null)
+{
+  var buy = Layout.UserList.SingleOrDefault(x => x.id == gift.user_buy);
+
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card is_radius" style="width: 550px;">
+      <div class="modal-card-body has-text-centered gift_or_achi">
+        @if (!gift.view)
+        {
+          <div class="image">
+            <img src="/images/gift.gif" style="width: 250px; margin: 0px auto;" />
+          </div>
+          <div class="has-text-weight-bold">
+            Bạn đã nhận được một món quà từ
+            <span class="has-text-danger">
+              @(buy != null ? buy.FullName : "Tài khoản đã xóa")
+            </span>
+            <br />
+            Hãy khám phá xem đây là món quà gì nào?
+          </div>
+          <div class="py-3">
+            <a class="is-underlined has-text-black" @onclick="ViewGift">
+              Mở quà ngay
+            </a>
+          </div>
+        }
+        else
+        {
+          <div class="image">
+            <img src="@gift.image" style="width: 250px; margin: 0px auto;" />
+          </div>
+          <div class="has-text-weight-bold">
+            Thật tuyệt vời!
+            <br />
+            <span class="has-text-danger">
+              @(buy != null ? buy.FullName : "Tài khoản đã xóa")
+            </span>
+            đã tặng bạn
+            <span class="has-text-danger">@gift.quantity @gift.name</span>
+          </div>
+          <div class="py-3">
+            <a class="is-underlined has-text-black" @onclick="() => gift = null">
+              Tuyệt
+            </a>
+          </div>
+        }
+      </div>
+    </div>
+    <a class="modal-close is-large" @onclick="() => gift = null"></a>
+  </div>
+}
+
+@if (achievement != null)
+{
+  var image = $"/images/achievement/{Shared.RandomInt(1, 17)}.gif";
+
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card is_radius" style="width: 550px;">
+      <div class="modal-card-body has-text-centered gift_or_achi">
+        <div class="image">
+          <img src="@image" style="width: 150px; margin: 0px auto;" />
+        </div>
+        <div class="has-text-grey has-text-weight-medium pt-3">
+          <p class="pb-2">Thật tuyệt vời! Bạn đã đạt được thành tựu mới trong tháng</p>
+          <p class="pb-2 is-size-6 has-text-weight-bold has-text-link">@achievement.name</p>
+          <div class="achi_@achievement.type">@achievement.star</div>
+          <p class="pb-2">@achievement.desc</p>
+          <p class="pb-2 has-text-warning">
+            <span class="icon-text">
+              <span class="is-size-6">+ @achievement.star</span>
+              <span class="icon">
+                <i class="material-icons-outlined is-size-5">star_outline</i>
+              </span>
+            </span>
+          </p>
+          <a class="button is-link is-outlined" @onclick="() => ViewAchievement(true)">
+            Xem thành tựu
+          </a>
+        </div>
+      </div>
+    </div>
+    <a class="modal-close is-large" @onclick="() => ViewAchievement(false)"></a>
+  </div>
+}
+
+<section id="notification" class="@(show ? "is-active" : "")">
+  <a class="is-toggle" @onclick="() => show = !show">
+    <span class="icon animated infinite @(news_all > 0 ? "tada" : "")">
+      <i class="material-icons-outlined is-size-4">notifications</i>
+    </span>
+    @if (news_all > 0)
+    {
+      <span class="is-count">@news_all</span>
+    }
+  </a>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-title has-text-info">@title</div>
+      <div class="card-header-icon">
+        <a class="delete" @onclick="() => show = false"></a>
+      </div>
+    </div>
+    <div class="card-content">
+      <div class="columns is-variable is-0">
+        <div class="column is-narrow has_bg">
+          @if (CheckAccess("todolist"))
+          {
+            <a class="@(type == 200 ? "active" : "")" title="Todolist" @onclick="() => ChangeType(200)">
+              <i class="material-icons-outlined">check_box</i>
+              @if (news_todo > 0)
+              {
+                <b>@news_todo</b>
+              }
+            </a>
+          }
+          @if (CheckAccess("okrs"))
+          {
+            <a class="@(type == 500 ? "active" : "")" title="CFRs" @onclick="() => ChangeType(500)">
+              <i class="material-icons-outlined">grade</i>
+              @if (news_cfrs > 0)
+              {
+                <b>@news_cfrs</b>
+              }
+            </a>
+          }
+          @if (CheckAccess("kaizen"))
+          {
+            <a class="@(type == 100 ? "active" : "")" title="Kaizen" @onclick="() => ChangeType(100)">
+              <i class="material-icons-outlined">show_chart</i>
+              @if (news_kaizen > 0)
+              {
+                <b>@news_kaizen</b>
+              }
+            </a>
+          }
+          @if(Company.products.Where(x => x.active).Count() > 0)
+          {
+            <a class="@(type == 300 ? "active" : "")" title="Đổi quà" @onclick="() => ChangeType(300)">
+              <i class="material-icons-outlined">card_giftcard</i>
+              @if (news_store > 0)
+              {
+                <b>@news_store</b>
+              }
+            </a>
+          }
+          @if (CheckAccess("train"))
+          {
+            <a class="@(type == 600 ? "active" : "")" title="Đào tạo" @onclick="() => ChangeType(600)">
+              <i class="material-icons-outlined">book</i>
+              @if (news_educate > 0)
+              {
+                <b>@news_educate</b>
+              }
+            </a>
+          }
+          <a class="@(type == 1 ? "active" : "")" title="Khác" @onclick="() => ChangeType(1)">
+            <i class="material-icons-outlined">settings</i>
+            @if (news_other > 0)
+            {
+              <b>@news_other</b>
+            }
+          </a>
+        </div>
+        <div class="column">
+          <div class="is-list scrolly">
+            @for (int i = 0; i < count; i++)
+            {
+              if (i >= dataList.Count) break;
+              var item = dataList[i];
+
+              <a class="is-block" @onclick="() => ViewItem(item)">
+                <div class="mb-1 @(item.read ? "" : "has-text-link")">
+                  @((MarkupString)item.name)
+                </div>
+                <div class="icon-text has-text-grey" style="margin-left: -6px;">
+                  <span class="icon">
+                    <i class="material-icons-outlined">schedule</i>
+                  </span>
+                  <span class="is-size-7">@Shared.ConvertDate(new DateTime(item.date))</span>
+                </div>
+              </a>
+            }
+            @if (dataList.Count == 0)
+            {
+              <div class="has-text-grey p-5">Không có thông báo mới</div>
+            }
+          </div>
+          <div class="columns is-mobile is-gapless px-3 py-2" style="height: 40px;">
+            <div class="column is-half">
+              @if (count < dataList.Count)
+              {
+                <a class="icon-text has-text-link" @onclick="ViewMore">
+                  <span>Xem tất cả</span>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">expand_more</i>
+                  </span>
+                </a>
+              }
+            </div>
+            <div class="column is-half has-text-right">
+              @if (dataList.Where(x => !x.read).Count() > 0)
+              {
+                <a class="icon-text has-text-link" @onclick="ReadAll">
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6">done</i>
+                  </span>
+                  <span>Đánh dấu đã xem</span>
+                </a>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public UserModel User { get; set; }
+  [Parameter]
+  public CompanyModel Company { get; set; }
+
+  private List<NotifyModel> database = new();
+  private List<NotifyModel> dataList = new();
+  private string title = "Tất cả thông báo";
+  private bool show = false;
+  private int count = 10;
+  private int type = 0;
+  private int news_all = 0;
+  private int news_other = 0;
+  private int news_kaizen = 0;
+  private int news_todo = 0;
+  private int news_store = 0;
+  private int news_cfrs = 0;
+  private int news_educate = 0;
+
+  protected override void OnInitialized()
+  {
+    new Task(async () =>
+    {
+      await Timer();
+    }).Start();
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    show = false;
+    await GetNoti();
+    await GetGift();
+    await GetAchievement();
+  }
+
+  private async Task Timer()
+  {
+    while (true)
+    {
+      await Task.Delay(30000);
+      var news = await DbNotify.GetNews(Company.id, User.id);
+      foreach (var item in news)
+      {
+        var type = DbNotify.Type(item.type);
+        var content = Shared.HtmlToText(item.name);
+        await JSRuntime.InvokeVoidAsync("notification", "FASTDO - " + type.name, content, item.link);
+      }
+    }
+  }
+
+  private async Task GetNoti()
+  {
+    if (User != null)
+    {
+      type = 0;
+      database = await DbNotify.GetList(Company.id, User.id);
+      dataList = database;
+      GetNewsCount();
+    }
+  }
+
+  private void GetNewsCount()
+  {
+    news_all = database.Where(x => !x.read).Count();
+    news_other = database.Where(x => !x.read && x.type >= 1 && x.type <= 90).Count();
+    news_kaizen = database.Where(x => !x.read && x.type >= 100 && x.type <= 190).Count();
+    news_todo = database.Where(x => !x.read && x.type >= 200 && x.type <= 290).Count();
+    news_store = database.Where(x => !x.read && x.type >= 300 && x.type <= 390).Count();
+    news_cfrs = database.Where(x => !x.read && x.type >= 500 && x.type <= 590).Count();
+    news_educate = database.Where(x => !x.read && x.type >= 600 && x.type <= 690).Count();
+  }
+
+  private void ChangeType(int typeId)
+  {
+    if (type == typeId)
+    {
+      type = 0;
+      title = "Tất cả thông báo";
+      dataList = database;
+    }
+    else
+    {
+      type = typeId;
+      dataList = database.Where(x => x.type >= type && x.type <= type + 90).ToList();
+      if (type == 1)
+        title = "Thông báo khác";
+      else if (type == 100)
+        title = "Thông báo Kaizen";
+      else if (type == 200)
+        title = "Thông báo TodoList";
+      else if (type == 300)
+        title = "Thông báo Đổi quà";
+      else if (type == 500)
+        title = "Thông báo CFRs";
+      else if (type == 600)
+        title = "Thông báo Đào Tạo";
+    }
+  }
+
+  private void ViewMore()
+  {
+    count = dataList.Count;
+  }
+
+  private async Task ReadAll()
+  {
+    foreach (var item in dataList)
+    {
+      if (!item.read)
+      {
+        item.read = true;
+        await DbNotify.Update(Company.id, item);
+      }
+    }
+    GetNewsCount();
+  }
+
+  private async Task ViewItem(NotifyModel item)
+  {
+    item.read = true;
+    await DbNotify.Update(Company.id, item);
+
+    if (!string.IsNullOrEmpty(item.link))
+    {
+      show = false;
+      navigation.NavigateTo(item.link, false);
+    }
+    else
+      show = true;
+  }
+
+  private GiftExchangeModel gift = null;
+  private async Task GetGift()
+  {
+    gift = await DbGiftExchange.GetGiveNew(Company.id, User.id);
+  }
+
+  private async Task ViewGift()
+  {
+    gift.view = true;
+    await DbGiftExchange.Update(Layout.Company.id, gift);
+  }
+
+  private AchievementModel achievement = null;
+  private async Task GetAchievement()
+  {
+    achievement = await DbAchievement.GetNew(Company.id, User.id);
+  }
+
+  private async Task ViewAchievement(bool view)
+  {
+    achievement.view = true;
+    await DbAchievement.Update(Layout.Company.id, achievement);
+    achievement = null;
+    if (view)
+      navigation.NavigateTo($"/teams/personal/{User.id}?tab=3", false);
+  }
+
+  private bool CheckAccess(string productId)
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, productId, out string message);
+  }
+}

@@ -1,0 +1,62 @@
+@inject NavigationManager navigation
+@inject IJSRuntime JSRuntime
+
+@if(slides.Count > 0)
+{
+  <section class="banners pb-3">
+    <div class="carousel">
+      <BlazorSlickCarousel Configurations="configurations">
+        <BlazorSlickCarouselContent>
+          @foreach (var item in slides)
+          {
+            <div class="item">
+              <a class="image" href="@item.link">
+                <img src="@item.image" alt="img">
+              </a>
+            </div>
+          }
+        </BlazorSlickCarouselContent>
+      </BlazorSlickCarousel>
+      <div class="WMBSC-nav mt-3">
+        <div class="dots"></div>
+        <div class="arrows"></div>
+      </div>
+    </div>
+  </section>
+}
+
+@code {
+  private WMBSCInitialSettings configurations;
+  private List<BannerModel> slides = new();
+
+  protected override async Task OnParametersSetAsync()
+  {
+    slides = new();
+    var data = await DbMainBanner.GetList();
+    foreach (var item in data)
+    {
+      foreach (var page in item.pages)
+      {
+        if (navigation.Uri.Contains(page.Key))
+        {
+          slides.Add(item);
+          break;
+        }
+      }
+    }
+
+    configurations = new WMBSCInitialSettings
+      {
+        arrows = true,
+        dots = true,
+        autoplay = true,
+        infinite = true,
+        slidesToShow = 2,
+        slidesToScroll = 1,
+        appendDots = ".dots",
+        appendArrows = ".arrows",
+        prevArrow = "<a class='material-icons-round'>chevron_left</a>",
+        nextArrow = "<span class='material-icons-round'>chevron_right</span>"
+      };
+  }
+}

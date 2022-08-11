@@ -1,0 +1,255 @@
+﻿@page "/admin/customers"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="px-4">
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-4">
+    <li class="column">
+      <h1 class="title is-5">
+        @_title
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <div class="control has-icons-left" style="width: 120px;">
+        <div class="select is-small has-text-weight-medium">
+          <select @onchange="ChangeStatus">
+            <option value="0">Trạng thái</option>
+            <option value="1">Đang hoạt động</option>
+            <option value="2">Dừng hoạt động</option>
+          </select>
+        </div>
+        <span class="icon is-left has-text-dark">
+          <i class="material-icons-round is-size-6">filter_list</i>
+        </span>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <div class="control has-icons-left" style="width: 200px;" title="Nhấn Enter để tìm">
+        <input @bind="filterKeyword" @onkeyup="ChangeKeyword" type="text" class="input is-small"
+          placeholder="Email, họ và tên khách hàng" />
+        <span class="icon is-left has-text-dark">
+          <i class="material-icons-round is-size-6">search</i>
+        </span>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <span class="is-size-4 has-text-grey-lighter">|</span>
+    </li>
+    <li class="column is-narrow">
+      <div class="dropdown is-hoverable">
+        <div class="dropdown-trigger">
+          <a class="icon-text is-size-7">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">sort</i>
+            </span>
+            <span class="has-text-weight-medium">Sắp xếp</span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content is-size-7">
+            <a class="dropdown-item icon-text" @onclick='() => ChangeSort("first_name")'>
+              <span>Tên khách hàng</span>
+              <span class="icon">
+                <i class="material-icons-round is-size-6">
+                  @(sortBy == "first_name" ? sortDesc ? "arrow_upward" : "arrow_downward" : "more_vert")
+                </i>
+              </span>
+            </a>
+            <a class="dropdown-item icon-text" @onclick='() => ChangeSort("online")'>
+              <span>Thời gian truy cập</span>
+              <span class="icon">
+                <i class="material-icons-round is-size-6">
+                  @(sortBy == "online" ? sortDesc ? "arrow_upward" : "arrow_downward" : "more_vert")
+                </i>
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <span class="is-size-4 has-text-grey-lighter">|</span>
+    </li>
+    <li class="column is-narrow">
+      <a class="icon-text has-text-link" @onclick="() => EditItem(null)">
+        <span class="icon">
+          <i class="material-icons-outlined">add</i>
+        </span>
+        <span class="is-size-7 has-text-weight-medium">Thêm khách hàng</span>
+      </a>
+    </li>
+  </ul>
+
+  <table class="table is-fullwidth is-vcentered is-responsive is-hoverable is_head_bg is-size-7">
+    <thead>
+      <tr>
+        <th width="25%">Tài khoản</th>
+        <th width="10%">Số điện thoại</th>
+        <th>Thông tin ghi nhớ</th>
+        <th width="100px" align="center">Trạng thái</th>
+        <th width="140px">Lần truy cập cuối</th>
+        <th width="80px" align="center">Xử lý</th>
+      </tr>
+    </thead>
+    <tbody class="has-text-weight-medium">
+      @foreach (var item in dataList)
+      {
+        <tr>
+          <td>
+            <a class="user_item has-text-dark" href="/admin/customers/@item.id">
+              <img class="image is-32x32 mr-2" src="@item.avatar" alt="IMG" />
+              <div>
+                <p>@item.email</p>
+                <p>@item.FullName</p>
+              </div>
+            </a>
+          </td>
+          <td>
+            <span>@item.phone</span>
+          </td>
+          <td>
+            <div class="text_2_line" onclick="toggleText(this)">
+              @((MarkupString)Shared.TextToHtml(item.note))
+            </div>
+          </td>
+          <td align="center">
+            <a class="icon" @onclick="() => ActiveItem(item)">
+              <i class="material-icons-round is-size-5 has-text-@(item.active ? "success" : "grey")">
+                toggle_@(item.active ? "on" : "off")
+              </i>
+            </a>
+          </td>
+          <td>
+            <span>@Handled.Shared.ConvertDate(new DateTime(item.online))</span>
+          </td>
+          <td align="center">
+            <a class="icon has-text-dark" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+              <i class="material-icons-round is-size-6">edit</i>
+            </a>
+            <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+              <i class="material-icons-round is-size-6">delete</i>
+            </a>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  @if (dataList.Count == 0)
+  {
+    <div class="has-text-grey has-text-centered py-5">
+      Không tìm thấy dữ liệu phù hợp
+    </div>
+  }
+  <nav class="pagination is-right is-small">
+    <ul class="pagination-list">
+      @for (var p = 1; p <= Shared.Paging(total, size); p++)
+      {
+        var active = paging == p ? "is-current" : "";
+        <li>
+          <a class="pagination-link @active" href="/admin/customers?p=@p">@p</a>
+        </li>
+      }
+    </ul>
+  </nav>
+</section>
+
+<_CustomerEdit model="model" OnUpdate="OnUpdate" />
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  private string _title = "Danh sách khách hàng";
+  private List<UserModel> dataList = new();
+  private UserModel model = null;
+  private string filterKeyword = string.Empty;
+  private int filterStatus = 0;
+  private string sortBy = string.Empty;
+  private bool sortDesc = true;
+  private int paging = 1;
+  private int size = 25;
+  private int total = 0;
+
+  protected override void OnParametersSet()
+  {
+    var uri = navigation.ToAbsoluteUri(navigation.Uri);
+    if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("p", out var outPage))
+      paging = Convert.ToInt32(outPage);
+    GetList();
+  }
+
+  private void GetList()
+  {
+    dataList = DbMainUser.GetListCustomer(filterKeyword, filterStatus, paging, size, out total, sortDesc, sortBy);
+  }
+
+  private void ChangeSort(string sort_by)
+  {
+    if (sortBy == sort_by)
+      sortDesc = !sortDesc;
+    else
+      sortBy = sort_by;
+    navigation.NavigateTo("/admin/customers");
+  }
+
+  private void ChangeKeyword(KeyboardEventArgs args)
+  {
+    if (args.Key == "Enter")
+    {
+      GetList();
+    }
+    else if (args.Key == "Escape")
+    {
+      filterKeyword = string.Empty;
+      GetList();
+    }
+  }
+
+  private void ChangeStatus(ChangeEventArgs e)
+  {
+    filterStatus = Convert.ToInt32(e.Value);
+    GetList();
+  }
+
+  private async Task ActiveItem(UserModel item)
+  {
+    item.active = !item.active;
+    await DbMainUser.Update(item);
+  }
+
+  private async Task DeleteItem(UserModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?"))
+      return;
+
+    item.delete = true;
+    await DbMainUser.Update(item);
+    dataList.Remove(item);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa tài khoản " + item.email);
+  }
+
+  private async Task EditItem(UserModel item)
+  {
+    if (item == null)
+    {
+      model = new UserModel();
+      model = new() { companys = new(), role_manage = new(), is_customer = true, active = true };
+      model.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
+    }
+    else
+      model = await DbMainUser.Get(item.id);
+  }
+
+  private async Task OnUpdate(bool isUpdate)
+  {
+    if (isUpdate)
+    {
+      GetList();
+      var message = string.IsNullOrEmpty(model.id) ? "Đã tạo tài khoản thành công!" : "Đã cập nhật thông tin tài khoản!";
+      await JSRuntime.InvokeVoidAsync("tagline", true, message);
+    }
+    model = null;
+  }
+}

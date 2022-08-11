@@ -1,0 +1,108 @@
+@page "/client/companys"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="px-4">
+  <_Banner />
+
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-2">
+    <li class="column">
+      <h1 class="title is-5">
+        @_title
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <a class="icon-text has-text-link" @onclick="CreateItem">
+        <span class="icon">
+          <i class="material-icons-outlined">add</i>
+        </span>
+        <span class="is-size-7 has-text-weight-medium">Tạo tổ chức</span>
+      </a>
+    </li>
+  </ul>
+
+  <section>
+    @foreach (var item in dataList)
+    {
+      <_CompanyInfo company="item" members="memberList[item.id]" products="productList" />
+    }
+    @if (dataList.Count == 0)
+    {
+      <div class="has-text-grey has-text-centered py-6">
+        Không tìm thấy dữ liệu phù hợp
+      </div>
+    }
+  </section>
+</section>
+
+<_CompanyEdit model="model" manager="manager" create="true" OnUpdate="OnUpdate" />
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  
+  private string _title = "Tổ chức sở hữu";
+  private List<CompanyModel> dataList = new();
+  private List<ProductModel> productList = new();
+  private Dictionary<string, List<UserModel>> memberList = new();
+  private CompanyModel model = null;
+  private UserModel manager = null;
+
+  protected override async Task OnInitializedAsync()
+  {
+    productList = await DbMainProduct.GetList();
+    await GetList();
+  }
+
+  private async Task GetList()
+  {
+    // Danh sách công ty
+    dataList = await DbMainCompany.GetListOfCustomer(Layout.User.id);
+
+    // Dữ liệu thành viên
+    memberList = new();
+    foreach (var item in dataList)
+    {
+      var members = DbUser.GetAll(item.id);
+      memberList.Add(item.id, members);
+    }
+  }
+
+  private async Task DeleteItem(CompanyModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tổ chức: {item.name} ?"))
+      return;
+
+    dataList.Remove(item);
+    item.delete = true;
+    await DbMainCompany.Update(item);
+  }
+
+  private void CreateItem()
+  {
+    model = new CompanyModel() { status = true, admin_id = Layout.User.id };
+    manager = new()
+      {
+        companys = new(),
+        email = Layout.User.email,
+        avatar = Layout.User.avatar,
+        first_name = Layout.User.first_name,
+        last_name = Layout.User.last_name
+      };
+  }
+
+  private async Task OnUpdate(bool isUpdate)
+  {
+    if (isUpdate)
+    {
+      var message = string.IsNullOrEmpty(model.id) ? "Đã tạo tổ chức thành công!" : "Đã cập nhật thông tin tổ chức!";
+      await JSRuntime.InvokeVoidAsync("tagline", true, message);
+      await GetList();
+    }
+    manager = null;
+    model = null;
+  }
+}

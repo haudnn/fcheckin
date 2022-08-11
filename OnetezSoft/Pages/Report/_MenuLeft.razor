@@ -1,0 +1,40 @@
+﻿@inject NavigationManager navigation
+
+<div class="card p-3 menu_left">
+  @if(CheckAccess("okrs"))
+  {
+    <a class="@(navigation.Uri.Contains("okrs") ? "is-active" : "")" href="/reports/okrs">
+      OKRs
+    </a>
+    <a class="@(navigation.Uri.Contains("cfrs") ? "is-active" : "")" href="/reports/cfrs">
+      CFRs
+    </a>
+  }
+  @if(CheckAccess("todolist"))
+  {
+    <a class="@(navigation.Uri.Contains("todolist") ? "is-active" : "")" href="/reports/todolist">
+      Todolist
+    </a>
+  }
+  @if(CheckAccess("kaizen"))
+  {
+    <a class="@(navigation.Uri.Contains("kaizen") ? "is-active" : "")" href="/reports/kaizen">
+      Kaizen
+    </a>
+  }
+  <a class="@(navigation.Uri.Contains("achievement") ? "is-active" : "")" href="/reports/achievement">
+    Thành tựu
+  </a>
+</div>
+
+@code {
+  [Parameter]
+  public UserModel User { get; set; }
+  [Parameter]
+  public CompanyModel Company { get; set; }
+
+  private bool CheckAccess(string productId)
+  {
+    return ProductService.CheckAccess(Company, User, productId, out string message);
+  }
+}

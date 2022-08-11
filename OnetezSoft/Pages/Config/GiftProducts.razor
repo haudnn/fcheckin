@@ -1,0 +1,410 @@
+﻿@page "/config/gift"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+@if (Layout.User.role != 1 && !Layout.User.role_manage.store)
+{
+  <PopupNoRole />
+}
+else
+{
+  <section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+    <div class="column is-narrow">
+      <div class="card p-3 menu_left">
+        <a class="is-active" href="/config/gift">
+          Cửa hàng
+        </a>
+        <a href="/config/gift/exchange">
+          Đơn hàng
+        </a>
+        <a href="/config/gift/banner">
+          Ưu đãi
+        </a>
+      </div>
+    </div>
+    <div class="column">
+      <div class="card p-5">
+        <ul class="columns is-vcentered">
+          <li class="column">
+            <h1 class="title is-5 has-text-info">
+              QUẢN LÝ CỬA HÀNG
+            </h1>
+          </li>
+          <li class="column is-narrow">
+            <a class="button is-link" @onclick="() => EditItem(null)">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-6">add</span>
+              </span>
+              <span>Thêm mới</span>
+            </a>
+          </li>
+        </ul>
+        <ul class="columns is-variable is-2">
+          <li class="column">
+            <input @bind="filterKey" type="text" class="input" placeholder="Từ khóa: tên sản phẩm..." />
+          </li>
+          <li class="column is-one-third is-hidden">
+            <div class="select is-fullwidth">
+              <select @onchange="ChangeDepartment" class="is-family-code">
+                @foreach (var item in departments)
+                {
+                  <option value="@item.id">@item.name</option>
+                }
+              </select>
+            </div>
+          </li>
+          <li class="column is-narrow">
+            <a class="button is-link is-outlined" @onclick="Search">
+              <span class="icon">
+                <i class="material-icons-outlined">search</i>
+              </span>
+              <span>Tìm kiếm</span>
+            </a>
+          </li>
+        </ul>
+        <table class="table is-fullwidth is-vcentered is-responsive mt-5">
+          <thead>
+            <tr>
+              <th width="60px">Hình</th>
+              <th width="25%">Sản phẩm</th>
+              <th width="15%">Danh mục</th>
+              <th width="80px">Số sao</th>
+              <th>Mô tả</th>
+              <th width="80px" align="center">Hiển thị</th>
+              <th width="70px" align="center">Xử lý</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var item in dataList)
+            {
+              var category = DbGiftProduct.Category(item.category);
+
+              <tr>
+                <td>
+                  <a class="image is-square" href="@item.image" target="_blank">
+                    <img src="@item.image" alt="IMG" />
+                  </a>
+                </td>
+                <td>
+                  <label class="td-label">Sản phẩm</label>
+                  <div class="td-value">
+                    <a class="has-text-weight-semibold" @onclick="() => EditItem(item)">
+                      @item.name
+                    </a>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Danh mục</label>
+                  <div class="td-value">
+                    @category.name
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Số sao</label>
+                  <div class="td-value">
+                    @if (item.price_sale > 0)
+                    {
+                      <span class="has-text-weight-semibold">@item.price_sale</span>
+                      <del>@item.price_list</del>
+                    }
+                    else
+                    {
+                      <span class="has-text-weight-semibold">@item.price_list</span>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Mô tả</label>
+                  <div class="td-value">
+                    <div class="text_1_line" onclick="toggleText(this)">
+                      @((MarkupString)Shared.GetLinks(item.description))
+                    </div>
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Hiển thị</label>
+                  <div class="td-value">
+                    <a class="icon" @onclick="() => ToggleItem(item)">
+                      @if (item.show)
+                      {
+                        <span class="material-icons-outlined is-size-4 has-text-success">
+                          toggle_on
+                        </span>
+                      }
+                      else
+                      {
+                        <span class="material-icons-outlined is-size-4 has-text-black">
+                          toggle_off
+                        </span>
+                      }
+                    </a>
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Xử lý</label>
+                  <div class="td-value">
+                    <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                      <i class="material-icons-outlined is-size-5">
+                        edit
+                      </i>
+                    </a>
+                    <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                      <i class="material-icons-outlined is-size-5">
+                        delete
+                      </i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+}
+
+
+@if (current != null)
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <div class="modal-card-head">
+        <div class="modal-card-title">
+          @(string.IsNullOrEmpty(current.id) ? "Thêm sản phẩm mới" : "Chỉnh sửa sản phẩm")
+        </div>
+        <a class="delete" @onclick="() => current = null"></a>
+      </div>
+      <form @onsubmit="Update" class="modal-card-body">
+        <ul class="columns is-multiline is-variable is-2">
+          <li class="column is-full">
+            <div class="field">
+              <label class="label">Tên sản phẩm *</label>
+              <div class="control">
+                <input @bind="current.name" type="text" class="input" />
+              </div>
+            </div>
+          </li>
+          <li class="column is-two-thirds">
+            <div class="field">
+              <label class="label">Hình ảnh</label>
+              <div class="field has-addons">
+                <div class="control">
+                  <a class="image is-square">
+                    <img src="@current.image" />
+                  </a>
+                </div>
+                <div class="control is-expanded">
+                  <InputFile OnChange="Upload" accept="image/*" class="input" />
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-third">
+            <div class="field">
+              <label class="label">Danh mục</label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select @bind="current.category">
+                    @foreach (var sl in DbGiftProduct.Category())
+                    {
+                      <option value="@sl.id">@sl.name</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-third">
+            <div class="field">
+              <label class="label">Số sao *</label>
+              <div class="control">
+                <input @bind="current.price_list" type="number" class="input" min="0" />
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-third">
+            <div class="field">
+              <label class="label">Khuyến mãi</label>
+              <div class="control">
+                <input @bind="current.price_sale" type="number" class="input" min="0" />
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-third">
+            <div class="field">
+              <label class="label">Thuộc tính</label>
+              <div class="control pt-2">
+                <label class="checkbox">
+                  <input @bind="current.show" type="checkbox" />
+                  Hiển thị
+                </label>
+              </div>
+            </div>
+          </li>
+          <li class="column is-full ">
+            <div class="field">
+              <label class="label">Mô tả</label>
+              <div class="control">
+                <textarea @bind="current.description" class="textarea" rows="3" />
+              </div>
+            </div>
+          </li>
+        </ul>
+        <div class="field mt-5">
+          <div class="buttons is-right">
+            <a class="button" @onclick="() => current = null">
+              Hủy
+            </a>
+            <a class="button is-link" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">done</i>
+              </span>
+              <span>Cập nhật</span>
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Quản lý cửa hàng";
+
+  private List<GiftProductModel> dataList = new();
+  private GiftProductModel current = null;
+  private List<DepartmentModel> departments = new();
+  private string filterKey = string.Empty;
+  private string filterDepartment = string.Empty;
+
+  protected override async Task OnInitializedAsync()
+  {
+    var departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    departments = departmentAll.Where(x => x.parent == null).ToList();
+    if (departments.Count == 1)
+      departments = departmentAll.Where(x => x.parent == departments[0].id).ToList();
+
+    if(departments.Count > 0)
+      filterDepartment = departments[0].id;
+
+    await Search();
+
+    _loaded = true;
+  }
+
+  private async Task Search()
+  {
+    dataList = await DbGiftProduct.GetList(Layout.Company.id, filterKey, filterDepartment);
+  }
+
+  private async Task ChangeDepartment(ChangeEventArgs e)
+  {
+    filterDepartment = e.Value.ToString();
+    await Search();
+  }
+
+  private async Task DeleteItem(GiftProductModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+      return;
+
+    dataList.Remove(item);
+    await DbGiftProduct.Delete(Layout.Company.id, item.id);
+  }
+
+  private async Task ToggleItem(GiftProductModel item)
+  {
+    item.show = !item.show;
+    await DbGiftProduct.Update(Layout.Company.id, item);
+  }
+
+  private void EditItem(GiftProductModel item)
+  {
+    if (item == null)
+    {
+      current = new()
+      {
+        show = true,
+        category = 4,
+        department = filterDepartment,
+        image = "/images/default.jpg"
+      };
+    }
+    else
+    {
+      current = item;
+    }
+  }
+
+  private async Task Upload(InputFileChangeEventArgs e)
+  {
+    _success = false;
+    foreach (var file in e.GetMultipleFiles())
+    {
+      _message = "Đang upload file lên...";
+      try
+      {
+        if (file.Size <= Layout.MaxFileSize)
+        {
+          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
+          current.image = await Files.SaveFileAsync(fileContent, file.Name);
+          _message = string.Empty;
+        }
+        else
+        {
+          _message = $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB";
+        }
+      }
+      catch (Exception ex)
+      {
+        _message = $"ERROR: {ex.Message}";
+      }
+    }
+  }
+
+  private async Task Update()
+  {
+    _success = false;
+    _message = string.Empty;
+
+    if (string.IsNullOrEmpty(current.name) || current.price_list == 0)
+    {
+      _message = "Nhập các trường bắt buộc (*)";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else
+    {
+      if (string.IsNullOrEmpty(current.id))
+      {
+        current = await DbGiftProduct.Create(Layout.Company.id, current);
+        dataList.Insert(0, current);
+      }
+      else
+      {
+        current = await DbGiftProduct.Update(Layout.Company.id, current);
+      }
+      current = null;
+    }
+  }
+}

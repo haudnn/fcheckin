@@ -1,0 +1,328 @@
+﻿@page "/cfr/checkin"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+<section class="p-4 @(_loaded ? "" : "is-loading")">
+  <div class="card p-5 p-4-mobile">
+    <ul class="columns is-vcentered is-variable is-2">
+      <li class="column">
+        <h1 class="title is-5 has-text-info">
+          CHECK-IN OKRs
+        </h1>
+      </li>
+      <li class="column is-one-quarter">
+        <div class="select is-fullwidth">
+          <select @onchange="ChangeDepartment" class="is-family-code">
+            <option value="">Tất cả phòng ban</option>
+            @foreach (var item in departments)
+            {
+              <option value="@item.id">@item.name</option>
+            }
+          </select>
+        </div>
+      </li>
+      <li class="column is-one-quarter">
+        <div class="control has-icons-right has_suggest">
+          <input class="input" type="text" placeholder="Nhập tên nhân viên..."
+                 autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
+          <ul class="suggest">
+            @foreach (var item in userSuggests)
+            {
+              <li class="rsitem" @onclick="() => UserSelected(item)">
+                <div class="user_item">
+                  <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
+                  <span>@item.FullName</span>
+                </div>
+              </li>
+            }
+          </ul>
+          <span class="icon is-right">
+            <i class="material-icons-outlined is-size-6">search</i>
+          </span>
+        </div>
+      </li>
+    </ul>
+    <table class="table is-fullwidth is-noborder is-responsive mt-3">
+      <thead>
+        <tr>
+          <th>Mục tiêu</th>
+          <th width="200px">Kết Quả Then Chốt</th>
+          <th width="150px" align="center">Tiến độ</th>
+          <th width="100px" align="center">Thay đổi</th>
+          <th width="100px" align="center">Tự tin</th>
+          <th width="105px" align="center" title="Check-in gần nhất">Check-in</th>
+          <th width="120px" align="center">Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var okr in okrList)
+        {
+          var showKey = okrsShow.Contains(okr.id);
+          var confident = DbOkr.Confident(okr.confident);
+          var progress = DbOkr.GetProgress(okr.key_results);
+          var okrColor = Shared.ProgressColor(progress);
+
+          <tr>
+            <td>
+              <div class="is-flex">
+                <a class="has-text-weight-semibold" href="/cfr/checkin/@okr.id/overview">
+                  @okr.name
+                </a>
+                @if (okr.done)
+                {
+                  <span class="ml-1 icon" title="OKRs đã hoàn thành">
+                    <i class="material-icons is-size-6 has-text-success">check_circle</i>
+                  </span>
+                }
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Kết quả</label>
+              <div class="td-value">
+                <a class="icon-text has-text-weight-semibold has-text-info" @onclick="() => ShowKeys(okr.id)">
+                  <span>@okr.key_results.Count kết quả</span>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">
+                      @(showKey ? "arrow_drop_down" : "arrow_right")
+                    </i>
+                  </span>
+                </a>
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Tiến độ</label>
+              <div class="td-value">
+                <div class="progress_has_value">
+                  <progress class="progress is-small @okrColor" value="@progress" max="100"></progress>
+                  <span>@Shared.ConvertNumber(progress)%</span>
+                </div>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Thay đổi</label>
+              <div class="td-value has-text-weight-semibold">
+                @Shared.ConvertNumber(progress - okr.progress_prev)%
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Tự tin</label>
+              <div class="td-value has-text-weight-semibold">
+                <span class="@confident.color">@confident.name</span>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Check-in</label>
+              <div class="td-value">
+                @if (okr.date_checkin > 0)
+                {
+                  <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(okr.date_checkin))</span>
+                }
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Trạng thái</label>
+              <div class="td-value has-text-weight-semibold">
+                @if (okr.status_checkin == 1)
+                {
+                  <span class="has-text-success">Check-in nháp</span>
+                }
+                else if (okr.status_checkin == 2)
+                {
+                  <span class="has-text-info">Đã xác nhận</span>
+                }
+                else if (okr.status_checkin == 3)
+                {
+                  <span class="has-text-link">Đã check-in</span>
+                }
+              </div>
+            </td>
+          </tr>
+
+          if (showKey)
+          {
+            foreach (var kr in okr.key_results)
+            {
+              var confidentKr = DbOkr.Confident(kr.confident);
+
+              <tr>
+                <td class="pl-4">
+                  @kr.name
+                </td>
+                <td class="pl-2">
+                  <a class="icon-text has-text-link" @onclick="() => ShowTask(okr, kr)">
+                    <span class="icon is-small">
+                      <i class="material-icons-outlined">task</i>
+                    </span>
+                    <span>Hành động</span>
+                  </a>
+                  @if (!string.IsNullOrEmpty(kr.link))
+                  {
+                    <a class="icon-text ml-2 has-text-link" href="@kr.link" target="_blank">
+                      <span class="icon is-small">
+                        <i class="material-icons-outlined">attach_file</i>
+                      </span>
+                      <span>Kết quả</span>
+                    </a>
+                  }
+                </td>
+                <td>
+                  <label class="td-label">Đạt được</label>
+                  <div class="td-value">
+                    <span class="has-text-success" title="@string.Format("{0:0,0}/{1:0,0}", kr.result, kr.target)">
+                      @Shared.ConvertNumber(kr.result)/@Shared.ConvertNumber(kr.target)
+                    </span>
+                    <span class="is-pulled-right">@kr.unit</span>
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Thay đổi</label>
+                  <div class="td-value">
+                    @Shared.ConvertNumber(Shared.Progress(kr.change, kr.target))%
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Tự tin</label>
+                  <div class="td-value has-text-weight-semibold">
+                    <span class="@confidentKr.color">@confidentKr.name</span>
+                  </div>
+                </td>
+                <td colspan="2"></td>
+              </tr>
+            }
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<TaskPopup Okr="taskOkr" Kr="taskKr" />
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "CFRs - Check-in";
+
+  private List<OkrModel> okrList = new();
+  private List<string> okrsShow = new();
+
+  private List<DepartmentModel.SelectList> departments = new();
+  private string filterDepartment = string.Empty;
+  private string filterUserName = string.Empty;
+  private string filterUserId = string.Empty;
+  private UserModel filterUser = null;
+  private List<UserModel> userSuggests = new();
+
+  private OkrModel taskOkr = null;
+  private OkrModel.KeyResult taskKr = null;
+
+  protected override async Task OnInitializedAsync()
+  {
+    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+    await OnLoad();
+    ShowOkrList();
+  }
+
+  protected async Task OnLoad()
+  {
+    var uri = navigation.ToAbsoluteUri(navigation.Uri);
+    if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("user", out var outkey))
+      filterUserId = outkey.ToString();
+
+    if (!string.IsNullOrEmpty(filterUserId))
+      filterUser = await DbUser.Get(Layout.Company.id, filterUserId);
+    if (filterUser == null)
+      filterUser = Layout.User;
+  }
+
+  protected override void OnAfterRender(bool firstRender)
+  {
+    taskOkr = null;
+    taskKr = null;
+  }
+
+  private void ChangeDepartment(ChangeEventArgs e)
+  {
+    filterDepartment = e.Value.ToString();
+    filterUserName = string.Empty;
+    userSuggests = new();
+    foreach (var item in Layout.UserList)
+    {
+      if (!string.IsNullOrEmpty(filterDepartment) && item.departments_id != null && item.departments_id.Contains(filterDepartment))
+        userSuggests.Add(item);
+    }
+  }
+
+  private string UserSearch
+  {
+    get => filterUserName;
+    set
+    {
+      filterUserName = value;
+      userSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in Layout.UserList)
+        {
+          bool check = true;
+          if (!string.IsNullOrEmpty(filterDepartment))
+            if (item.departments_id == null || !item.departments_id.Contains(filterDepartment))
+              check = false;
+          if (!Handled.Shared.SearchKeyword(filterUserName, item.first_name + item.last_name))
+            check = false;
+
+          if (check)
+            userSuggests.Add(item);
+        }
+      }
+    }
+  }
+
+  private void UserSelected(UserModel item)
+  {
+    string url = "/cfr/checkin?user=" + item.id;
+    navigation.NavigateTo(url, false);
+
+    filterUser = item;
+    userSuggests = new();
+    ShowOkrList();
+  }
+
+  private void ShowOkrList()
+  {
+    _loaded = false;
+    filterUserName = filterUser.FullName;
+    okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, filterUser.id);
+    _loaded = true;
+  }
+
+  private void ShowKeys(string id)
+  {
+    if (okrsShow.Contains(id))
+      okrsShow.Remove(id);
+    else
+      okrsShow.Add(id);
+  }
+
+  private void ShowTask(OkrModel okr, OkrModel.KeyResult kr)
+  {
+    taskOkr = okr;
+    taskKr = kr;
+  }
+}

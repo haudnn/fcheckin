@@ -1,0 +1,214 @@
+﻿@page "/teams"
+@page "/teams/personal/{StaffId}"
+@page "/teams/group/{DepartmentId}"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+<section class="columns is-gapless has_menu_left">
+  @if (staff != null)
+  {
+    <div class="column is-narrow">
+      <div class="card teams_left py-3">
+        <div class="px-3">
+          <div class="user_item p-1 @(staff.id == User.id && department == null ? "has_bg" : "")">
+            <img class="image is-24x24 mr-2" src="@User.avatar" alt="IMG">
+            <span class="icon-text">
+              <a href="/teams/personal/@User.id" style="flex-grow: 1;">Cá nhân</a>
+              <a class="icon" @onclick="() => modelTeam = true" title="Ghim phòng ban">
+                <i class="material-icons is-size-5">dashboard_customize</i>
+              </a>
+            </span>
+          </div>
+        </div>
+        <hr class="my-3" />
+        <div class="scrolly px-3" style="height: calc(100vh - 82px);">
+          @foreach (var id in teamList)
+          {
+            var team = departmentAll.SingleOrDefault(x => x.id == id);
+            if (team != null)
+            {
+              var expand = toggleTeam.Contains(id);
+              <ul class="columns is-multiline is-variable is-1 mb-2">
+                <li class="column is-full">
+                  <div class="level p-1 is-mobile @(department != null && department.id == id ? "has_bg" : "")">
+                    <div class="level-left">
+                      <a class="has-text-weight-semibold has-text-grey" href="/teams/group/@id">
+                        @team.name
+                      </a>
+                    </div>
+                    <div class="level-right">
+                      <a class="icon has-text-grey" @onclick="() => ToggleTeam(id)">
+                        <i class="material-icons-outlined is-size-6">
+                          @(expand ? "expand_more" : "chevron_right")
+                        </i>
+                      </a>
+                    </div>
+                  </div>
+                </li>
+                @if (expand)
+                {
+                  var members = Layout.UserList.Where(x => x.departments_id.Contains(id)).ToList();
+                  foreach (var user in members)
+                  {
+                    <li class="column is-full pl-4">
+                      <a class="user_item p-1 @(staff.id == user.id && department == null ? "has_bg" : "")"
+               href="/teams/personal/@user.id">
+                        <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG">
+                        <span class="text_1_line">@user.FullName</span>
+                      </a>
+                    </li>
+                  }
+                }
+              </ul>
+            }
+          }
+          @if (User.teams_id.Count == 0)
+          {
+            <div class="has-text-grey py-4">
+              Chưa ghim phòng ban !
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    @if (department == null)
+    {
+      <Staff staff="staff" />
+    }
+    else
+    {
+      <Group department="department" />
+    }
+  }
+</section>
+
+@if (modelTeam)
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card is-small">
+      <div class="modal-card-head">
+        <h1 class="modal-card-title">Ghim phòng ban</h1>
+        <a class="delete" @onclick="CancelTeam"></a>
+      </div>
+      <div class="modal-card-body">
+        <div class="field">
+          @foreach (var sl in departments)
+          {
+            <div class="py-2">
+              <a class="icon-text has-text-link" @onclick="() => TogglePin(sl.id)">
+                <span class="icon">
+                  <i class="material-icons is-size-6">
+                    @(teamList.Contains(sl.id) ? "check_box" : "check_box_outline_blank")
+                  </i>
+                </span>
+                <span class="is-family-code has-text-weight-semibold has-text-dark">
+                  @((MarkupString)sl.name.Replace("'", "&nbsp;"))
+                </span>
+              </a>
+            </div>
+          }
+        </div>
+      </div>
+      <div class="modal-card-foot">
+        <a class="button is-link" @onclick="UpdateTeam">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">done</i>
+          </span>
+          <span>Cập nhật</span>
+        </a>
+        <a class="button" @onclick="CancelTeam">
+          Hủy
+        </a>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string StaffId { get; set; }
+  [Parameter]
+  public string DepartmentId { get; set; }
+
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Đội nhóm";
+
+  private UserModel User = new();
+  private UserModel staff = null;
+  private DepartmentModel department = null;
+  private List<DepartmentModel> departmentAll = new();
+  private List<DepartmentModel.SelectList> departments = new();
+
+  private List<string> teamList = new();
+  private List<string> toggleTeam = new();
+  private bool modelTeam = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    User = await DbUser.Get(Layout.Company.id, Layout.User.id);
+    teamList.AddRange(User.teams_id);
+
+    departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    if (User.role == 3)
+      departments = DbDepartment.GetSelectListOfUser(Layout.Company.id, User.departments_id, departmentAll);
+    else
+      departments = DbDepartment.GetSelectList(Layout.Company.id, null, 0, departmentAll);
+  }
+
+  private string staffOld = string.Empty;
+  protected override async Task OnParametersSetAsync()
+  {
+    department = await DbDepartment.Get(Layout.Company.id, DepartmentId);
+
+    staff = await DbUser.Get(Layout.Company.id, string.IsNullOrEmpty(StaffId) ? Layout.User.id : StaffId);
+
+    StateHasChanged();
+  }
+
+  private void ToggleTeam(string id)
+  {
+    if (toggleTeam.Contains(id))
+      toggleTeam.Remove(id);
+    else
+      toggleTeam.Add(id);
+  }
+
+  private void TogglePin(string id)
+  {
+    if (teamList.Contains(id))
+      teamList.Remove(id);
+    else
+      teamList.Add(id);
+  }
+
+  private async Task CancelTeam()
+  {
+    User = await DbUser.Get(Layout.Company.id, Layout.User.id);
+    teamList = User.teams_id;
+    modelTeam = false;
+  }
+
+  private async Task UpdateTeam()
+  {
+    User.teams_id = teamList;
+    User = await DbUser.Update(Layout.Company.id, User);
+    modelTeam = false;
+  }
+}

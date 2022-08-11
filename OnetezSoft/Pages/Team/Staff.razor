@@ -1,0 +1,175 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<section class="column">
+  <div class="card p-5 p-4-mobile">
+    <ul class="columns is-vcentered is-variable is-1 is-mobile is-multiline mb-0">
+      <li class="column is-full-mobile">
+        <div class="user_item">
+          <img class="image is-40x40" src="@staff.avatar" alt="IMG">
+          <div class="pl-2">
+            <div class="has-text-weight-bold has-text-link is-size-6">
+              @staff.FullName
+            </div>
+            <div class="is-clearfix">
+              <span class="is-size-7 text_1_line is-pulled-left mt-1" style="max-width: 200px;">
+                @staff.departments_name
+              </span>
+              <a class="is-pulled-left" @onclick="() => showInfo = !showInfo">
+                <i class="material-icons-outlined is-size-5">arrow_right</i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </li>
+      @if(CheckAccess("okrs"))
+      {
+        <li class="column is-narrow">
+          <a class="button p-5 @(tab == 1 ? "is_bg has-text-link has-text-weight-bold" : "is-white")"
+              href="/teams/personal/@staff.id?tab=1">
+            <span class="is-size-6-tablet">OKRs</span>
+          </a>
+        </li>
+      }
+      @if(CheckAccess("todolist"))
+      {
+        <li class="column is-narrow">
+          <a class="button p-5 @(tab == 2 ? "is_bg has-text-link has-text-weight-bold" : "is-white")"
+             href="/teams/personal/@staff.id?tab=2">
+            <span class="is-size-6-tablet">Todolist</span>
+          </a>
+        </li>
+      }
+      <li class="column is-narrow">
+        <a class="button p-5 @(tab == 3 ? "is_bg has-text-link has-text-weight-bold" : "is-white")"
+           href="/teams/personal/@staff.id?tab=3">
+          <span class="is-size-6-tablet">Thành tựu</span>
+        </a>
+      </li>
+    </ul>
+    <div class="card_dropdown p-5 @(showInfo ? "" : "is-hidden")">
+      <div class="mb-5">
+        @foreach (var de in department)
+        {
+          DbDepartment.GetRole(Layout.Company.id, de.id, staff.id, out string title);
+          <p class="mb-1">
+            <span class="is-family-code mr-2">@((MarkupString)de.name.Replace("'", "&nbsp;"))</span>
+            @if (!string.IsNullOrEmpty(title))
+            {
+              <span class="tag is-warning">@title</span>
+            }
+          </p>
+        }
+      </div>
+      <ul class="columns is-multiline is-mobile is-variable is-2">
+        <li class="column is-half has-text-centered">
+          <span class="icon-text has-text-link">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">grade</i>
+            </span>
+            <span class="has-text-weight-bold">@staff.star_total</span>
+          </span>
+          <div class="is-size-7">Số sao hiện có</div>
+        </li>
+        <li class="column is-half has-text-centered">
+          <span class="icon-text has-text-warning">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">assignment</i>
+            </span>
+            <span class="has-text-weight-bold">@cfrs</span>
+          </span>
+          <div class="is-size-7">Ghi nhận đạt được</div>
+        </li>
+        <li class="column is-half has-text-centered">
+          <span class="icon-text has-text-success">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">trending_up</i>
+            </span>
+            <span class="has-text-weight-bold">@kaizen</span>
+          </span>
+          <div class="is-size-7">Kaizen giúp ích</div>
+        </li>
+        <li class="column is-half has-text-centered">
+          <span class="icon-text has-text-danger">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">verified</i>
+            </span>
+            <span class="has-text-weight-bold">@educate</span>
+          </span>
+          <div class="is-size-7">Chứng chỉ đã đạt</div>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="py-4 has-text-grey has-text-centered">
+    <div class="is-italic">"@quotes.name"</div>
+    <div>— @quotes.author</div>
+  </div>
+  @if (tab == 1)
+  {
+    <OkrList User="staff" />
+  }
+  else if (tab == 2)
+  {
+    <Todolist User="staff" />
+  }
+  else if (tab == 3)
+  {
+    <Achievement User="staff" />
+  }
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public UserModel staff { get; set; }
+
+  private List<DepartmentModel.SelectList> department = new();
+  private QuotesModel quotes = new();
+  private int tab = 1;
+  private int cfrs = 0;
+  private int kaizen = 0;
+  private int educate = 0;
+  private bool showInfo = false;
+
+  protected override void OnInitialized()
+  {
+    quotes = DbQuotes.GetRandom(Layout.Company.id);
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    showInfo = false;
+
+    var uri = navigation.ToAbsoluteUri(navigation.Uri);
+    if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("tab", out var outTab))
+      tab = Convert.ToInt32(outTab);
+
+    await GetData();
+
+    StateHasChanged();
+  }
+
+  private async Task GetData()
+  {
+    var start = Convert.ToDateTime("2021-01-01");
+    var end = DateTime.Now;
+
+    var cfrsList = await DbOkrCfr.DataAchievement(Layout.Company.id, staff.id, start, end);
+    cfrs = cfrsList.Count;
+
+    var kaizenList = await DbKaizen.DataAchievement(Layout.Company.id, staff.id, start, end);
+    kaizen = kaizenList.Count;
+
+    var educateList = await EducateService.GetListLearned(Layout.Company.id, staff.id, 2);
+    educate = educateList.Count;
+
+    department = DbDepartment.GetSelectListOfUser(Layout.Company.id, staff.departments_id, null);
+  }
+
+  private bool CheckAccess(string productId)
+  {
+    return ProductService.CheckAccess(Layout.Company, staff, productId, out string message);
+  }
+}

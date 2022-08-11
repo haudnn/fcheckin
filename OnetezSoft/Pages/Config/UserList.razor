@@ -1,0 +1,346 @@
+﻿@page "/config/system/user/list"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+@if (Layout.User.role != 1 && !Layout.User.role_manage.system)
+{
+  <PopupNoRole />
+}
+else
+{
+  <section class="columns is-gapless has_menu_left  @(_loaded ? "" : "is-loading")">
+    <div class="column is-narrow">
+      <div class="card p-3 menu_left">
+        <a href="/config/system/department/list">
+          Phòng ban
+        </a>
+        <a class="is-active" href="/config/system/user/list">
+          Nhân sự
+        </a>
+        <a href="/config/system/dayoff">
+          Thiết lập ngày nghỉ
+        </a>
+      </div>
+    </div>
+    <div class="column">
+      <div class="card p-5">
+        <ul class="columns is-vcentered">
+          <li class="column is-narrow">
+            <h1 class="title is-5 has-text-info is-uppercase">
+              Danh sách tài khoản
+            </h1>
+          </li>
+          <li class="column has-text-right">
+            <a class="button" href="/config/system/user/add">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-6">add</span>
+              </span>
+              <span>Thêm mới</span>
+            </a>
+          </li>
+        </ul>
+        <ul class="columns is-variable is-2">
+          <li class="column">
+            <input @bind="filterKey" type="text" class="input" placeholder="Từ khóa: email, tên..." />
+          </li>
+          <li class="column is-one-quarter">
+            <div class="select is-fullwidth">
+              <select @bind="filterDepartment" class="is-family-code">
+                <option value="">Tất cả phòng ban</option>
+                @foreach (var item in departments)
+                {
+                  <option value="@item.id">@item.name</option>
+                }
+              </select>
+            </div>
+          </li>
+          <li class="column is-one-fifth">
+            <div class="select is-fullwidth">
+              <select @bind="filterStatus">
+                <option value="1">Đang hoạt động</option>
+                <option value="2">Không hoạt động</option>
+              </select>
+            </div>
+          </li>
+          <li class="column is-one-fifth">
+            <div class="select is-fullwidth">
+              <select @onchange="ChangeSort">
+                <option value="role">Sắp xếp: quyền hạn</option>
+                <option value="online">Sắp xếp: truy cập</option>
+                <option value="name">Sắp xếp: tên tài khoản</option>
+              </select>
+            </div>
+          </li>
+          <li class="column is-narrow">
+            <a class="button is-link is-outlined" @onclick="Search">
+              <span class="icon">
+                <i class="material-icons-outlined">search</i>
+              </span>
+              <span>Tìm kiếm</span>
+            </a>
+          </li>
+        </ul>
+        <table class="table is-fullwidth is-vcentered is-responsive mt-5">
+          <thead>
+            <tr>
+              <th width="22%">Tài khoản</th>
+              <th width="18%">Họ và tên</th>
+              <th>Phòng ban</th>
+              <th width="10%">Quyền hạn</th>
+              <th width="9%" align="center">Trạng thái</th>
+              <th width="9%">Online</th>
+              <th width="50px" align="center">Xử lý</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var item in dataList)
+            {
+              var department = DbDepartment.GetSelectListOfUser(Layout.Company.id, item.departments_id, departmentAll);
+              var role = DbUser.Role(item.role);
+
+              <tr>
+                <td>
+                  <div class="user_item">
+                    <img class="image is-32x32 mr-2" src="@item.avatar" alt="IMG" />
+                    <a class="text_1_line" href="/config/system/user/edit/@item.id">@item.email</a>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Họ tên</label>
+                  <div class="td-value">
+                    @item.FullName
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Phòng ban</label>
+                  <div class="td-value is-family-code">
+                    @foreach (var de in department)
+                    {
+                      <p>@((MarkupString)de.name.Replace("'", "&nbsp;"))</p>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Quyền hạn</label>
+                  <div class="td-value">
+                    @if (item.role != 3)
+                    {
+                      <span class="tag @role.color">@role.name</span>
+                    }
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Trạng thái</label>
+                  <div class="td-value">
+                    <a class="icon" @onclick="() => ActiveItem(item)">
+                      @if (item.active)
+                      {
+                        <span class="material-icons-outlined is-size-4 has-text-success">
+                          toggle_on
+                        </span>
+                      }
+                      else
+                      {
+                        <span class="material-icons-outlined is-size-4 has-text-black">
+                          toggle_off
+                        </span>
+                      }
+                    </a>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Online</label>
+                  <div class="td-value">
+                    @if (item.online > 0)
+                    {
+                      <span class="text_inline">
+                        @Handled.Shared.ConvertDate(new DateTime(item.online)).Replace(" trước", "")
+                      </span>
+                    }
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Xử lý</label>
+                  <div class="dropdown is-hoverable is-right is-menu">
+                    <div class="dropdown-trigger">
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">
+                          more_vert
+                        </i>
+                      </span>
+                    </div>
+                    <div class="dropdown-menu">
+                      <div class="dropdown-content">
+                        <a class="dropdown-item" href="/config/system/user/edit/@item.id">
+                          Thông tin tài khoản
+                        </a>
+                        <a class="dropdown-item" @onclick="() => ResetPassword(item)">
+                          Cấp lại mật khẩu
+                        </a>
+                        <hr class="dropdown-divider">
+                        <a class="dropdown-item has-text-danger" @onclick="() => DeleteItem(item)">
+                          Xóa tài khoản
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  [Parameter]
+  public string Id { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Danh sách tài khoản";
+
+  private List<UserModel> dataList = new();
+  private List<DepartmentModel> departmentAll = new();
+  private List<DepartmentModel.SelectList> departments = new();
+  private string filterKey = string.Empty;
+  private string filterDepartment = string.Empty;
+  private int filterStatus = 1;
+  private string filterSort = "1";
+
+  protected override async Task OnInitializedAsync()
+  {
+    departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+    await Search();
+    _loaded = true;
+  }
+
+  private async Task ChangeSort(ChangeEventArgs e)
+  {
+    filterSort = e.Value.ToString();
+    await Search();
+  }
+
+  private async Task Search()
+  {
+    dataList = await DbUser.GetList(Layout.Company.id, filterKey, filterDepartment, filterStatus);
+    if (filterSort == "online")
+      dataList = dataList.OrderByDescending(x => x.online).ToList();
+    else if (filterSort == "name")
+      dataList = dataList.OrderBy(x => x.first_name).ToList();
+    else
+      dataList = dataList.OrderBy(x => x.role).ToList();
+  }
+
+  private async Task ActiveItem(UserModel item)
+  {
+    item.active = !item.active;
+    await DbUser.Update(Layout.Company.id, item);
+  }
+
+  private async Task ResetPassword(UserModel item)
+  {
+    if (Layout.User.role == 2 && item.role != 3)
+    {
+      _message = "Bạn chỉ có thể cấp lại mật khẩu cho nhân viên !";
+    }
+    else
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn cấp lại mật khẩu cho {item.email} ?"))
+        return;
+
+      var user = await DbMainUser.Get(item.id);
+      if (user != null)
+      {
+        user.password = Handled.Shared.CreateMD5(item.id);
+        await DbMainUser.Update(user);
+
+        _message = $"Thông tin tài khoản.<br/>Username: {user.email}<br/>Password: {user.id}";
+        _success = true;
+      }
+      else
+      {
+        _message = "Không thể cấp lại mật khẩu cho tài khoản này !";
+        _success = false;
+      }
+    }
+  }
+
+  private bool CheckRoleManage(UserModel item)
+  {
+    if (item.role_manage.system)
+      return true;
+    if (item.role_manage.okrs)
+      return true;
+    if (item.role_manage.kaizen)
+      return true;
+    if (item.role_manage.educate)
+      return true;
+    if (item.role_manage.store)
+      return true;
+    if (item.role_manage.other)
+      return true;
+    return false;
+  }
+
+  private async Task DeleteItem(UserModel item)
+  {
+    if (Layout.User.role == 1 && item.role == 1)
+    {
+      _message = "Bạn không thể xóa tài khoản Admin khác !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else if (Layout.User.role == 2 && item.role == 1)
+    {
+      _message = "Bạn không đủ quyền hạn để xóa tài khoản Admin !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else if (Layout.User.role == 2 && item.role == 2 && CheckRoleManage(item))
+    {
+      _message = "Bạn không thể xóa tài khoản QLHT khác khi người này còn quyền hạn !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?"))
+        return;
+
+      item.delete = true;
+      dataList.Remove(item);
+      await DbUser.Update(Layout.Company.id, item);
+
+      var user = await DbMainUser.Get(item.id);
+      if (user != null && user.companys != null)
+      {
+        var company = user.companys.SingleOrDefault(x => x.id == Layout.Company.id);
+        if (company != null)
+        {
+          user.companys.Remove(company);
+          await DbMainUser.Update(user);
+        }
+      }
+    }
+  }
+}

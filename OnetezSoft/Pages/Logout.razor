@@ -1,0 +1,30 @@
+﻿@page "/logout"
+@layout LayoutLogin
+@inject ProtectedLocalStorage storage
+@inject NavigationManager navigation
+
+@code {
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+    {
+      var userStorage = await storage.GetAsync<string>("user");
+      if (userStorage.Success && !string.IsNullOrEmpty(userStorage.Value))
+      {
+        var user = await DbMainUser.GetbySession(userStorage.Value);
+        if (user != null)
+        {
+          user.session = null;
+          await DbMainUser.Update(user);
+        }
+      }
+
+      await storage.DeleteAsync("user");
+      await storage.DeleteAsync("cycle");
+      await storage.DeleteAsync("company");
+      await storage.DeleteAsync("navLess");
+      await storage.DeleteAsync("filter_feedback");
+      navigation.NavigateTo("/", true);
+    }
+  }
+}

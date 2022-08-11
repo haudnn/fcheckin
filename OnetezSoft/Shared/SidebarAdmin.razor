@@ -1,0 +1,169 @@
+﻿@inject IJSRuntime JSRuntime
+@inject ProtectedLocalStorage storage
+@inject NavigationManager navigation
+
+<section id="sidebar" class="@(navLess ? "is_less" : "") @(navMobile ? "is_expanded" : "")">
+  <div class="columns is-vcentered is-gapless is-mobile px-2 mb-0">
+    <div class="column is-narrow">
+      <a class="sidebar_toggle button is-white is-hidden-mobile" @onclick="ToggleSidebar">
+        <span></span>
+        <span></span>
+        <span></span>
+      </a>
+      <a class="sidebar_toggle button is-white is-hidden-tablet" @onclick="ToogleMobile">
+        <span></span>
+        <span></span>
+        <span></span>
+      </a>
+    </div>
+    <div class="column is-hidden-tablet">
+      <div class="has-text-weight-medium has-text-white is-size-5 pl-4">FASTDO</div>
+    </div>
+    <div class="column is-narrow is-hidden-tablet">
+      <a class="image is-32x32 is-rounded" href="/admin/user">
+        <img src="@Layout.User.avatar" alt="IMG" />
+      </a>
+    </div>
+  </div>
+  <nav class="scrolly mt-4">
+    <ul>
+      <li class="mb-6 is_user">
+        <a class="icon-text" href="/admin/user">
+          <span class="image is-32x32 is-rounded">
+            <img src="@Layout.User.avatar" alt="IMG" />
+          </span>
+          <span class="ml-2 has-text-white">Hi, @Layout.User.first_name</span>
+        </a>
+      </li>
+      @foreach (var main in ListNav)
+      {
+        <li class="mb-4 @(main.active ? "is-active" : "")">
+          <a class="button is-white" href="/@main.link">
+            <span class="icon">
+              <i class="material-icons-round is-size-@(main.icon == "attach_money" ? "4" : "5")">@main.icon</i>
+            </span>
+            <span class="ml-2">@main.name</span>
+          </a>
+        </li>
+      }
+    </ul>
+  </nav>
+  <a class="button is-white btn_logout" @onclick="Logout" title="Đăng xuất">
+    <span class="icon">
+      <i class="material-icons-round is-size-5">logout</i>
+    </span>
+    <span>Đăng xuất</span>
+  </a>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+
+  private List<NavModel> ListNav = new();
+  private bool navLess = false;
+  private bool navMobile = false;
+
+  protected override void OnInitialized()
+  {
+    Navigation();
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    try
+    {
+      if (firstRender)
+      {
+        var navStorage = await storage.GetAsync<string>("navLess");
+        if (navStorage.Success && !string.IsNullOrEmpty(navStorage.Value))
+          navLess = Convert.ToBoolean(navStorage.Value);
+        StateHasChanged();
+      }
+    }
+    catch (Exception)
+    {
+      return;
+    }
+  }
+
+  protected override void OnParametersSet()
+  {
+    navMobile = false;
+
+    var url = navigation.Uri.Replace(navigation.BaseUri, "");
+
+    foreach (var main in ListNav)
+    {
+      main.active = url.StartsWith(main.link.Replace("#", ""));
+      if (main.childs != null)
+      {
+        foreach (var child in main.childs)
+        {
+          child.active = url.StartsWith(child.link.Replace("#", ""));
+          if (child.childs != null)
+          {
+            foreach (var sub in child.childs)
+            {
+              sub.active = url.StartsWith(sub.link.Replace("#", ""));
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private async Task ChangeCycle(string id)
+  {
+    await storage.SetAsync("cycle", id);
+    navigation.NavigateTo(navigation.Uri, true);
+  }
+
+  private async Task ToggleSidebar()
+  {
+    navLess = !navLess;
+    await storage.SetAsync("navLess", navLess.ToString());
+  }
+
+  private void ToogleMobile()
+  {
+    navMobile = !navMobile;
+  }
+
+  private async Task Logout()
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn đăng xuất khỏi phần mềm ?"))
+      return;
+
+    navigation.NavigateTo("/logout", true);
+  }
+
+  private void Navigation()
+  {
+    ListNav = new();
+    ListNav.Add(new NavModel
+      {
+        name = "Quản lý khách hàng",
+        link = "admin/customers",
+        icon = "people_alt"
+      });
+    ListNav.Add(new NavModel
+      {
+        name = "Quản lý giao dịch",
+        link = "admin/transactions",
+        icon = "attach_money"
+      });
+    ListNav.Add(new NavModel
+      {
+        name = "Cấu hình hệ thống",
+        link = "admin/config",
+        icon = "settings"
+      });
+    ListNav.Add(new NavModel
+      {
+        name = "Góp ý hệ thống",
+        link = "admin/feedback",
+        icon = "feedback"
+      });
+  }
+}

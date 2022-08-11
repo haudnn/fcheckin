@@ -1,0 +1,67 @@
+﻿
+<div class="control has-icons-right has_suggest">
+  <input class="input is_bg show_is_active" type="text" placeholder="Chọn người liên kết chéo..."
+          autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
+  <ul class="suggest">
+    @foreach (var item in userSuggests)
+    {
+      <li class="rsitem" @onclick="() => AddCross(item)">
+        <div class="user_item">
+          <img class="image is-24x24 mr-2" src="@item.avatar">
+          <span>@item.FullName</span>
+        </div>
+      </li>
+    }
+  </ul>
+  <span class="icon is-right">
+    <i class="material-icons-outlined">search</i>
+  </span>
+</div>
+
+@code {
+  [Parameter]
+  public OkrModel.KeyResult Kr { get; set; }
+  [Parameter]
+  public List<UserModel> UserList { get; set; }
+  [Parameter]
+  public EventCallback<string> OnAddCross { get; set; }
+
+  private List<UserModel> userSuggests = new();
+  private string filterUserName = string.Empty;
+
+  private string UserSearch
+  {
+    get => filterUserName;
+    set
+    {
+      filterUserName = value;
+      userSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in UserList)
+        {
+          if (Handled.Shared.SearchKeyword(filterUserName, item.FullName))
+            userSuggests.Add(item);
+        }
+      }
+    }
+  }
+
+  private async Task AddCross(UserModel item)
+  {
+    if (Kr.cross_links == null)
+      Kr.cross_links = new();
+    Kr.cross_links.Add(
+      new OkrModel.CrossLink()
+      {
+        id = Mongo.RandomId(),
+        user = item.id
+      }
+    );
+
+    userSuggests = new();
+    filterUserName = string.Empty;
+
+    await OnAddCross.InvokeAsync(item.id);
+  }
+}

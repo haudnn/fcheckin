@@ -1,0 +1,767 @@
+﻿@page "/educate/course/list"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+<section class="p-4 @(_loaded ? "" : "is-loading")">
+  <ul class="columns is-multiline">
+    <li class="column is-half">
+      <div class="card p-5 mb-5">
+        <div class="columns is-mobile">
+          <div class="column is-3">
+            <div class="image is-square is_radius">
+              <img src="@Layout.User.avatar" alt="IMG" />
+            </div>
+          </div>
+          <div class="column is-9">
+            <h2 class="is-size-5 has-text-weight-bold has-text-link is-uppercase">
+              @Layout.User.FullName
+            </h2>
+            <div>
+              @foreach (var de in department)
+              {
+                DbDepartment.GetRole(Layout.Company.id, de.id, Layout.User.id, out string title);
+                <p class="mb-1">
+                  <span class="is-family-code mr-2">@((MarkupString)de.name.Replace("'", "&nbsp;"))</span>
+                  @if (!string.IsNullOrEmpty(title))
+                  {
+                    <span class="tag is-warning">@title</span>
+                  }
+                </p>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ul class="columns is-variable is-2">
+        <li class="column is-one-third">
+          <div class="card p-2 has-text-centered">
+            <span class="button is-fullwidth is-white has-text-link is-size-5 has-background-white">
+              <span class="icon is-large">
+                <i class="material-icons-outlined is-size-4">verified</i>
+              </span>
+              <strong>@learnedList.Count</strong>
+            </span>
+            <div class="text_1_line">Chứng chỉ đã đạt</div>
+          </div>
+        </li>
+        <li class="column is-one-third">
+          <div class="card p-2 has-text-centered">
+            <span class="button is-fullwidth is-white has-text-warning is-size-5 has-background-white">
+              <span class="icon is-large">
+                <i class="material-icons-outlined is-size-4">menu_book</i>
+              </span>
+              <strong>@studyingLearned.Count</strong>
+            </span>
+            <div class="text_1_line">Khóa học đã tham gia</div>
+          </div>
+        </li>
+        <li class="column is-one-third">
+          <div class="card p-2 has-text-centered">
+            <span class="button is-fullwidth is-white has-text-success is-size-5 has-background-white">
+              <span class="icon is-large">
+                <i class="material-icons-outlined is-size-4">trending_up</i>
+              </span>
+              <strong>@rank</strong>
+            </span>
+            <div class="text_1_line">Xếp hạng học tập</div>
+          </div>
+        </li>
+      </ul>
+
+      <div class="field is-grouped mt-5">
+        <div class="control is-size-6 is-expanded has-text-link">
+          <i>"@quotes.name"</i>
+        </div>
+        <div class="control is-size-6 has-text-grey">
+          — @quotes.author
+        </div>
+      </div>
+    </li>
+
+    <li class="column is-half">
+      <div class="card p-5">
+        <h2 class="is-size-5 has-text-weight-bold has-text-info mb-5">
+          HỌC TIẾP BẠN ƠI !
+        </h2>
+        <div class="scrolly" style="height: 280px;">
+          <table class="table is-striped is-fullwidth is-noborder is-vcentered">
+            <tbody>
+              @foreach (var item in studyingLearned)
+              {
+                var course = studyingList.SingleOrDefault(x => x.id == item.course);
+                if (course != null)
+                {
+                  var done = item.lessons.Where(x => x.done).Count();
+                  var progress = Shared.Progress(done, course.lesson);
+                  var teacher = Layout.UserList.SingleOrDefault(x => x.id == course.teacher);
+                  <tr>
+                    <td class="p-4" width="96px">
+                      <div class="image is_radius is-64x64">
+                        <img src="@course.image" alt="IMG">
+                      </div>
+                    </td>
+                    <td class="px-0 py-4">
+                      <div class="has-text-weight-semibold has-text-dark text_1_line">
+                        @course.name
+                      </div>
+                      <div class="progress_has_value">
+                        <progress class="progress is-small is-success" value="@progress" max="100"></progress>
+                        <span>@string.Format("{0:0}%", progress)</span>
+                      </div>
+                      <div class="field is-grouped">
+                        <div class="control">
+                          <div class="icon-text">
+                            <span class="icon has-text-warning">
+                              <i class="material-icons is-size-6">timer</i>
+                            </span>
+                            <span>@course.time</span>
+                          </div>
+                        </div>
+                        <div class="control">
+                          <div class="icon-text">
+                            <span class="icon has-text-warning">
+                              <i class="material-icons is-size-6">person</i>
+                            </span>
+                            <span>@(teacher != null ? teacher.FullName : course.teacher)</span>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="p-4" width="120px">
+                      <a class="tag is-link" href="/educate/course/list/detail/@item.course">
+                        <span class="mr-2">Tiếp tục</span>
+                        <i class="material-icons is-size-6">arrow_right</i>
+                      </a>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+          @if (studyingList.Count == 0)
+          {
+            <div class="has-text-grey py-6">
+              Không tìm thấy dữ liệu !
+            </div>
+          }
+        </div>
+      </div>
+    </li>
+
+    <li class="column is-full">
+      <div class="card p-5">
+        <h2 class="is-size-5 has-text-weight-bold has-text-info mb-5">
+          KHÓA HỌC NỔI BẬT
+        </h2>
+        <ul class="columns is-multiline">
+          @foreach (var item in hotList)
+          {
+            var link = "/educate/course/list/detail/" + item.id;
+            var teacher = Layout.UserList.SingleOrDefault(x => x.id == item.teacher);
+            var review = Shared.Review(item.reviews.Select(x => x.point).Sum(), item.reviews.Count);
+
+            <li class="column is-one-fifth">
+              <div class="card has_image">
+                <div class="card-image">
+                  <a class="image is-5by3" href="@link">
+                    <img src="@item.image" alt="IMG">
+                  </a>
+                </div>
+                <div class="card-content pt-0 px-2 is-relative" style="margin-top: -10px;">
+                  <ul class="columns is-multiline is-mobile is-vcentered is-variable is-1">
+                    <li class="column is-10">
+                      <div class="user_item has-text-weight-semibold">
+                        @if(teacher != null)
+                        {
+                          <img class="image is-32x32" src="@teacher.avatar" alt="IMG" />
+                          <span class="has-text-link text_1_line">@teacher.FullName</span>
+                        }
+                        else
+                        {
+                          <img class="image is-32x32" src="/images/avatar.png" alt="IMG" />
+                          <span class="has-text-link text_1_line">@item.teacher</span>
+                        }
+                      </div>
+                    </li>
+                    <li class="column is-2 has-text-right">
+                      <a class="icon" @onclick="() => Bookmark(item)">
+                        <i class="material-icons-outlined is-size-5">
+                          @(item.bookmarks.Contains(Layout.User.id) ? "bookmark" : "bookmark_border")
+                        </i>
+                      </a>
+                    </li>
+                    <li class="column is-full">
+                      <a class="has-text-weight-semibold has-text-dark text_2_line px-2"
+                         href="@link" style="height: 3em;">
+                        @item.name
+                      </a>
+                    </li>
+                    <li class="column is-half is-full-widescreen is-size-7">
+                      <span class="icon-text">
+                        <span class="icon has-text-warning">
+                          <i class="material-icons-outlined is-size-6">star</i>
+                        </span>
+                        @if (item.reviews.Count > 0)
+                        {
+                          <span>@review.ToString("0.0") sao</span>
+                        }
+                        else
+                        {
+                          <span>0 đánh giá</span>
+                        }
+                      </span>
+                    </li>
+                    <li class="column is-half is-size-7">
+                      <div class="icon-text">
+                        <span class="icon has-text-warning">
+                          <i class="material-icons is-size-6">book</i>
+                        </span>
+                        <span>@item.lesson bài học</span>
+                      </div>
+                    </li>
+                    <li class="column is-half is-size-7">
+                      <div class="icon-text">
+                        <span class="icon has-text-warning">
+                          <i class="material-icons is-size-6">timer</i>
+                        </span>
+                        <span>@item.time</span>
+                      </div>
+                    </li>
+                    <li class="column is-half is-size-7">
+                      <div class="icon-text">
+                        <span class="icon has-text-warning">
+                          <i class="material-icons is-size-6">people_alt</i>
+                        </span>
+                        <span>@item.learned đã học</span>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+        @if (hotTotal > hotList.Count)
+        {
+          <div class="has-text-centered">
+            <a class="has-text-weight-semibold mt-4" @onclick="() => GetHotList(50)">Xem thêm</a>
+          </div>
+        }
+      </div>
+    </li>
+
+    <li class="@(saveList.Count > 0 ? "column is-full" : "is-hidden")">
+      <div class="card p-5">
+        <h2 class="is-size-5 has-text-weight-bold has-text-info mb-5">
+          KHÓA HỌC ĐÃ LƯU
+        </h2>
+        <ul class="columns is-multiline">
+          @foreach (var item in saveList)
+          {
+            var link = "/educate/course/list/detail/" + item.id;
+            var teacher = Layout.UserList.SingleOrDefault(x => x.id == item.teacher);
+            var review = Shared.Review(item.reviews.Select(x => x.point).Sum(), item.reviews.Count);
+
+            <li class="column is-one-fifth">
+              <div class="card has_image">
+                <div class="card-image">
+                  <a class="image is-5by3" href="@link">
+                    <img src="@item.image" alt="IMG">
+                  </a>
+                </div>
+                <div class="card-content pt-0 px-2 is-relative" style="margin-top: -10px;">
+                  <ul class="columns is-multiline is-mobile is-vcentered is-variable is-1">
+                    <li class="column is-10">
+                      <div class="user_item has-text-weight-semibold">
+                        @if(teacher != null)
+                        {
+                          <img class="image is-32x32" src="@teacher.avatar" alt="IMG" />
+                          <span class="has-text-link text_1_line">@teacher.FullName</span>
+                        }
+                        else
+                        {
+                          <img class="image is-32x32" src="/images/avatar.png" alt="IMG" />
+                          <span class="has-text-link text_1_line">@item.teacher</span>
+                        }
+                      </div>
+                    </li>
+                    <li class="column is-2 has-text-right">
+                      <a class="icon" @onclick="() => Bookmark(item)">
+                        <i class="material-icons-outlined is-size-5">
+                          @(item.bookmarks.Contains(Layout.User.id) ? "bookmark" : "bookmark_border")
+                        </i>
+                      </a>
+                    </li>
+                    <li class="column is-full">
+                      <a class="has-text-weight-semibold has-text-dark text_2_line px-2"
+                         href="@link" style="height: 3em;">
+                        @item.name
+                      </a>
+                    </li>
+                    <li class="column is-half is-size-7">
+                      <span class="icon-text">
+                        <span class="icon has-text-warning">
+                          <i class="material-icons-outlined is-size-6">star</i>
+                        </span>
+                        @if (item.reviews.Count > 0)
+                        {
+                          <span>@review.ToString("0.0") sao</span>
+                        }
+                        else
+                        {
+                          <span>0 đánh giá</span>
+                        }
+                      </span>
+                    </li>
+                    <li class="column is-half is-size-7">
+                      <div class="icon-text">
+                        <span class="icon has-text-warning">
+                          <i class="material-icons is-size-6">book</i>
+                        </span>
+                        <span>@item.lesson bài học</span>
+                      </div>
+                    </li>
+                    <li class="column is-half is-size-7">
+                      <div class="icon-text">
+                        <span class="icon has-text-warning">
+                          <i class="material-icons is-size-6">timer</i>
+                        </span>
+                        <span>@item.time</span>
+                      </div>
+                    </li>
+                    <li class="column is-half is-size-7">
+                      <div class="icon-text">
+                        <span class="icon has-text-warning">
+                          <i class="material-icons is-size-6">people_alt</i>
+                        </span>
+                        <span>@item.learned đã học</span>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+        @if (saveTotal > saveList.Count)
+        {
+          <div class="has-text-centered">
+            <a class="has-text-weight-semibold mt-4" @onclick="() => GetSaveList(0)">Xem thêm</a>
+          </div>
+        }
+      </div>
+    </li>
+
+    <li class="@(learnedList.Count > 0 ? "column is-full" : "is-hidden")">
+      <div class="card p-5">
+        <h2 class="is-size-5 has-text-weight-bold has-text-info mb-5">
+          KHÓA HỌC ĐÃ HOÀN THÀNH
+        </h2>
+        <ul class="columns is-multiline">
+          @foreach (var item in learnedList)
+          {
+            var link = "/educate/course/list/detail/" + item.id;
+            var teacher = Layout.UserList.SingleOrDefault(x => x.id == item.teacher);
+            var review = Shared.Review(item.reviews.Select(x => x.point).Sum(), item.reviews.Count);
+
+            <li class="column is-one-fifth">
+              <div class="card has_image">
+                <div class="card-image">
+                  <a class="image is-5by3" href="@link">
+                    <img src="@item.image" alt="IMG" />
+                  </a>
+                </div>
+                <div class="card-content pt-0 px-2 is-relative" style="margin-top: -10px;">
+                  <ul class="columns is-multiline is-mobile is-vcentered is-variable is-1">
+                    <li class="column is-10">
+                      <div class="user_item has-text-weight-semibold">
+                        @if(teacher != null)
+                        {
+                          <img class="image is-32x32" src="@teacher.avatar" alt="IMG" />
+                          <span class="has-text-link text_1_line">@teacher.FullName</span>
+                        }
+                        else
+                        {
+                          <img class="image is-32x32" src="/images/avatar.png" alt="IMG" />
+                          <span class="has-text-link text_1_line">@item.teacher</span>
+                        }
+                      </div>
+                    </li>
+                    <li class="column is-2 has-text-right">
+                      <a class="icon" @onclick="() => Bookmark(item)">
+                        <i class="material-icons-outlined is-size-5">
+                          @(item.bookmarks.Contains(Layout.User.id) ? "bookmark" : "bookmark_border")
+                        </i>
+                      </a>
+                    </li>
+                    <li class="column is-full">
+                      <a class="has-text-weight-semibold has-text-dark text_2_line px-2"
+                         href="@link" style="height: 3em;">
+                        @item.name
+                      </a>
+                    </li>
+                    <li class="column is-half is-size-7">
+                      <span class="icon-text">
+                        <span class="icon has-text-warning">
+                          <i class="material-icons-outlined is-size-6">star</i>
+                        </span>
+                        @if (item.reviews.Where(x => x.user == Layout.User.id).Count() == 0)
+                        {
+                          <a class="has-text-weight-semibold" @onclick="() => reviewCourse = item">Đánh giá</a>
+                        }
+                        else
+                        {
+                          if (item.reviews.Count > 0)
+                          {
+                            <span>@review.ToString("0.0") sao</span>
+                          }
+                          else
+                          {
+                            <span>0 đánh giá</span>
+                          }
+                        }
+                      </span>
+                    </li>
+                    <li class="column is-half is-size-7">
+                      <div class="icon-text">
+                        <span class="icon has-text-warning">
+                          <i class="material-icons is-size-6">book</i>
+                        </span>
+                        <span>@item.lesson bài học</span>
+                      </div>
+                    </li>
+                    <li class="column is-half is-size-7">
+                      <div class="icon-text">
+                        <span class="icon has-text-warning">
+                          <i class="material-icons is-size-6">timer</i>
+                        </span>
+                        <span>@item.time</span>
+                      </div>
+                    </li>
+                    <li class="column is-half is-size-7">
+                      <div class="icon-text">
+                        <span class="icon has-text-warning">
+                          <i class="material-icons is-size-6">people_alt</i>
+                        </span>
+                        <span>@item.learned đã học</span>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+      </div>
+    </li>
+
+    <li class="column is-full">
+      <h2 class="is-size-5 has-text-weight-bold has-text-info">
+        DANH MỤC KHÓA HỌC
+      </h2>
+    </li>
+
+    <li class="column is-7">
+      <div class="scrolly" style="height: 520px;">
+        <ul class="columns is-multiline">
+          @foreach (var item in categoryList)
+          {
+            var active = filterCategory != null && filterCategory.id == item.id;
+            <li class="column is-one-third">
+              <a class="category_item p-5 is-block @(active ? "is-active" : "")" @onclick="() => ChangeCategory(item)">
+                <div class="is-flex is-vcentered is-centered mt-3" style="height: 64px;">
+                  <img src="@item.image" alt="IMG" style="max-height: 100%;">
+                </div>
+                <div class="mt-2 is-size-6 has-text-dark has-text-weight-medium has-text-centered text_2_line">
+                  @item.name
+                </div>
+              </a>
+            </li>
+          }
+        </ul>
+      </div>
+    </li>
+
+    <li class="column is-5">
+      <section class="card p-5">
+        <h2 class="is-size-5 has-text-weight-bold mb-5">
+          @(filterCategory != null ? filterCategory.name : "Chọn khóa học")
+        </h2>
+        <div class="scrolly" style="height: 420px;">
+          <table class="table is-striped is-fullwidth is-noborder is-vcentered">
+            <tbody>
+              @foreach (var item in courseList)
+              {
+                var link = "/educate/course/list/detail/" + item.id;
+                var teacher = Layout.UserList.SingleOrDefault(x => x.id == item.teacher);
+                var review = Shared.Review(item.reviews.Select(x => x.point).Sum(), item.reviews.Count);
+
+                <tr>
+                  <td class="p-4" width="96px">
+                    <a class="image is_radius is-64x64" href="@link">
+                      <img src="@item.image" alt="IMG">
+                    </a>
+                  </td>
+                  <td class="px-0 py-4">
+                    <ul class="columns is-multiline is-mobile is-variable is-1">
+                      <li class="column is-full">
+                        <a class="has-text-weight-semibold has-text-dark text_1_line" href="@link">
+                          @item.name
+                        </a>
+                      </li>
+                      <li class="column is-half is-size-7">
+                        <div class="icon-text">
+                          <span class="icon has-text-warning">
+                            <i class="material-icons is-size-6">book</i>
+                          </span>
+                          <span>@item.lesson bài học</span>
+                        </div>
+                      </li>
+                      <li class="column is-half is-size-7">
+                        <div class="icon-text">
+                          <span class="icon has-text-warning">
+                            <i class="material-icons is-size-6">timer</i>
+                          </span>
+                          <span>@item.time</span>
+                        </div>
+                      </li>
+                      <li class="column is-half is-size-7">
+                        <div class="icon-text">
+                          <span class="icon has-text-warning">
+                            <i class="material-icons is-size-6">people_alt</i>
+                          </span>
+                          <span>@item.learned đã học</span>
+                        </div>
+                      </li>
+                      <li class="column is-half is-size-7">
+                        <div class="icon-text">
+                          <span class="icon has-text-warning">
+                            <i class="material-icons is-size-6">person</i>
+                          </span>
+                          <span>@(teacher != null ? teacher.FullName : "")</span>
+                        </div>
+                      </li>
+                    </ul>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </li>
+  </ul>
+</section>
+
+@if (reviewCourse != null)
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card is-small">
+      <div class="modal-card-head">
+        <div class="modal-card-title">
+          Đánh giá khóa học
+        </div>
+        <a class="delete" @onclick="() => reviewCourse = null"></a>
+      </div>
+      <div class="modal-card-body">
+        <form @onsubmit="Review">
+          <div class="field has-text-weight-semibold has-text-info">
+            <label>Khóa học:</label>
+            <span>@reviewCourse.name</span>
+          </div>
+          <div class="field has-addons">
+            <div class="control">
+              <label class="button is-static">Số sao</label>
+            </div>
+            <div class="control">
+              <div class="select">
+                <select @bind="reviewPoint">
+                  @for (int i = 1; i <= 5; i++)
+                  {
+                    <option value="@i">@i sao</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="field mt-5">
+            <div class="buttons is-right">
+              <a class="button" @onclick="() => reviewCourse = null">
+                Hủy
+              </a>
+              <a class="button is-link" @onclick="Review">
+                <span class="icon">
+                  <span class="material-icons-outlined is-size-6">
+                    done
+                  </span>
+                </span>
+                <span>Đánh giá</span>
+              </a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+
+@if(!CheckAccess())
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-content" style="max-width: 360px;">
+      <div class="box has-text-centered pt-5">
+        <span class="icon is-large has-text-danger">
+          <i class="material-icons-outlined is-size-1">error_outline</i>
+        </span>
+        <div class="is-size-6 py-4 has-text-weight-semibold">
+          @msgAccess
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  [Parameter]
+  public string Id { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Đào tạo";
+
+  private QuotesModel quotes = new();
+  private List<DepartmentModel.SelectList> department = new();
+  private List<EducateCategoryModel> categoryList = new();
+  private EducateCategoryModel filterCategory = null;
+  private List<EducateCourseModel> hotList = new();
+  private int hotTotal = 0;
+  private List<EducateCourseModel> saveList = new();
+  private int saveTotal = 0;
+  private List<EducateLearnedModel> studyingLearned = new();
+  private List<EducateCourseModel> studyingList = new();
+  private List<EducateCourseModel> learnedList = new();
+  private List<EducateCourseModel> courseList = new();
+  private EducateCourseModel reviewCourse = null;
+  private int reviewPoint = 5;
+  private int rank = 0;
+
+  protected override async Task OnInitializedAsync()
+  {
+    quotes = DbQuotes.GetRandom(Layout.Company.id);
+    department = DbDepartment.GetSelectListOfUser(Layout.Company.id, Layout.User.departments_id, null);
+    categoryList = DbEducateCategory.GetList(Layout.Company.id, null);
+
+    GetHotList(5);
+    GetSaveList(5);
+    await GetLearned();
+    await GetRank();
+
+    _loaded = true;
+  }
+
+  protected override void OnAfterRender(bool firstRender)
+  {
+    _message = string.Empty;
+  }
+
+  private string msgAccess = string.Empty;
+  private bool CheckAccess()
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, "train", out msgAccess);
+  }
+
+  private async Task GetRank()
+  {
+    var rankList = new List<ProgressModel>();
+    var rankUser = new ProgressModel();
+    foreach (var user in Layout.UserList)
+    {
+      var data = await DbEducateLearned.GetList(Layout.Company.id, user.id, 2);
+      var item = new ProgressModel()
+      {
+        id = user.id,
+        name = user.FullName,
+        avatar = user.avatar,
+        departments = user.departments_name,
+        value = data.Count
+      };
+      rankList.Add(item);
+      if (user.id == Layout.User.id)
+        rankUser = item;
+    }
+    rankList = rankList.OrderByDescending(x => x.value).ToList();
+    rank = rankList.IndexOf(rankUser) + 1;
+  }
+
+  private void GetHotList(int size)
+  {
+    hotList = DbEducateCourse.GetList(Layout.Company.id, null, "learned", size, out hotTotal);
+  }
+
+  private void GetSaveList(int size)
+  {
+    saveList = DbEducateCourse.GetBookmark(Layout.Company.id, Layout.User.id, size, out saveTotal);
+  }
+
+  private async Task GetLearned()
+  {
+    // Khoá học đã tham gia
+    studyingLearned = await DbEducateLearned.GetList(Layout.Company.id, Layout.User.id, 0);
+    // Khoá học đang học
+    studyingList = await EducateService.GetListLearned(Layout.Company.id, Layout.User.id, 1);
+    // Khoá học đã hoàn thành
+    learnedList = await EducateService.GetListLearned(Layout.Company.id, Layout.User.id, 2);
+  }
+
+  private void ChangeCategory(EducateCategoryModel category)
+  {
+    filterCategory = category;
+    courseList = DbEducateCourse.GetList(Layout.Company.id, category.id, "date", 0, out int total);
+  }
+
+  private async Task Bookmark(EducateCourseModel item)
+  {
+    if (item.bookmarks.Contains(Layout.User.id))
+    {
+      item.bookmarks.Remove(Layout.User.id);
+      saveList.Remove(item);
+    }
+    else
+    {
+      item.bookmarks.Add(Layout.User.id);
+      saveList.Insert(0, item);
+    }
+    await DbEducateCourse.Update(Layout.Company.id, item);
+  }
+
+  private async Task Review()
+  {
+    reviewCourse.reviews.Add(new()
+    {
+      id = Mongo.RandomId(),
+      user = Layout.User.id,
+      point = reviewPoint
+    });
+    await DbEducateCourse.Update(Layout.Company.id, reviewCourse);
+    reviewCourse = null;
+  }
+}

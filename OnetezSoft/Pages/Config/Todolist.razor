@@ -1,0 +1,122 @@
+﻿@page "/config/todolist"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+@if (Layout.User.role != 1 && !Layout.User.role_manage.system)
+{
+  <PopupNoRole />
+}
+else if (company != null)
+{
+  <section class="p-4 @(_loaded ? "" : "is-loading")">
+    <div class="card p-5">
+      <ul class="columns is-vcentered is-variable is-2 mb-5">
+        <li class="column">
+          <h1 class="title is-5 has-text-info">
+            CẤU HÌNH TODOLIST
+          </h1>
+        </li>
+      </ul>
+      <ul class="columns is-multiline">
+        <li class="column is-half">
+          <div class="field">
+            <label class="label">Thời gian check-in</label>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select @bind="company.todolist.time_checkin">
+                  @foreach (var sl in Shared.TimeList())
+                  {
+                    <option value="@sl.name">@sl.name</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li class="column is-half">
+          <div class="field">
+            <label class="label">Thời gian check-out</label>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select @bind="company.todolist.time_checkout">
+                  @foreach (var sl in Shared.TimeList())
+                  {
+                    <option value="@sl.name">@sl.name</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li class="column is-half">
+          <div class="field">
+            <label class="label">Thời gian tự động xác nhận</label>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select @bind="company.todolist.time_confirm">
+                  @foreach (var sl in Shared.TimeList())
+                  {
+                    <option value="@sl.name">@sl.name</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+      <div class="field mt-5">
+        <a class="button is-link" @onclick="Update">
+          <span class="icon">
+            <span class="material-icons-outlined is-size-6">
+              done
+            </span>
+          </span>
+          <span>Cập nhật</span>
+        </a>
+      </div>
+    </div>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Cấu hình Todolist";
+
+  private CompanyModel company = null;
+
+  protected override async Task OnInitializedAsync()
+  {
+    company = await DbMainCompany.Get(Layout.Company.id);
+
+    _loaded = true;
+  }
+
+  private async Task Update()
+  {
+    company = await DbMainCompany.Update(company);
+    _message = "Đã cập nhật cấu hình Todolist.";
+    _success = true;
+
+    foreach (var user in Layout.UserList)
+    {
+      await DbNotify.Create(Layout.Company.id, 20, company.id, user.id, Layout.User.id);
+    }
+  }
+}

@@ -1,0 +1,282 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="card p-5 @(_loaded ? "" : "is-loading")">
+  <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3">
+    <li class="column is-full">
+      <h1 class="title is-5 has-text-info">
+        THỐNG KÊ HOÀN THÀNH
+      </h1>
+    </li>
+    <li class="column">
+      <div class="field has-addons">
+        <div class="control">
+          <span class="button is-link">
+            <i class="material-icons-outlined">calendar_today</i>
+          </span>
+        </div>
+        <div class="control" style="width: 190px;">
+          <div class="input">
+            <DateRangePicker @bind-StartDate="filterStart" @bind-EndDate="filterEnd" OnRangeSelect="ChangePicker" />
+          </div>
+        </div>
+        <div class="control">
+          <div class="select is-fullwidth">
+            <select @onchange="ChangeDate">
+              <option value="1">Tuần này</option>
+              <option value="11">Tuần trước</option>
+              <option value="2">Tháng này</option>
+              <option value="22">Tháng trước</option>
+              <option value="3">Quý này</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <div class="dropdown is-right @(departmentShow ? "is-active" : "")">
+        <div class="dropdown-trigger">
+          <a class="icon-text" @onclick="() => departmentShow = !departmentShow">
+            <span class="has-text-link">
+              @filterDepartment.name.Replace("└─", "").Replace("'", "")
+            </span>
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(null)">
+              Tất cả phòng ban
+            </a>
+            @foreach (var sl in departments)
+            {
+              <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(sl)">
+                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
+              </a>
+            }
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-one-quarter">
+      <div class="control has-icons-right has_suggest">
+        <input class="input is-rounded" type="text" placeholder="Nhập tên nhân viên..."
+               autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
+        <ul class="suggest">
+          @foreach (var item in userSuggests)
+          {
+            <li class="rsitem" @onclick="() => UserSelected(item)">
+              <div class="user_item">
+                <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
+                <span>@item.FullName</span>
+              </div>
+            </li>
+          }
+        </ul>
+        <span class="icon is-right">
+          <i class="material-icons-outlined">search</i>
+        </span>
+      </div>
+    </li>
+  </ul>
+  <ul class="columns is-multiline is-variable is-2">
+    @for (int i = 0; i < chartList.Count; i++)
+    {
+      if (i < chartList.Count)
+      {
+        var item = chartList[i];
+        <li class="column @(i == 0 ? "is-full" : "is-halt") pt-5">
+          <h2 class="title is-6 has-text-info">@item.name</h2>
+          <div class="pl-6">
+            <div style="height: 150px;">
+              <canvas id="chart_@item.id" height="150"></canvas>
+            </div>
+            <div class="has-text-info pt-2 pl-5">@item.desc</div>
+          </div>
+        </li>
+      }
+    }
+  </ul>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<DepartmentModel> departmentAll { get; set; }
+  [Parameter]
+  public List<DepartmentModel.SelectList> departments { get; set; }
+
+  private bool _loaded = false;
+
+  private List<ProgressModel> chartList = new();
+  private List<UserModel> userSuggests = new();
+  private string filterUserSearch = string.Empty;
+  private string filterUserId = string.Empty;
+  private DateTimeOffset? filterStart { get; set; }
+  private DateTimeOffset? filterEnd { get; set; }
+  private DepartmentModel.SelectList filterDepartment = new() { name = "Tất cả phòng ban" };
+  private bool departmentShow = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
+    filterStart = start;
+    filterEnd = end;
+
+    DepartmentModel.SelectList department = null;
+    if (!string.IsNullOrEmpty(Layout.User.department_default))
+      department = departments.SingleOrDefault(x => x.id == Layout.User.department_default);
+
+    await ChangeDepartment(department);
+
+    _loaded = true;
+  }
+
+  public async Task ChangePicker(DateRange range)
+  {
+    filterStart = range.Start;
+    filterEnd = range.End;
+    await GetData();
+  }
+
+  private async Task ChangeDate(ChangeEventArgs e)
+  {
+    var type = Convert.ToInt32(e.Value);
+    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
+    filterStart = start;
+    filterEnd = end;
+    await GetData();
+  }
+
+  private async Task ChangeDepartment(DepartmentModel.SelectList item)
+  {
+    departmentShow = false;
+    userSuggests = new();
+    filterUserId = string.Empty;
+    filterUserSearch = string.Empty;
+    filterDepartment = item != null ? item : new() { name = "Tất cả phòng ban" };
+    await GetData();
+  }
+
+  private string UserSearch
+  {
+    get => filterUserSearch;
+    set
+    {
+      filterUserSearch = value;
+      userSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in Layout.UserList)
+        {
+          bool check = true;
+          if (!string.IsNullOrEmpty(filterDepartment.id))
+            if (item.departments_id == null || !item.departments_id.Contains(filterDepartment.id))
+              check = false;
+          if (!Handled.Shared.SearchKeyword(filterUserSearch, item.FullName))
+            check = false;
+
+          if (check)
+            userSuggests.Add(item);
+        }
+      }
+    }
+  }
+
+  private async Task UserSelected(UserModel item)
+  {
+    userSuggests = new();
+    filterUserId = item.id;
+    filterUserSearch = item.FullName;
+    await GetData();
+  }
+
+  private async Task GetData()
+  {
+    _loaded = false;
+
+    var start = filterStart.Value.DateTime;
+    var end = filterEnd.Value.DateTime;
+    var database = await DbTodolist.GetList(Layout.Company.id, start, end);
+
+    chartList.Clear();
+    if (!string.IsNullOrEmpty(filterUserId))
+    {
+      var item = new ProgressModel()
+      {
+        id = filterUserId,
+        name = filterUserSearch
+      };
+      item.desc = await RenderChart(filterUserId, new List<string>() { filterUserId }, database);
+      chartList.Add(item);
+    }
+    else if (!string.IsNullOrEmpty(filterDepartment.id))
+    {
+      var department = departmentAll.SingleOrDefault(x => x.id == filterDepartment.id);
+      if (department != null)
+      {
+        var item = new ProgressModel()
+        {
+          id = department.id,
+          name = department.name
+        };
+        item.desc = await RenderChart(department.id, department.members_id, database);
+        chartList.Add(item);
+
+        var childs = departmentAll.Where(x => x.parent == department.id);
+        foreach (var child in childs)
+        {
+          var itemChild = new ProgressModel()
+          {
+            id = child.id,
+            name = child.name
+          };
+          itemChild.desc = await RenderChart(child.id, child.members_id, database);
+          chartList.Add(itemChild);
+        }
+      }
+    }
+    else
+    {
+      var childs = departmentAll.Where(x => x.parent == null);
+      foreach (var child in childs)
+      {
+        var item = new ProgressModel()
+        {
+          id = child.id,
+          name = child.name
+        };
+        item.desc = await RenderChart(child.id, child.members_id, database);
+        chartList.Add(item);
+      }
+    }
+
+    _loaded = true;
+  }
+
+  private async Task<string> RenderChart(string id, List<string> members_id, List<TodolistModel> data)
+  {
+    var todolist = data.Where(x => members_id.Contains(x.user_create) && !x.day_off);
+
+    var colors = "#355caa,#dc787e";
+    var labels = ("Hoàn thành,Chưa hoàn thành").Split(",");
+    var values = new int[2];
+
+    int done = 0;
+    int total = 0;
+    foreach (var item in todolist)
+    {
+      done += item.todos.Where(x => x.status == 4).Count();
+      total += item.todos.Count();
+    }
+    values[0] = done;
+    values[1] = total;
+
+    await JSRuntime.InvokeAsync<string>("chartDoughnut", "chart_" + id, labels, values, colors);
+
+    return "Hoàn thành " + Shared.ConvertNumber(Shared.Progress(done, total)) + "%";
+  }
+}

@@ -1,0 +1,322 @@
+﻿@page "/reports/achievement"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+<section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+  <div class="column is-narrow">
+    <_MenuLeft Company="Layout.Company" User="Layout.User" />
+  </div>
+  <div class="column">
+    <div class="card p-5">
+      <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
+        <li class="column is-full">
+          <h1 class="title is-5 has-text-info">
+            THÀNH TỰU
+          </h1>
+        </li>
+        <li class="column">
+          <div class="field has-addons">
+            <div class="control">
+              <span class="button is-link">
+                <i class="material-icons-outlined">calendar_today</i>
+              </span>
+            </div>
+            <div class="control" style="width: 190px;">
+              <div class="input">
+                <DateRangePicker @bind-StartDate="filterStart" @bind-EndDate="filterEnd" OnRangeSelect="ChangePicker" />
+              </div>
+            </div>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select @onchange="ChangeDate">
+                  <option value="1">Tuần này</option>
+                  <option value="11">Tuần trước</option>
+                  <option value="2">Tháng này</option>
+                  <option value="22">Tháng trước</option>
+                  <option value="3">Quý này</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li class="column is-narrow">
+          <div class="dropdown is-right @(departmentShow ? "is-active" : "")">
+            <div class="dropdown-trigger">
+              <a class="icon-text" @onclick="() => departmentShow = !departmentShow">
+                <span class="has-text-link">
+                  @filterDepartment.name.Replace("└─", "").Replace("'", "")
+                </span>
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                </span>
+              </a>
+            </div>
+            <div class="dropdown-menu">
+              <div class="dropdown-content">
+                <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(null)">
+                  Tất cả phòng ban
+                </a>
+                @foreach (var sl in departments)
+                {
+                  <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(sl)">
+                    @((MarkupString)sl.name.Replace("'", "&nbsp;"))
+                  </a>
+                }
+              </div>
+            </div>
+          </div>
+        </li>
+        <li class="column is-one-quarter">
+          <div class="control has-icons-right has_suggest">
+            <input class="input is-rounded" type="text" placeholder="Nhập tên nhân viên..."
+                   autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
+            <ul class="suggest">
+              @foreach (var item in userSuggests)
+              {
+                <li class="rsitem" @onclick="() => UserSelected(item)">
+                  <div class="user_item">
+                    <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
+                    <span>@item.FullName</span>
+                  </div>
+                </li>
+              }
+            </ul>
+            <span class="icon is-right">
+              <i class="material-icons-outlined">search</i>
+            </span>
+          </div>
+        </li>
+      </ul>
+
+      <ul class="columns is-vcentered">
+        <li class="column is-5 has-text-centered px-6">
+          <h2 class="title is-6 has-text-info mb-3">
+            @filterDepartment.name.Replace("└─", "").Replace("'", "")
+          </h2>
+          <div class="icon-achievement">
+            @(achievementList.Select(x => x.star).Sum())
+          </div>
+          <div class="title has-text-link mb-1 mt-3" style="font-size: 18px;">
+            TỔNG SỐ SAO
+          </div>
+          <div class="mb-3">
+            ĐẾN TỪ THÀNH TỰU
+          </div>
+          <ul class="columns is-variable is-2 is-mobile">
+            @for (int i = 0; i < 3; i++)
+            {
+              if (i < rankList.Count)
+              {
+                var item = rankList[i];
+                var color = i == 0 ? "has-text-warning" : i == 1 ? "has-text-danger" : "has-text-link";
+                <li class="column is-one-third has-text-centered @color">
+                  <div>@(i + 1)st</div>
+                  <div class="image is-36x36 is-rounded my-2">
+                    <img src="@item.avatar" title="@item.name" />
+                  </div>
+                  <br />
+                  <span class="icon-text">
+                    <span class="has-text-weight-semibold">@item.value</span>
+                    <span class="icon">
+                      <i class="material-icons-round is-size-6">star_border</i>
+                    </span>
+                  </span>
+                </li>
+              }
+            }
+          </ul>
+        </li>
+        <li class="column is-7">
+          <div class="scrolly" style="height: 400px;">
+            <ul class="columns is-multiline is-vcentered is-mobile is-variable is-2">
+              @foreach (var item in achievementList)
+              {
+                var icon = $"/images/achi_{item.type}.png";
+                var user = Layout.UserList.SingleOrDefault(x => x.id == item.user);
+                <li class="column is-1-tablet is-2-mobile">
+                  <div class="image is-32x32">
+                    <img src="@icon" />
+                  </div>
+                </li>
+                <li class="column is-8-tablet is-10-mobile">
+                  <div class="user_item">
+                    <img class="image is-36x36 mr-3" src="@user.avatar" alt="IMG">
+                    <p class="has-text-grey">
+                      <span class="has-text-weight-semibold has-text-info">@user.FullName</span>
+                      <span>đã đạt thành tựu</span>
+                      <span class="has-text-weight-semibold has-text-info">@item.name</span>
+                    </p>
+                  </div>
+                </li>
+                <li class="column is-3-tablet is-full-mobile">
+                  <div class="columns is-variable is-1 is-mobile">
+                    <div class="column has-text-warning is-flex is-vcentered">
+                      <span class="has-text-weight-semibold">@item.star</span>
+                      <i class="material-icons-round is-size-6">star_border</i>
+                    </div>
+                    <div class="column is-narrow has-text-grey">
+                      @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))
+                    </div>
+                  </div>
+                </li>
+              }
+            </ul>
+          </div>
+        </li>
+      </ul>
+
+    </div>
+  </div>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Thống kê thành tựu";
+
+  private List<DepartmentModel> departmentAll = new();
+  private List<DepartmentModel.SelectList> departments = new();
+
+  private List<AchievementModel> achievementList = new();
+  private List<ProgressModel> rankList = new();
+  private List<string> userList = new();
+  private List<UserModel> userSuggests = new();
+  private string filterUserSearch = string.Empty;
+  private DateTimeOffset? filterStart { get; set; }
+  private DateTimeOffset? filterEnd { get; set; }
+  private DepartmentModel.SelectList filterDepartment = new() { name = "Tất cả phòng ban" };
+  private bool departmentShow = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+
+    Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
+    filterStart = start;
+    filterEnd = end;
+
+    DepartmentModel.SelectList department = null;
+    if (!string.IsNullOrEmpty(Layout.User.department_default))
+      department = departments.SingleOrDefault(x => x.id == Layout.User.department_default);
+
+    await ChangeDepartment(department);
+
+    _loaded = true;
+  }
+
+  public async Task ChangePicker(DateRange range)
+  {
+    filterStart = range.Start;
+    filterEnd = range.End;
+    await GetData();
+  }
+
+  private async Task ChangeDate(ChangeEventArgs e)
+  {
+    var type = Convert.ToInt32(e.Value);
+    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
+    filterStart = start;
+    filterEnd = end;
+    await GetData();
+  }
+
+  private async Task ChangeDepartment(DepartmentModel.SelectList item)
+  {
+    departmentShow = false;
+    userSuggests = new();
+    filterUserSearch = string.Empty;
+    filterDepartment = item != null ? item : new() { name = "Tất cả phòng ban" };
+
+    if (item == null)
+      userList = (from x in Layout.UserList select x.id).ToList();
+    else
+      userList = (from x in Layout.UserList
+                  where x.departments_id.Contains(filterDepartment.id)
+                  select x.id).ToList();
+
+    await GetData();
+  }
+
+  private string UserSearch
+  {
+    get => filterUserSearch;
+    set
+    {
+      filterUserSearch = value;
+      userSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in Layout.UserList)
+        {
+          bool check = true;
+          if (!string.IsNullOrEmpty(filterDepartment.id))
+            if (item.departments_id == null || !item.departments_id.Contains(filterDepartment.id))
+              check = false;
+          if (!Handled.Shared.SearchKeyword(filterUserSearch, item.FullName))
+            check = false;
+
+          if (check)
+            userSuggests.Add(item);
+        }
+      }
+    }
+  }
+
+  private async Task UserSelected(UserModel item)
+  {
+    userSuggests = new();
+    filterUserSearch = item.FullName;
+    userList = new() { item.id };
+    await GetData();
+  }
+
+  private async Task GetData()
+  {
+    _loaded = false;
+    var start = filterStart.Value.DateTime;
+    var end = filterEnd.Value.DateTime;
+    var database = await DbAchievement.GetList(Layout.Company.id, null, null, start, end);
+    achievementList = database.Where(x => userList.Contains(x.user)).ToList();
+
+    rankList.Clear();
+    foreach (var userId in userList)
+    {
+      var user = Layout.UserList.SingleOrDefault(x => x.id == userId);
+      if (user != null)
+      {
+        var star = (from x in database
+                    where x.user == user.id
+                    select x.star).Sum();
+
+        rankList.Add(new ProgressModel()
+        {
+          id = user.id,
+          name = user.FullName,
+          avatar = user.avatar,
+          departments = user.departments_name,
+          value = star
+        });
+      }
+    }
+    rankList = rankList.OrderByDescending(x => x.value).ToList();
+
+    _loaded = true;
+  }
+}

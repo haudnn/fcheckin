@@ -1,0 +1,778 @@
+﻿@inject IJSRuntime JSRuntime
+
+@if (model != null)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    @if (!preview)
+    {
+      <section class="modal-card is-medium has_bg">
+        <section class="modal-card-head is-danger" style="background-image: url('@model.cover')">
+          <div class="modal-card-title">
+            <div class="title">
+              Chỉnh sửa sản phẩm - @model.title
+            </div>
+          </div>
+          <a class="delete is-medium" @onclick="Cancel"></a>
+        </section>
+        <section class="modal-card-body">
+          <form class="columns is-multiline is-variable is-2" autocomplete="off">
+            <div class="column is-half">
+              <div class="control has-icons-left">
+                <input @bind="model.title" type="text" class="input is_line font_14 has-text-weight-bold" 
+                    placeholder="Nhập tiêu đề" />
+                <span class="icon is-left has-text-black">
+                  <i class="material-icons-round is-size-6">edit</i>
+                </span>
+              </div>
+            </div>
+            <div class="column is-half">
+              <div class="control has-icons-left">
+                <input @bind="model.desc" type="text" class="input is_line font_14 has-text-weight-bold" 
+                    placeholder="Nhập mô tả" />
+                <span class="icon is-left has-text-black">
+                  <i class="material-icons-round is-size-6">edit</i>
+                </span>
+              </div>
+            </div>
+            <div class="column is-half">
+              <div class="control has-icons-left">
+                <input @bind="model.version" type="text" class="input is_line font_14 has-text-weight-bold" 
+                    placeholder="Nhập phiên bản cập nhật" />
+                <span class="icon is-left has-text-black">
+                  <i class="material-icons-round is-size-6">edit</i>
+                </span>
+              </div>
+            </div>
+            <div class="column is-half">
+              <div class="control has-icons-left has-icons-right">
+                <input @bind="model.price" type="text" class="input is_line font_14 has-text-weight-bold" 
+                    placeholder="Nhập mức giá" />
+                <span class="icon is-left has-text-black">
+                  <i class="material-icons-round is-size-6">edit</i>
+                </span>
+                <span class="icon is-right has-text-grey" style="width: auto;">
+                  VNĐ/người/tháng
+                </span>
+              </div>
+            </div>
+            <div class="column is-full">
+              <div class="control has-icons-left">
+                <textarea @bind="model.detail" class="textarea is_line font_14 has-text-weight-medium" rows="2" 
+                    placeholder="Nhập thông tin giới thiệu" />
+                <span class="icon is-left has-text-black">
+                  <i class="material-icons-round is-size-6">edit</i>
+                </span>
+              </div>
+            </div>
+
+            <div class="column is-full pb-0">
+              <span class="has-text-grey is-size-7">Video</span>
+            </div>
+            <div class="column is-one-fifth">
+              <a class="image is-4by3 is-radius has-background-grey">
+                <img src="@model.video.thumb" />
+              </a>
+            </div>
+            <div class="column is-four-fifths">
+              <div class="control has-icons-left">
+                <input @bind="model.video.link" type="text" class="input is_line" placeholder="Nhập link video" />
+                <span class="icon is-left has-text-black">
+                  <i class="material-icons-round is-size-6">edit</i>
+                </span>
+              </div>
+              <div class="control mt-3">
+                <a class="button is-small is-white px-1 has-text-link @(upThumbnail ? "is-loading" : "")"
+               onclick="document.getElementById('thumbnail').click()">
+                  <span class="icon">
+                    <i class="material-icons-sharp is-size-6">file_upload</i>
+                  </span>
+                  <span>Thay đổi ảnh thumbnail</span>
+                </a>
+                <InputFile OnChange="UploadThumbnail" accept="image/*" class="is-hidden" id="thumbnail" />
+              </div>
+            </div>
+
+            <div class="column is-full pb-0">
+              <span class="has-text-grey is-size-7">Bộ ảnh</span>
+            </div>
+            @foreach (var item in model.images)
+            {
+              <div class="column is-one-fifth">
+                <div class="image is-4by3 is-radius has-background-grey">
+                  <img src="@item" />
+                  <a class="delete" @onclick="() => DeleteImage(item)"></a>
+                </div>
+              </div>
+            }
+            <div class="column is-one-fifth">
+              <div class="py-6">
+                <a class="button is-small is-white has-text-link @(upImages ? "is-loading" : "")"
+               onclick="document.getElementById('images').click()">
+                  <span class="icon">
+                    <i class="material-icons-sharp is-size-6">file_upload</i>
+                  </span>
+                  <span>Tải thêm ảnh</span>
+                </a>
+                <InputFile OnChange="UploadImages" accept="image/*" class="is-hidden" id="images" multiple />
+              </div>
+            </div>
+
+            <div class="column is-full pb-0">
+              <div class="title is-5 pt-3">Bảng báo giá</div>
+            </div>
+            @foreach (var item in model.pricelist)
+            {
+              <div class="column is-full">
+                <div class="field is-grouped">
+                  <div class="control is-expanded has-icons-left">
+                    <input @bind="item.title" id="_@item.id" type="text" class="input is_line font_14 has-text-weight-bold"
+                     placeholder="Nhập nhóm chức năng..." />
+                    <span class="icon is-left has-text-black">
+                      <i class="material-icons-round is-size-6">edit</i>
+                    </span>
+                  </div>
+                  <div class="control">
+                    <a class="icon has-text-danger" @onclick="() => DeletePricelist(item)">
+                      <i class="material-icons-round is-size-6">delete</i>
+                    </a>
+                  </div>
+                </div>
+                @foreach (var content in item.content)
+                {
+                  <div class="field is-grouped pl-3 mb-1">
+                    <div class="control">
+                      <a class="icon has-text-dark" @onclick="() => AddPricelistContent(item)">
+                        <i class="material-icons-round is-size-6">add_circle</i>
+                      </a>
+                    </div>
+                    <div class="control is-expanded has-icons-left">
+                      <input @bind="content.value" id="_@content.id" type="text" class="input is_line" placeholder="Nhập chức năng..." />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">edit</i>
+                      </span>
+                    </div>
+                    <div class="control">
+                      <a class="icon has-text-danger" @onclick="() => DeletePricelistContent(item, content)">
+                        <i class="material-icons-round is-size-6">delete</i>
+                      </a>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+            <div class="column is-full has-text-centered">
+              <a class="icon-text is-size-7" @onclick="AddPricelist">
+                <span class="icon">
+                  <span class="material-icons-round is-size-6">add</span>
+                </span>
+                <span class="has-text-weight-medium">Thêm nhóm chức năng</span>
+              </a>
+            </div>
+
+            <div class="column is-full">
+              <div class="title is-5 pt-3">Chi tiết cập nhật</div>
+              <div class="control">
+                <BlazoredTextEditor @ref="@editorUpdate" Placeholder="Nhập nội dung...">
+                  <ToolbarContent>
+                    <select class="ql-header">
+                      <option selected=""></option>
+                      <option value="1"></option>
+                      <option value="2"></option>
+                      <option value="3"></option>
+                      <option value="4"></option>
+                      <option value="5"></option>
+                    </select>
+                    <span class="ql-formats">
+                      <button class="ql-bold"></button>
+                      <button class="ql-italic"></button>
+                      <button class="ql-underline"></button>
+                      <button class="ql-strike"></button>
+                    </span>
+                    <span class="ql-formats">
+                      <select class="ql-color"></select>
+                      <select class="ql-background"></select>
+                    </span>
+                    <span class="ql-formats">
+                      <button class="ql-list" value="ordered"></button>
+                      <button class="ql-list" value="bullet"></button>
+                    </span>
+                    <span class="ql-formats">
+                      <button class="ql-link"></button>
+                    </span>
+                  </ToolbarContent>
+                  <EditorContent>
+                    @((MarkupString)model.update)
+                  </EditorContent>
+                </BlazoredTextEditor>
+              </div>
+            </div>
+
+            <div class="column is-full pb-0">
+              <div class="title is-5 mb-2 pt-3">Tính năng sản phẩm</div>
+              <hr class="m-0" />
+            </div>
+            @foreach (var item in model.features)
+            {
+              var fileInput = "file_" + item.id;
+
+              <div class="column is-one-fifth">
+                <a class="image is-4by3 is-radius has-background-grey mt-2">
+                  <img src="@item.image" />
+                </a>
+                <a class="button is-small is-white is-fullwidth has-text-link"
+             onclick="document.getElementById('@fileInput').click()">
+                  <span class="icon">
+                    <i class="material-icons-sharp is-size-6">file_upload</i>
+                  </span>
+                  <span>Tải lên ảnh slide</span>
+                </a>
+                <InputFile OnChange="(InputFileChangeEventArgs e) => UploadFeatures(e, item)"
+                     accept="image/*" class="is-hidden" id="@fileInput" />
+              </div>
+              <div class="column is-four-fifths">
+                <div class="field is-grouped">
+                  <div class="control is-expanded has-icons-left">
+                    <input @bind="item.title" id="_@item.id" type="text" class="input is_line font_14 has-text-weight-bold"
+                     placeholder="Nhập tiêu đề slide..." />
+                    <span class="icon is-left has-text-black">
+                      <i class="material-icons-round is-size-6">edit</i>
+                    </span>
+                  </div>
+                  <div class="control">
+                    <a class="icon has-text-danger" @onclick="() => DeleteFeatures(item)">
+                      <i class="material-icons-round is-size-6">delete</i>
+                    </a>
+                  </div>
+                </div>
+                @foreach (var content in item.content)
+                {
+                  <div class="field is-grouped pl-3 mb-1">
+                    <div class="control">
+                      <a class="icon has-text-dark" @onclick="() => AddFeaturesContent(item)">
+                        <i class="material-icons-round is-size-6">add_circle</i>
+                      </a>
+                    </div>
+                    <div class="control is-expanded has-icons-left">
+                      <input @bind="content.value" id="_@content.id" type="text" class="input is_line"
+                     placeholder="Nhập nội dung slide..." />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">edit</i>
+                      </span>
+                    </div>
+                    <div class="control">
+                      <a class="icon has-text-danger" @onclick="() => DeleteFeaturesContent(item, content)">
+                        <i class="material-icons-round is-size-6">delete</i>
+                      </a>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+            <div class="column is-full has-text-centered">
+              <a class="icon-text is-size-7" @onclick="AddFeatures">
+                <span class="icon">
+                  <span class="material-icons-round is-size-6">add</span>
+                </span>
+                <span class="has-text-weight-medium">Thêm slide tính năng</span>
+              </a>
+            </div>
+
+            <div class="column is-full pb-0">
+              <div class="title is-5 mb-2">Bạn nhận được gì khi sử dụng @model.title</div>
+              <hr class="m-0" />
+            </div>
+            @foreach (var item in model.modules)
+            {
+              <div class="column is-full">
+                <div class="field is-grouped">
+                  <div class="control is-expanded has-icons-left">
+                    <input @bind="item.title" id="_@item.id" type="text" class="input is_line font_14 has-text-weight-bold"
+                     placeholder="Nhập tiêu đề..." />
+                    <span class="icon is-left has-text-black">
+                      <i class="material-icons-round is-size-6">edit</i>
+                    </span>
+                  </div>
+                  <div class="control">
+                    <a class="icon has-text-danger" @onclick="() => DeleteModules(item)">
+                      <i class="material-icons-round is-size-6">delete</i>
+                    </a>
+                  </div>
+                </div>
+                @foreach (var content in item.content)
+                {
+                  <div class="field is-grouped pl-3 mb-1">
+                    <div class="control">
+                      <a class="icon has-text-dark" @onclick="() => AddModulesContent(item)">
+                        <i class="material-icons-round is-size-6">add_circle</i>
+                      </a>
+                    </div>
+                    <div class="control is-expanded has-icons-left">
+                      <input @bind="content.value" id="_@content.id" type="text" class="input is_line"
+                     placeholder="Nhập nội dung..." />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">edit</i>
+                      </span>
+                    </div>
+                    <div class="control">
+                      <a class="icon has-text-danger" @onclick="() => DeleteModulesContent(item, content)">
+                        <i class="material-icons-round is-size-6">delete</i>
+                      </a>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+            <div class="column is-full has-text-centered">
+              <a class="icon-text is-size-7" @onclick="AddModules">
+                <span class="icon">
+                  <span class="material-icons-round is-size-6">add</span>
+                </span>
+                <span class="has-text-weight-medium">Thêm nhóm nội dung</span>
+              </a>
+            </div>
+          </form>
+        </section>
+        <section class="modal-card-foot is-right">
+          <label class="checkbox">
+            <input @bind="model.show" type="checkbox" />
+            <span>Hiển thị</span>
+          </label>
+          <a class="button" @onclick="Cancel">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">chevron_left</i>
+            </span>
+            <span class="is-size-7">Trở về</span>
+          </a>
+          <a class="button is-success" @onclick="Preview">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">visibility</i>
+            </span>
+            <span class="is-size-7">Xem trước</span>
+          </a>
+          <a class="button is-link" @onclick="Update">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">done</i>
+            </span>
+            <span class="is-size-7">Cập nhật</span>
+          </a>
+        </section>
+      </section>
+    }
+    else
+    {
+      <section class="modal-card is-large" style="border-radius: 10px;">
+        <div class="box detail_product" style="max-height: 100%; overflow-y: auto; overflow-x: hidden;">
+          <ul class="columns is-multiline">
+            <li class="column is-full">
+              <div class="item_head" style="background-color: @model.color; background-image: url('@model.cover')">
+                <img class="item_icon" src="@model.icon" />
+                <span class="item_title">@model.title</span>
+                <span class="item_version">@model.version</span>
+                <span class="item_desc">@model.desc</span>
+                <a class="button is-small is-link px-6">Mua ngay</a>
+                <span class="item_price">
+                  @model.price.ToString("0,0") VNĐ/người/tháng
+                </span>
+              </div>
+            </li>
+            <li class="column is-two-thirds">
+              <div class="columns is-multiline is-variable is-1">
+                <div class="column is-full">
+                  @if (string.IsNullOrEmpty(model.video.link))
+                  {
+                    <a class="image is-2by1 is-radius has-background-grey-lighter">
+                      <img src="@model.video.thumb" />
+                    </a>
+                  }
+                  else
+                  {
+                    if (showvideo)
+                    {
+                      <div class="image is-2by1 is-radius is-youtube">
+                        <iframe src="@model.video.link" allowfullscreen></iframe>
+                      </div>
+                    }
+                    else
+                    {
+                      <a class="image is-2by1 is-radius is-video" @onclick="() => showvideo = true">
+                        <img src="@model.video.thumb" alt="video" />
+                        <span class="icon">
+                          <i class="material-icons-outlined">play_circle_filled</i>
+                        </span>
+                      </a>
+                    }
+                  }
+                </div>
+                @foreach (var image in model.images)
+                {
+                  <div class="column is-one-third">
+                    <a class="image is-2by1 is-radius">
+                      <img src="@image" alt="img" />
+                    </a>
+                  </div>
+                }
+              </div>
+            </li>
+            <li class="column is-one-third">
+              <div class="has-text-weight-bold has-text-info">
+                <span class="is-size-4 mr-2">@model.title</span>
+                <span class="font_14">@model.version</span>
+              </div>
+              <div class="has-text-weight-semibold is-size-7 pb-3">
+                @model.detail
+              </div>
+              <div class="columns is-multiline is-vcentered is-variable is-1 font_14">
+                <div class="column is-7">
+                  <span class="has-text-weight-bold">Sản phẩm</span>
+                  <span class="is-block is-size-7">Bộ giải phép đi kèm</span>
+                  <hr class="mt-2 mb-0" />
+                </div>
+                <div class="column is-5 has-text-centered">
+                  <span class="has-text-weight-bold">Professional</span>
+                  <span class="is-block is-size-7">@model.price.ToString("0,0") VNĐ/người/tháng</span>
+                  <hr class="mt-2 mb-0" />
+                </div>
+                @foreach (var item in model.pricelist)
+                {
+                  <div class="column is-7 has-text-weight-bold">
+                    @item.title
+                  </div>
+                  <div class="column is-5 has-text-centered">
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-6">done</i>
+                    </span>
+                  </div>
+                  @foreach (var content in item.content)
+                  {
+                    <div class="column is-7">
+                      @content.value
+                    </div>
+                    <div class="column is-5 has-text-centered">
+                      <span class="icon has-text-grey-light">
+                        <i class="material-icons-outlined is-size-6">done</i>
+                      </span>
+                    </div>
+                  }
+                }
+              </div>
+            </li>
+            @if (!string.IsNullOrEmpty(model.update))
+            {
+              <li class="column is-full">
+                <div class="title is-5 mb-3">Chi tiết cập nhật</div>
+                <div class="content">
+                  @((MarkupString)model.update)
+                </div>
+              </li>
+            }
+            @if (model.features.Count > 0)
+            {
+              <li class="column is-full">
+                <div class="title is-5 mb-3">Tính năng sản phẩm</div>
+                <div class="carousel">
+                  <BlazorSlickCarousel Configurations="configurations">
+                    <BlazorSlickCarouselContent>
+                      @foreach (var item in model.features)
+                      {
+                        <div class="item">
+                          <div class="columns is-variable is-2">
+                            <div class="column is-half">
+                              <img src="@item.image" alt="img" />
+                            </div>
+                            <div class="column is-half">
+                              <div class="content pb-6">
+                                <div class="has-text-weight-bold">
+                                  @item.title
+                                </div>
+                                <ul class="ml-5">
+                                  @foreach (var content in item.content)
+                                  {
+                                    <li>@content.value</li>
+                                  }
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    </BlazorSlickCarouselContent>
+                  </BlazorSlickCarousel>
+                  <div class="WMBSC-nav">
+                    <div class="dots"></div>
+                    <div class="arrows"></div>
+                  </div>
+                </div>
+              </li>
+            }
+            @if (model.modules.Count > 0)
+            {
+              <li class="column is-full">
+                <div class="title is-5 mb-3">Bận nhận được gì khi sử dụng @model.title</div>
+                <div class="columns is-multiline is-variable is-2">
+                  @foreach (var item in model.modules)
+                  {
+                    <div class="column is-one-third">
+                      <div class="box" style="height: 100%">
+                        <div class="has-text-weight-bold mb-3">
+                          @item.title
+                        </div>
+                        @foreach (var content in item.content)
+                        {
+                          <div class="icon-text is-multiline mt-2">
+                            <span class="icon has-text-link">
+                              <i class="material-icons-outlined is-size-5">done</i>
+                            </span>
+                            <span class="has-text-grey">@content.value</span>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        </div>
+      </section>
+      <a class="modal-close is-large" @onclick="() => preview = false"></a>
+    }
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  [Parameter]
+  public ProductModel model { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+  private bool showvideo = false;
+  private bool preview = false;
+  private BlazoredTextEditor editorUpdate;
+  private WMBSCInitialSettings configurations;
+
+  private async Task Cancel()
+  {
+    preview = false;
+    await OnUpdate.InvokeAsync(false);
+  }
+
+  private async Task Update()
+  {
+    preview = false;
+    model.update = await editorUpdate.GetHTML();
+    model.video.link = Shared.VideoLink(model.video.link);
+    await DbMainProduct.Update(model);
+    await OnUpdate.InvokeAsync(true);
+  }
+
+  private async Task Preview()
+  {
+    preview = true;
+    showvideo = false;
+    model.update = await editorUpdate.GetHTML();
+    model.video.link = Shared.VideoLink(model.video.link);
+    configurations = new WMBSCInitialSettings
+      {
+        arrows = true,
+        dots = true,
+        autoplay = true,
+        infinite = true,
+        slidesToShow = 1,
+        slidesToScroll = 1,
+        appendDots = ".dots",
+        appendArrows = ".arrows",
+        prevArrow = "<a class='material-icons-round'>chevron_left</a>",
+        nextArrow = "<span class='material-icons-round'>chevron_right</span>"
+      };
+  }
+
+  private bool upThumbnail = false;
+  private async Task UploadThumbnail(InputFileChangeEventArgs e)
+  {
+    upThumbnail = true;
+    foreach (var file in e.GetMultipleFiles())
+    {
+      try
+      {
+        if (file.Size <= Layout.MaxFileSize)
+        {
+          var fileStream = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
+          model.video.thumb = await Files.SaveFileAsync(fileStream, file.Name);
+        }
+        else
+          await JSRuntime.InvokeVoidAsync("tagline", false,
+            $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB");
+      }
+      catch (Exception ex)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.Message}");
+      }
+    }
+    upThumbnail = false;
+  }
+
+  private bool upImages = false;
+  private async Task UploadImages(InputFileChangeEventArgs e)
+  {
+    upImages = true;
+    var filesUpload = e.GetMultipleFiles();
+    foreach (var file in filesUpload)
+    {
+      try
+      {
+        if (model.images.Count < 3)
+        {
+          if (file.Size <= Layout.MaxFileSize)
+          {
+            var fileStream = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
+            var fileLink = await Files.SaveFileAsync(fileStream, file.Name);
+            model.images.Add(fileLink);
+          }
+          else
+            await JSRuntime.InvokeVoidAsync("tagline", false,
+              $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB");
+        }
+        else
+          await JSRuntime.InvokeVoidAsync("tagline", false, $"Chỉ cho phép tối đa 3 hình ảnh!");
+      }
+      catch (Exception ex)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.Message}");
+      }
+    }
+    upImages = false;
+  }
+
+  private async Task DeleteImage(string item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa hình ảnh này?"))
+      return;
+    model.images.Remove(item);
+    Files.DeleteFile(item);
+  }
+
+  private async Task AddPricelist()
+  {
+    var item = new ProductModel.Content();
+    item.id = Mongo.RandomId();
+    item.content = new() { new() { id = Mongo.RandomId(), value = string.Empty } };
+    model.pricelist.Add(item);
+    await JSRuntime.InvokeVoidAsync("setFocus", "_" + item.id);
+  }
+
+  private async Task DeletePricelist(ProductModel.Content item)
+  {
+    if (!string.IsNullOrEmpty(item.title))
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa mục: {item.title}?"))
+        return;
+    model.pricelist.Remove(item);
+  }
+
+  private async Task AddPricelistContent(ProductModel.Content item)
+  {
+    ProductModel.Text content = new() { id = Mongo.RandomId(), value = string.Empty };
+    item.content.Add(content);
+    await JSRuntime.InvokeVoidAsync("setFocus", "_" + content.id);
+  }
+
+  private async Task DeletePricelistContent(ProductModel.Content item, ProductModel.Text content)
+  {
+    if (!string.IsNullOrEmpty(content.value))
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa mục: {content.value}?"))
+        return;
+    item.content.Remove(content);
+  }
+
+
+  private async Task AddFeatures()
+  {
+    var item = new ProductModel.Content();
+    item.id = Mongo.RandomId();
+    item.content = new() { new() { id = Mongo.RandomId(), value = string.Empty } };
+    model.features.Add(item);
+    await JSRuntime.InvokeVoidAsync("setFocus", "_" + item.id);
+  }
+
+  private async Task DeleteFeatures(ProductModel.Content item)
+  {
+    if (!string.IsNullOrEmpty(item.title))
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa mục: {item.title}?"))
+        return;
+    model.features.Remove(item);
+  }
+
+  private async Task AddFeaturesContent(ProductModel.Content item)
+  {
+    ProductModel.Text content = new() { id = Mongo.RandomId(), value = string.Empty };
+    item.content.Add(content);
+    await JSRuntime.InvokeVoidAsync("setFocus", "_" + content.id);
+  }
+
+  private async Task DeleteFeaturesContent(ProductModel.Content item, ProductModel.Text content)
+  {
+    if (!string.IsNullOrEmpty(content.value))
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa mục: {content.value}?"))
+        return;
+    item.content.Remove(content);
+  }
+
+  private async Task UploadFeatures(InputFileChangeEventArgs e, ProductModel.Content item)
+  {
+    var filesUpload = e.GetMultipleFiles();
+    foreach (var file in filesUpload)
+    {
+      try
+      {
+        if (file.Size <= Layout.MaxFileSize)
+        {
+          var fileStream = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
+          item.image = await Files.SaveFileAsync(fileStream, file.Name);
+        }
+        else
+          await JSRuntime.InvokeVoidAsync("tagline", false,
+            $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB");
+      }
+      catch (Exception ex)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.Message}");
+      }
+    }
+  }
+
+
+  private async Task AddModules()
+  {
+    var item = new ProductModel.Content();
+    item.id = Mongo.RandomId();
+    item.content = new() { new() { id = Mongo.RandomId(), value = string.Empty } };
+    model.modules.Add(item);
+    await JSRuntime.InvokeVoidAsync("setFocus", "_" + item.id);
+  }
+
+  private async Task DeleteModules(ProductModel.Content item)
+  {
+    if (!string.IsNullOrEmpty(item.title))
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa mục: {item.title}?"))
+        return;
+    model.modules.Remove(item);
+  }
+
+  private async Task AddModulesContent(ProductModel.Content item)
+  {
+    ProductModel.Text content = new() { id = Mongo.RandomId(), value = string.Empty };
+    item.content.Add(content);
+    await JSRuntime.InvokeVoidAsync("setFocus", "_" + content.id);
+  }
+
+  private async Task DeleteModulesContent(ProductModel.Content item, ProductModel.Text content)
+  {
+    if (!string.IsNullOrEmpty(content.value))
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa mục: {content.value}?"))
+        return;
+    item.content.Remove(content);
+  }
+
+}

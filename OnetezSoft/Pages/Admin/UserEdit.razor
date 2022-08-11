@@ -1,0 +1,155 @@
+﻿@page "/admin/user"
+@page "/client/user"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="columns is-centered is-vcentered is-gapless" style="min-height: 90vh;">
+  <div class="column is-small">
+    <div class="columns">
+      <div class="column is-5">
+        <div class="image is-square is-radius mb-3">
+          <img src="@model.avatar" />
+        </div>
+        <a class="button is-white is-small is-fullwidth @(uploading ? "is-loading" : "")"
+          onclick="document.getElementById('file').click()">
+          <span class="icon">
+            <i class="material-icons-sharp is-size-6">file_upload</i>
+          </span>
+          <span>Tải ảnh lên</span>
+        </a>
+        <InputFile OnChange="Upload" accept="image/*" class="is-hidden" id="file" />
+      </div>
+
+      <div class="column is-7">
+        <div class="field has-text-weight-bold">
+          Thông tin cơ bản
+        </div>
+        <div class="field">
+          <div class="control has-icons-left">
+            <input @bind="model.last_name" type="text" class="input is_line" placeholder="Nhập họ" />
+            <span class="icon is-left has-text-black">
+              <i class="material-icons-round is-size-6">person</i>
+            </span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="control has-icons-left">
+            <input @bind="model.first_name" type="text" class="input is_line" placeholder="Nhập tên" />
+            <span class="icon is-left has-text-black">
+              <i class="material-icons-round is-size-6">person</i>
+            </span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="control has-icons-left">
+            <input @bind="model.phone" type="text" class="input is_line" placeholder="Nhập số điện thoại" />
+            <span class="icon is-left has-text-black">
+              <i class="material-icons-round is-size-6">phone</i>
+            </span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="control has-icons-left">
+            <input @bind="model.social" type="text" class="input is_line" placeholder="Liên hệ khác" />
+            <span class="icon is-left has-text-black">
+              <i class="material-icons-round is-size-6">share</i>
+            </span>
+          </div>
+        </div>
+
+        <div class="field has-text-weight-bold mt-5">
+          Thông tin tài khoản
+        </div>
+        <div class="field">
+          <div class="control has-icons-left">
+            <input value="@model.email" type="text" class="input is_line" readonly />
+            <span class="icon is-left has-text-black">
+              <i class="material-icons-round is-size-6">account_circle</i>
+            </span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="control has-icons-left">
+            <input @bind="password" type="text" class="input is_line" placeholder="Đổi mật khẩu" />
+            <span class="icon is-left has-text-black">
+              <i class="material-icons-round is-size-6">lock</i>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="field is-grouped is-grouped-right">
+      <div class="control">
+        <a class="button" onclick="location.reload()">
+          <span>Hủy</span>
+        </a>
+      </div>
+      <div class="control">
+        <a class="button is-link" @onclick="Update">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">done</i>
+          </span>
+          <span>Cập nhật</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  private string _title = "Thông tin tài khoản";
+  private UserModel model = new();
+  private string password = string.Empty;
+
+  protected override void OnInitialized()
+  {
+    model = Layout.User;
+  }
+
+  private async Task Update()
+  {
+    if (string.IsNullOrEmpty(model.first_name) && string.IsNullOrEmpty(model.last_name))
+      await Tagline(false, "Bạn chưa nhập họ và tên cho tài khoản!");
+    else
+    {
+      if (!string.IsNullOrEmpty(password))
+        model.password = Handled.Shared.CreateMD5(password);
+      model = await DbMainUser.Update(model);
+      await Tagline(true, "Đã cập nhật thông tin thành công!");
+    }
+  }
+
+  private bool uploading = false;
+  private async Task Upload(InputFileChangeEventArgs e)
+  {
+    uploading = true;
+    foreach (var file in e.GetMultipleFiles())
+    {
+      try
+      {
+        if (file.Size <= Layout.MaxFileSize)
+        {
+          var fileStream = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
+          model.avatar = await Files.SaveFileAsync(fileStream, file.Name);
+        }
+        else
+          await Tagline(false, $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB");
+      }
+      catch (Exception ex)
+      {
+        await Tagline(false, $"Không thể tải ảnh lên: {ex.Message}");
+      }
+    }
+    uploading = false;
+  }
+
+  private async Task Tagline(bool success, string message)
+  {
+    await JSRuntime.InvokeVoidAsync("tagline", success, message);
+  }
+}

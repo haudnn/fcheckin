@@ -1,0 +1,275 @@
+﻿@page "/"
+@layout LayoutLogin
+@inject IJSRuntime JSRuntime
+@inject ProtectedLocalStorage storage
+@inject NavigationManager navigation
+
+<div class="login_form" style="opacity: @(_loaded ? "1" : "0")">
+  <div class="logo">
+    <img src="/images/logo.png" alt="logo" />
+  </div>
+  @if (user == null)
+  {
+    <h1 class="title is-size-2">
+      Chào mừng đến với Fastdo
+    </h1>
+    <div class="font_14">
+      Tối ưu vận hành với bộ giải pháp công nghệ của Fastdo
+    </div>
+    <form @onsubmit="SignIn">
+      <div class="title is-size-5">
+        Đăng nhập
+      </div>
+      <div class="control has-icons-left">
+        <input @bind="username" type="email" class="input" placeholder="Nhập email..." />
+        <span class="icon is-left has-text-black">
+          <i class="material-icons-round is-size-6">account_circle</i>
+        </span>
+      </div>
+      <div class="control has-icons-left has-icons-right">
+        <input @bind="password" type="@(showpass ? "text" : "password")" class="input" placeholder="Nhập mật khẩu..." />
+        <span class="icon is-left has-text-black">
+          <i class="material-icons-round is-size-6">lock</i>
+        </span>
+        @if (password.Length > 0)
+        {
+          <a class="icon is-right has-text-black" @onclick="() => showpass = !showpass">
+            <i class="material-icons-round is-size-6">visibility</i>
+          </a>
+        }
+      </div>
+      <div class="control">
+        <label class="checkbox">
+          <input type="checkbox" checked />
+          <span class="is-size-7">Ghi nhớ mật khẩu</span>
+        </label>
+      </div>
+      @if (!string.IsNullOrEmpty(message))
+      {
+        <div class="has-text-danger has-text-centered is-italic mb-3">@message</div>
+      }
+      <button class="button is-link is-fullwidth mb-3" @onclick="SignIn">
+        <span class="is-size-7">Đăng nhập</span>
+      </button>
+      <a class="button is-white is-fullwidth" href="/password">
+        <span class="is-size-7">Quên mật khẩu?</span>
+      </a>
+    </form>
+    <div class="is-size-7">
+      <span class="has-text-grey">
+        Đăng ký người dùng mới?
+      </span>
+      <a class="has-text-link has-text-weight-bold" href="https://fastdo.vn/lien-he/">
+        Liên hệ ngay
+      </a>
+    </div>
+  }
+  else
+  {
+    <h1 class="title is-size-2">
+      Chào mừng! @user.FullName
+    </h1>
+    <form class="font_14">
+      <div class="has-text-weight-bold has-text-link mb-3">
+        Chọn tổ chức đăng nhập
+      </div>
+      @if (user.companys != null && user.companys.Count > 0)
+      {
+        foreach (var item in user.companys)
+        {
+          <div class="icon-text mb-3">
+            <span class="image is-32x32 mr-2">
+              <img src="/images/favicon.png" alt="icon" />
+            </span>
+            <a class="has-text-black has-text-weight-medium is-size-7" @onclick="() => GoCompany(item.id)">
+              @item.name
+            </a>
+          </div>
+        }
+      }
+      else
+      {
+        <div class="icon-text mb-3">
+          <span class="icon is-medium mr-2 has-text-grey">
+            <i class="material-icons-round is-size-2">help_center</i>
+          </span>
+          <span class="has-text-black is-size-7">
+            Không tìm thấy tổ chức của bạn
+          </span>
+        </div>
+      }
+
+      @if (user.is_customer)
+      {
+        <div class="has-text-weight-bold has-text-link mb-3">
+          Đăng nhập trang quản lý
+        </div>
+        <div class="icon-text mb-3">
+          <span class="image is-32x32 mr-2">
+            <img src="/images/favicon.png" alt="icon" />
+          </span>
+          <a class="has-text-black has-text-weight-medium is-size-7" href="/client/home">
+            Quản lý tổ chức
+          </a>
+        </div>
+      }
+
+      @if (user.is_admin)
+      {
+        <div class="has-text-weight-bold has-text-link mb-3">
+          Đăng nhập chế độ Admin
+        </div>
+        <div class="icon-text">
+          <span class="image is-32x32 mr-2">
+            <img src="/images/icon/fCMS.png" alt="icon" />
+          </span>
+          <a class="has-text-black has-text-weight-medium is-size-7" href="/admin/home">
+            Fastdo CMS
+          </a>
+        </div>
+      }
+
+      @if (!string.IsNullOrEmpty(message))
+      {
+        <div class="has-text-danger has-text-centered is-italic mt-3">@message</div>
+      }
+    </form>
+    <a class="button is-danger is-outlined is-fullwidth" @onclick="Logout">
+      <span class="icon">
+        <i class="material-icons-outlined is-size-6">logout</i>
+      </span>
+      <span class="has-text-weight-medium">Đăng xuất</span>
+    </a>
+  }
+  <div class="copyright">
+    Copyright © 2022 FASTDO
+  </div>
+</div>
+
+@code {
+  private bool _loaded = false;
+  private bool showpass = false;
+  private string message = string.Empty;
+  private string username = string.Empty;
+  private string password = string.Empty;
+  private UserModel user = null;
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    try
+    {
+      if (firstRender)
+      {
+        var userStorage = await storage.GetAsync<string>("user");
+        if (userStorage.Success && !string.IsNullOrEmpty(userStorage.Value))
+        {
+          user = await DbMainUser.GetbySession(userStorage.Value);
+          if (user != null)
+          {
+            if (!user.is_admin && !user.is_customer)
+            {
+              // Nếu không phải là admin thì chuyển đến tổ chức đầu tiên
+              if (user.companys != null && user.companys.Count == 1)
+                await GoCompany(user.companys[0].id);
+            }
+          }
+          else
+          {
+            await storage.DeleteAsync("user");
+          }
+        }
+        _loaded = true;
+        StateHasChanged();
+      }
+    }
+    catch (Exception ex)
+    {
+      await storage.DeleteAsync("user");
+      await storage.DeleteAsync("cycle");
+      await storage.DeleteAsync("company");
+      await storage.DeleteAsync("navLess");
+      await storage.DeleteAsync("filter_feedback");
+      await JSRuntime.InvokeAsync<string>("console.log", "ERROR STORAGE: " + ex.Message);
+      //navigation.NavigateTo("/", true);
+    }
+  }
+
+  private async Task SignIn()
+  {
+    user = await DbMainUser.Login(username, password);
+    if (user != null && user.active)
+    {
+      message = string.Empty;
+      // Cập nhật session login
+      user.online = DateTime.Now.Ticks;
+      user.session = Handled.Shared.CreateMD5(user.id + DateTime.Now.Year + DateTime.Now.Month);
+      await DbMainUser.Update(user);
+      await storage.SetAsync("user", user.session);
+
+      if (!user.is_admin && !user.is_customer)
+      {
+        // Nếu không phải là admin thì chuyển đến tổ chức đầu tiên
+        if (user.companys != null && user.companys.Count == 1)
+          await GoCompany(user.companys[0].id);
+      }
+    }
+    else
+    {
+      if(user == null)
+        message = "Tên đăng nhập hoặc mật khẩu không đúng !";
+      else
+        message = "Tài khoản này đã bị khóa !";
+    }
+  }
+
+  private async Task GoCompany(string companyId)
+  {
+    var company = await DbMainCompany.Get(companyId);
+    if (company != null && !company.delete)
+    {
+      // Cập nhật lại tên tổ chức
+      var item = user.companys.SingleOrDefault(x => x.id == companyId);
+      if (item != null && item.name != company.name)
+      {
+        item.name = company.name;
+        user = await DbMainUser.Update(user);
+      }
+
+      // Truy cập vào tổ chức
+      if (company.status)
+      {
+        var userInCompany = await DbUser.Get(company.id, user.id);
+        if (userInCompany != null)
+        {
+          await storage.SetAsync("company", companyId);
+
+          string link = string.IsNullOrEmpty(userInCompany.page_default) ? "/blogs" : userInCompany.page_default;
+          navigation.NavigateTo(link, true);
+          return;
+        }
+        else
+        {
+          message = $"Tài khoản của bạn không còn thuộc công ty {company.name} !";
+        }
+      }
+      else
+      {
+        message = $"Công ty {company.name} đã dừng hoạt động trên hệ thống !";
+      }
+    }
+    else
+    {
+      user.companys.RemoveAll(x => x.id == companyId);
+      user = await DbMainUser.Update(user);
+      message = "Công ty này không tồn tại trên hệ thống!";
+    }
+  }
+
+  private async Task Logout()
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn đăng xuất khỏi phần mềm ?"))
+      return;
+
+    navigation.NavigateTo("/logout", true);
+  }
+}

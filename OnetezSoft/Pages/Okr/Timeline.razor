@@ -1,0 +1,437 @@
+﻿@page "/okr/setup/timeline"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+<section class="p-4 @(_loaded ? "" : "is-loading")">
+  <div class="card p-5 p-4-mobile">
+    <ul class="columns is-vcentered is-variable is-2 is-mobile is-multiline">
+      <li class="column is-full-mobile">
+        <h1 class="title is-5 is-size-6-mobile has-text-info">
+          OKRs - TIMELINE TRIỂN KHAI
+        </h1>
+      </li>
+      <li class="column is-narrow-tablet">
+        <div class="select is-fullwidth">
+          <select @onchange="ChangeDepartment" class="is-family-code">
+            <option value="">TỔNG CÔNG TY</option>
+            @foreach (var item in departments)
+            {
+              <option value="@item.id">@item.name</option>
+            }
+          </select>
+        </div>
+      </li>
+      <li class="column is-narrow">
+        <a class="button is-link" @onclick="() => EditItem(null)">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">add</i>
+          </span>
+          <span>Thêm mới</span>
+        </a>
+      </li>
+    </ul>
+    <table class="table is-striped is-noborder is-fullwidth is-responsive mt-5">
+      <thead>
+        <tr>
+          <th>Các bước thực hiện</th>
+          <th width="40%">Chi tiết & Kết quả</th>
+          <th width="200px">Thời gian</th>
+          <th width="100px">Trạng thái</th>
+          <th width="80px" align="center">Xử lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in dataList)
+        {
+          var status = DbOkrTimeline.Status(item.status);
+
+          <tr>
+            <td>
+              @item.name
+            </td>
+            <td>
+              @if(!string.IsNullOrEmpty(item.detail))
+              {
+                <div class="is-flex">
+                  <label class="td-label is-show">Chi tiết:</label>
+                  <div class="td-value is-word-break">
+                    @((MarkupString)Shared.GetLinks(item.detail))
+                  </div>
+                </div>
+              }
+              @if(!string.IsNullOrEmpty(item.result))
+              {
+                <div class="is-flex">
+                  <label class="td-label is-show">Kết quả:</label>
+                  <div class="td-value is-word-break">
+                    @((MarkupString)Shared.GetLinks(item.result))
+                  </div>
+                </div>
+              }
+            </td>
+            <td>
+              <div class="is-flex">
+                <label class="td-label is-show">Bắt đầu:</label>
+                <div class="td-value">
+                  @string.Format("{0:HH:mm - dd/MM}", new DateTime(item.start))
+                </div>
+              </div>
+              <div class="is-flex">
+                <label class="td-label is-show">Kết thúc:</label>
+                <div class="td-value">
+                  @string.Format("{0:HH:mm - dd/MM}", new DateTime(item.end))
+                </div>
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Trạng thái</label>
+              <div class="td-value">
+                <div class="select is-small @status.color">
+                  <select @onchange="@((ChangeEventArgs e) => ChangeStatus(item, e.Value.ToString()))">
+                    @foreach (var sl in DbOkrTimeline.Status())
+                    {
+                      if (item.status == sl.id)
+                      {
+                        <option value="@sl.id" selected>@sl.name</option>
+                      }
+                      else
+                      {
+                        <option value="@sl.id">@sl.name</option>
+                      }
+                    }
+                  </select>
+                </div>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Xử lý</label>
+              <div class="td-value">
+                <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    edit
+                  </i>
+                </a>
+                <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    delete
+                  </i>
+                </a>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+@if (current != null)
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card is-medium">
+      <div class="modal-card-head">
+        <div class="modal-card-title is-uppercase">
+          @(string.IsNullOrEmpty(current.id) ? "Thêm bước thực hiện mới" : "Chỉnh sửa bước thực hiện")
+        </div>
+        <a class="delete" @onclick="() => current = null"></a>
+      </div>
+      <form @onsubmit="Update" class="modal-card-body">
+        <ul class="columns is-multiline">
+          <li class="column is-full">
+            <div class="field">
+              <label class="label">Bước thực hiện *</label>
+              <div class="control">
+                <input @bind="current.name" type="text" class="input" />
+              </div>
+            </div>
+          </li>
+          <li class="column is-half">
+            <div class="field">
+              <label class="label">Phòng ban *</label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select @bind="current.department" class="is-family-code">
+                    <option value="">TỔNG CÔNG TY</option>
+                    @foreach (var item in departments)
+                    {
+                      <option value="@item.id">@item.name</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-quarter">
+            <div class="field">
+              <label class="label">Thời gian bắt đầu *</label>
+              <div class="control has-icons-left">
+                <div class="input">
+                  <DateRangePicker SingleDatePicker="true" @bind-StartDate="StartDate"
+                                   TimePicker="true" DateFormat="HH:mm - dd/MM/yyyy" />
+                </div>
+                <span class="icon is-left">
+                  <i class="material-icons-outlined is-size-6">
+                    schedule
+                  </i>
+                </span>
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-quarter">
+            <div class="field">
+              <label class="label">Thời gian kết thúc *</label>
+              <div class="control has-icons-left">
+                <div class="input">
+                  <DateRangePicker SingleDatePicker="true" @bind-StartDate="EndDate"
+                                   TimePicker="true" DateFormat="HH:mm - dd/MM/yyyy" />
+                </div>
+                <span class="icon is-left">
+                  <i class="material-icons-outlined is-size-6">
+                    schedule
+                  </i>
+                </span>
+              </div>
+            </div>
+          </li>
+          <li class="column is-full">
+            <div class="field">
+              <label class="label">Thành phần tham dự</label>
+              <ul class="columns is-multiline is-mobile is-variable is-1">
+                <li class="column is-one-third pr-5">
+                  <div class="control has-icons-right has_suggest">
+                    <input class="input" type="text" placeholder="Chọn nhân viên..."
+                            autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
+                    <ul class="suggest">
+                      @foreach (var item in userSuggests)
+                      {
+                        <li class="rsitem" @onclick="() => UserSelected(item)">
+                          <div class="user_item">
+                            <img class="image is-24x24 mr-2" src="@item.avatar">
+                            <span>@item.FullName</span>
+                          </div>
+                        </li>
+                      }
+                    </ul>
+                    <span class="icon is-right">
+                      <i class="material-icons-outlined">search</i>
+                    </span>
+                  </div>
+                </li>
+                @foreach (var id in current.members)
+                {
+                  var user = Layout.UserList.SingleOrDefault(x => x.id == id);
+
+                  <li class="column is-narrow">
+                    <a class="image is-rounded is-32x32" @onclick="() => current.members.Remove(id)">
+                      @if (user != null)
+                      {
+                        <img src="@user.avatar" title="@user.first_name @user.last_name" />
+                      }
+                      else
+                      {
+                        <img src="/images/avatar.png" title="@id" />
+                      }
+                    </a>
+                  </li>
+                }
+              </ul>
+            </div>
+          </li>
+          <li class="column is-full">
+            <div class="field">
+              <label class="label">Chi tiết</label>
+              <div class="control">
+                <textarea @bind="current.detail" type="text" class="textarea" rows="3" />
+              </div>
+            </div>
+          </li>
+          <li class="column is-full">
+            <div class="field">
+              <label class="label">Kết quả</label>
+              <div class="control">
+                <textarea @bind="current.result" type="text" class="textarea" rows="3" />
+              </div>
+            </div>
+          </li>
+        </ul>
+
+        <div class="field">
+          <div class="buttons is-right">
+            <a class="button" @onclick="() => current = null">
+              Hủy
+            </a>
+            <a class="button is-link" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">done</i>
+              </span>
+              <span>Cập nhật</span>
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "OKRs - Timeline triển khai";
+
+  private List<TimelineModel> dataList = new();
+  private TimelineModel current = null;
+  private DateTimeOffset? StartDate { get; set; }
+  private DateTimeOffset? EndDate { get; set; }
+
+  private List<UserModel> userSuggests = new();
+  private string filterUserName = string.Empty;
+
+  private List<DepartmentModel.SelectList> departments = new();
+  private string filterDepartment = string.Empty;
+
+  protected override async Task OnInitializedAsync()
+  {
+    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+    await Search();
+  }
+
+  private async Task Search()
+  {
+    _loaded = false;
+    dataList = await DbOkrTimeline.GetList(Layout.Company.id, Layout.CycleId, filterDepartment);
+    _loaded = true;
+  }
+
+  private async Task ChangeStatus(TimelineModel item, string status)
+  {
+    item.status = Convert.ToInt32(status);
+    await DbOkrTimeline.Update(Layout.Company.id, item);
+  }
+
+  private async Task DeleteItem(TimelineModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+      return;
+
+    if (await DbOkrTimeline.Delete(Layout.Company.id, item.id))
+    {
+      dataList.Remove(item);
+    }
+    else
+    {
+      _message = "Không thể xóa mục này, vui lòng thử lại";
+      _success = false;
+    }
+  }
+
+  private void EditItem(TimelineModel item)
+  {
+    if (item == null)
+    {
+      current = new()
+      {
+        members = new(),
+        cycle = Layout.CycleId,
+        department = filterDepartment,
+        start = Convert.ToDateTime(DateTime.Now.ToShortDateString()).AddHours(8).Ticks,
+        end = Convert.ToDateTime(DateTime.Now.ToShortDateString()).AddHours(9).Ticks,
+      };
+    }
+    else
+    {
+      current = item;
+      if (current.members == null)
+        current.members = new();
+
+    }
+    StartDate = new DateTime(current.start);
+    EndDate = new DateTime(current.end);
+  }
+
+  private async Task ChangeDepartment(ChangeEventArgs e)
+  {
+    filterDepartment = e.Value.ToString();
+    await Search();
+  }
+
+  private string UserSearch
+  {
+    get => filterUserName;
+    set
+    {
+      filterUserName = value;
+      userSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in Layout.UserList)
+        {
+          bool check = true;
+          if (!string.IsNullOrEmpty(current.department))
+            if (item.departments_id == null || !item.departments_id.Contains(current.department))
+              check = false;
+          if (!Handled.Shared.SearchKeyword(filterUserName, item.first_name + item.last_name))
+            check = false;
+          if (check)
+            userSuggests.Add(item);
+        }
+      }
+    }
+  }
+
+  private void UserSelected(UserModel item)
+  {
+    if (!current.members.Contains(item.id))
+      current.members.Add(item.id);
+  }
+
+  private async Task Update()
+  {
+    _success = false;
+    _message = string.Empty;
+
+    if (string.IsNullOrEmpty(current.name) || StartDate == null || EndDate == null)
+    {
+      _message = "Nhập các trường bắt buộc (*)";
+
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else
+    {
+      current.start = StartDate.Value.DateTime.Ticks;
+      current.end = EndDate.Value.DateTime.Ticks;
+
+      if (string.IsNullOrEmpty(current.id))
+      {
+        // Create new Timeline
+        await DbOkrTimeline.Create(Layout.Company.id, current);
+      }
+      else
+      {
+        // Update Timeline
+        await DbOkrTimeline.Update(Layout.Company.id, current);
+      }
+
+      current = null;
+
+      await Search();
+    }
+  }
+}

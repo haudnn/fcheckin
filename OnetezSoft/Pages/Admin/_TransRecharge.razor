@@ -1,0 +1,266 @@
+@inject IJSRuntime JSRuntime
+
+@if (members != null)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card is-medium has_bg">
+      <section class="modal-card-head is-danger" 
+        style="background-image: url('/images/illustrations/addmoney.png')">
+        <div class="modal-card-title">
+          <div class="title">
+            Hệ thống nạp tiền
+          </div>
+          <div class="subtitle">
+            Nạp tiền thủ công cho khách hàng của Fastdo
+          </div>
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body pb-0">
+        <ul class="columns is-vcentered is-multiline is-variable is-2 mb-4">
+          <li class="column">
+            <h1 class="title is-5">
+              Danh sách khách hàng
+            </h1>
+          </li>
+          <li class="column is-narrow">
+            <div class="control has-icons-left" style="width: 200px;" title="Nhấn Enter để tìm">
+              <input @bind="keyword" @onkeyup="ChangeKeyword" type="text" class="input is-small"
+              placeholder="Email, họ và tên khách hàng" />
+              <span class="icon is-left has-text-dark">
+                <i class="material-icons-round is-size-6">search</i>
+              </span>
+            </div>
+          </li>
+        </ul>
+
+        <table class="table is-fullwidth is-vcentered is-responsive is-hoverable is_head_bg is-size-7">
+          <thead>
+            <tr>
+              <th width="45px;">
+                <a class="icon has-text-dark" @onclick="CheckAll">
+                  <i class="material-icons-round is-size-5">
+                    @(checkList.Count == members.Count ? "check_box" : "check_box_outline_blank")
+                  </i>
+                </a>
+              </th>
+              <th>Tài khoản</th>
+              <th width="15%">Số điện thoại</th>
+              <th width="20%">Số dư tài khoản</th>
+              <th width="140px" align="right">Lần truy cập cuối</th>
+            </tr>
+          </thead>
+          <tbody class="has-text-weight-medium">
+            @foreach (var item in members)
+            {
+              <tr>
+                <td>
+                  <a class="icon has-text-dark" @onclick="() => CheckItem(item.id)">
+                    <i class="material-icons-round is-size-5">
+                      @(checkList.Contains(item.id) ? "check_box" : "check_box_outline_blank")
+                    </i>
+                  </a>
+                </td>
+                <td>
+                  <div class="user_item has-text-dark">
+                    <img class="image is-32x32 mr-2" src="@item.avatar" alt="IMG" />
+                    <div>
+                      <p>@item.email</p>
+                      <p>@item.FullName</p>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span>@item.phone</span>
+                </td>
+                <td>
+                  <span>@string.Format("{0:0,0} VNĐ", item.balance)</span>
+                </td>
+                <td align="right">
+                  <span>@Handled.Shared.ConvertDate(new DateTime(item.online))</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <div class="field is-grouped">
+          <div class="control pl-3">
+            <div class="icon-text">
+              <span class="icon">
+                <i class="material-icons-round is-size-5">
+                  @(checkList.Count > 0 ? "check_box" : "check_box_outline_blank")
+                </i>
+              </span>
+              <span class="is-size-7">@checkList.Count khách hàng được chọn</span>
+            </div>
+          </div>
+          <div class="control">
+            <span class="is-size-5 has-text-grey-lighter">|</span>
+          </div>
+          <div class="control has-icons-left" style="width: 130px;">
+            <input @bind="moneyFormat" @bind:event="oninput" class="input is_line" type="text"
+              placeholder="Nhập số tiền nạp">
+            <span class="icon is-left has-text-black">
+              <i class="material-icons-round is-size-6">account_balance_wallet</i>
+            </span>
+          </div>
+          <div class="control">
+            <span class="is-size-5 has-text-grey-lighter">|</span>
+          </div>
+          <div class="control is-expanded has-icons-left">
+            <input @bind="content" class="input is_line" type="text" placeholder="Nhập ghi chú">
+            <span class="icon is-left has-text-black">
+              <i class="material-icons-round is-size-6">note_add</i>
+            </span>
+          </div>
+        </div>
+      </section>
+      <section class="modal-card-foot is-right">
+        <label class="has-text-weight-semibold has-text-danger">@message</label>
+        <a class="button" @onclick="Cancel">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">chevron_left</i>
+          </span>
+          <span class="is-size-7">Trở về</span>
+        </a>
+        <a class="button is-link" @onclick="Update">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">done</i>
+          </span>
+          <span class="is-size-7">Xác nhận</span>
+        </a>
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  [Parameter]
+  public List<UserModel> members { get; set; }
+  [Parameter]
+  public EventCallback<int> OnUpdate { get; set; }
+
+  private int money = 0;
+  private string content = string.Empty;
+  private string keyword = string.Empty;
+  private string message = string.Empty;
+  private List<string> checkList = new();
+
+  private string moneyFormat
+  {
+    get => money > 10 ? money.ToString("0,0") : money > 0 ? money.ToString() : "";
+    set
+    {
+      if (Int32.TryParse(value.Replace(",", ""), out int parse))
+        money = parse;
+      else
+        money = 0;
+    }
+  }
+
+  private void Reset()
+  {
+    money = 0;
+    content = string.Empty;
+    keyword = string.Empty;
+    message = string.Empty;
+    checkList = new();
+  }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(0);
+    Reset();
+  }
+
+  private async Task Update()
+  {
+    if (Validation())
+    {
+      int count = 0;
+      foreach (var id in checkList)
+      {
+        var customer = await DbMainUser.Get(id);
+        if (customer != null)
+        {
+          var transaction = new TransactionModel()
+          {
+            customer = UserService.ConvertToMember(customer),
+            creator = UserService.ConvertToMember(Layout.User),
+            money = money,
+            balance = customer.balance + money,
+            content = "Fastdo nạp tiền vào tài khoản.",
+            status = 2,
+            type = 2
+          };
+          if (!string.IsNullOrEmpty(content))
+            transaction.content += "<br/>Ghi chú: " + content;
+          await DbMainTransaction.Create(transaction);
+
+          // Cập nhật số dư tài khoản
+          customer.balance += money;
+          await DbMainUser.Update(customer);
+          count++;
+        }
+      }
+      await OnUpdate.InvokeAsync(count);
+      Reset();
+    }
+  }
+
+  private bool Validation()
+  {
+    if (checkList.Count == 0)
+      message = "Bạn chưa chọn khách hàng.";
+    else if (money <= 0)
+      message = "Bạn chưa nhập số tiền nạp.";
+    else
+      return true;
+    return false;
+  }
+
+  private void ChangeKeyword(KeyboardEventArgs args)
+  {
+    if (args.Key == "Enter")
+    {
+      if (string.IsNullOrEmpty(keyword))
+      {
+        members = DbMainUser.GetListCustomer();
+      }
+      else
+      {
+        members = new();
+        foreach (var item in DbMainUser.GetListCustomer())
+        {
+          if (Handled.Shared.SearchKeyword(keyword, item.email + item.FullName) || checkList.Contains(item.id))
+            members.Add(item);
+        }
+      }
+    }
+    else if (args.Key == "Escape")
+    {
+      keyword = string.Empty;
+      members = DbMainUser.GetListCustomer();
+    }
+  }
+
+  private void CheckItem(string id)
+  {
+    if (checkList.Contains(id))
+      checkList.Remove(id);
+    else
+      checkList.Add(id);
+  }
+
+  private void CheckAll()
+  {
+    if (checkList.Count < members.Count)
+      checkList = members.Select(x => x.id).ToList();
+    else
+      checkList = new();
+  }
+}

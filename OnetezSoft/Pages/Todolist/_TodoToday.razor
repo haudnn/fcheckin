@@ -1,0 +1,634 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+<div class="card p-5 @(_loaded ? "" : "is-loading")">
+  <ul class="columns is-vcentered is-variable is-2 mb-3">
+    <li class="column">
+      <h1 class="title is-5 has-text-info mb-1">
+        TODOLIST CỦA TÔI
+      </h1>
+      <div class="is-italic has-text-link is-size-7">
+        Lựa chọn ngày phù hợp và tạo list công việc
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <div class="field has-addons">
+        <div class="control">
+          <a class="button is-link">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">calendar_today</i>
+            </span>
+          </a>
+        </div>
+        <div class="control is-expanded" style="width: 100px;">
+          <div class="input is-link">
+            <DateRangePicker SingleDatePicker="true" @bind-StartDate="todoDate"
+                             OnSelectionStart="DateTodoChange" />
+          </div>
+        </div>
+        <div class="control">
+          <a class="button is-link is-outlined" @onclick="() => DateTodoNavi(false)">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">chevron_left</i>
+            </span>
+          </a>
+        </div>
+        <div class="control">
+          <a class="button is-link is-outlined" @onclick="() => DateTodoNavi(true)">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">chevron_right</i>
+            </span>
+          </a>
+        </div>
+      </div>
+    </li>
+  </ul>
+  <table class="table is-vcentered is-group2 is-fullwidth is-responsive mb-3">
+    <thead>
+      <tr>
+        <th>
+          Danh sách công việc
+        </th>
+        <th width="140px">
+          Phân loại
+        </th>
+        <th width="140px">
+          Độ ưu tiên
+        </th>
+        <th width="100px" align="center">
+          Bắt đầu
+        </th>
+        <th width="100px" align="center">
+          Kết thúc
+        </th>
+        <th width="100px" align="center">
+          Tình trạng
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var item in current.todos)
+      {
+        var status = DbTodolist.Status(item.status);
+        if (editList.Contains(item.id))
+        {
+          <tr>
+            <td>
+              @if (item.confirm)
+              {
+                <input id="todo_@item.id" @bind="item.name" class="input" type="text" placeholder="Nhập tên công việc" readonly />
+              }
+              else
+              {
+                <input id="todo_@item.id" @bind="item.name" class="input" type="text" placeholder="Nhập tên công việc" />
+              }
+            </td>
+            <td>
+              <label class="td-label">Phân loại</label>
+              <div class="td-value">
+                <div class="select is-fullwidth">
+                  <select @bind="item.type">
+                    @foreach (var sl in DbTodolist.Type())
+                    {
+                      <option value="@sl.id">@sl.name</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Độ ưu tiên</label>
+              <div class="td-value">
+                <div class="select is-fullwidth">
+                  <select @bind="item.level">
+                    @foreach (var sl in DbTodolist.Level())
+                    {
+                      <option value="@sl.id">@sl.name</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Bắt đầu</label>
+              <div class="td-value">
+                <div class="select is-fullwidth">
+                  <select @onchange="@((ChangeEventArgs e) => ChangeTime(item, e.Value.ToString()))">
+                    @foreach (var sl in Shared.TimeList())
+                    {
+                      if (item.start == sl.name)
+                      {
+                        <option value="@sl.name" selected>@sl.name</option>
+                      }
+                      else
+                      {
+                        <option value="@sl.name">@sl.name</option>
+                      }
+                    }
+                  </select>
+                </div>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Kết thúc</label>
+              <div class="td-value">
+                <div class="select is-fullwidth">
+                  <select @bind="item.end">
+                    @foreach (var sl in Shared.TimeList())
+                    {
+                      <option value="@sl.name">@sl.name</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Tình trạng</label>
+              <div class="td-value">
+                <div class="dropdown is-hoverable">
+                  <div class="dropdown-trigger">
+                    <a class="button is-rounded @status.color px-2" style="width: 90px;">
+                      <span>@status.name</span>
+                      <span class="icon is-small">
+                        <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                      </span>
+                    </a>
+                  </div>
+                  <div class="dropdown-menu">
+                    <div class="dropdown-content">
+                      @foreach (var sl in DbTodolist.Status())
+                      {
+                        <a class="dropdown-item" @onclick="() => ChangeStatus(item, sl.id)">
+                          @sl.name
+                        </a>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="3">
+              <div class="is-flex">
+                <label class="td-label is-show">Chi tiết:</label>
+                <div class="td-value">
+                  <textarea @bind="item.detail" class="textarea" rows="2" placeholder="Nhập chi tiết công việc..." />
+                </div>
+              </div>
+              <div class="is-flex">
+                <label class="td-label is-show">Kết quả:</label>
+                <div class="td-value">
+                  <textarea @bind="item.result" class="textarea" rows="2" placeholder="Nhập kết quả công việc..." />
+                </div>
+              </div>
+            </td>
+            <td colspan="3" valign="bottom">
+              <div class="has-text-right">
+                <a class="icon-text has-text-link mr-3" @onclick="() => UpdateItem(item)">
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">update</i>
+                  </span>
+                  <span>Cập nhật</span>
+                </a>
+                @if (!item.confirm)
+                {
+                  <a class="icon-text has-text-danger" @onclick="() => DeleteItem(item)">
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">delete</i>
+                    </span>
+                    <span>Xóa</span>
+                  </a>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+        else
+        {
+          var type = DbTodolist.Type(item.type);
+          var level = DbTodolist.Level(item.level);
+          <tr>
+            <td>
+              <span class="has-text-weight-semibold has-text-link">@item.name</span>
+            </td>
+            <td>
+              <label class="td-label">Phân loại</label>
+              <div class="td-value">
+                <span class="has-text-weight-semibold @type.color">@type.name</span>
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Độ ưu tiên</label>
+              <div class="td-value">
+                <span class="has-text-weight-semibold @level.color">@level.name</span>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Bắt đầu</label>
+              <div class="td-value">
+                @item.start
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Kết thúc</label>
+              <div class="td-value">
+                @item.end
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Tình trạng</label>
+              <div class="td-value">
+                @if (current.status < 3)
+                {
+                  <div class="dropdown is-hoverable">
+                    <div class="dropdown-trigger">
+                      <a class="button is-rounded @status.color px-2 is-small" style="width: 90px;">
+                        <span>@status.name</span>
+                        <span class="icon is-small">
+                          <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                        </span>
+                      </a>
+                    </div>
+                    <div class="dropdown-menu">
+                      <div class="dropdown-content">
+                        @foreach (var sl in DbTodolist.Status())
+                        {
+                          <a class="dropdown-item" @onclick="() => ChangeStatus(item, sl.id)">
+                            @sl.name
+                          </a>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+                else
+                {
+                  <a class="button is-rounded @status.color px-2 is-small" style="width: 90px;">
+                    <span>@status.name</span>
+                  </a>
+                }
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="3">
+              @if (!string.IsNullOrEmpty(item.detail))
+              {
+                <div class="is-flex">
+                  <label class="td-label is-show">Chi tiết:</label>
+                  <div class="td-value is-word-break">
+                    <div class="text_2_line" onclick="toggleText(this)">
+                      @((MarkupString)Shared.GetLinks(item.detail))
+                    </div>
+                  </div>
+                </div>
+              }
+              @if (!string.IsNullOrEmpty(item.result))
+              {
+                <div class="is-flex">
+                  <label class="td-label is-show">Kết quả:</label>
+                  <div class="td-value is-word-break">
+                    <div class="text_2_line" onclick="toggleText(this)">
+                      @((MarkupString)Shared.GetLinks(item.result))
+                    </div>
+                  </div>
+                </div>
+              }
+            </td>
+            <td colspan="3" valign="bottom">
+              @if (current.status < 3)
+              {
+                <div class="has-text-right">
+                  <a class="icon-text has-text-link mr-3" @onclick="() => EditItem(item.id)">
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">edit</i>
+                    </span>
+                    <span>Chỉnh sửa</span>
+                  </a>
+                  @if (!item.confirm)
+                  {
+                    <a class="icon-text has-text-danger" @onclick="() => DeleteItem(item)">
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">delete</i>
+                      </span>
+                      <span>Xóa</span>
+                    </a>
+                  }
+                </div>
+              }
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+  <div class="field is-grouped is-grouped-multiline">
+    <div class="control is-expanded has-text-weight-semibold has-text-link">
+      @if (current.todos.Count == 0 && current.status < 3)
+      {
+        <div>
+          Bạn chưa công việc cho ngày @string.Format("{0:dd/MM}", new DateTime(current.date)). 
+          Hãy bắt đầu tạo công việc thôi nào!
+        </div>
+      }
+      else if (current.status < 3)
+      {
+        var done = current.todos.Where(x => x.status == 4).Count();
+        if (done < current.todos.Count)
+        {
+          <div>Tôi biết bạn sẽ làm tốt mà. Hãy hoàn thành thật sớm nhé!</div>
+        }
+        else
+        {
+          <div>Quá tuyệt vời, bạn đã hoàn thành Todolist của hôm nay :)</div>
+        }
+      }
+      else
+      {
+        var done = current.todos.Where(x => x.status == 4).Count();
+        <div>Đã hoàn thành @string.Format("{0}/{1}", done, current.todos.Count) công việc.</div>
+      }
+    </div>
+    @if (current.status < 3)
+    {
+      <div class="control">
+        <a class="button is-info" @onclick="AddItem">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">add</i>
+          </span>
+          <span>Thêm công việc</span>
+        </a>
+      </div>
+    }
+    @if (current.status < 2 && current.todos.Count > 0)
+    {
+      <div class="control">
+        <a class="button is-link" @onclick="Checkin">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">logout</i>
+          </span>
+          <span>Check-in</span>
+        </a>
+      </div>
+    }
+    @if (current.status == 2)
+    {
+      <div class="control">
+        <a class="button is-danger" @onclick="Checkout">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">done</i>
+          </span>
+          <span>Check-out</span>
+        </a>
+      </div>
+    }
+  </div>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  [Parameter]
+  public UserModel User { get; set; }
+
+  [Parameter]
+  public string Day { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+
+  private TodolistModel current = new() { todos = new() };
+  private List<string> editList = new();
+  DateTimeOffset? todoDate { get; set; }
+
+  protected override async Task OnInitializedAsync()
+  {
+    todoDate = string.IsNullOrEmpty(Day) ? Convert.ToDateTime(DateTime.Now.ToShortDateString()) : Convert.ToDateTime(Day);
+    await Start();
+  }
+
+  private async Task DateTodoChange(DateTimeOffset date)
+  {
+    todoDate = date;
+    navigation.NavigateTo("/todolist/" + todoDate.Value.DateTime.ToString("yyyy-MM-dd"), false);
+    await Start();
+  }
+
+  private async Task DateTodoNavi(bool next)
+  {
+    todoDate = todoDate.Value.DateTime.AddDays(next ? 1 : -1);
+    navigation.NavigateTo("/todolist/" + todoDate.Value.DateTime.ToString("yyyy-MM-dd"), false);
+    await Start();
+  }
+
+
+  private async Task Start()
+  {
+    _loaded = false;
+
+    editList.Clear();
+    current = await DbTodolist.GetbyDay(Layout.Company.id, Layout.User.id, todoDate.Value.DateTime);
+    if (current == null)
+    {
+      current = new TodolistModel();
+      current.date = todoDate.Value.DateTime.Ticks;
+      current.user_create = Layout.User.id;
+      current = await DbTodolist.Create(Layout.Company.id, current);
+    }
+
+    _loaded = true;
+  }
+
+
+  private async Task AddItem()
+  {
+    string start = "08:30";
+    string end = "09:30";
+    if (todoDate.Value.DateTime.ToString("yyyy-MM-dd") == DateTime.Now.ToString("yyyy-MM-dd"))
+    {
+      start = string.Format("{0:HH:30}", DateTime.Now);
+      end = string.Format("{0:HH:30}", DateTime.Now.AddHours(1));
+    }
+
+    var item = new TodolistModel.Todo()
+      {
+        id = Mongo.RandomId(),
+        type = 1,
+        level = 1,
+        status = 1,
+        start = start,
+        end = end
+      };
+    current.todos.Add(item);
+    editList.Add(item.id);
+    await JSRuntime.InvokeVoidAsync("setFocus", "todo_" + item.id);
+  }
+
+  private void ChangeTime(TodolistModel.Todo item, string time)
+  {
+    item.start = time;
+    item.end = time;
+  }
+
+  private async Task ChangeStatus(TodolistModel.Todo item, int status)
+  {
+    item.status = status;
+    current = await DbTodolist.Update(Layout.Company.id, current);
+  }
+
+  private async Task EditItem(string id)
+  {
+    editList.Add(id);
+    await JSRuntime.InvokeVoidAsync("setFocus", "todo_" + id);
+  }
+
+  private async Task DeleteItem(TodolistModel.Todo item)
+  {
+    if (current.status < 2 || !item.confirm)
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {item.name}?"))
+        return;
+
+      current.todos.Remove(item);
+      current = await DbTodolist.Update(Layout.Company.id, current);
+    }
+    else
+    {
+      _success = false;
+      _message = "Không thể xóa công việc đã Check-in !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+  }
+
+  private async Task UpdateItem(TodolistModel.Todo item)
+  {
+    _success = false;
+    _message = string.Empty;
+    if (string.IsNullOrEmpty(item.name))
+    {
+      _message = "Bạn chưa nhập tên công việc !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else if (string.IsNullOrEmpty(item.name.Trim()))
+    {
+      _message = "Bạn chưa nhập tên công việc !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else if (string.IsNullOrEmpty(item.start) || string.IsNullOrEmpty(item.start))
+    {
+      _message = "Bạn chưa nhập thời gian thực hiện !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else
+    {
+      item.name = item.name.Trim();
+      current.todos = current.todos.OrderBy(x => x.start).ToList();
+      current = await DbTodolist.Update(Layout.Company.id, current);
+      editList.Remove(item.id);
+    }
+  }
+
+  private async Task Checkin()
+  {
+    _success = false;
+    _message = string.Empty;
+
+    if (current.todos.Count == 0)
+    {
+      _message = "Bạn không có công việc để Check-in !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else if (CheckConditionItem(current.todos) == false)
+    {
+      _message = "Có công việc chưa nhập tên công việc !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn đã tạo xong và muốn nộp TodoList lên quản lý ?"))
+        return;
+
+      current.todos = current.todos.OrderBy(x => x.start).ToList();
+      current.day_off = DbDayOff.CheckOff(Layout.DaysOff, new DateTime(current.date));
+      current.date_checkin = DateTime.Now.Ticks;
+      current.status = 2;
+      current = await DbTodolist.Update(Layout.Company.id, current);
+      editList.Clear();
+    }
+  }
+
+  private async Task Checkout()
+  {
+    _success = false;
+    _message = string.Empty;
+    if (current.date > Convert.ToDateTime(DateTime.Now.ToShortDateString()).Ticks)
+    {
+      _message = "Chưa đến thời điểm Check-out !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else if (current.todos.Count == 0)
+    {
+      _message = "Bạn không có công việc để Check-out !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else if (current.todos.Where(x => x.status == 1).Count() > 0)
+    {
+      _message = "Không thể Check-out khi có công việc đang ở trạng thái Todo!";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else if (CheckConditionItem(current.todos) == false)
+    {
+      _message = "Có công việc chưa nhập tên công việc hoặc thời gian thực hiện !";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Sau khi Check-out bạn không thể chỉnh sửa Todolist.\nBạn có chắc muốn check-out ?"))
+        return;
+
+      current.todos = current.todos.OrderBy(x => x.start).ToList();
+      current.date_checkout = DateTime.Now.Ticks;
+      current.status = 3;
+      current = await DbTodolist.Update(Layout.Company.id, current);
+      editList.Clear();
+
+      // Tính thành tựu
+      await DbTodolist.Achievement(Layout.Company.id, current.user_create);
+    }
+  }
+
+  private bool CheckConditionItem(List<TodolistModel.Todo> todos)
+  {
+    foreach (var item in todos)
+    {
+      if (string.IsNullOrEmpty(item.name) || string.IsNullOrEmpty(item.name.Trim()))
+        return false;
+      else if (string.IsNullOrEmpty(item.start) || string.IsNullOrEmpty(item.start))
+        return false;
+    }
+    return true;
+  }
+}

@@ -1,0 +1,154 @@
+@inject NavigationManager navigation
+
+<section class="p-4">
+  <div class="columns is-vcentered">
+    <div class="column has-text-weight-bold">
+      <div class="field is-grouped is-multiline">
+        @foreach (var item in breadcrumb)
+        {
+          <div class="control mr-1">
+            @if (item.Key.StartsWith("#"))
+            {
+              <span class="icon-text has-text-info">
+                <span>@item.Value</span>
+                @if (item.Key != "#")
+                {
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">chevron_right</i>
+                  </span>
+                }
+              </span>
+            }
+            else
+            {
+              <a class="icon-text has-text-info" href="@item.Key">
+                <span>@item.Value</span>
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">chevron_right</i>
+                </span>
+              </a>
+            }
+          </div>
+        }
+      </div>
+    </div>
+    <div class="column is-narrow">
+      <a class="icon-text is-size-7">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">notifications_active</i>
+        </span>
+        <span>Thông báo</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  private Dictionary<string, string> breadcrumb = new();
+
+  protected override void OnParametersSet()
+  {
+    breadcrumb.Clear();
+    var url = navigation.Uri.Replace(navigation.BaseUri, "");
+
+    if (url.StartsWith("admin/feedback"))
+    {
+      if (url.StartsWith("admin/feedback/"))
+      {
+        breadcrumb.Add("/admin/feedback", "Góp ý hệ thống");
+        breadcrumb.Add("#", "Chi tiết góp ý");
+      }
+      else
+      {
+        breadcrumb.Add("#", "Góp ý hệ thống");
+      }
+    }
+    else if (url.StartsWith("admin/customers"))
+    {
+      if (url.StartsWith("admin/customers/"))
+      {
+        breadcrumb.Add("/admin/customers", "Quản lý khách hàng");
+        breadcrumb.Add("#", "Thông tin khách hàng");
+      }
+      else
+      {
+        breadcrumb.Add("#", "Quản lý khách hàng");
+      }
+    }
+    else if (url.StartsWith("admin/company"))
+    {
+      var id = url.Replace("admin/company/", "").Replace("/products", "").Replace("/users", "");
+      var company = DbMainCompany.GetById(id);
+      breadcrumb.Add("/admin/customers", "Quản lý khách hàng");
+      if (company != null)
+        breadcrumb.Add("/admin/customers/" + company.admin_id, "Thông tin khách hàng");
+      else
+        breadcrumb.Add("#customers", "Thông tin khách hàng");
+      breadcrumb.Add("#", "Thông tin tổ chức");
+    }
+    else if (url.StartsWith("admin/transactions"))
+    {
+      if (url.StartsWith("admin/transactions/requests"))
+      {
+        breadcrumb.Add("/admin/transactions", "Quản lý giao dịch");
+        breadcrumb.Add("#", "Yêu cầu nạp tiền");
+      }
+      else if (url.StartsWith("admin/transactions/purchase"))
+      {
+        breadcrumb.Add("/admin/transactions", "Quản lý giao dịch");
+        breadcrumb.Add("#", "Lệnh mua sản phẩm");
+      }
+      else if (url.StartsWith("admin/transactions/recharge"))
+      {
+        breadcrumb.Add("/admin/transactions", "Quản lý giao dịch");
+        breadcrumb.Add("#", "Nạp tiền");
+      }
+      else if (url.StartsWith("admin/transactions/cashout"))
+      {
+        breadcrumb.Add("/admin/transactions", "Quản lý giao dịch");
+        breadcrumb.Add("#", "Rút tiền");
+      }
+      else
+      {
+        breadcrumb.Add("#", "Quản lý giao dịch");
+      }
+    }
+    else if (url.StartsWith("admin/config"))
+    {
+      if (url.StartsWith("admin/config/products"))
+      {
+        breadcrumb.Add("/admin/config", "Cấu hình hệ thống");
+        breadcrumb.Add("#", "Sản phẩm");
+      }
+      else if (url.StartsWith("admin/config/promotions"))
+      {
+        breadcrumb.Add("/admin/config", "Cấu hình hệ thống");
+        breadcrumb.Add("#", "Ưu đãi");
+      }
+      else if (url.StartsWith("admin/config/users"))
+      {
+        breadcrumb.Add("/admin/config", "Cấu hình hệ thống");
+        breadcrumb.Add("#", "Tài khoản admin");
+      }
+      else if (url.StartsWith("admin/config/banner"))
+      {
+        breadcrumb.Add("/admin/config", "Cấu hình hệ thống");
+        breadcrumb.Add("#", "Banner quảng cáo");
+      }
+      else
+      {
+        breadcrumb.Add("#", "Cấu hình hệ thống");
+      }
+    }
+    else if (url.StartsWith("admin/user/info"))
+    {
+      breadcrumb.Add("#", "Thông tin tài khoản");
+    }
+    else if(Layout.User != null)
+    {
+      breadcrumb.Add("#", "Chào, " + Layout.User.FullName);
+    }
+  }
+}

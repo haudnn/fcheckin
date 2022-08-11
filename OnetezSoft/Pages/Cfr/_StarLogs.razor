@@ -1,0 +1,206 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="card p-5">
+  <ul class="columns is-multiline is-mobile is-vcentered is-variable is-2">
+    <li class="column is-full">
+      <h1 class="title is-5 has-text-info">
+        NHẬT KÝ
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <div class="tabs is-small">
+        <ul class="font_14">
+          <li class="@(logsTab == 2 ? "is-active" : "")">
+            <a @onclick="() => ChangeTab(2)">GHI NHẬN</a>
+          </li>
+          <li class="@(logsTab == 3 ? "is-active" : "")">
+            <a @onclick="() => ChangeTab(3)">TẶNG SAO</a>
+          </li>
+        </ul>
+      </div>
+    </li>
+    <li class="column has-text-right">
+      <div class="dropdown is-hoverable is-right">
+        <div class="dropdown-trigger">
+          <a class="icon-text">
+            <span class="has-text-link">
+              @(logsDay == 2 ? "Tháng này" : logsDay == 3 ? "Quý này" : "Tất cả")
+            </span>
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item" @onclick="() => ChangeDay(2)">
+              Tháng này
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeDay(3)">
+              Quý này
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeDay(0)">
+              Tất cả
+            </a>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-narrow has-text-right" style="width: 100px;">
+      <div class="dropdown is-hoverable is-right">
+        <div class="dropdown-trigger">
+          <a class="icon-text">
+            <span class="has-text-link">
+              @(logsReceive ? "Đã nhận" : "Đã gửi")
+            </span>
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item" @onclick="() => ChangeReceive(true)">
+              Đã nhận
+            </a>
+            <a class="dropdown-item" @onclick="() => ChangeReceive(false)">
+              Đã gửi
+            </a>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-full">
+      <div class="scrolly" style="height: 490px;">
+        <ul class="columns is-multiline is-variable is-2">
+          @foreach (var item in logList)
+          {
+            var create = Layout.UserList.SingleOrDefault(x => x.id == item.user_create);
+            var receive = Layout.UserList.SingleOrDefault(x => x.id == item.user_receive);
+
+            <li class="column is-full">
+              <hr class="mt-0 mb-3" />
+              @if (create != null)
+              {
+                <div class="user_item mb-2">
+                  <img class="image is-36x36 mr-2" src="@create.avatar" alt="IMG">
+                  <div>
+                    <p class="has-text-weight-medium has-text-info">
+                      <span class="mr-2">@create.FullName</span>
+                    </p>
+                    <p class="text_1_line is-size-7" style="width: 250px;">
+                      @create.departments_name
+                    </p>
+                  </div>
+                </div>
+              }
+              @if (receive != null)
+              {
+                <div class="user_item mb-3 pl-6" style="background: url(/images/arrow_sub.png) 20px 0px no-repeat;">
+                  <img class="image is-36x36 mr-2" src="@receive.avatar" alt="IMG">
+                  <div>
+                    <p class="has-text-weight-medium has-text-info">@receive.FullName</p>
+                    <p class="text_1_line is-size-7" style="width: 250px;">
+                      @receive.departments_name
+                    </p>
+                  </div>
+                </div>
+              }
+
+              @if (!string.IsNullOrEmpty(item.evaluate_name))
+              {
+                <h3 class="title is-6 has-text-info mb-2">
+                  @item.evaluate_name
+                </h3>
+              }
+              <div class="text_3_line mb-2" onclick="toggleText(this)">
+                @((MarkupString)Shared.GetLinks(item.content))
+              </div>
+              <div class="field is-grouped">
+                <div class="control">
+                  <span class="icon-text">
+                    <span class="has-text-weight-semibold">@item.star</span>
+                    <span class="icon">
+                      <i class="material-icons-outlined has-text-warning">star</i>
+                    </span>
+                  </span>
+                </div>
+                @if (logsTab == 2)
+                {
+                  <div class="control">•</div>
+                  <div class="control has-text-weight-semibold text_1_line" style="max-width: 280px;">
+                    @if (string.IsNullOrEmpty(item.okr_name))
+                    {
+                      <span>Tất cả OKRs</span>
+                    }
+                    else
+                    {
+                      <span>@item.okr_name</span>
+                    }
+                  </div>
+                }
+                <div class="control">•</div>
+                <div class="control">
+                  @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date_create))
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+      </div>
+    </li>
+  </ul>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<DepartmentModel.SelectList> departments { get; set; }
+
+  private int logsTab = 2;
+  private int logsDay = 2;
+  private bool logsReceive = true;
+  private List<OkrCfrModel> logList = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    await Start();
+  }
+
+  private async Task ChangeTab(int type)
+  {
+    logsTab = type;
+    await Start();
+  }
+
+  private async Task ChangeDay(int type)
+  {
+    logsDay = type;
+    await Start();
+  }
+
+  private async Task ChangeReceive(bool value)
+  {
+    logsReceive = value;
+    await Start();
+  }
+
+  private async Task Start()
+  {
+    DateTime? logsStart = null;
+    DateTime? logsEnd = null;
+    if (logsDay != 0)
+    {
+      Shared.GetTimeSpan(logsDay, out DateTime start, out DateTime end);
+      logsStart = start;
+      logsEnd = end;
+    }
+
+    if (logsReceive)
+      logList = await DbOkrCfr.GetListReceive(Layout.Company.id, Layout.User.id, logsTab, logsStart, logsEnd);
+    else
+      logList = await DbOkrCfr.GetListGive(Layout.Company.id, Layout.User.id, logsTab, logsStart, logsEnd);
+  }
+}
