@@ -65,7 +65,8 @@
     <li class="column is-narrow">
       <div class="control has-icons-left" style="width: 180px;">
         <div class="input is-small">
-          <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE" OnRangeSelect="FilterDates" />
+          <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE" OnRangeSelect="FilterDates"
+            Opens="SideType.Left" />
         </div>
         <span class="icon is-left has-text-grey">
           <i class="material-icons-round is-size-6">calendar_today</i>
@@ -74,69 +75,71 @@
     </li>
   </ul>
   
-  <table class="table is-fullwidth is-vcentered is-hoverable is_head_bg is-size-7">
-    <thead>
-      <tr>
-        <th width="10%">Mã giao dịch</th>
-        <th width="10%">Thời gian</th>
-        <th width="10%">Loại giao dịch</th>
-        <th width="12%">Số tiền</th>
-        <th>Nội dung</th>
-        <th width="12%">Số dư còn lại</th>
-        <th width="10%">Trạng thái</th>
-      </tr>
-    </thead>
-    <tbody class="has-text-weight-medium">
-      @foreach (var item in dataList)
-      {
-        var status = TransactionService.Status(item.status);
-        var type = TransactionService.Type(item.type);
+  <div style="min-height: 250px;">
+    <table class="table is-fullwidth is-vcentered is-hoverable is_head_bg is-size-7">
+      <thead>
         <tr>
-          <td>
-            <span>@item.id</span>
-          </td>
-          <td>
-            <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))</span>
-          </td>
-          <td>
-            @if(item.type == 2)
-            {
-              <span>Hệ thống @(item.money > 0 ? "nạp" : "rút")</span>
-            }
-            else 
-            {
-              <span>@type.name</span>
-            }
-          </td>
-          <td>
-            <span class="has-text-weight-bold has-text-@(item.money > 0 ? "success" : "danger")">
-              @string.Format("{0:0,0} VNĐ", item.money)
-            </span>
-          </td>
-          <td>
-            @((MarkupString)Shared.TextToHtml(item.content))
-          </td>
-          <td>
-            <span class="has-text-weight-bold">@string.Format("{0:0,0} VNĐ", item.balance)</span>
-          </td>
-          <td>
-            <span class="icon-text @status.color">
-              <span class="icon is-small mr-2">
-                <i class="material-icons-round is-size-6">@status.icon</i>
-              </span>
-              <span>@status.name</span>
-            </span>
-          </td>
+          <th width="10%">Mã giao dịch</th>
+          <th width="10%">Thời gian</th>
+          <th width="10%">Loại giao dịch</th>
+          <th width="12%">Số tiền</th>
+          <th>Nội dung</th>
+          <th width="12%">Số dư còn lại</th>
+          <th width="10%">Trạng thái</th>
         </tr>
-      }
-    </tbody>
-  </table>
-  @if (dataList.Count == 0)
-  {
-    <div class="has-text-grey has-text-centered py-5">
-      Không tìm thấy dữ liệu phù hợp
-    </div>
-  }
+      </thead>
+      <tbody class="has-text-weight-medium">
+        @foreach (var item in dataList)
+        {
+          var status = TransactionService.Status(item.status);
+          var type = TransactionService.Type(item.type);
+          <tr>
+            <td>
+              <span>@item.id</span>
+            </td>
+            <td>
+              <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))</span>
+            </td>
+            <td>
+              @if(item.type == 2)
+              {
+                <span>Hệ thống @(item.money > 0 ? "nạp" : "rút")</span>
+              }
+              else 
+              {
+                <span>@type.name</span>
+              }
+            </td>
+            <td>
+              <span class="has-text-weight-bold has-text-@(item.money > 0 ? "success" : "danger")">
+                @string.Format("{0:0,0} VNĐ", item.money)
+              </span>
+            </td>
+            <td>
+              @((MarkupString)Shared.TextToHtml(item.content))
+            </td>
+            <td>
+              <span class="has-text-weight-bold">@string.Format("{0:0,0} VNĐ", item.balance)</span>
+            </td>
+            <td>
+              <span class="icon-text @status.color">
+                <span class="icon is-small mr-2">
+                  <i class="material-icons-round is-size-6">@status.icon</i>
+                </span>
+                <span>@status.name</span>
+              </span>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (dataList.Count == 0)
+    {
+      <div class="has-text-grey has-text-centered py-5">
+        Không tìm thấy dữ liệu phù hợp
+      </div>
+    }
+  </div>
 </section>
 
 @code {
