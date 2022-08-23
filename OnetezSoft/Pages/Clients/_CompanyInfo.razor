@@ -5,8 +5,8 @@
 {
   var link = $"/client/companys/{company.id}/products";
   <div class="card_corp p-4 is-size-7 has-text-dark has-text-weight-medium">
-    <div class="columns @(company.status ? "" : "is_opacity")">
-      <div class="column is-narrow">
+    <div class="columns">
+      <div class="column is-narrow @(company.status ? "" : "is_opacity")">
         <a class="image is-40x40" href="@link">
           @if (!string.IsNullOrEmpty(company.logo))
           {
@@ -18,7 +18,7 @@
           }
         </a>
       </div>
-      <div class="column is-narrow" style="width: 45%;">
+      <div class="column is-narrow @(company.status ? "" : "is_opacity")" style="width: 45%;">
         <a class="title is-5 mb-0" href="@link">
           @company.name
         </a>
@@ -62,60 +62,70 @@
       </div>
       <div class="column">
         <div class="level mb-1">
-          <div class="level-left">
+          <div class="level-left @(company.status ? "" : "is_opacity")">
             <div class="has-text-weight-bold">
               Thông tin tổ chức
-              @if(!company.status)
-              {
-                <span class="has-text-danger">(Dừng hoạt động)</span>
-              }
             </div>
           </div>
           <div class="level-right">
-            <a class="icon-text has-text-dark" href="@link">
-              <span class="icon">
-                <i class="material-icons-round is-size-6">link</i>
-              </span>
-              <span>Truy cập sản phẩm</span>
-            </a>
+            @if(company.status)
+            {
+              <a class="icon-text has-text-dark" href="@link">
+                <span class="icon">
+                  <i class="material-icons-round is-size-6">link</i>
+                </span>
+                <span>Truy cập sản phẩm</span>
+              </a>
+            }
+            else
+            {
+              <a class="icon-text has-text-link" @onclick="() => verify = company">
+                <span class="icon">
+                  <i class="material-icons-round is-size-6">done</i>
+                </span>
+                <span>Kích hoạt tổ chức</span>
+              </a>
+            }
           </div>
         </div>
-        <div class="icon-text mb-1">
-          <span class="icon is-small mr-3">
-            <i class="material-icons-round is-size-6">call</i>
-          </span>
-          <span>@company.phone</span>
-        </div>
-        <div class="icon-text mb-1">
-          <span class="icon is-small mr-3">
-            <i class="material-icons-round is-size-6">email</i>
-          </span>
-          <span>@company.email</span>
-        </div>
-        <div class="icon-text mb-1">
-          <span class="icon is-small mr-3">
-            <i class="material-icons-round is-size-6">place</i>
-          </span>
-          <span>@company.address</span>
-        </div>
-        @if(!string.IsNullOrEmpty(company.website))
-        {
+        <div class="@(company.status ? "" : "is_opacity")">
           <div class="icon-text mb-1">
             <span class="icon is-small mr-3">
-              <i class="material-icons-round is-size-6">language</i>
+              <i class="material-icons-round is-size-6">call</i>
             </span>
-            <span>@company.website</span>
+            <span>@company.phone</span>
           </div>
-        }
-        @if(!string.IsNullOrEmpty(company.note))
-        {
-          <div class="has-text-weight-bold">
-            Mô tả thêm
+          <div class="icon-text mb-1">
+            <span class="icon is-small mr-3">
+              <i class="material-icons-round is-size-6">email</i>
+            </span>
+            <span>@company.email</span>
           </div>
-          <div class="text_inline">@company.note</div>
-        }
+          <div class="icon-text mb-1">
+            <span class="icon is-small mr-3">
+              <i class="material-icons-round is-size-6">place</i>
+            </span>
+            <span>@company.address</span>
+          </div>
+          @if(!string.IsNullOrEmpty(company.website))
+          {
+            <div class="icon-text mb-1">
+              <span class="icon is-small mr-3">
+                <i class="material-icons-round is-size-6">language</i>
+              </span>
+              <span>@company.website</span>
+            </div>
+          }
+          @if(!string.IsNullOrEmpty(company.note))
+          {
+            <div class="has-text-weight-bold">
+              Mô tả thêm
+            </div>
+            <div class="text_inline">@company.note</div>
+          }
+        </div>
       </div>
-      <div class="column is-narrow">
+      <div class="column is-narrow @(company.status ? "" : "is_opacity")">
         <a class="icon has-text-dark" @onclick="EditCompany" title="Chỉnh sửa">
           <i class="material-icons-round is-size-5">edit</i>
         </a>
@@ -123,7 +133,8 @@
     </div>
   </div>
 
-  <_CompanyEdit model="model" OnUpdate="OnUpdateCompany" />
+  <_CompanyEdit model="model" OnUpdate="OnUpdate" />
+  <_CompanyVerify model="verify" OnUpdate="OnVerify" />
 }
 
 @code {
@@ -135,6 +146,7 @@
   public List<ProductModel> products { get; set; }
 
   private CompanyModel model = null;
+  private CompanyModel verify = null;
 
   private async Task EditCompany()
   {
@@ -142,7 +154,7 @@
     await JSRuntime.InvokeVoidAsync("textAutoSize", "note");
   }
 
-  private async Task OnUpdateCompany(bool isUpdate)
+  private async Task OnUpdate(bool isUpdate)
   {
     if (isUpdate)
     {
@@ -150,5 +162,15 @@
       company = await DbMainCompany.Get(company.id);
     }
     model = null;
+  }
+
+  private async Task OnVerify(bool isUpdate)
+  {
+    if (isUpdate)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xác minh tổ chức thành công!");
+      company = await DbMainCompany.Get(company.id);
+    }
+    verify = null;
   }
 }

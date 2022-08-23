@@ -8,7 +8,7 @@
       <section class="modal-card-head is-success" style="background-image: url('/images/illustrations/org.png')">
         <div class="modal-card-title">
           <div class="title has-text-white">
-            @(string.IsNullOrEmpty(model.id) ? "Tạo" : "Thông tin") tổ chức
+            @(create ? "Tạo" : "Thông tin") tổ chức
           </div>
           <div class="subtitle has-text-white">
             Tổ chức dùng để quản lý các tài khoản người dùng
@@ -20,31 +20,7 @@
       </section>
       <section class="modal-card-body" style="min-height: 350px;">
         <div class="columns is-multiline">
-          @if (!create)
-          {
-            <div class="column is-2">
-              <ul class="steps py-1">
-                <li class="step-item">
-                  <span class="step-marker"></span>
-                </li>
-                <li class="step-item">
-                  <span class="step-marker"></span>
-                </li>
-                <li class="step-item">
-                  <span class="step-marker"></span>
-                </li>
-                <li class="step-item is-active">
-                  <span class="step-marker"></span>
-                </li>
-              </ul>
-            </div>
-            <div class="column is-10">
-              <span class="has-text-weight-bold">
-                Thông tin tổ chức
-              </span>
-            </div>
-          }
-          else
+          @if (create)
           {
             <div class="column is-narrow" style="width: 164px;">
               <ul class="steps py-1">
@@ -79,6 +55,30 @@
               {
                 <span class="has-text-success">Hoàn tất</span>
               }
+            </div>
+          }
+          else
+          {
+            <div class="column is-narrow" style="width: 164px;">
+              <ul class="steps py-1">
+                <li class="step-item">
+                  <span class="step-marker"></span>
+                </li>
+                <li class="step-item">
+                  <span class="step-marker"></span>
+                </li>
+                <li class="step-item">
+                  <span class="step-marker"></span>
+                </li>
+                <li class="step-item is-active">
+                  <span class="step-marker"></span>
+                </li>
+              </ul>
+            </div>
+            <div class="column has-text-weight-bold">
+              <span class="has-text-weight-bold">
+                Thông tin tổ chức
+              </span>
             </div>
           }
           <div class="column is-full p-0"></div>
@@ -159,7 +159,7 @@
                   </div>
                   <div class="field">
                     <div class="control has-icons-left">
-                      <input @bind="model.name" type="text" class="input is_line" placeholder="Tên tổ chức" />
+                      <input @bind="model.name" type="text" class="input is_line" placeholder="Tên tổ chức (*)" />
                       <span class="icon is-left has-text-black">
                         <i class="material-icons-round is-size-6">business</i>
                       </span>
@@ -167,7 +167,7 @@
                   </div>
                   <div class="field">
                     <div class="control has-icons-left">
-                      <input @bind="model.address" type="text" class="input is_line" placeholder="Địa chỉ" />
+                      <input @bind="model.address" type="text" class="input is_line" placeholder="Địa chỉ (*)" />
                       <span class="icon is-left has-text-black">
                         <i class="material-icons-round is-size-6">place</i>
                       </span>
@@ -181,7 +181,7 @@
                   </div>
                   <div class="field">
                     <div class="control has-icons-left">
-                      <input @bind="model.phone" type="text" class="input is_line" placeholder="Số điện thoại người đại diện" />
+                      <input @bind="model.phone" type="text" class="input is_line" placeholder="Số điện thoại người đại diện (*)" />
                       <span class="icon is-left has-text-black">
                         <i class="material-icons-round is-size-6">call</i>
                       </span>
@@ -189,7 +189,7 @@
                   </div>
                   <div class="field">
                     <div class="control has-icons-left">
-                      <input @bind="model.email" type="email" class="input is_line" placeholder="Địa chỉ email tổ chức" />
+                      <input @bind="model.email" type="email" class="input is_line" placeholder="Địa chỉ email tổ chức (*)" />
                       <span class="icon is-left has-text-black">
                         <i class="material-icons-round is-size-6">email</i>
                       </span>
@@ -216,7 +216,7 @@
                   </div>
                 </div>
               }
-              else if(step == 3)
+              else if (step == 3 && create)
               {
                 <div class="column is-full">
                   <div class="field has-text-weight-bold has-text-link">
@@ -224,7 +224,7 @@
                   </div>
                   <div class="has-text-weight-medium">
                     Mã xác thực đã được gửi vào email cá nhân của bạn.
-                    Vui lòng kiểm tra và nhập mã xác thực để hoàn thành thao tác. Mã xác thực tồn tại trong 5 phút.
+                    Vui lòng kiểm tra và nhập mã xác thực để hoàn thành thao tác.
                   </div>
                   <div class="has-text-weight-medium is-italic">
                     <span>Email không nhận được mã xác thực?</span>
@@ -240,7 +240,7 @@
                   </div>
                 </div>
               }
-              else if(step == 4)
+              else if (step == 4 && create)
               {
                 <div class="column is-full">
                   <div class="field has-text-weight-bold">
@@ -255,22 +255,7 @@
         </div>
       </section>
       <section class="modal-card-foot is-right">
-        @if (!string.IsNullOrEmpty(model.id))
-        {
-          <a class="button" @onclick="Cancel">
-            <span class="icon">
-              <i class="material-icons-round is-size-6">chevron_left</i>
-            </span>
-            <span class="is-size-7">Trở về</span>
-          </a>
-          <a class="button is-link" @onclick="Update">
-            <span class="icon">
-              <i class="material-icons-round is-size-6">done</i>
-            </span>
-            <span class="is-size-7">Cập nhật</span>
-          </a>
-        }
-        else
+        @if(create)
         {
           if (step < 4)
           {
@@ -295,13 +280,28 @@
               </span>
               <span class="is-size-7">Đến cửa hàng</span>
             </a>
-            <a class="button is-link" @onclick="Create">
+            <a class="button is-link" href="/client/companys/@model.id/products">
               <span class="is-size-7">Truy cập tổ chức</span>
               <span class="icon">
                 <i class="material-icons-round is-size-6">chevron_right</i>
               </span>
             </a>
           }
+        }
+        else
+        {
+          <a class="button" @onclick="Cancel">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">chevron_left</i>
+            </span>
+            <span class="is-size-7">Trở về</span>
+          </a>
+          <a class="button is-link" @onclick="Update">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">done</i>
+            </span>
+            <span class="is-size-7">Cập nhật</span>
+          </a>
         }
       </section>
     </section>
@@ -353,6 +353,10 @@
 
   private async Task Cancel()
   {
+    // Xóa tổ chức nếu chưa xác thực
+    if(create && !model.status && !string.IsNullOrEmpty(model.id))
+      await DbMainCompany.Delete(model.id);
+
     await OnUpdate.InvokeAsync(false);
     Reset();
   }
@@ -469,6 +473,8 @@
       message = "Bạn chưa nhập Số điện thoại người đại diện.";
     else if (string.IsNullOrEmpty(model.email) || string.IsNullOrEmpty(model.email.Trim()))
       message = "Bạn chưa nhập email tổ chức.";
+    else if (!model.email.Contains("@"))
+      message = "Email tổ chức không đúng định dạng.";
     else
       return true;
     return false;

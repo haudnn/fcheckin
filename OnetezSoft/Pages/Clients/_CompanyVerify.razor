@@ -1,0 +1,163 @@
+﻿@inject IJSRuntime JSRuntime
+
+@if (model != null)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card has_bg is-small">
+      <section class="modal-card-head is-success" style="background-image: url('/images/illustrations/org.png')">
+        <div class="modal-card-title">
+          <div class="title has-text-white">
+            Xác thực tổ chức
+          </div>
+          <div class="subtitle has-text-white">
+            Tổ chức dùng để quản lý các tài khoản người dùng
+            <br />
+            sử dụng sản phẩm của Fastdo.
+          </div>
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body" style="min-height: 350px;">
+        <div class="columns is-multiline">
+          <div class="column is-narrow" style="width: 164px;">
+            <ul class="steps py-1">
+              <li class="step-item">
+                <span class="step-marker"></span>
+              </li>
+              <li class="step-item">
+                <span class="step-marker"></span>
+              </li>
+              <li class="step-item @(!model.status ? "is-active" : "")">
+                <span class="step-marker"></span>
+              </li>
+              <li class="step-item @(model.status ? "is-active" : "")">
+                <span class="step-marker"></span>
+              </li>
+            </ul>
+          </div>
+          <div class="column has-text-weight-bold">
+            <span class="has-text-weight-bold">
+              Thông tin tổ chức
+            </span>
+          </div>
+          <div class="column is-full p-0"></div>
+          <div class="column is-full">
+            <div class="columns is-multiline">
+              @if (model.status)
+              {
+                <div class="column is-full">
+                  <div class="field has-text-weight-bold">
+                    Tổ chức được xác thực thành công.
+                    <br>
+                    Hãy mua sản phẩm Fastdo và trải nghiệm nhé!
+                  </div>
+                </div>
+              }
+              else
+              {
+                <div class="column is-full">
+                  <div class="field has-text-weight-bold has-text-link">
+                    Xác thực qua email
+                  </div>
+                  <div class="has-text-weight-medium">
+                    Mã xác thực đã được gửi vào email cá nhân của bạn.
+                    Vui lòng kiểm tra và nhập mã xác thực để hoàn thành thao tác.
+                  </div>
+                  <div class="has-text-weight-medium is-italic">
+                    <span>Email không nhận được mã xác thực?</span>
+                    <a class="has-text-warning has-text-weight-semibold" href="https://fastdo.vn/lien-he/">Yêu cầu hỗ trợ</a>
+                  </div>
+                  <div class="py-6">
+                    <input @bind="verify" class="input_code has-text-danger" type="text"
+                         maxlength="6" placeholder="______">
+                  </div>
+                  <div class="has-text-weight-medium is-italic">
+                    <span>Không nhận được mã xác thực?</span>
+                    <a class="has-text-link has-text-weight-semibold" @onclick="Verify">Thử lại</a>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="modal-card-foot is-right">
+        @if (model.status)
+        {
+          <a class="button" href="/client/products">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">shopping_bag</i>
+            </span>
+            <span class="is-size-7">Đến cửa hàng</span>
+          </a>
+          <a class="button is-link" href="/client/companys/@model.id/products">
+            <span class="is-size-7">Truy cập tổ chức</span>
+            <span class="icon">
+              <i class="material-icons-round is-size-6">chevron_right</i>
+            </span>
+          </a>
+        }
+        else
+        {
+          <a class="button" @onclick="Cancel">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">chevron_left</i>
+            </span>
+            <span class="is-size-7">Trở về</span>
+          </a>
+          <a class="button is-link" @onclick="Active">
+            <span class="is-size-7">Xác thực</span>
+            <span class="icon">
+              <i class="material-icons-round is-size-6">chevron_right</i>
+            </span>
+          </a>
+        }
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  [Parameter]
+  public CompanyModel model { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+  private string message = string.Empty;
+  private string verify = string.Empty;
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+  }
+
+  private async Task<bool> Verify()
+  {
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email xác nhận...");
+
+    model.status = false;
+    model.verify = Shared.RandomInt(100000, 999999).ToString();
+    await DbMainCompany.Update(model);
+
+    bool send = EmailService.CompanyActive(Layout.User.email, model.verify, out message);
+    await JSRuntime.InvokeVoidAsync("tagline", send, message);
+    return send;
+  }
+
+  private async Task Active()
+  {
+    if (string.IsNullOrEmpty(verify))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập mã xác thực.");
+    else if (verify != model.verify)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Mã xác thực không chính xác.");
+    else
+    {
+      model.status = true;
+      await DbMainCompany.Update(model);
+      return;
+    }
+  }
+}

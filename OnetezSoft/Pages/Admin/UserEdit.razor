@@ -73,9 +73,17 @@
         </div>
         <div class="field">
           <div class="control has-icons-left">
-            <input @bind="password" type="text" class="input is_line" placeholder="Đổi mật khẩu" />
+            <input @bind="passwordOld" type="text" class="input is_line" placeholder="Nhập mật khẩu cũ" />
             <span class="icon is-left has-text-black">
               <i class="material-icons-round is-size-6">lock</i>
+            </span>
+          </div>
+        </div>
+        <div class="field">
+          <div class="control has-icons-left">
+            <input @bind="passwordNew" type="text" class="input is_line" placeholder="Nhập mật khẩu mới" />
+            <span class="icon is-left has-text-black">
+              <i class="material-icons-round is-size-6">enhanced_encryption</i>
             </span>
           </div>
         </div>
@@ -104,7 +112,8 @@
   public LayoutAdmin Layout { get; set; }
   private string _title = "Thông tin tài khoản";
   private UserModel model = new();
-  private string password = string.Empty;
+  private string passwordOld = string.Empty;
+  private string passwordNew = string.Empty;
 
   protected override void OnInitialized()
   {
@@ -117,10 +126,22 @@
       await Tagline(false, "Bạn chưa nhập họ và tên cho tài khoản!");
     else
     {
-      if (!string.IsNullOrEmpty(password))
-        model.password = Handled.Shared.CreateMD5(password);
-      model = await DbMainUser.Update(model);
-      await Tagline(true, "Đã cập nhật thông tin thành công!");
+      if (!string.IsNullOrEmpty(passwordNew))
+      {
+        if (model.password == Handled.Shared.CreateMD5(passwordOld))
+        {
+          model.password = Handled.Shared.CreateMD5(passwordNew);
+          model = await DbMainUser.Update(model);
+          await Tagline(true, "Đã cập nhật thông tin thành công!");
+        }
+        else
+          await Tagline(false, "Mật khẩu cũ không chính xác!");
+      }
+      else
+      {
+        model = await DbMainUser.Update(model);
+        await Tagline(true, "Đã cập nhật thông tin thành công!");
+      }
     }
   }
 
