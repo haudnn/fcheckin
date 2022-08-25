@@ -54,22 +54,6 @@
       <li class="column is-narrow">
         <div class="control has-icons-left">
           <div class="select is-small has-text-weight-medium">
-            <select @onchange="FilterRole">
-              <option value="0">Quyền hạn</option>
-              @foreach (var sl in DbUser.Role())
-              {
-                <option value="@sl.id">@sl.name</option>
-              }
-            </select>
-          </div>
-          <span class="icon is-left has-text-dark">
-            <i class="material-icons-round is-size-6">filter_list</i>
-          </span>
-        </div>
-      </li>
-      <li class="column is-narrow">
-        <div class="control has-icons-left">
-          <div class="select is-small has-text-weight-medium">
             <select @onchange="FilterStatus">
               <option value="0">Trạng thái</option>
               <option value="1">Đang hoạt động</option>
@@ -98,8 +82,7 @@
           <div class="select is-small has-text-weight-medium">
             <select @onchange="ChangeSort">
               <option value="">Sắp xếp</option>
-              <option value="role">Quyền hạn</option>
-              <option value="online">Truy cập</option>
+              <option value="online">Mới truy cập</option>
               <option value="name">Tên tài khoản</option>
             </select>
           </div>
@@ -114,7 +97,6 @@
       <thead>
         <tr>
           <th width="25%">Tài khoản</th>
-          <th>Quyền hạn</th>
           @foreach (var product in company.products.Where(x => x.active))
           {
             <th width="120px">
@@ -138,13 +120,6 @@
                   <p>@item.FullName</p>
                 </div>
               </a>
-            </td>
-            <td>
-              @if (item.role != 3)
-              {
-                var role = DbUser.Role(item.role);
-                <span class="tag @role.color">@role.name</span>
-              }
             </td>
             @foreach (var product in company.products.Where(x => x.active))
             {
@@ -239,12 +214,6 @@ else
     await GetList();
   }
 
-  private async Task FilterRole(ChangeEventArgs e)
-  {
-    filterRole = Convert.ToInt32(e.Value);
-    await GetList();
-  }
-
   private async Task FilterStatus(ChangeEventArgs e)
   {
     filterStatus = Convert.ToInt32(e.Value);
@@ -279,10 +248,8 @@ else
       dataList = dataList.Where(x => x.role == filterRole).ToList();
     if (filterSort == "online")
       dataList = dataList.OrderByDescending(x => x.online).ToList();
-    else if (filterSort == "name")
-      dataList = dataList.OrderBy(x => x.first_name).ToList();
     else
-      dataList = dataList.OrderBy(x => x.role).ToList();
+      dataList = dataList.OrderBy(x => x.first_name).ToList();
   }
 
   private async Task AccessProduct(UserModel item, CompanyModel.Product product)

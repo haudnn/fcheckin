@@ -89,5 +89,18 @@ namespace OnetezSoft.Services
       
       return SendMail(email, title, content, null, out msg);
     }
+
+
+    /// <summary>
+    /// Gửi email thông báo tạo tài khoản
+    /// </summary>
+    public static bool UserInfo(string email, string password, out string msg)
+    {
+      string title = "Thông tin tài khoản FASTDO";
+      string content = $"<div>Tên đăng nhập: {email}</div>";
+      content += $"<div>Mật khẩu: {password}</div>";
+      
+      return SendMail(email, title, content, null, out msg);
+    }
   }
 }

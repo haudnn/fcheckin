@@ -34,12 +34,36 @@
       </div>
     </div>
     <div class="column is-narrow">
-      <a class="icon-text is-size-7" title="Thông báo">
-        <span class="icon">
-          <i class="material-icons-round is-size-6">notifications_active</i>
-        </span>
-        <span>Thông báo</span>
-      </a>
+      <div class="dropdown is-right @(show_noti ? "is-active" : "")">
+        <div class="dropdown-trigger">
+          <a class="icon-text is-size-7" title="Thông báo" @onclick="() => show_noti = !show_noti">
+            <span class="icon @(has_noti > 0 ? "has_noti" : "")">
+              <i class="material-icons-round is-size-6">notifications_active</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu" style="width: 332px;">
+          <div class="card header_noti">
+            <div class="card-header">
+              <div class="card-header-title">Thông báo Fastdo</div>
+            </div>
+            <div class="card-content">
+              @foreach (var item in notiList)
+              {
+                <div class="px-4 py-2">
+                  <a class="is-block mb-1 font_13 has-text-@(item.read ? "dark" : "link")"
+                    @onclick="() => ViewNoti(item)">
+                    @((MarkupString)item.name)
+                  </a>
+                  <span class="is-size-7 has-text-grey">
+                    @string.Format("{0:HH:mm - dd/MM/yyyy}", new DateTime(item.date))
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="column is-narrow">
       <a class="icon-text is-size-7">
@@ -50,12 +74,12 @@
       </a>
     </div>
     <div class="column is-narrow">
-      <a class="icon-text is-size-7">
+      <span class="icon-text is-size-7">
         <span class="icon">
           <i class="material-icons-round is-size-6">paid</i>
         </span>
-        <span>Số dư: <b>@Shared.ConvertCurrency(Layout.User.balance) VNĐ</b></span>
-      </a>
+        <span>Số dư: <b>@Shared.ConvertCurrency(User.balance) VNĐ</b></span>
+      </span>
     </div>
     <div class="column is-narrow">
       <a class="button is-small is-link" style="height: 24px;" @onclick="() => step = 1">
@@ -126,7 +150,7 @@
                   <i class="material-icons-round is-size-6">note_add</i>
                 </span>
                 <span class="has-text-weight-semibold font_14">
-                  @Layout.User.email chuyen khoan thanh toan Fastdo
+                  @User.email chuyen khoan thanh toan Fastdo
                 </span>
               </div>
             </div>
@@ -151,7 +175,7 @@
           <div class="field">
             <label class="label">Nội dung chuyển khoản</label>
             <div class="control has-text-weight-semibold font_14">
-              @Layout.User.email chuyen khoan thanh toan Fastdo
+              @User.email chuyen khoan thanh toan Fastdo
             </div>
           </div>
         }
@@ -197,9 +221,12 @@
   [CascadingParameter]
   public LayoutAdmin Layout { get; set; }
   private Dictionary<string, string> breadcrumb = new();
-
+  private UserModel User  = new();
   private int step = 0;
   private int money = 0;
+  private List<NotifyModel> notiList = new();
+  private int has_noti = 0;
+  private bool show_noti = false;
 
   private string moneyFormat
   {
@@ -212,47 +239,34 @@
         money = 0;
     }
   }
-  
-  private void Cancel()
-  {
-    step = 0;
-    money = 0;
-  }
 
-  private async Task Update()
+  protected override void OnInitialized()
   {
-    if(money <= 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa nhập số tiền cần nạp");
-    else
+    MessagingCenter.Subscribe<Pages.Clients._ProductRenew, string>(this, "header_" + Layout.User.id, async (sender, value) =>
     {
-      var customer = await DbMainUser.Get(Layout.User.id);
-      if (customer != null)
-      {
-        var transaction = new TransactionModel()
-        {
-          customer = UserService.ConvertToMember(customer),
-          creator = UserService.ConvertToMember(customer),
-          balance = customer.balance,
-          money = money,
-          content = "Nạp tiền vào tài khoản Fastdo",
-          status = 1,
-          type = 1
-        };
-        await DbMainTransaction.Create(transaction);
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã gửi yêu cầu nạp tiền, số dư sẽ được cộng sau khi yêu cầu được phê duyệt");
-        
-        if(navigation.Uri.Contains("/client/transactions"))
-          navigation.NavigateTo("/client/transactions", true);
-        else
-          Cancel();
-      }
-      else
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Tài khoản khách hàng không tồn tại.");
-    }
+      User = await DbMainUser.Get(value);
+      InvokeAsync(StateHasChanged); 
+    });
+    MessagingCenter.Subscribe<Pages.Clients._ProductUpgrade, string>(this, "header_" + Layout.User.id, async (sender, value) =>
+    {
+      User = await DbMainUser.Get(value);
+      InvokeAsync(StateHasChanged); 
+    });
+    MessagingCenter.Subscribe<Pages.Clients._ProductBuy, string>(this, "header_" + Layout.User.id, async (sender, value) =>
+    {
+      User = await DbMainUser.Get(value);
+      InvokeAsync(StateHasChanged); 
+    });
   }
 
-  protected override void OnParametersSet()
+  protected override async Task OnParametersSetAsync()
   {
+    User = await DbMainUser.Get(Layout.User.id);
+
+    notiList = await DbMainNotify.GetList(Layout.User.id);
+    has_noti = notiList.Where(x => !x.read).Count();
+    show_noti = false;
+
     breadcrumb.Clear();
     var url = navigation.Uri.Replace(navigation.BaseUri, "");
 
@@ -291,9 +305,51 @@
       else
         breadcrumb.Add("#", "Cửa hàng Fastdo");
     }
-    else if(Layout.User != null)
+    else if(User != null)
     {
-      breadcrumb.Add("#", "Chào, " + Layout.User.FullName);
+      breadcrumb.Add("#", "Chào, " + User.FullName);
+    }
+  }
+
+   private async Task ViewNoti(NotifyModel item)
+  {
+    show_noti = false;
+    item.read = true;
+    await DbMainNotify.Update(item);
+    if (!string.IsNullOrEmpty(item.link))
+      navigation.NavigateTo(item.link, false);
+  }
+  
+  private void Cancel()
+  {
+    step = 0;
+    money = 0;
+  }
+
+  private async Task Update()
+  {
+    if(money <= 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa nhập số tiền cần nạp");
+    else
+    {
+      User = await DbMainUser.Get(User.id);
+      var transaction = new TransactionModel()
+      {
+        customer = UserService.ConvertToMember(User),
+        creator = UserService.ConvertToMember(User),
+        balance = User.balance,
+        money = money,
+        content = "Nạp tiền vào tài khoản Fastdo",
+        status = 1,
+        type = 1
+      };
+      await DbMainTransaction.Create(transaction);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã gửi yêu cầu nạp tiền, số dư sẽ được cộng sau khi yêu cầu được phê duyệt");
+      
+      if(navigation.Uri.Contains("/client/transactions"))
+        navigation.NavigateTo("/client/transactions", true);
+      else
+        Cancel();
     }
   }
 }

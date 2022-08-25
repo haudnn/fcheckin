@@ -22,7 +22,8 @@ namespace OnetezSoft.Data
         model.avatar = $"https://avatars.dicebear.com/api/micah/{model.id}.svg?background=grey";
 
       model.email = model.email.Trim().ToLower();
-      model.password = Handled.Shared.CreateMD5(model.password);
+      model.password = string.IsNullOrEmpty(model.password) ? 
+        Handled.Shared.CreateMD5(model.id) : Handled.Shared.CreateMD5(model.password);
       model.create_date = DateTime.Now.Ticks;
       model.active = true;
       model.delete = false;
@@ -71,6 +72,7 @@ namespace OnetezSoft.Data
             user.companys = model.companys;
             user.online = model.online;
             user.avatar = model.avatar;
+            user.balance = model.balance;
             //user.phone = model.phone;
             //user.first_name = model.first_name;
             //user.last_name = model.last_name;
@@ -191,7 +193,7 @@ namespace OnetezSoft.Data
       else if (status == 2) // Khóa
         filtered = filtered & builder.Eq("active", false);
 
-      var sorted = Builders<UserModel>.Sort.Descending("last_name");
+      var sorted = Builders<UserModel>.Sort.Descending("first_name");
 
       var list = collection.Find(filtered).Sort(sorted).ToList();
 

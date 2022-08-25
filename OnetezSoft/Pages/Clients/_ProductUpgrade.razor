@@ -126,7 +126,7 @@
                   </div>
                 }
                 <div class="has-text-grey has-text-weight-medium is-size-7 pt-2 is-italic">
-                  Số lượng nhân sự của tổ chức: @company.members
+                  Số lượng nhân sự của tổ chức: @company.members (gói hiện tại: @model.total người dùng)
                 </div>
               </div>
 
@@ -317,8 +317,10 @@
         await DbMainTransaction.Create(transaction);
 
         // Cập nhật số dư
-        customer.balance -= money;
+        customer.balance -= price;
         await DbMainUser.Update(customer);
+
+        MessagingCenter.Send(this, "header_" + Layout.User.id, Layout.User.id);
 
         step = 3;
         return;

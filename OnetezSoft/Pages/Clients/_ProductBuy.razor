@@ -116,7 +116,7 @@
                       <div class="dropdown is-fullwidth @(toggleStaff ? "is-active" : "")">
                         <div class="dropdown-trigger" @onclick="() => toggleStaff = !toggleStaff">
                           <input value="@staff" @onchange="ChangeStaff" type="number" 
-                              class="input is_line font_14" min="1" />
+                              class="input is_line font_14" min="1" step="1" />
                           <span class="icon is-left has-text-black">
                             <i class="material-icons-round is-size-6">person_add</i>
                           </span>
@@ -158,7 +158,7 @@
                       <div class="dropdown is-fullwidth @(toggleMonth ? "is-active" : "")">
                         <div class="dropdown-trigger" @onclick="() => toggleMonth = !toggleMonth">
                           <input value="@month" @onchange="ChangeMonth" type="number" 
-                              class="input is_line font_14" min="1" />
+                              class="input is_line font_14" min="1" step="1" />
                           <span class="icon is-left has-text-black">
                             <i class="material-icons-round is-size-6">event</i>
                           </span>
@@ -400,8 +400,10 @@
         await DbMainTransaction.Create(transaction);
 
         // Cập nhật số dư
-        customer.balance -= money;
+        customer.balance -= price;
         await DbMainUser.Update(customer);
+
+        MessagingCenter.Send(this, "header_" + Layout.User.id, Layout.User.id);
 
         step = 3;
         return;
@@ -423,7 +425,6 @@
     // Lấy thông tin công ty
     company = await DbMainCompany.Get(item.id);
     staff = company.members;
-    ChangeQuantity();
 
     if(item.products.Where(x => x.id == product.id).Count() == 0)
     {
@@ -432,12 +433,18 @@
       ChangeQuantity();
     }
     else
+    {
+      company = null;
       await JSRuntime.InvokeVoidAsync("tagline", false, $"Tổ chức {item.name} đã có sản phẩm này rồi.");
+    }
   }
 
   private void ChangeStaff(ChangeEventArgs e)
   {
-    staff = !string.IsNullOrEmpty(e.Value.ToString()) ? Convert.ToInt32(e.Value) : 0;
+    if (Int32.TryParse(e.Value.ToString().Replace(",", ""), out int parse))
+      staff = parse;
+    else
+      staff = 0;
     ChangeQuantity();
   }
 
@@ -449,7 +456,10 @@
 
   private void ChangeMonth(ChangeEventArgs e)
   {
-    month = !string.IsNullOrEmpty(e.Value.ToString()) ? Convert.ToInt32(e.Value) : 0;
+    if (Int32.TryParse(e.Value.ToString().Replace(",", ""), out int parse))
+      month = parse;
+    else
+      month = 0;
     ChangeQuantity();
   }
 
@@ -465,6 +475,7 @@
     money = ProductService.CalculateRenew(staff, product.price, month);
     var discountMonth = ProductService.Promotion(1, month);
     var discountStaff = ProductService.Promotion(2, staff);
+
     // Chọn ưu đãi tốt nhất
     discount = discountMonth > discountStaff ? discountMonth : discountStaff;
 

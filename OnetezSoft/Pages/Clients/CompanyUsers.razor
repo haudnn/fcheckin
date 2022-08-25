@@ -91,6 +91,17 @@
           </span>
         </div>
       </li>
+      <li class="column is-narrow">
+        <span class="is-size-4 has-text-grey-lighter">|</span>
+      </li>
+      <li class="column is-narrow">
+        <a class="icon-text has-text-link" @onclick="AddItem">
+          <span class="icon">
+            <i class="material-icons-outlined">add</i>
+          </span>
+          <span class="is-size-7 has-text-weight-medium">Thêm người dùng</span>
+        </a>
+      </li>
     </ul>
 
     <table class="table is-fullwidth is-vcentered is-responsive is-hoverable is_head_bg is-size-7">
@@ -176,7 +187,8 @@ else
   </section>
 }
 
-<_StaffEdit model="model" company="company" OnUpdate="OnUpdate" />
+<_StaffEdit model="edit" company="company" OnUpdate="OnUpdate" />
+<_StaffAdd model="create" company="company" OnUpdate="OnUpdate" />
 
 @code {
   [CascadingParameter]
@@ -190,7 +202,8 @@ else
   private List<UserModel> members = new();
   private List<ProductModel> productList = new();
   private List<UserModel> dataList = new();
-  private UserModel model = null;
+  private UserModel edit = null;
+  private UserModel create = null;
   private string filterKey = string.Empty;
   private string filterSort = string.Empty;
   private string filterProduct = string.Empty;
@@ -298,7 +311,19 @@ else
 
   private async Task EditItem(UserModel item)
   {
-    model = await DbUser.Get(company.id, item.id);
+    edit = await DbUser.Get(company.id, item.id);
+  }
+
+  private async Task AddItem()
+  {
+    create = new() {
+      products = new(),
+      companys = new(),
+      role_manage = new(),
+      avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey",
+      active = true,
+      role = 3
+    };
   }
 
   private async Task DeleteItem(UserModel item)
@@ -333,10 +358,14 @@ else
   {
     if (isUpdate)
     {
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin tài khoản NDSP!");
+      if(edit != null)
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin người dùng sản phẩm!");
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm tài khoản người dùng sản phẩm!");
       await GetList();
     }
-    model = null;
+    edit = null;
+    create = null;
     company = await CompanyService.UpdateProductAccess(company.id);
   }
 }

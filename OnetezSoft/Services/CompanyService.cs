@@ -30,5 +30,32 @@ namespace OnetezSoft.Services
       }
       return company;
     }
+
+    /// <summary>
+    /// Thêm tài khoản vào tổ chức
+    /// </summary>
+    /// <param name="company">Tổ chức</param>
+    /// <param name="user">Tài khoản</param>
+    public static async Task AddStaff(CompanyModel company, UserModel user)
+    {
+      // Tạo User của công ty
+      var checkEmail = await DbUser.GetDelete(company.id, null, user.email);
+      if (checkEmail != null) // Có rồi nhưng bị xóa
+      {
+        checkEmail.products = user.products;
+        user = checkEmail;
+        user.active = true;
+        user.delete = false;
+        await DbUser.Update(company.id, user);
+      }
+      else // Chưa có tài khoản trong tổ chức
+      {
+        await DbUser.Create(company.id, user);
+      }
+
+      // Liên kết tài khoản với công ty
+      user.companys.Add(new UserModel.Company { id = company.id, name = company.name });
+      await DbMainUser.Update(user);
+    }
   }
 }

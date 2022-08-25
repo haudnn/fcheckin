@@ -26,13 +26,19 @@
           <div class="field">
             <label class="label">Địa chỉ email</label>
             <div class="control">
-              <input @bind="user.email" type="email" class="input" readonly />
+              <input value="@user.email" type="email" class="input" readonly />
             </div>
           </div>
           <div class="field">
-            <label class="label">Mật khẩu</label>
+            <label class="label">Nhập mật khẩu cũ</label>
             <div class="control">
-              <input @bind="password" type="text" class="input" placeholder="Nhập mật khẩu mới nếu cần thay đổi" />
+              <input @bind="passwordOld" type="text" class="input" placeholder="Nhập mật khẩu cũ nếu cần thay đổi" />
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Nhập mật khẩu mới</label>
+            <div class="control">
+              <input @bind="passwordNew" type="text" class="input" placeholder="Nhập mật khẩu mới nếu cần thay đổi" />
             </div>
           </div>
           <div class="field">
@@ -122,7 +128,8 @@
   private UserModel user = new() { companys = new() };
   private List<DepartmentModel.SelectList> departments = new();
   private Dictionary<string, string> pageList = new();
-  private string password = string.Empty;
+  private string passwordOld = string.Empty;
+  private string passwordNew = string.Empty;
 
   protected override async Task OnInitializedAsync()
   {
@@ -180,13 +187,26 @@
     }
     else
     {
-      if (!string.IsNullOrEmpty(password))
-        user.password = Handled.Shared.CreateMD5(password);
-      user = await DbUser.Update(Layout.Company.id, user);
-      // Cập nhật cho tất cả database
-      user = await DbMainUser.Update(user);
-      _message = "Đã cập nhật thông tin thành công !";
-      _success = true;
+      if (!string.IsNullOrEmpty(passwordNew))
+      {
+        if (user.password == Handled.Shared.CreateMD5(passwordOld))
+        {
+          // Cập nhật cho tất cả database
+          user.password = Handled.Shared.CreateMD5(passwordNew);
+          await DbMainUser.Update(user);
+          _message = "Đã cập nhật thông tin thành công !";
+          _success = true;
+        }
+        else
+          _message = "Mật khẩu cũ không chính xác!";
+      }
+      else
+      {
+        // Cập nhật cho tất cả database
+        await DbMainUser.Update(user);
+        _message = "Đã cập nhật thông tin thành công !";
+        _success = true;
+      }
     }
   }
 

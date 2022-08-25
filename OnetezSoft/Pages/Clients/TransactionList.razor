@@ -112,14 +112,16 @@
             </td>
             <td>
               <span class="has-text-weight-bold has-text-@(item.money > 0 ? "success" : "danger")">
-                @string.Format("{0:0,0} VNĐ", item.money)
+                @Shared.ConvertCurrency(item.money) VNĐ
               </span>
             </td>
             <td>
               @((MarkupString)Shared.TextToHtml(item.content))
             </td>
             <td>
-              <span class="has-text-weight-bold">@string.Format("{0:0,0} VNĐ", item.balance)</span>
+              <span class="has-text-weight-bold">
+                @Shared.ConvertCurrency(item.balance) VNĐ
+              </span>
             </td>
             <td>
               <span class="icon-text @status.color">

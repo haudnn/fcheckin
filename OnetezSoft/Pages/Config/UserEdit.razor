@@ -66,17 +66,6 @@ else
                 </div>
               </div>
             </li>
-            @if(string.IsNullOrEmpty(user.id))
-            {
-              <li class="@(exist ? "is-hidden" : "column is-full")">
-                <div class="field">
-                  <label class="label">Mật khẩu</label>
-                  <div class="control">
-                    <input @bind="password" type="text" class="input" />
-                  </div>
-                </div>
-              </li>
-            }
             <li class="column is-half">
               <div class="field">
                 <label class="label">Họ *</label>
@@ -286,7 +275,6 @@ else
   private string _title = "Thông tin tài khoản";
 
   private UserModel user = new();
-  private string password = string.Empty;
   private string email = string.Empty;
   private bool exist = false;
   
@@ -304,7 +292,6 @@ else
       _title = "Tạo tài khoản mới";
       user = new() { companys = new(), role_manage = new(), role = 3, active = true };
       user.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
-      password = string.Empty;
       email = string.Empty;
       exist = false;
     }
@@ -339,6 +326,78 @@ else
     }
     else
       exist = false;
+  }
+
+  private async Task Update()
+  {
+    _success = false;
+    _message = string.Empty;
+
+    if (string.IsNullOrEmpty(user.email) || !user.email.Contains("@"))
+    {
+      _message = "Bạn chưa nhập địa chỉ email, hoặc email không đúng định dạng!";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else if (string.IsNullOrEmpty(user.first_name) || string.IsNullOrEmpty(user.last_name))
+    {
+      _message = "Bạn chưa nhập họ và tên cho tài khoản!";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else
+    {
+      if (string.IsNullOrEmpty(user.id))
+      {
+        user.email = user.email.Trim();
+        // Kiểm tra tài khoản
+        var checkUser = await DbMainUser.GetbyEmail(user.email);
+        if (checkUser == null)
+        {
+          var password = Mongo.RandomId();
+          user.password = password;
+          checkUser = await DbMainUser.Create(user);
+          // Gửi email cấp tài khoản
+          bool send = EmailService.UserInfo(checkUser.email, password, out string message);
+          await JSRuntime.InvokeVoidAsync("tagline", send, message);
+        }
+
+        // Tạo User của công ty
+        var checkEmail = await DbUser.GetDelete(Layout.Company.id, null, user.email);
+        if (checkEmail != null)
+        {
+          user = checkEmail;
+          user.active = true;
+          user.delete = false;
+          await DbUser.Update(Layout.Company.id, user);
+        }
+        else
+        {
+          user.id = checkUser.id;
+          user.active = true;
+          await DbUser.Create(Layout.Company.id, user);
+        }
+
+        // Liên kết Users → Company
+        checkUser.active = true;
+        checkUser.companys = checkUser.companys == null ? new() : checkUser.companys;
+        checkUser.companys.Add(new UserModel.Company { id = Layout.Company.id, name = Layout.Company.name });
+        await DbMainUser.Update(checkUser);
+
+        _message = $"Đã tạo tài khoản: {user.email}<br/>Bạn có thể tiếp tục tạo thêm tài khoản mới.";
+        _success = true;
+
+        await OnLoad();
+      }
+      else
+      {
+        // Cập nhật cho tất cả database
+        user = await DbMainUser.Update(user);
+
+        _message = "Đã cập nhật thông tin thành công !";
+        _success = true;
+      }
+    }
   }
 
   private void ChangeRole(ChangeEventArgs e)
@@ -392,81 +451,6 @@ else
       {
         _success = false;
         _message = $"ERROR: {ex.Message}";
-      }
-    }
-  }
-
-  private async Task Update()
-  {
-    _success = false;
-    _message = string.Empty;
-
-    if (string.IsNullOrEmpty(user.email) || !user.email.Contains("@"))
-    {
-      _message = "Bạn chưa nhập địa chỉ email, hoặc địa chỉ email không đúng !";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
-    else if (string.IsNullOrEmpty(user.first_name) || string.IsNullOrEmpty(user.last_name))
-    {
-      _message = "Bạn chưa nhập họ và tên cho tài khoản !";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
-    else if (string.IsNullOrEmpty(user.id) && string.IsNullOrEmpty(password) && !exist)
-    {
-      _message = "Bạn chưa nhật mật khẩu cho tài khoản !";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
-    else
-    {
-      if (string.IsNullOrEmpty(user.id))
-      {
-        user.email = user.email.Trim();
-        // Kiểm tra tài khoản
-        var checkUser = await DbMainUser.GetbyEmail(user.email);
-        if (checkUser == null)
-        {
-          user.password = password;
-          checkUser = await DbMainUser.Create(user);
-        }
-
-        // Tạo User của công ty
-        var checkEmail = await DbUser.GetDelete(Layout.Company.id, null, user.email);
-        if (checkEmail != null)
-        {
-          user = checkEmail;
-          user.active = true;
-          user.delete = false;
-          await DbUser.Update(Layout.Company.id, user);
-        }
-        else
-        {
-          user.id = checkUser.id;
-          user.active = true;
-          await DbUser.Create(Layout.Company.id, user);
-        }
-
-        // Liên kết Users → Company
-        checkUser.active = true;
-        checkUser.companys = checkUser.companys == null ? new() : checkUser.companys;
-        checkUser.companys.Add(new UserModel.Company { id = Layout.Company.id, name = Layout.Company.name });
-        await DbMainUser.Update(checkUser);
-
-        _message = $"Đã tạo tài khoản: {user.email}<br/>Bạn có thể tiếp tục tạo thêm tài khoản.";
-        _success = true;
-
-        await OnLoad();
-      }
-      else
-      {
-        user = await DbUser.Update(Layout.Company.id, user);
-        // Cập nhật cho tất cả database
-        user = await DbMainUser.Update(user);
-
-        _message = "Đã cập nhật thông tin thành công !";
-        _success = true;
       }
     }
   }

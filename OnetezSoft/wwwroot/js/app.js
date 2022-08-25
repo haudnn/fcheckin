@@ -278,7 +278,7 @@ function currentSlide(n) {
   dots[n - 1].className += " active";
 }
 
-//tagline('Đây là đoạn nội dung mẫu để kiểm tra giao diện', true);
+//tagline(true, 'Đây là đoạn nội dung mẫu để kiểm tra giao diện');
 function tagline(success, message) {
   taglineHide();
   const notify = document.createElement("div");
@@ -291,7 +291,7 @@ function tagline(success, message) {
   document.querySelector("body").appendChild(notify);
   setTimeout(function () {
     taglineHide();
-  }, 10000);
+  }, 5000);
 }
 
 function taglineHide() {

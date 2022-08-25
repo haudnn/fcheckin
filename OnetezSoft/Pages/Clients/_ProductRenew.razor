@@ -306,8 +306,10 @@
         await DbMainTransaction.Create(transaction);
 
         // Cập nhật số dư
-        customer.balance -= money;
+        customer.balance -= price;
         await DbMainUser.Update(customer);
+
+        MessagingCenter.Send(this, "header_" + Layout.User.id, Layout.User.id);
 
         step = 3;
         return;

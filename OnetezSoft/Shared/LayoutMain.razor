@@ -74,7 +74,7 @@
         var userStorage = await storage.GetAsync<string>("user");
         if (!userStorage.Success || string.IsNullOrEmpty(userStorage.Value))
         {
-          navigation.NavigateTo("/logout", true);
+          navigation.NavigateTo("/logout", false);
           return;
         }
         else
@@ -82,7 +82,7 @@
           var customer = await DbMainUser.GetbySession(userStorage.Value);
           if (customer == null)
           {
-            navigation.NavigateTo("/logout", true);
+            navigation.NavigateTo("/logout", false);
             return;
           }
           else
@@ -123,7 +123,7 @@
     catch (Exception ex)
     {
       await JSRuntime.InvokeAsync<string>("console.log", "ERROR: " + ex.Message);
-      navigation.NavigateTo("/logout", true);
+      navigation.NavigateTo("/logout", false);
       return;
     }
   }

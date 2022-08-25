@@ -252,8 +252,9 @@ else
     }
   }
 
-  private void ProductCancel()
+  private async Task ProductCancel()
   {
+    company = await DbMainCompany.Get(Id);
     productEdit = null;
     productInfo = null;
     endDate = null;
@@ -276,7 +277,7 @@ else
         company.products.Add(productEdit);
       }
       await DbMainCompany.Update(company);
-      ProductCancel();
+      await ProductCancel();
     }
   }
 }

@@ -1,16 +1,16 @@
-﻿@inject IJSRuntime JSRuntime
+@inject IJSRuntime JSRuntime
 
 @if (model != null)
 {
   <section class="modal is-active">
     <div class="modal-background"></div>
     <section class="modal-card has_bg">
-      <section class="modal-card-head is-danger" style="background-image: url('/images/illustrations/users.png')">
+      <section class="modal-card-head is-success" style="background-image: url('/images/illustrations/users.png')">
         <div class="modal-card-title">
-          <div class="title">
-            Chỉnh sửa NDSP
+          <div class="title has-text-white">
+            Thêm người dùng
           </div>
-          <div class="subtitle">
+          <div class="subtitle has-text-white">
             Người dùng sản phẩm là người dùng truy cập
             <br />
             vào sử dụng sản phẩm
@@ -25,7 +25,7 @@
               <img src="@model.avatar" />
             </div>
             <a class="button is-white is-small is-fullwidth @(uploading ? "is-loading" : "")"
-             onclick="document.getElementById('file').click()">
+                onclick="document.getElementById('file').click()">
               <span class="icon">
                 <i class="material-icons-sharp is-size-6">file_upload</i>
               </span>
@@ -42,7 +42,8 @@
               <li class="column is-full">
                 <div class="field">
                   <div class="control has-icons-left">
-                    <input value="@model.email" type="text" class="input is_line" readonly />
+                    <input @onchange="ChangeEmail" value="@model.email" type="email" class="input is_line"
+                        placeholder="Nhập địa chỉ email của người dùng..." />
                     <span class="icon is-left has-text-black">
                       <i class="material-icons-round is-size-6">account_circle</i>
                     </span>
@@ -76,8 +77,8 @@
             </div>
             @foreach (var product in company.products.Where(x => x.active))
             {
-              var access = ProductService.CheckAccess(model.products, product.id);
-              <div class="icon-text mb-3">
+              var access = ProductService.CheckAccess(products, product.id);
+              <div class="icon-text mb-3 @(product.used == product.total && !access ? "is_opacity" : "")">
                 <a class="icon mr-2" @onclick="() => AccessProduct(product)">
                   <i class="material-icons-round is-size-5 has-text-@(access ? "success" : "grey")">
                     toggle_@(access ? "on" : "off")
@@ -106,11 +107,11 @@
           </span>
           <span class="is-size-7">Trở về</span>
         </a>
-        <a class="button is-link" @onclick="Update">
+        <a class="button @(string.IsNullOrEmpty(model.id) ? "is-link" : "is-static")" @onclick="Update">
           <span class="icon">
             <i class="material-icons-round is-size-6">done</i>
           </span>
-          <span class="is-size-7">Cập nhật</span>
+          <span class="is-size-7">Xác nhận</span>
         </a>
       </section>
     </section>
@@ -127,46 +128,88 @@
   [Parameter]
   public EventCallback<bool> OnUpdate { get; set; }
 
-  private string password = string.Empty;
-
-  private void Reset()
-  {
-    password = string.Empty;
-  }
+  private bool exist = false;
+  private List<string> products = new();
 
   private async Task Cancel()
   {
+    exist = false;
+    products = new();
     await OnUpdate.InvokeAsync(false);
-    Reset();
+  }
+
+  private async Task ChangeEmail(ChangeEventArgs e)
+  {
+    model.id = string.Empty;
+    model.email = e.Value.ToString().Trim();
+    // Kiểm tra tài khoản
+    var checkUser = await DbMainUser.GetbyEmail(model.email);
+    if (checkUser != null)
+    {
+      model.first_name = checkUser.first_name;
+      model.last_name = checkUser.last_name;
+      model.avatar = checkUser.avatar;
+      exist = true;
+      var companyUser = await DbUser.Get(company.id, checkUser.id);
+      if(companyUser != null)
+      {
+        model.id = checkUser.id;
+        await Tagline("Địa chỉ email này đã có trong tổ chức của bạn.");
+      }
+    }
+    else
+    {
+      model.first_name = string.Empty;
+      model.last_name = string.Empty;
+      model.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
+      exist = false;
+    }
   }
 
   private async Task Update()
   {
+    if (string.IsNullOrEmpty(model.email) || !model.email.Contains("@"))
+      await Tagline("Bạn chưa nhập địa chỉ email, hoặc email không đúng định dạng!");
     if (string.IsNullOrEmpty(model.first_name) && string.IsNullOrEmpty(model.last_name))
-      await Tagline("Bạn chưa nhập họ và tên cho tài khoản !");
+      await Tagline("Bạn chưa nhập họ và tên cho tài khoản!");
     else
     {
-      // Xóa quyền dùng sản phẩm khi hủy kích hoạt
-      if (!model.active)
-        model.products = new();
-      await DbUser.Update(company.id, model);
+      // Kiểm tra tài khoản
+      var checkUser = await DbMainUser.GetbyEmail(model.email);
+      if (checkUser == null)
+      {
+        await DbMainUser.Create(model);
+        // Gửi email cấp tài khoản
+        JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
+        bool send = EmailService.UserInfo(model.email, model.id, out string message);
+        JSRuntime.InvokeVoidAsync("tagline", send, message);
+      }
+      else
+        model = checkUser;
+
+      model.products = model.active ? products : new List<string>();
+
+      // Thêm tài khoản vào tổ chức
+      await CompanyService.AddStaff(company, model);
+      
+      exist = false;
+      products = new();
       await OnUpdate.InvokeAsync(true);
-      Reset();
     }
   }
 
   private async Task AccessProduct(CompanyModel.Product product)
   {
-    var access = ProductService.CheckAccess(model.products, product.id);
+    var access = ProductService.CheckAccess(products, product.id);
     if (access)
     {
       // Có quyền rồi → Thì xóa
-      model.products.Remove(product.id);
+      products.Remove(product.id);
     }
     else if (product.used < product.total)
     {
       // Chưa có → Thì thêm quyền sử dụng
-      model.products.Add(product.id);
+      products.Add(product.id);
     }
     else
     {

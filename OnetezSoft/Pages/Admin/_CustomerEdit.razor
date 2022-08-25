@@ -42,7 +42,7 @@
             {
               <div class="field">
                 <div class="control has-icons-left">
-                  <input @bind="model.email" type="text" class="input is_line" placeholder="Nhập email" />
+                  <input @bind="model.email" type="text" class="input is_line" placeholder="Nhập email (*)" />
                   <span class="icon is-left has-text-black">
                     <i class="material-icons-round is-size-6">account_circle</i>
                   </span>
@@ -83,7 +83,7 @@
               <li class="column is-half">
                 <div class="field">
                   <div class="control has-icons-left">
-                    <input @bind="model.last_name" type="text" class="input is_line" placeholder="Nhập họ" />
+                    <input @bind="model.last_name" type="text" class="input is_line" placeholder="Nhập họ (*)" />
                     <span class="icon is-left has-text-black">
                       <i class="material-icons-round is-size-6">person</i>
                     </span>
@@ -93,7 +93,7 @@
               <li class="column is-half">
                 <div class="field">
                   <div class="control has-icons-left">
-                    <input @bind="model.first_name" type="text" class="input is_line" placeholder="Nhập tên" />
+                    <input @bind="model.first_name" type="text" class="input is_line" placeholder="Nhập tên (*)" />
                     <span class="icon is-left has-text-black">
                       <i class="material-icons-round is-size-6">person</i>
                     </span>
@@ -103,7 +103,7 @@
               <li class="column is-half">
                 <div class="field">
                   <div class="control has-icons-left">
-                    <input @bind="model.phone" type="text" class="input is_line" placeholder="Số điện thoại" />
+                    <input @bind="model.phone" type="text" class="input is_line" placeholder="Số điện thoại (*)" />
                     <span class="icon is-left has-text-black">
                       <i class="material-icons-round is-size-6">call</i>
                     </span>
@@ -193,16 +193,7 @@
 
   private async Task Create()
   {
-    model.email = !string.IsNullOrEmpty(model.email) ? model.email.Trim().ToLower() : "";
-    if (string.IsNullOrEmpty(model.email))
-      await Tagline("Bạn chưa nhập địa chỉ email!");
-    else if (!model.email.Contains("@") || model.email.Length < 12)
-      await Tagline("Địa chỉ email không đúng!");
-    else if (string.IsNullOrEmpty(model.first_name) || string.IsNullOrEmpty(model.last_name))
-      await Tagline("Bạn chưa nhập họ và tên cho tài khoản!");
-    else if (string.IsNullOrEmpty(password))
-      await Tagline("Bạn chưa nhật mật khẩu cho tài khoản!");
-    else
+    if (await Validation())
     {
       var check = await DbMainUser.GetbyEmail(model.email);
       if (check == null)
@@ -234,9 +225,7 @@
 
   private async Task Update()
   {
-    if (string.IsNullOrEmpty(model.first_name) && string.IsNullOrEmpty(model.last_name))
-      await Tagline("Bạn chưa nhập họ và tên cho tài khoản !");
-    else
+    if (await Validation())
     {
       if (!string.IsNullOrEmpty(password))
         model.password = Handled.Shared.CreateMD5(password);
@@ -244,6 +233,27 @@
       await OnUpdate.InvokeAsync(true);
       Reset();
     }
+  }
+
+  private async Task<bool> Validation()
+  {
+    model.email = !string.IsNullOrEmpty(model.email) ? model.email.Trim().ToLower() : "";
+    if (string.IsNullOrEmpty(model.email))
+      await Tagline("Bạn chưa nhập địa chỉ email!");
+    else if (!model.email.Contains("@") || model.email.Length < 12)
+      await Tagline("Địa chỉ email không đúng!");
+    else if (string.IsNullOrEmpty(model.phone))
+      await Tagline("Bạn chưa nhập số điện thoại!");
+    else if (model.phone.Length < 10)
+      await Tagline("Số điện thoại không đúng định dạng!");
+    else if (string.IsNullOrEmpty(model.first_name) || string.IsNullOrEmpty(model.last_name))
+      await Tagline("Bạn chưa nhập họ và tên cho tài khoản!");
+    else if (string.IsNullOrEmpty(password))
+      await Tagline("Bạn chưa nhật mật khẩu cho tài khoản!");
+    else
+      return true;
+
+    return false;
   }
 
   private bool uploading = false;

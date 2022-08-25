@@ -184,11 +184,7 @@
     }
     catch (Exception ex)
     {
-      await storage.DeleteAsync("user");
-      await storage.DeleteAsync("cycle");
-      await storage.DeleteAsync("company");
-      await storage.DeleteAsync("navLess");
-      await storage.DeleteAsync("filter_feedback");
+      await JSRuntime.InvokeVoidAsync("localStorage.clear");
       await JSRuntime.InvokeAsync<string>("console.log", "ERROR STORAGE: " + ex.Message);
       //navigation.NavigateTo("/", true);
     }
@@ -245,23 +241,24 @@
 
           string link = string.IsNullOrEmpty(userInCompany.page_default) ? "/blogs" : userInCompany.page_default;
           navigation.NavigateTo(link, true);
+
           return;
         }
         else
         {
-          message = $"Tài khoản của bạn không còn thuộc công ty {company.name} !";
+          await JSRuntime.InvokeVoidAsync("tagline", true, $"Tài khoản của bạn đã bị xóa khỏi công ty {company.name}!");
         }
       }
       else
       {
-        message = $"Công ty {company.name} đã dừng hoạt động trên hệ thống !";
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Công ty {company.name} đã dừng hoạt động trên hệ thống!");
       }
     }
     else
     {
       user.companys.RemoveAll(x => x.id == companyId);
       user = await DbMainUser.Update(user);
-      message = "Công ty này không tồn tại trên hệ thống!";
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Công ty này không tồn tại trên hệ thống!");
     }
   }
 

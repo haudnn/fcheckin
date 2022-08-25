@@ -89,6 +89,7 @@
         <th width="25%">Tài khoản</th>
         <th width="10%">Số điện thoại</th>
         <th>Thông tin ghi nhớ</th>
+        <th width="12%">Số dư còn lại</th>
         <th width="100px" align="center">Trạng thái</th>
         <th width="140px">Lần truy cập cuối</th>
         <th width="80px" align="center">Xử lý</th>
@@ -114,6 +115,11 @@
             <div class="text_2_line" onclick="toggleText(this)">
               @((MarkupString)Shared.TextToHtml(item.note))
             </div>
+          </td>
+          <td>
+            <span class="has-text-weight-bold">
+              @Shared.ConvertCurrency(item.balance) VNĐ
+            </span>
           </td>
           <td align="center">
             <a class="icon" @onclick="() => ActiveItem(item)">

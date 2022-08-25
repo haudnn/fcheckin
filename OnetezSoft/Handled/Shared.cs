@@ -42,18 +42,14 @@ namespace OnetezSoft.Handled
     /// </summary>
     public static string ConvertCurrency(double money)
     {
+      if(money == 0)
+        return "0";
       if (money >= 1000 || money <= 1000)
-      {
         return money.ToString("0,0");
-      }
       else if(money % 1 == 0)
-      {
         return money.ToString();
-      }
       else if(money != 0)
-      {
         return money.ToString("0.0");
-      }
 
       return "0";
     }

@@ -47,7 +47,7 @@
         <div class="has-text-centered" style="line-height: 1.4;">
           <span class="is-size-7 is-block">Tổng hệ thống rút</span>
           <span class="font_14 is-block has-text-weight-bold">
-            @string.Format("{0:0,0} VNĐ", totalMoney)
+            @Shared.ConvertCurrency(totalMoney) VNĐ
           </span>
         </div>
       </div>
@@ -148,7 +148,9 @@
             </div>
           </td>
           <td>
-            <span class="has-text-weight-bold">@string.Format("{0:0,0} VNĐ", item.money)</span>
+            <span class="has-text-weight-bold">
+              @Shared.ConvertCurrency(item.money) VNĐ
+            </span>
           </td>
           <td>
             @((MarkupString)Shared.TextToHtml(item.content))

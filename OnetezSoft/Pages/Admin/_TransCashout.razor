@@ -75,7 +75,7 @@
                   <span>@item.phone</span>
                 </td>
                 <td>
-                  <span>@string.Format("{0:0,0} VNĐ", item.balance)</span>
+                  @Shared.ConvertCurrency(item.balance) VNĐ
                 </td>
                 <td align="right">
                   <span>@Handled.Shared.ConvertDate(new DateTime(item.online))</span>
@@ -206,6 +206,10 @@
             // Cập nhật số dư tài khoản
             customer.balance -= money;
             await DbMainUser.Update(customer);
+
+            // Gửi thông báo cho khách hàng
+            await DbMainNotify.Create(104, transaction.id, transaction.customer.id, Layout.User.id);
+
             count++;
           }
           else

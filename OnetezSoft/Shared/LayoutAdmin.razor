@@ -67,8 +67,7 @@
         var userStorage = await storage.GetAsync<string>("user");
         if (!userStorage.Success || string.IsNullOrEmpty(userStorage.Value))
         {
-          await storage.DeleteAsync("user");
-          navigation.NavigateTo("/", true);
+          navigation.NavigateTo("/logout", false);
           return;
         }
         else
@@ -76,8 +75,7 @@
           User = await DbMainUser.GetbySession(userStorage.Value);
           if (User == null)
           {
-            await storage.DeleteAsync("user");
-            navigation.NavigateTo("/", true);
+            navigation.NavigateTo("/logout", false);
             return;
           }
           else
@@ -91,12 +89,8 @@
     }
     catch (Exception ex)
     {
-      await storage.DeleteAsync("company");
-      await storage.DeleteAsync("cycle");
-      await storage.DeleteAsync("navLess");
-      await JSRuntime.InvokeAsync<string>("console.log", ex.Message);
-
-      navigation.NavigateTo("/", true);
+      await JSRuntime.InvokeAsync<string>("console.log", "ERROR: " + ex.Message);
+      navigation.NavigateTo("/logout", false);
       return;
     }
   }

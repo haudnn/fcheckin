@@ -42,14 +42,6 @@ else
               Danh sách tài khoản
             </h1>
           </li>
-          <li class="column has-text-right">
-            <a class="button" href="/config/system/user/add">
-              <span class="icon">
-                <span class="material-icons-outlined is-size-6">add</span>
-              </span>
-              <span>Thêm mới</span>
-            </a>
-          </li>
         </ul>
         <ul class="columns is-variable is-2">
           <li class="column">
@@ -173,28 +165,10 @@ else
                 </td>
                 <td align="center">
                   <label class="td-label">Xử lý</label>
-                  <div class="dropdown is-hoverable is-right is-menu">
-                    <div class="dropdown-trigger">
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-5">
-                          more_vert
-                        </i>
-                      </span>
-                    </div>
-                    <div class="dropdown-menu">
-                      <div class="dropdown-content">
-                        <a class="dropdown-item" href="/config/system/user/edit/@item.id">
-                          Thông tin tài khoản
-                        </a>
-                        <a class="dropdown-item" @onclick="() => ResetPassword(item)">
-                          Cấp lại mật khẩu
-                        </a>
-                        <hr class="dropdown-divider">
-                        <a class="dropdown-item has-text-danger" @onclick="() => DeleteItem(item)">
-                          Xóa tài khoản
-                        </a>
-                      </div>
-                    </div>
+                  <div class="td-value">
+                    <a class="icon has-text-danger" title="Xóa tài khoản" @onclick="() => DeleteItem(item)">
+                      <i class="material-icons-outlined is-size-5">delete</i>
+                    </a>
                   </div>
                 </td>
               </tr>
@@ -255,34 +229,6 @@ else
   {
     item.active = !item.active;
     await DbUser.Update(Layout.Company.id, item);
-  }
-
-  private async Task ResetPassword(UserModel item)
-  {
-    if (Layout.User.role == 2 && item.role != 3)
-    {
-      _message = "Bạn chỉ có thể cấp lại mật khẩu cho nhân viên !";
-    }
-    else
-    {
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn cấp lại mật khẩu cho {item.email} ?"))
-        return;
-
-      var user = await DbMainUser.Get(item.id);
-      if (user != null)
-      {
-        user.password = Handled.Shared.CreateMD5(item.id);
-        await DbMainUser.Update(user);
-
-        _message = $"Thông tin tài khoản.<br/>Username: {user.email}<br/>Password: {user.id}";
-        _success = true;
-      }
-      else
-      {
-        _message = "Không thể cấp lại mật khẩu cho tài khoản này !";
-        _success = false;
-      }
-    }
   }
 
   private bool CheckRoleManage(UserModel item)

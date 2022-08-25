@@ -1,5 +1,6 @@
 ﻿@page "/logout"
 @layout LayoutLogin
+@inject IJSRuntime JSRuntime
 @inject ProtectedLocalStorage storage
 @inject NavigationManager navigation
 
@@ -8,22 +9,26 @@
   {
     if (firstRender)
     {
-      var userStorage = await storage.GetAsync<string>("user");
-      if (userStorage.Success && !string.IsNullOrEmpty(userStorage.Value))
+      try
       {
-        var user = await DbMainUser.GetbySession(userStorage.Value);
-        if (user != null)
+        var userStorage = await storage.GetAsync<string>("user");
+        if (userStorage.Success && !string.IsNullOrEmpty(userStorage.Value))
         {
-          user.session = null;
-          await DbMainUser.Update(user);
+          var user = await DbMainUser.GetbySession(userStorage.Value);
+          if (user != null)
+          {
+            user.session = null;
+            await DbMainUser.Update(user);
+          }
         }
       }
+      catch (Exception ex)
+      {
+        await JSRuntime.InvokeVoidAsync("console.log", "ERROR: " + ex.Message);
+      }
 
-      await storage.DeleteAsync("user");
-      await storage.DeleteAsync("cycle");
-      await storage.DeleteAsync("company");
-      await storage.DeleteAsync("navLess");
-      await storage.DeleteAsync("filter_feedback");
+      await JSRuntime.InvokeVoidAsync("localStorage.clear");
+
       navigation.NavigateTo("/", true);
     }
   }

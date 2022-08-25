@@ -48,7 +48,7 @@
         <div class="has-text-centered" style="line-height: 1.4;">
           <span class="is-size-7 is-block">Tổng yêu cầu nạp</span>
           <span class="font_14 is-block has-text-weight-bold">
-            @string.Format("{0:0,0} VNĐ", totalMoney)
+            @Shared.ConvertCurrency(totalMoney) VNĐ
           </span>
         </div>
       </div>
@@ -172,7 +172,9 @@
             @((MarkupString)Shared.TextToHtml(item.content))
           </td>
           <td>
-            <span class="has-text-weight-bold">@string.Format("{0:0,0} VNĐ", item.balance)</span>
+            <span class="has-text-weight-bold">
+              @Shared.ConvertCurrency(item.balance) VNĐ
+            </span>
           </td>
           <td align="right">
             @if(item.status == 1)
@@ -300,6 +302,9 @@
       item.balance = customer.balance;
       await DbMainTransaction.Update(item);
       await JSRuntime.InvokeVoidAsync("tagline", true, "Đã duyệt yêu cầu nạp tiền của mã giao dịch " + item.id);
+
+      // Gửi thông báo cho khách hàng
+      await DbMainNotify.Create(101, item.id, item.customer.id, Layout.User.id);
     }
     else
     {
@@ -312,6 +317,9 @@
     item.status = 3;
     await DbMainTransaction.Update(item);
     await JSRuntime.InvokeVoidAsync("tagline", true, "Đã từ chối yêu cầu nạp tiền của mã giao dịch " + item.id);
+
+    // Gửi thông báo cho khách hàng
+    await DbMainNotify.Create(102, item.id, item.customer.id, Layout.User.id);
   }
 
   private async Task UndoItem(TransactionModel item)

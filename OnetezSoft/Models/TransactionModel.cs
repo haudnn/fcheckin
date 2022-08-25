@@ -18,7 +18,7 @@ namespace OnetezSoft.Models
     /// <summary> Người tạo </summary>
     public MemberModel creator { get; set; }
 
-    /// <summary> số tiên giao cih5 </summary>
+    /// <summary> Số tiền giao dịch </summary>
     public int money { get; set; }
 
     /// <summary> Số dư sau giao dịch </summary>
