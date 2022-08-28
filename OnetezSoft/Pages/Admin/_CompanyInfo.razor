@@ -126,7 +126,10 @@
           <div class="dropdown-menu">
             <div class="dropdown-content">
               <a class="dropdown-item" @onclick="EditCompany">
-                Chỉnh sửa
+                Chỉnh sửa thông tin
+              </a>
+              <a class="dropdown-item" @onclick="EditManager">
+                Thay đổi quản lý tổ chức
               </a>
               <hr class="dropdown-divider">
               <a class="dropdown-item has-text-danger" @onclick="DeleteCompany">
@@ -140,6 +143,7 @@
   </div>
 
   <_CompanyEdit model="model" OnUpdate="OnUpdateCompany" />
+  <_CompanyAdmin model="manager" company="company" OnUpdate="OnUpdateManager" />
 }
 
 @code {
@@ -151,6 +155,7 @@
   public List<ProductModel> products { get; set; }
 
   private CompanyModel model = null;
+  private UserModel manager = null;
 
   private async Task DeleteCompany()
   {
@@ -176,5 +181,22 @@
       company = await DbMainCompany.Get(company.id);
     }
     model = null;
+  }
+
+  private void EditManager()
+  {
+    manager = new UserModel();
+    manager = new() { companys = new(), role_manage = new(), is_customer = true, active = true };
+    manager.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
+  }
+
+  private async Task OnUpdateManager(UserModel user)
+  {
+    manager = null;
+    if (user != null)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thay đổi quản lý tổ chức!");
+      navigation.NavigateTo("/admin/customers/" + user.id, false);
+    }
   }
 }

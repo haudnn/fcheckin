@@ -138,7 +138,9 @@
               @((MarkupString)Shared.TextToHtml(item.content))
             </td>
             <td>
-              <span class="has-text-weight-bold">@string.Format("{0:0,0} VNĐ", item.balance)</span>
+              <span class="has-text-weight-bold">
+                @Shared.ConvertCurrency(item.balance) VNĐ
+              </span>
             </td>
             <td>
               <span class="icon-text @status.color">
@@ -217,6 +219,6 @@ else
 
   private void GetList()
   {
-    dataList = DbMainTransaction.GetListOfCustomer(Layout.User.id, filterType, filterStatus, filterDateS, filterDateE);
+    dataList = DbMainTransaction.GetListOfCustomer(customer.id, filterType, filterStatus, filterDateS, filterDateE);
   }
 }

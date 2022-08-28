@@ -109,7 +109,7 @@
           <li class="column is-two-fifths-tablet is-two-thirds-mobile">
             <div class="field is-grouped">
               <div class="control is-expanded">
-                <input @bind="kr.target" type="number" class="input is_bg" placeholder="Nhập giá trị" step="0.1" min="0" />
+                <NumericTextBox @bind-Value="kr.target" Class="input is_bg" Format="###,##0.000"></NumericTextBox>
               </div>
               <div class="control" style="width: 100px;">
                 <input @bind="kr.unit" type="text" class="input is_bg" placeholder="Đơn vị tính" />
@@ -157,7 +157,7 @@
                     </div>
                     <div class="control">
                       <a class="button is_bg has-text-danger" title="Xóa liên kết chéo"
-                   @onclick="() => DeleteCross(kr, cross)">
+                        @onclick="() => DeleteCross(kr, cross)">
                         <span class="icon">
                           <i class="material-icons-outlined is-size-5">close</i>
                         </span>
@@ -229,10 +229,10 @@
       <thead>
         <tr>
           <th>Mục tiêu</th>
-          <th width="200px">Kết Quả Then Chốt</th>
-          <th width="150px" align="center">Tiến độ</th>
-          <th width="100px" align="center">Thay đổi</th>
-          <th width="100px" align="center">Ngày tạo</th>
+          <th width="160px">Kết Quả Then Chốt</th>
+          <th width="200px" align="center">Tiến độ</th>
+          <th width="90px" align="center">Thay đổi</th>
+          <th width="90px" align="center">Ngày tạo</th>
         </tr>
       </thead>
       <tbody>
@@ -274,14 +274,14 @@
               <div class="td-value">
                 <div class="progress_has_value">
                   <progress class="progress is-small @okrColor" value="@progress" max="100"></progress>
-                  <span>@Shared.ConvertNumber(progress)%</span>
+                  <span>@string.Format("{0:0}%", progress)</span>
                 </div>
               </div>
             </td>
             <td align="center">
               <label class="td-label">Thay đổi</label>
               <div class="td-value has-text-weight-semibold">
-                @Shared.ConvertNumber(progress - okr.progress_prev)%
+                @string.Format("{0:0}%", progress - okr.progress_prev)
               </div>
             </td>
             <td align="center">
@@ -297,13 +297,12 @@
             foreach (var kr in okr.key_results)
             {
               var confident = DbOkr.Confident(kr.confident);
-
               <tr>
                 <td class="pl-4">
                   @kr.name
                 </td>
                 <td class="pl-2">
-                  <a class="icon-text has-text-link" @onclick="() => ShowTask(okr, kr)">
+                  <a class="icon-text has-text-link is-hidden" @onclick="() => ShowTask(okr, kr)">
                     <span class="icon is-small">
                       <i class="material-icons-outlined">task</i>
                     </span>
@@ -311,7 +310,7 @@
                   </a>
                   @if (!string.IsNullOrEmpty(kr.link))
                   {
-                    <a class="icon-text ml-2 has-text-link" href="@kr.link" target="_blank">
+                    <a class="icon-text has-text-link" href="@kr.link" target="_blank">
                       <span class="icon is-small">
                         <i class="material-icons-outlined">attach_file</i>
                       </span>
@@ -322,8 +321,8 @@
                 <td>
                   <label class="td-label">Đạt được</label>
                   <div class="td-value">
-                    <span class="has-text-success" title="@string.Format("{0:0,0}/{1:0,0}", kr.result, kr.target)">
-                      @Shared.ConvertNumber(kr.result)/@Shared.ConvertNumber(kr.target)
+                    <span class="has-text-success" title="@string.Format("{0:0,0.000} / {1:0,0.000}", kr.result, kr.target)">
+                      @Shared.ConvertCurrency(kr.result)/@Shared.ConvertCurrency(kr.target)
                     </span>
                     <span class="is-pulled-right">@kr.unit</span>
                   </div>
@@ -331,7 +330,7 @@
                 <td align="center">
                   <label class="td-label">Thay đổi</label>
                   <div class="td-value">
-                    @Shared.ConvertNumber(Shared.Progress(kr.change, kr.target))%
+                    @string.Format("{0:0}%", Shared.Progress(kr.change, kr.target))
                   </div>
                 </td>
                 <td align="center">

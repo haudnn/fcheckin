@@ -44,12 +44,12 @@ namespace OnetezSoft.Handled
     {
       if(money == 0)
         return "0";
-      if (money >= 1000 || money <= 1000)
+      if (money >= 1000 || money <= -1000)
         return money.ToString("0,0");
       else if(money % 1 == 0)
         return money.ToString();
       else if(money != 0)
-        return money.ToString("0.0");
+        return money.ToString();
 
       return "0";
     }
@@ -100,7 +100,7 @@ namespace OnetezSoft.Handled
         str = "0";
       }
 
-      return str;
+      return str.Trim();
     }
 
 

@@ -156,7 +156,7 @@
           <thead>
             <tr>
               <th>Mục tiêu</th>
-              <th width="200px"></th>
+              <th width="160px"></th>
               <th width="200px" align="center">Tiến độ</th>
               <th width="100px" align="center">Thay đổi</th>
               <th width="100px" align="center">Tự tin</th>
@@ -229,7 +229,7 @@
                       </span>
                     </td>
                     <td class="pl-2">
-                      <a class="icon-text has-text-link" @onclick="() => ShowTask(okr, kr)">
+                      <a class="icon-text has-text-link is-hidden" @onclick="() => ShowTask(okr, kr)">
                         <span class="icon is-small">
                           <i class="material-icons-outlined">task</i>
                         </span>
@@ -237,7 +237,7 @@
                       </a>
                       @if (!string.IsNullOrEmpty(kr.link))
                       {
-                        <a class="icon-text ml-2 has-text-link" href="@kr.link" target="_blank">
+                        <a class="icon-text has-text-link" href="@kr.link" target="_blank">
                           <span class="icon is-small">
                             <i class="material-icons-outlined">attach_file</i>
                           </span>
@@ -249,7 +249,7 @@
                       <label class="td-label">Đạt được</label>
                       <div class="td-value">
                         <span class="has-text-success" title="@string.Format("{0:0,0}/{1:0,0}", checkin.result, kr.target)">
-                          @Shared.ConvertNumber(checkin.result)/@Shared.ConvertNumber(kr.target)
+                          @Shared.ConvertCurrency(checkin.result)/@Shared.ConvertCurrency(kr.target)
                         </span>
                         <span class="is-pulled-right">@kr.unit</span>
                       </div>

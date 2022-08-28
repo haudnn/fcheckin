@@ -1,4 +1,4 @@
-﻿@inject IJSRuntime JSRuntime
+@inject IJSRuntime JSRuntime
 
 @if (model != null)
 {
@@ -8,12 +8,12 @@
       <section class="modal-card-head is-success" style="background-image: url('/images/illustrations/customer.png')">
         <div class="modal-card-title">
           <div class="title has-text-white">
-            @(string.IsNullOrEmpty(model.id) ? "Tạo tài khoản khách hàng" : "Thông tin khách hàng")
+            Thay đổi quản lý tổ chức
           </div>
           <div class="subtitle has-text-white">
-            Tài khoản khách hàng cho phép khách hàng tạo tổ chức,
+            Quản lý tổ chức là tài khoản khách hàng cho phép chỉnh sửa
             <br />
-            mua sản phẩm và thêm người dùng sản phẩm
+             tổ chức, mua sản phẩm và thêm người dùng sản phẩm
           </div>
         </div>
         <a class="delete is-medium" @onclick="Cancel"></a>
@@ -38,28 +38,15 @@
             <div class="field has-text-weight-bold">
               Thông tin tài khoản
             </div>
-            @if (string.IsNullOrEmpty(model.id))
-            {
-              <div class="field">
-                <div class="control has-icons-left">
-                  <input @bind="model.email" type="email" class="input is_line" placeholder="Nhập email (*)" />
-                  <span class="icon is-left has-text-black">
-                    <i class="material-icons-round is-size-6">account_circle</i>
-                  </span>
-                </div>
+            <div class="field">
+              <div class="control has-icons-left">
+                <input @onchange="ChangeEmail" value="@model.email" type="email" class="input is_line"
+                    placeholder="Nhập email (*)" />
+                <span class="icon is-left has-text-black">
+                  <i class="material-icons-round is-size-6">account_circle</i>
+                </span>
               </div>
-            }
-            else
-            {
-              <div class="field">
-                <div class="control has-icons-left">
-                  <input value="@model.email" type="email" class="input is_line" readonly />
-                  <span class="icon is-left has-text-black">
-                    <i class="material-icons-round is-size-6">account_circle</i>
-                  </span>
-                </div>
-              </div>
-            }
+            </div>
             <div class="field has-text-weight-bold mt-5">
               Thông tin cơ bản
             </div>
@@ -115,12 +102,6 @@
                 </div>
               </li>
             </ul>
-            <div class="field mt-5">
-              <label class="checkbox is-size-7">
-                <input @bind="model.active" type="checkbox" />
-                <span>Kích hoạt</span>
-              </label>
-            </div>
           </div>
         </form>
       </section>
@@ -131,24 +112,12 @@
           </span>
           <span class="is-size-7">Trở về</span>
         </a>
-        @if (string.IsNullOrEmpty(model.id))
-        {
-          <a class="button is-link" @onclick="Create">
-            <span class="icon">
-              <i class="material-icons-round is-size-6">add</i>
-            </span>
-            <span class="is-size-7">Tạo mới</span>
-          </a>
-        }
-        else
-        {
-          <a class="button is-link" @onclick="Update">
-            <span class="icon">
-              <i class="material-icons-round is-size-6">done</i>
-            </span>
-            <span class="is-size-7">Cập nhật</span>
-          </a>
-        }
+        <a class="button is-link" @onclick="Update">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">done</i>
+          </span>
+          <span class="is-size-7">Xác nhận</span>
+        </a>
       </section>
     </section>
   </section>
@@ -160,42 +129,38 @@
   [Parameter]
   public UserModel model { get; set; }
   [Parameter]
-  public EventCallback<bool> OnUpdate { get; set; }
+  public CompanyModel company { get; set; }
+  [Parameter]
+  public EventCallback<UserModel> OnUpdate { get; set; }
 
   private async Task Cancel()
   {
-    await OnUpdate.InvokeAsync(false);
+    await OnUpdate.InvokeAsync(null);
   }
 
-  private async Task Create()
+  private async Task ChangeEmail(ChangeEventArgs e)
   {
-    if (await Validation())
+    model.id = string.Empty;
+    model.email = e.Value.ToString().Trim();
+    // Kiểm tra tài khoản
+    var checkUser = await DbMainUser.GetbyEmail(model.email);
+    if (checkUser != null)
     {
-      var check = await DbMainUser.GetbyEmail(model.email);
-      if (check == null)
-      {
-        await DbMainUser.Create(model);
-        // Gửi email cấp tài khoản
-        JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
-        bool send = EmailService.UserInfo(model.email, model.id, out string message);
-        JSRuntime.InvokeVoidAsync("tagline", send, message);
-        
-        await OnUpdate.InvokeAsync(true);
-      }
-      else if (!check.is_customer)
-      {
-        if(string.IsNullOrEmpty(check.phone))
-          check.phone = model.phone;
-        if(string.IsNullOrEmpty(check.social))
-          check.social = model.social;
-        check.note = model.note;
-        check.active = model.active;
-        check.is_customer = true;
-        await DbMainUser.Update(check);
-        await OnUpdate.InvokeAsync(true);
-      }
-      else
-        await Tagline("Email này đã được sử dụng, vui lòng sử dụng email khác!");
+      model.first_name = checkUser.first_name;
+      model.last_name = checkUser.last_name;
+      model.avatar = checkUser.avatar;
+      model.social = checkUser.social;
+      model.phone = checkUser.phone;
+      model.note = checkUser.note;
+    }
+    else
+    {
+      model.first_name = string.Empty;
+      model.last_name = string.Empty;
+      model.social = string.Empty;
+      model.phone = string.Empty;
+      model.note = string.Empty;
+      model.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
     }
   }
 
@@ -203,8 +168,41 @@
   {
     if (await Validation())
     {
-      await DbMainUser.Update(model);
-      await OnUpdate.InvokeAsync(true);
+      // Kiểm tra và tạo tài khoản
+      var checkUser = await DbMainUser.GetbyEmail(model.email);
+      if (checkUser == null)
+      {
+        await DbMainUser.Create(model);
+        // Gửi email cấp tài khoản
+        JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
+        bool send = EmailService.UserInfo(model.email, model.id, out string message);
+        JSRuntime.InvokeVoidAsync("tagline", send, message);
+      }
+      else
+      {
+        if(string.IsNullOrEmpty(checkUser.phone))
+          checkUser.phone = model.phone;
+        if(string.IsNullOrEmpty(checkUser.social))
+          checkUser.social = model.social;
+        checkUser.note = model.note;
+        checkUser.active = model.active;
+        checkUser.is_customer = true;
+        await DbMainUser.Update(checkUser);
+        model = checkUser;
+      }
+
+      // Thay đổi người quản lý tổ chức
+      company = await DbMainCompany.Get(company.id);
+      if(company != null)
+      {
+        company.admin_id = model.id;
+        await DbMainCompany.Update(company);
+        await JSRuntime.InvokeVoidAsync("console.log", "company = " + company.name);
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("console.log", "company = null");
+      
+      await OnUpdate.InvokeAsync(model);
     }
   }
 
