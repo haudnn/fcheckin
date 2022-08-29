@@ -190,7 +190,7 @@
                             </div>
                           </li>
                         }
-                        @if (!current.draft)
+                        @if (!current.draft || Layout.User.okr_checkin)
                         {
                           <li class="column is-full">
                             <div class="has-text-grey">Phản hồi KR</div>
@@ -209,7 +209,27 @@
         </table>
         <hr />
         <div class="field is-grouped is-grouped-multiline mt-5">
-          @if (!current.checkin && current.draft)
+          @if(!current.checkin && Layout.User.okr_checkin)
+          {
+            <div class="control is-expanded pl-3">
+              <label class="checkbox">
+                <input @bind="okr.done" type="checkbox" />
+                <span class="has-text-weight-semibold">Hoàn thành OKRs</span>
+              </label>
+            </div>
+            <div class="control is-expanded has-text-right">
+              <a class="button is-white has-text-danger" onclick="goBack()">
+                <span>Hủy nhập</span>
+              </a>
+              <a class="button is-link" @onclick="AutoCheckin">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">done</i>
+                </span>
+                <span>Hoàn tất Check-in</span>
+              </a>
+            </div>
+          }
+          else if (!current.checkin && current.draft)
           {
             if (string.IsNullOrEmpty(okr.user_checkin))
             {
@@ -287,7 +307,8 @@
             </div>
             <div class="control has-icons-left" style="width: 140px;">
               <div class="input">
-                <DateRangePicker SingleDatePicker="true" @bind-StartDate="nextCheckin" MinDate="DateTime.Now.AddDays(1)" Drops="DropsType.Up" />
+                <DateRangePicker SingleDatePicker="true" @bind-StartDate="nextCheckin" 
+                    MinDate="DateTime.Today.AddDays(1)" Drops="DropsType.Up" />
               </div>
               <span class="icon is-left has-text-link">
                 <i class="material-icons-outlined is-size-6">calendar_today</i>
@@ -499,13 +520,13 @@
     else if(ValidationQuestion() == false)
     {
       _message = "Bạn cần nhập đầy đủ tất cả thông tin bắt buộc !";
-      await Task.Delay(10000);
+      await Task.Delay(5000);
       _message = string.Empty;
     }
     else if (string.IsNullOrEmpty(okr.user_checkin) && managerList.Count == 0)
     {
       _message = "Bạn chưa chọn quản lý sẽ check-in với bạn !";
-      await Task.Delay(10000);
+      await Task.Delay(5000);
       _message = string.Empty;
     }
     else
@@ -574,7 +595,7 @@
       await Task.Delay(5000);
       _message = string.Empty;
     }
-    else if (nextCheckin == null && !okr.done)
+    else if (nextCheckin == null && !okr.done && !Layout.User.okr_checkin)
     {
       _message = "Bạn chưa chọn lần check-in tiếp theo hoặc chọn Hoàn thành OKRs!";
       await Task.Delay(5000);
@@ -600,7 +621,7 @@
     // Update Checkin
     current.checkin = true;
     current.date_checkin = DateTime.Now.Ticks;
-    current = await DbOkrCheckin.Update(Layout.Company.id, current);
+    await DbOkrCheckin.Update(Layout.Company.id, current);
 
     foreach (var kr in okr.key_results)
     {
@@ -642,24 +663,10 @@
     navigation.NavigateTo($"/cfr/checkin/{okr.id}/info", false);
   }
 
-  private async Task Checkin()
+  private async Task AutoCheckin()
   {
     _success = false;
     _message = string.Empty;
-
-    #region Loại bỏ các KR đã xoá
-
-    var key_results = new List<OkrCheckinModel.KeyResult>();
-    foreach (var item in okr.key_results)
-    {
-      var krCheckin = current.key_results.SingleOrDefault(x => x.id == item.id);
-      if (krCheckin != null)
-        key_results.Add(krCheckin);
-    }
-    current.key_results = key_results;
-
-    #endregion
-
     if (current.confident == 0)
     {
       _message = "Chưa nhập mức độ tự tin của Mục tiêu !";
@@ -672,25 +679,21 @@
       await Task.Delay(5000);
       _message = string.Empty;
     }
-    else if (current.key_results.Where(x => string.IsNullOrEmpty(x.feedback)).Count() > 0)
+    else if(ValidationQuestion() == false)
     {
-      _message = "Bạn chưa nhập phản hồi cho kết quả then chốt !";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
-    else if (nextCheckin == null && !okr.done)
-    {
-      _message = "Bạn chưa chọn lần check-in tiếp theo hoặc chọn Hoàn thành OKRs!";
+      _message = "Bạn cần nhập đầy đủ tất cả thông tin bắt buộc !";
       await Task.Delay(5000);
       _message = string.Empty;
     }
     else
     {
-      // Update Checkin
+      // Tạo bản checkin
+      current.draft = false;
       current.checkin = true;
       current.date_checkin = DateTime.Now.Ticks;
-      current = await DbOkrCheckin.Update(Layout.Company.id, current);
+      await DbOkrCheckin.Create(Layout.Company.id, current);
 
+      // Cập nhật lại KR khi checkin
       foreach (var kr in okr.key_results)
       {
         var checkin = current.key_results.SingleOrDefault(x => x.id == kr.id);
@@ -701,32 +704,13 @@
           kr.confident = checkin.confident;
         }
       }
-
-      // Update OKRs
+      // Cập nhật OKRs khi checkin
+      okr.status_checkin = 3;
+      okr.next_checkin = 0;
+      okr.date_checkin = DateTime.Now.Ticks;
       okr.confident = current.confident;
       okr.progress_prev = current.progress_prev;
-      okr.status_checkin = 3;
-      if (!okr.done)
-        okr.next_checkin = nextCheckin.Value.DateTime.Ticks;
       await DbOkr.Update(Layout.Company.id, okr);
-
-      // Tạo lịch checkin
-      var dayCheckin = await DbDayCheckin.GetbyOkr(Layout.Company.id, okr.id);
-      if (dayCheckin == null && !okr.done)
-      {
-        dayCheckin = new DayCheckinModel();
-        dayCheckin.cycle = Layout.CycleId;
-        dayCheckin.okr = okr.id;
-        dayCheckin.okr_name = okr.name;
-        dayCheckin.user_create = okr.user_create;
-        dayCheckin.user_checkin = okr.user_checkin;
-        dayCheckin.date_checkin = okr.next_checkin;
-        dayCheckin.status = 0;
-        await DbDayCheckin.Create(Layout.Company.id, dayCheckin);
-      }
-
-      // Gửi thông báo chuông
-      await DbNotify.Create(Layout.Company.id, 505, current.id, okr.user_checkin, Layout.User.id);
 
       navigation.NavigateTo($"/cfr/checkin/{okr.id}/info", false);
     }

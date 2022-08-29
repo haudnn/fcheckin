@@ -44,6 +44,9 @@ namespace OnetezSoft.Models
     /// <summary>Không thống kê</summary>
     public bool no_report { get; set; }
 
+    /// <summary>Tự checkin OKRs</summary>
+    public bool okr_checkin { get; set; }
+
     /// <summary>Nhận thông báo đổi quà</summary>
     public bool noti_store { get; set; } = true;
 

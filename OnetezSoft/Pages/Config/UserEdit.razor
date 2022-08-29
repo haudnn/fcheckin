@@ -1,5 +1,4 @@
-﻿@page "/config/system/user/add"
-@page "/config/system/user/edit/{Id}"
+﻿@page "/config/system/user/edit/{Id}"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
@@ -44,7 +43,7 @@ else
         <ul class="columns is-vcentered">
           <li class="column is-narrow">
             <h1 class="title is-5 has-text-info is-uppercase">
-              @(string.IsNullOrEmpty(user.id) ? "Tạo tài khoản mới" : "Thông tin tài khoản")
+              Thông tin tài khoản
             </h1>
           </li>
         </ul>
@@ -54,15 +53,7 @@ else
               <div class="field">
                 <label class="label">Địa chỉ email *</label>
                 <div class="control">
-                  @if (string.IsNullOrEmpty(user.id))
-                  {
-                    <input @onchange="ChangeEmail" value="@email" type="email" class="input" 
-                      placeholder="Email sẽ dùng để đăng nhập..." />
-                  }
-                  else
-                  {
-                    <input @bind="user.email" type="email" class="input" readonly />
-                  }
+                  <input value="@user.email" type="email" class="input" readonly />
                 </div>
               </div>
             </li>
@@ -145,6 +136,17 @@ else
                   </div>
                   <div class="control has-text-grey mt-2">
                     Nhận thông báo khi có người yêu cầu <b>Đổi quà</b>
+                  </div>
+                </div>
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.okr_checkin" />
+                      <span class="has-text-weight-bold has-text-link">TỰ CHECKIN OKRs</span>
+                    </label>
+                  </div>
+                  <div class="control has-text-grey mt-2">
+                    Cho phép người dùng tự checkin OKRs mà không cần người khác xác nhận <b>OKRs</b>
                   </div>
                 </div>
               }
@@ -275,57 +277,11 @@ else
   private string _title = "Thông tin tài khoản";
 
   private UserModel user = new();
-  private string email = string.Empty;
-  private bool exist = false;
   
   protected override async Task OnParametersSetAsync()
   {
-    await OnLoad();
-    _loaded = true;
-  }
-
-  private async Task OnLoad()
-  {
     user = await DbUser.Get(Layout.Company.id, Id);
-    if (user == null)
-    {
-      _title = "Tạo tài khoản mới";
-      user = new() { companys = new(), role_manage = new(), role = 3, active = true };
-      user.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
-      email = string.Empty;
-      exist = false;
-    }
-    else
-    {
-      _title = "Thông tin tài khoản";
-      if (user.role_manage == null)
-        user.role_manage = new();
-    }
-  }
-
-  private async Task ChangeEmail(ChangeEventArgs e)
-  {
-    email = e.Value.ToString().Trim();
-    user.email = email;
-    // Kiểm tra tài khoản
-    var checkUser = await DbMainUser.GetbyEmail(email);
-    if (checkUser != null)
-    {
-      var companyUser = await DbUser.Get(Layout.Company.id, checkUser.id);
-      if(companyUser != null)
-      {
-        navigation.NavigateTo("/config/system/user/edit/" + checkUser.id);
-      }
-      else
-      {
-        user.first_name = checkUser.first_name;
-        user.last_name = checkUser.last_name;
-        user.avatar = checkUser.avatar;
-        exist = true;
-      }
-    }
-    else
-      exist = false;
+    _loaded = true;
   }
 
   private async Task Update()
@@ -347,62 +303,20 @@ else
     }
     else
     {
-      if (string.IsNullOrEmpty(user.id))
-      {
-        user.email = user.email.Trim();
-        // Kiểm tra tài khoản
-        var checkUser = await DbMainUser.GetbyEmail(user.email);
-        if (checkUser == null)
-        {
-          var password = Mongo.RandomId();
-          user.password = password;
-          checkUser = await DbMainUser.Create(user);
-          // Gửi email cấp tài khoản
-          bool send = EmailService.UserInfo(checkUser.email, password, out string message);
-          await JSRuntime.InvokeVoidAsync("tagline", send, message);
-        }
-
-        // Tạo User của công ty
-        var checkEmail = await DbUser.GetDelete(Layout.Company.id, null, user.email);
-        if (checkEmail != null)
-        {
-          user = checkEmail;
-          user.active = true;
-          user.delete = false;
-          await DbUser.Update(Layout.Company.id, user);
-        }
-        else
-        {
-          user.id = checkUser.id;
-          user.active = true;
-          await DbUser.Create(Layout.Company.id, user);
-        }
-
-        // Liên kết Users → Company
-        checkUser.active = true;
-        checkUser.companys = checkUser.companys == null ? new() : checkUser.companys;
-        checkUser.companys.Add(new UserModel.Company { id = Layout.Company.id, name = Layout.Company.name });
-        await DbMainUser.Update(checkUser);
-
-        _message = $"Đã tạo tài khoản: {user.email}<br/>Bạn có thể tiếp tục tạo thêm tài khoản mới.";
-        _success = true;
-
-        await OnLoad();
-      }
-      else
-      {
-        // Cập nhật cho tất cả database
-        user = await DbMainUser.Update(user);
-
-        _message = "Đã cập nhật thông tin thành công !";
-        _success = true;
-      }
+      // Cập nhật database tổ chức
+      await DbUser.Update(Layout.Company.id, user);
+      // Cập nhật cho tất cả database
+      await DbMainUser.Update(user);
+      _message = "Đã cập nhật thông tin thành công !";
+      _success = true;
     }
   }
 
   private void ChangeRole(ChangeEventArgs e)
   {
     user.role = Convert.ToInt32(e.Value);
+    user.noti_store = true;
+    user.okr_checkin = false;
     if (user.role == 1)
     {
       user.role_manage.system = true;
