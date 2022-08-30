@@ -1,3 +1,3 @@
 # Fastdo
 
-FASTDO Web app: OKRs, Todolist, Kaizen, Educate, Plan
+FASTDO is a web app: OKRs, Todolist, Kaizen, Educate, Plan
