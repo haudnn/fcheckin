@@ -18,6 +18,8 @@ namespace OnetezSoft.Handled
 {
   public class Files
   {
+    private static bool isMacOS = Environment.CurrentDirectory.Contains("/");
+
     /// <summary>
     /// Lưu file vào hosting
     /// </summary>
@@ -25,6 +27,9 @@ namespace OnetezSoft.Handled
     {
       string folder = "upload\\" + string.Format("{0:yyMMdd}", DateTime.Now);
       string filePath = Environment.CurrentDirectory + "\\wwwroot\\" + folder;
+
+      if (isMacOS) filePath = filePath.Replace("\\", "/");
+
       if (!Directory.Exists(filePath))
         Directory.CreateDirectory(filePath);
 
@@ -63,6 +68,9 @@ namespace OnetezSoft.Handled
     public static string FileName(string link)
     {
       var filePath = Environment.CurrentDirectory + "\\wwwroot" + link.Replace("/", "\\");
+      
+      if (isMacOS) filePath = filePath.Replace("\\", "/");
+      
       if (File.Exists(filePath))
       {
         var fileInfo = new FileInfo(filePath);
@@ -102,6 +110,9 @@ namespace OnetezSoft.Handled
         return;
 
       string filePath = Environment.CurrentDirectory + "\\wwwroot" + fileLink.Replace("/", "\\");
+
+      if (isMacOS) filePath = filePath.Replace("\\", "/");
+
       new Task(() =>
       {
         try
@@ -154,6 +165,9 @@ namespace OnetezSoft.Handled
 
         // Đọc file Excel
         string filePath = Environment.CurrentDirectory + "\\wwwroot" + link.Replace("/", "\\");
+
+        if (isMacOS) filePath = filePath.Replace("\\", "/");
+
         var excelData = Workbook.Worksheets(filePath);
         if (excelData != null && excelData.Count() > 0)
         {
@@ -206,6 +220,9 @@ namespace OnetezSoft.Handled
       string file = string.Format("{0:yyy-MM-dd-HH-mm}.csv", DateTime.Now);
       string folder = "upload\\export";
       string path = Environment.CurrentDirectory + "\\wwwroot\\" + folder;
+
+      if (isMacOS) path = path.Replace("\\", "/");
+
       if (!Directory.Exists(path))
         Directory.CreateDirectory(path);
       string filePath = Path.Combine(path, file);

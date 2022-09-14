@@ -330,6 +330,17 @@ namespace OnetezSoft.Handled
       return col;
     }
 
+    public static int ConvertToInt(string value)
+    {
+      if(string.IsNullOrEmpty(value))
+        return 0;
+      value = value.Replace(",", "").Replace(".", "").Trim();
+      if (Int32.TryParse(value, out int parse))
+        return parse;
+      else
+        return 0; 
+    }
+
 
     #endregion
 

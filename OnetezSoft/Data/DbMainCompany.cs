@@ -125,6 +125,12 @@ namespace OnetezSoft.Data
 
       var results = await collection.Find(x => x.delete == false && x.admin_id == customerId).Sort(sorted).ToListAsync();
 
+      foreach (var item in results)
+      {
+        if(item.products == null)
+          item.products = new();
+      }
+
       return results;
     }
   }

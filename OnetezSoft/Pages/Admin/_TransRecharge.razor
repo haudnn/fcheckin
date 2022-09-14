@@ -154,13 +154,7 @@
   private string moneyFormat
   {
     get => money > 10 ? money.ToString("0,0") : money > 0 ? money.ToString() : "";
-    set
-    {
-      if (Int32.TryParse(value.Replace(",", ""), out int parse))
-        money = parse;
-      else
-        money = 0;
-    }
+    set => money = Shared.ConvertToInt(value);
   }
 
   private void Reset()
@@ -182,6 +176,9 @@
   {
     if (Validation())
     {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn nạp tiền cho các tài khoản khách hàng này?"))
+        return;
+      
       int count = 0;
       foreach (var id in checkList)
       {

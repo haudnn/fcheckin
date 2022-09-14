@@ -7,18 +7,221 @@
 <PageTitle>@_title</PageTitle>
 
 <section class="p-4 is-flex" style="height: 90vh; align-items: center; justify-content: center;">
-  <div class="has-text-centered has-text-weight-bold is-uppercase">
-    FASTDO CMS - Quản lý hệ thống
-  </div>
+  @if(Layout.User.id == ConfigSystem.DeveloperId)
+  {
+    <div>
+      <div class="buttons">
+        <span class="button is-dark has-text-weight-bold" style="width: 92px;">BƯỚC 1</span>
+        <a class="button is-danger" @onclick="DeleteCompanyList">
+          Xóa tổ chức cũ
+        </a>
+        <a class="button is-danger" @onclick="DeleteUserList">
+          Xóa tài khoản cũ
+        </a>
+      </div>
+
+      <div class="buttons">
+        <span class="button is-dark has-text-weight-bold" style="width: 92px;">BƯỚC 2</span>
+        <a class="button is-link" @onclick="MoveCompanyList">
+          Chuyển dữ liệu tổ chức
+        </a>
+        <a class="button is-link" @onclick="MoveUserList">
+          Chuyển dữ liệu tài khoản
+        </a>
+      </div>
+
+      <div class="buttons">
+        <span class="button is-dark has-text-weight-bold" style="width: 92px;">BƯỚC 3</span>
+        <a class="button is-warning" @onclick="MoveCompanyData">
+          Chuyển toàn bộ dữ liệu của tổ chức
+        </a>
+      </div>
+
+      <div class="buttons">
+        <span class="button is-dark has-text-weight-bold" style="width: 92px;">CÔNG CỤ</span>
+        <a class="button is-primary" @onclick="GetCompanyList">
+          Lấy danh sách tổ chức
+        </a>
+        <a class="button is-primary" @onclick="GetUserList">
+          Lấy danh sách tài khoản
+        </a>
+      </div>
+    </div>
+  }
+  else
+  {
+    <div class="has-text-centered has-text-weight-bold is-uppercase">
+      FASTDO CMS - Quản lý hệ thống
+    </div>
+  }
 </section>
+
 
 @code {
   [CascadingParameter]
   public LayoutAdmin Layout { get; set; }
   private string _title = "FASTDO CMS";
+  private List<string> customers = new();
 
-  protected override void OnInitialized()
+  private async Task DeleteUserList()
   {
-    
+    await JSRuntime.InvokeVoidAsync("console.warn", "Xóa tài khoản cũ");
+    var data = await BackupData.GetList<UserModel>("fastdo", "users");
+    foreach (var item in data)
+    {
+      if(item.id != ConfigSystem.DeveloperId)
+      {
+        BackupData.Delete<UserModel>("fastdo", "users", item.id);
+        await JSRuntime.InvokeVoidAsync("console.log", item.email + " => delete");
+      }
+    }
+  }
+ 
+  private async Task DeleteCompanyList()
+  {
+    await JSRuntime.InvokeVoidAsync("console.warn", "Xóa công ty cũ");
+    var data = await BackupData.GetList<CompanyModel>("fastdo", "companys");
+    foreach (var item in data)
+    {
+      BackupData.Delete<UserModel>("fastdo", "companys", item.id);
+      await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.name + " => delete");
+    }
+  }
+
+ private async Task MoveCompanyList()
+ {
+    customers = new();
+    await JSRuntime.InvokeVoidAsync("console.warn", "Chuyển dữ liệu tổ chức");
+    var data = await BackupData.GetList<CompanyModel>("workdo", "companys");
+    foreach (var item in data)
+    {
+      if(item.status && !item.delete)
+      {
+        // Thêm tài khoản khách hàng
+        customers.Add(item.admin_id);
+        // Chuyển dữ liệu
+        item.products = new();
+        BackupData.Create<CompanyModel>("fastdo", "companys", item);
+        await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.name + " => OK");
+      }
+    }
+  }
+
+  private async Task MoveUserList()
+  {
+    await JSRuntime.InvokeVoidAsync("console.warn", "Chuyển dữ liệu tài khoản");
+    var data = await BackupData.GetList<UserModel>("workdo", "users");
+    foreach (var item in data)
+    {
+      if(item.id != ConfigSystem.DeveloperId && item.active && !item.delete)
+      {
+        // Chuyển dữ liệu
+        if(customers.Contains(item.id))
+          item.is_customer = true;
+        BackupData.Create<UserModel>("fastdo", "users", item);
+        await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.email + " => OK");
+      }
+    }
+  }
+
+  private async Task MoveCompanyData()
+  {
+    var data = await BackupData.GetList<CompanyModel>("fastdo", "companys");
+    foreach (var item in data)
+    {
+      var db_source = "company_" + item.id;
+      var db_target = "fastdo_" + item.id;
+      await JSRuntime.InvokeVoidAsync("console.warn", $"Chuyển toàn bộ dữ liệu: [{item.id}] {item.name}");
+      await JSRuntime.InvokeVoidAsync("console.log", db_source + " => " + db_target);
+
+      // users
+      await MoveDataUser(db_source, db_target, "users");
+      // departments
+      await MoveDataModel<DepartmentModel>(db_source, db_target, "departments");
+      // okrs
+      await MoveDataModel<OkrModel>(db_source, db_target, "okrs");
+      // okr_config
+      await MoveDataModel<OkrConfigModel>(db_source, db_target, "okr_config");
+      // okr_stars
+      await MoveDataModel<OkrStarModel>(db_source, db_target, "okr_stars");
+      // okr_cfrs
+      await MoveDataModel<OkrCfrModel>(db_source, db_target, "okr_cfrs");
+      // okr_checkins
+      await MoveDataModel<OkrCheckinModel>(db_source, db_target, "okr_checkins");
+      // kaizen
+      await MoveDataModel<KaizenModel>(db_source, db_target, "kaizen");
+      // quotes
+      await MoveDataModel<QuotesModel>(db_source, db_target, "quotes");
+      // todolist
+      await MoveDataModel<TodolistModel>(db_source, db_target, "todolist");
+      // achievement
+      await MoveDataModel<AchievementModel>(db_source, db_target, "achievement");
+      // gift_products
+      await MoveDataModel<GiftProductModel>(db_source, db_target, "gift_products");
+      // days_checkin
+      await MoveDataModel<DayCheckinModel>(db_source, db_target, "days_checkin");
+    }
+  }
+
+  private async Task MoveDataUser(string db_source, string db_target, string table_name)
+  {
+    var data = await BackupData.GetList<UserModel>(db_source, table_name);
+    foreach (var item in data)
+    {
+      item.products = new();
+      try
+      {  
+        BackupData.Create<UserModel>(db_target, table_name, item);
+      }
+      catch (System.Exception ex)
+      {
+        await JSRuntime.InvokeVoidAsync("console.error",$"{item.email} => error: {ex.Message}");
+      }
+    }
+    await JSRuntime.InvokeVoidAsync("console.log",$"{table_name} => done {data.Count} item");
+  }
+
+  private async Task MoveDataModel<T>(string db_source, string db_target, string table_name)
+  {
+    var data = await BackupData.GetList<T>(db_source, table_name);
+    foreach (var item in data)
+    {
+      try
+      {
+        BackupData.Create<T>(db_target, table_name, item);  
+      }
+      catch (System.Exception ex)
+      {
+        await JSRuntime.InvokeVoidAsync("console.error",$"Error: {ex.Message}");
+      }
+    }
+    await JSRuntime.InvokeVoidAsync("console.log",$"{table_name} => done {data.Count} item");
+  }
+
+  private async Task GetUserList()
+  {
+    await JSRuntime.InvokeVoidAsync("console.warn", "Danh sách tài khoản");
+    var data = await BackupData.GetList<UserModel>("fastdo", "users");
+    foreach (var item in data)
+    {
+      if(item.active && !item.delete)
+      {
+        await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.email + " => customer: " + item.is_customer);
+      }
+    }
+  }
+
+  private async Task GetCompanyList()
+  {
+    await JSRuntime.InvokeVoidAsync("console.warn", "Danh sách tổ chức");
+    var data = await BackupData.GetList<CompanyModel>("fastdo", "companys");
+    foreach (var item in data)
+    {
+      if(item.status && !item.delete)
+      {
+        await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.name + " => members: " + item.members);
+        await CompanyService.UpdateProductAccess(item.id);
+      }
+    }
   }
 }

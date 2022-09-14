@@ -79,23 +79,27 @@
             {
               var access = ProductService.CheckAccess(products, product.id);
               <div class="icon-text mb-3 @(product.used == product.total && !access ? "is_opacity" : "")">
-                <a class="icon mr-2" @onclick="() => AccessProduct(product)">
+                <a class="icon is-small mr-2" @onclick="() => AccessProduct(product)">
                   <i class="material-icons-round is-size-5 has-text-@(access ? "success" : "grey")">
                     toggle_@(access ? "on" : "off")
                   </i>
                 </a>
-                <span class="has-text-weight-bold is-size-7">
+                <span class="has-text-weight-semibold is-size-7">
                   @product.title - @product.used/@product.total
                 </span>
               </div>
             }
+            <label class="checkbox is-size-7">
+              <input type="checkbox" @onchange="AccessAllProduct" />
+              <span class="has-text-weight-semibold">Kích hoạt tất cả bộ giải pháp</span>
+            </label>
 
             <div class="field has-text-weight-bold mt-5">
               Trạng thái
             </div>
             <label class="checkbox is-size-7">
               <input @bind="model.active" type="checkbox" />
-              <span>Kích hoạt</span>
+              <span class="has-text-weight-semibold">Kích hoạt</span>
             </label>
           </div>
         </form>
@@ -196,6 +200,21 @@
       products = new();
       await OnUpdate.InvokeAsync(true);
     }
+  }
+
+  private void AccessAllProduct(ChangeEventArgs e)
+  {
+    if(Convert.ToBoolean(e.Value))
+    {
+      foreach (var product in company.products.Where(x => x.active))
+      {
+        var access = ProductService.CheckAccess(products, product.id);
+        if(!access && product.used < product.total)
+          products.Add(product.id);
+      }
+    }
+    else
+      products = new();
   }
 
   private async Task AccessProduct(CompanyModel.Product product)

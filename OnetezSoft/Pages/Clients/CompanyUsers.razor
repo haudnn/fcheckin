@@ -276,6 +276,8 @@ else
   {
     if (item.active)
     {
+      if(item.products == null)
+        item.products = new();
       var access = ProductService.CheckAccess(item.products, product.id);
       if (access)
       {
@@ -362,10 +364,10 @@ else
         await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin người dùng sản phẩm!");
       else
         await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm tài khoản người dùng sản phẩm!");
+      company = await CompanyService.UpdateProductAccess(company.id);
       await GetList();
     }
     edit = null;
     create = null;
-    company = await CompanyService.UpdateProductAccess(company.id);
   }
 }

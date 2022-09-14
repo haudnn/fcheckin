@@ -18,7 +18,7 @@
         </div>
         <a class="delete is-medium" @onclick="Cancel"></a>
       </section>
-      <section class="modal-card-body" style="min-height: 350px;">
+      <section class="modal-card-body">
         <div class="columns is-multiline">
           @if (create)
           {
@@ -106,7 +106,7 @@
             <div class="columns is-multiline">
               @if(step == 1 && create)
               {
-                <div class="column is-half">
+                <div class="column is-full">
                   <div class="field has-text-weight-bold">
                     Thông tin tài khoản
                   </div>
@@ -118,21 +118,9 @@
                       </span>
                     </div>
                   </div>
-                  <div class="field">
-                    <div class="control has-icons-left">
-                      <input @bind="manager.password" type="text" class="input is_line"
-                    placeholder="Sử dụng mật khẩu khác?" />
-                      <span class="icon is-left has-text-black">
-                        <i class="material-icons-round is-size-6">lock</i>
-                      </span>
-                    </div>
-                  </div>
                 </div>
 
                 <div class="column is-half">
-                  <div class="field has-text-weight-bold">
-                    Thông tin cơ bản
-                  </div>
                   <div class="field">
                     <div class="control has-icons-left">
                       <input @bind="manager.last_name" type="text" class="input is_line" placeholder="Nhập họ" />
@@ -141,6 +129,9 @@
                       </span>
                     </div>
                   </div>
+                </div>
+
+                <div class="column is-half">
                   <div class="field">
                     <div class="control has-icons-left">
                       <input @bind="manager.first_name" type="text" class="input is_line" placeholder="Nhập tên" />
@@ -149,6 +140,10 @@
                       </span>
                     </div>
                   </div>
+                </div>
+
+                <div class="column is-full">
+                  <i>Nhập địa chỉ email khác nếu bạn muốn sử dụng tài khoản khác để quản lý tổ chức.</i>
                 </div>
               }
               @if (step == 2 || !create)
@@ -416,7 +411,13 @@
           return;
         }
         else
-          manager = await DbMainUser.Create(manager);
+        {
+          await DbMainUser.Create(manager);
+          // Gửi email cấp tài khoản
+          JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
+          bool send = EmailService.UserInfo(model.email, model.id, out string message);
+          JSRuntime.InvokeVoidAsync("tagline", send, message);
+        }
       }
       else
         manager = checkUser;

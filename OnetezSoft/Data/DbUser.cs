@@ -121,6 +121,12 @@ namespace OnetezSoft.Data
       var collection = _db.GetCollection<UserModel>(_collection);
 
       var results = collection.Find(x => !x.delete && x.active).ToList();
+      
+      foreach (var item in results)
+      {
+        if(item.products == null)
+          item.products = new();
+      }
 
       return results;
     }

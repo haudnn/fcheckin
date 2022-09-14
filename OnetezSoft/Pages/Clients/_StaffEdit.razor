@@ -74,11 +74,12 @@
             <div class="field has-text-weight-bold mt-5">
               Sản phẩm được quyền truy cập
             </div>
+
             @foreach (var product in company.products.Where(x => x.active))
             {
               var access = ProductService.CheckAccess(model.products, product.id);
               <div class="icon-text mb-3 @(product.used == product.total && !access ? "is_opacity" : "")">
-                <a class="icon mr-2" @onclick="() => AccessProduct(product)">
+                <a class="icon is-small mr-2" @onclick="() => AccessProduct(product)">
                   <i class="material-icons-round is-size-5 has-text-@(access ? "success" : "grey")">
                     toggle_@(access ? "on" : "off")
                   </i>

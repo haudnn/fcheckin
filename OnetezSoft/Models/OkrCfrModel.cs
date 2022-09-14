@@ -30,5 +30,7 @@ namespace OnetezSoft.Models
     public string evaluate_name { get; set; }
     // Ghi nhận dặt biệt
     public bool special { get; set; } 
+    // Riêng tư
+    public bool privacy { get; set; }
   }
 }

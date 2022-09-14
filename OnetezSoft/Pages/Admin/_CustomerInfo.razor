@@ -215,13 +215,7 @@
   private string moneyFormat
   {
     get => money > 10 ? money.ToString("0,0") : money > 0 ? money.ToString() : "";
-    set
-    {
-      if (Int32.TryParse(value.Replace(",", ""), out int parse))
-        money = parse;
-      else
-        money = 0;
-    }
+    set => money = Shared.ConvertToInt(value);
   }
 
   private void Cancel()
