@@ -19,7 +19,7 @@
         </div>
         <a class="delete is-medium" @onclick="Cancel"></a>
       </section>
-      <section class="modal-card-body" style="min-height: 295px;">
+      <section class="modal-card-body pb-0" style="min-height: 230px;">
         <ul class="columns is-multiline">
           <li class="column is-narrow" style="width: 164px;">
             <ul class="steps py-1">
@@ -121,7 +121,7 @@
                             <i class="material-icons-round is-size-6">person_add</i>
                           </span>
                         </div>
-                        <div class="dropdown-menu">
+                        @* <div class="dropdown-menu">
                           <div class="dropdown-content">
                             @foreach (var item in promotions.Where(x => x.type == 2))
                             {
@@ -130,7 +130,7 @@
                               </a>
                             }
                           </div>
-                        </div>
+                        </div> *@
                       </div>
                     </div>
                   }
@@ -302,7 +302,7 @@
   public EventCallback<bool> OnUpdate { get; set; }
 
   private int step = 1;
-  private int money = 0;
+  private long money = 0;
   private int discount = 0;
   private int staff = 5;
   private int month = 3;
@@ -364,7 +364,7 @@
     if(customer != null)
     {
       // Số tiền cần thanh toán
-      int price = discount > 0 ? money - (money * discount / 100) : money;
+      int price = Convert.ToInt32(discount > 0 ? money - (money * discount / 100) : money);
       if(staff < 5)
         await JSRuntime.InvokeVoidAsync("tagline", false, "Số lượng người dùng tối thiểu là 5 người.");
       else if(month < 3)
@@ -468,11 +468,13 @@
   {
     // Tính chi phí
     money = ProductService.CalculateRenew(staff, product.price, month);
-    var discountMonth = ProductService.Promotion(1, month);
-    var discountStaff = ProductService.Promotion(2, staff);
+    // Ưu đãi theo tháng
+    //var discountMonth = ProductService.Promotion(1, month);
+    // ƯU đãi theo người dùng -> bỏ
+    //var discountStaff = ProductService.Promotion(2, staff);
 
-    // Chọn ưu đãi tốt nhất
-    discount = discountMonth + discountStaff;
+    // Áp dụng ưu đãi theo tháng
+    discount = ProductService.Promotion(1, month); 
 
     toggleCompany = false;
     toggleStaff = false;

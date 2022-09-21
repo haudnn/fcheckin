@@ -172,9 +172,11 @@
 
   private async Task Update()
   {
-    if (string.IsNullOrEmpty(model.email) || !model.email.Contains("@"))
-      await Tagline("Bạn chưa nhập địa chỉ email, hoặc email không đúng định dạng!");
-    if (string.IsNullOrEmpty(model.first_name) && string.IsNullOrEmpty(model.last_name))
+    if (string.IsNullOrEmpty(model.email))
+      await Tagline("Bạn chưa nhập địa chỉ email!");
+    else if (!model.email.Contains("@"))
+      await Tagline("Địa chỉ email không đúng định dạng!");
+    else if (string.IsNullOrEmpty(model.first_name) || string.IsNullOrEmpty(model.last_name))
       await Tagline("Bạn chưa nhập họ và tên cho tài khoản!");
     else
     {

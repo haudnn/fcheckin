@@ -29,7 +29,7 @@
         </div>
         <div class="field">
           <div class="control has-icons-left">
-            <input @bind="model.last_name" type="text" class="input is_line" placeholder="Nhập họ" />
+            <input @bind="model.last_name" type="text" class="input is_line" placeholder="Nhập họ (*)" />
             <span class="icon is-left has-text-black">
               <i class="material-icons-round is-size-6">person</i>
             </span>
@@ -37,7 +37,7 @@
         </div>
         <div class="field">
           <div class="control has-icons-left">
-            <input @bind="model.first_name" type="text" class="input is_line" placeholder="Nhập tên" />
+            <input @bind="model.first_name" type="text" class="input is_line" placeholder="Nhập tên (*)" />
             <span class="icon is-left has-text-black">
               <i class="material-icons-round is-size-6">person</i>
             </span>
@@ -45,7 +45,7 @@
         </div>
         <div class="field">
           <div class="control has-icons-left">
-            <input @bind="model.phone" type="text" class="input is_line" placeholder="Nhập số điện thoại" />
+            <input @bind="model.phone" type="text" class="input is_line" placeholder="Nhập số điện thoại (*)" />
             <span class="icon is-left has-text-black">
               <i class="material-icons-round is-size-6">phone</i>
             </span>
@@ -122,20 +122,30 @@
 
   private async Task Update()
   {
-    if (string.IsNullOrEmpty(model.first_name) && string.IsNullOrEmpty(model.last_name))
+    if (string.IsNullOrEmpty(model.first_name))
       await Tagline(false, "Bạn chưa nhập họ và tên cho tài khoản!");
+    else if (string.IsNullOrEmpty(model.last_name))
+      await Tagline(false, "Bạn chưa nhập họ và tên cho tài khoản!");
+    else if(string.IsNullOrEmpty(model.phone))
+      await Tagline(false, "Bạn chưa nhập số điện thoại!");
+    else if(model.phone.Length < 10)
+      await Tagline(false, "Số điện thoại không đúng!");
     else
     {
-      if (!string.IsNullOrEmpty(passwordNew))
+      if (!string.IsNullOrEmpty(passwordOld) || !string.IsNullOrEmpty(passwordNew))
       {
-        if (model.password == Handled.Shared.CreateMD5(passwordOld))
+        if(string.IsNullOrEmpty(passwordOld))
+          await Tagline(false, "Bạn chưa nhập mật khẩu cũ!");
+        else if(string.IsNullOrEmpty(passwordNew))
+          await Tagline(false, "Bạn chưa nhập mật khẩu mới!");
+        else if (model.password != Handled.Shared.CreateMD5(passwordOld))
+          await Tagline(false, "Mật khẩu cũ không chính xác!");
+        else
         {
           model.password = Handled.Shared.CreateMD5(passwordNew);
           model = await DbMainUser.Update(model);
-          await Tagline(true, "Đã cập nhật thông tin thành công!");
+          await Tagline(true, "Đã cập nhật thông tin và mật khẩu thành công!");
         }
-        else
-          await Tagline(false, "Mật khẩu cũ không chính xác!");
       }
       else
       {
