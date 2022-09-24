@@ -1,0 +1,136 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="card teams_left py-3">
+  <div class="px-3">
+    <div class="user_item p-1 @(url.StartsWith("/work/my-task") ? "has_bg" : "")">
+      <img class="image is-24x24 mr-2" src="@Layout.User.avatar" alt="IMG">
+      <a href="/work/my-task">Công việc của tôi</a>
+    </div>
+  </div>
+  <hr class="my-3">
+  <div class="scrolly px-3" style="height: calc(100vh - 116px);">
+    <div class="control has-icons-right">
+      <input class="input is-rounded" type="text" placeholder="Tiêu đề kế hoạch">
+      <span class="icon is-right">
+        <i class="material-icons-round is-size-5">search</i>
+      </span>
+    </div>
+    <div class="dropdown is-hoverable is-fullwidth is-size-7 mt-3">
+      <div class="dropdown-trigger">
+        <a class="icon-text is-fullwidth">
+          <span style="flex-grow: 1;">Sắp xếp theo</span>
+          <span class="icon is-small">
+            <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+          </span>
+        </a>
+      </div>
+      <div class="dropdown-menu">
+        <div class="dropdown-content">
+          <a class="dropdown-item">Tiêu đề A-Z</a>
+          <a class="dropdown-item">Tiêu đề Z-A</a>
+          <a class="dropdown-item">Ngày tạo mới nhất</a>
+          <a class="dropdown-item">Ngày tạo cũ nhất</a>
+        </div>
+      </div>
+    </div>
+    <hr class="my-3">
+    <a class="icon-text is-fullwidth" @onclick="() => togglePin = !togglePin">
+      <span style="flex-grow: 1;">Kế hoạch đã ghim</span>
+      <span class="icon is-small">
+        <i class="material-icons-outlined is-size-5">arrow_@(togglePin ? "drop_down" : "right")</i>
+      </span>
+    </a>
+    @if(togglePin)
+    {
+      for (int i = 1; i <= 3; i++)
+      {
+        var link = $"/work/{i}";
+        <div class="icon-text is-fullwidth mt-3">
+          <a class="has-text-@(url.StartsWith(link) ? "link" : "grey")" style="flex-grow: 1;" href="@link">
+            Kế hoạch số @i
+          </a>
+          <div class="dropdown is-hoverable is-right icon is-small is_hover">
+            <div class="dropdown-trigger">
+              <span class="icon is-small">
+                <i class="material-icons-outlined is-size-6">more_horiz</i>
+              </span>
+            </div>
+            <div class="dropdown-menu is-size-7" style="min-width: 0;">
+              <div class="dropdown-content">
+                <a class="dropdown-item">
+                  Ghi kế hoạch
+                </a>
+                <a class="dropdown-item">
+                  Thêm vào lưu trữ
+                </a>
+                <a class="dropdown-item has-text-danger">
+                  Rời khỏi kế hoạch
+                </a>
+                <a class="dropdown-item has-text-danger">
+                  Xóa kế hoạch
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    }
+    <hr class="my-3">
+    <a class="icon-text is-fullwidth" @onclick="() => toggleTodo = !toggleTodo">
+      <span style="flex-grow: 1;">Kế hoạch đang diễn ra</span>
+      <span class="icon is-small">
+        <i class="material-icons-outlined is-size-5">arrow_@(toggleTodo ? "drop_down" : "right")</i>
+      </span>
+    </a>
+    @if(toggleTodo)
+    {
+      <div class="has-text-grey">Chưa có kế hoạch</div>
+    }
+    <hr class="my-3">
+    <a class="icon-text is-fullwidth" @onclick="() => toggleDone = !toggleDone">
+      <span style="flex-grow: 1;">Kế hoạch hoàn thành</span>
+      <span class="icon is-small">
+        <i class="material-icons-outlined is-size-5">arrow_@(toggleDone ? "drop_down" : "right")</i>
+      </span>
+    </a>
+    @if(toggleDone)
+    {
+      <div class="has-text-grey">Chưa có kế hoạch</div>
+    }
+    <hr class="my-3">
+    <a class="icon-text is-fullwidth" @onclick="() => toggleHide = !toggleHide">
+      <span style="flex-grow: 1;">Kế hoạch lưu trữ</span>
+      <span class="icon is-small">
+        <i class="material-icons-outlined is-size-5">arrow_@(toggleHide ? "drop_down" : "right")</i>
+      </span>
+    </a>
+    @if(toggleHide)
+    {
+      <div class="has-text-grey">Chưa có kế hoạch</div>
+    }
+  </div>
+  <div class="px-3">
+    <a class="button is-info is-fullwidth">
+      <span class="icon">
+        <i class="material-icons-round is-size-5">add</i>
+      </span>
+      <span>Tạo kế hoạch</span>
+    </a>
+  </div>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  private string url = string.Empty;
+  private bool togglePin = true;
+  private bool toggleTodo = true;
+  private bool toggleDone = false;
+  private bool toggleHide = false;
+
+  protected override async Task OnParametersSetAsync()
+  {
+    url = navigation.Uri.Replace(navigation.BaseUri, "/"); 
+  }
+}

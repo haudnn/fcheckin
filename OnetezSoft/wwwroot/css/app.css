@@ -589,6 +589,13 @@ strong {
   opacity: 0.3;
 }
 
+.is_hover {
+  opacity: 0;
+}
+*:hover > .is_hover {
+  opacity: 1;
+}
+
 .font_13 {
   font-size: 13px !important;
 }
@@ -813,6 +820,11 @@ a.tag:hover {
   height: 18px;
 }
 
+.icon.is-bordered {
+  border: 1px solid #dbdbdb;
+  border-radius: 4px;
+}
+
 .icon.is-rounded,
 .image .is-rounded {
   border-radius: 50%;
@@ -822,6 +834,10 @@ a.tag:hover {
   align-items: center;
   flex-wrap: nowrap;
   max-width: 100%;
+}
+
+.icon-text.is-fullwidth {
+  width: 100%;
 }
 
 .icon-text .title {
@@ -1428,6 +1444,15 @@ a.tag:hover {
 .dropdown.is-fullwidth,
 .dropdown.is-fullwidth .dropdown-trigger {
   width: 100%;
+}
+
+.dropdown.is-active .dropdown-menu,
+.dropdown.is-hoverable:hover .dropdown-menu {
+  display: none;
+}
+.dropdown.is-active > .dropdown-menu,
+.dropdown.is-hoverable:hover > .dropdown-menu {
+  display: block;
 }
 
 .dropdown-menu {
@@ -2820,4 +2845,54 @@ button.dropdown-item {
   max-height: calc(100vh - 150px);
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+/* CSS for fWork */
+.table.is-tasks > thead > tr > th,
+.table.is-tasks > tbody > tr > td {
+  border: 0px;
+}
+
+.task_item {
+  border-left: 4px solid;
+  border-top: 1px solid #ecf0ff !important;
+}
+
+.task_item.is_sub > td:first-child,
+.task_item.is_plan > td:first-child {
+  position: relative;
+  padding-left: 66px !important;
+}
+
+.task_item.is_sub > td:first-child::before,
+.task_item.is_plan > td:first-child::before {
+  content: "";
+  background: #8990a5;
+  width: 1px;
+  height: 101%;
+  position: absolute;
+  left: 44px;
+  bottom: 15px;
+}
+
+.task_item.is_sub > td:first-child::after {
+  content: "";
+  background: #8990a5;
+  width: 8px;
+  height: 1px;
+  position: absolute;
+  left: 44px;
+  bottom: 15px;
+}
+
+.task_item .item_title a:not(:hover) {
+  color: #333;
+}
+
+.task_item .item_title .item_name {
+  flex-grow: 1;
+}
+
+.task_item .item_title .icon {
+  margin: 0px;
 }

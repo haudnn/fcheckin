@@ -240,15 +240,11 @@ namespace OnetezSoft.Handled
     public static string ColorRandom(int index)
     {
       var list = ColorList();
-      if (index > 0)
-      {
-        if (index >= list.Count)
-          index = index % list.Count;
-      }
-      else
-      {
-        index = RandomInt(0, list.Count);
-      }
+      
+      if (index > 0 && index >= list.Count)
+        index = index % list.Count;
+        
+      index = RandomInt(0, list.Count - 1);
       return list[index];
     }
 
@@ -266,7 +262,7 @@ namespace OnetezSoft.Handled
     /// </summary>
     public static int RandomInt(int min, int max)
     {
-      return random.Next(min, max);
+      return random.Next(min, max + 1);
     }
 
     /// <summary>

@@ -1,0 +1,165 @@
+@page "/work"
+@page "/work/my-task"
+@page "/work/my-task/{TypeView}"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="columns is-gapless has_menu_left">
+  <div class="column is-narrow">
+    <_PlanSidebar />
+  </div>
+  <div class="column">
+    <div class="card p-5 p-4-mobile">
+      <ul class="columns is-vcentered is-variable is-2 mb-3">
+        <li class="column">
+          <h1 class="title is-5 has-text-info is-uppercase">Công việc của tôi</h1>
+        </li>
+        <li class="column is-narrow">
+          <a class="has-text-@(TypeView == "list" ? "link" : "grey")" href="/work/my-task/list">
+            Chế độ danh sách
+          </a>
+        </li>
+        <li class="column is-narrow">
+          <a class="has-text-@(TypeView == "board" ? "link" : "grey") "href="/work/my-task/board">
+            Chế độ Board
+          </a>
+        </li>
+        <li class="column is-narrow">
+          <a class="has-text-@(TypeView == "gantt" ? "link" : "grey") "href="/work/my-task/gantt">
+            Chế độ Gantt
+          </a>
+        </li>
+      </ul>
+
+      <ul class="columns is-vcentered mb-3">
+        <li class="column">
+          <a class="button is-link is-small">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">add</i>
+            </span>
+            <span>Tạo công việc</span>
+          </a>
+        </li>
+        <li class="column is-narrow">
+          <div class="dropdown is-hoverable is-right is-size-7">
+            <div class="dropdown-trigger">
+              <a class="icon-text">
+                <span>Độ ưu tiên</span>
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                </span>
+              </a>
+            </div>
+            <div class="dropdown-menu">
+              <div class="dropdown-content">
+                <a class="dropdown-item">Tất cả</a>
+                <a class="dropdown-item">Trống</a>
+                @foreach (var item in WorkService.Priority())
+                {
+                  <a class="dropdown-item" style="color: @item.color;">@item.name</a>
+                }
+              </div>
+            </div>
+          </div>
+        </li>
+        <li class="column is-narrow">
+          <div class="dropdown is-hoverable is-right is-size-7">
+            <div class="dropdown-trigger">
+              <a class="icon-text">
+                <span>Theo ngày kết thúc</span>
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                </span>
+              </a>
+            </div>
+            <div class="dropdown-menu">
+              <div class="dropdown-content">
+                <a class="dropdown-item">Tuần này</a>
+                <a class="dropdown-item">Tháng này</a>
+                <a class="dropdown-item">Quý này</a>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li class="column is-one-fifth">
+          <div class="control has-icons-right">
+            <input class="input is-small is-rounded" type="text" placeholder="Tiêu đề công việc...">
+            <span class="icon is-right is-small">
+              <i class="material-icons-outlined is-size-5">search</i>
+            </span>
+          </div>
+        </li>
+      </ul>
+
+
+      <table class="table is-fullwidth is-vcentered is-tasks is-size-7">
+        <thead>
+          <tr class="has-text-grey is-size-7">
+            <th>Công việc</th>
+            <th width="130xp">Thời hạn</th>
+            <th width="260px">Nhãn công việc</th>
+            <th width="110px">Thành viên</th>
+            <th width="100px">Trạng thái</th>
+            <th width="40px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var status in WorkService.Status())
+          {
+            var toggle = toggleStatus.Contains(status.id);
+            <tr>
+              <td colspan="6">
+                <div class="icon-text">
+                  <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
+                    <i class="material-icons-outlined is-size-5">arrow_@(toggle ? "drop_down" : "right")</i>
+                  </a>
+                  <span class="has-text-weight-semibold font_14">@status.name</span>
+                  <a class="icon has-text-dark is_hover" title="Thêm công việc">
+                    <i class="material-icons-round is-size-6">add</i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            @if(toggle)
+            {
+              for (int i = 0; i <= 5; i++)
+              {
+                <_ItemList />
+              }
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string TypeView { get; set; }
+  private string _title = "Công việc của tôi";
+  private string url = string.Empty;
+
+  private List<int> toggleStatus = new() { 1, 2 };
+
+  protected override async Task OnParametersSetAsync()
+  {
+    if(string.IsNullOrEmpty(TypeView))
+      TypeView = "list";
+
+    url = navigation.Uri.Replace(navigation.BaseUri, "/");
+
+  }
+
+  private void ToggleStatus(int id)
+  {
+    if(toggleStatus.Contains(id))
+      toggleStatus.Remove(id);
+    else
+      toggleStatus.Add(id);
+  }
+}

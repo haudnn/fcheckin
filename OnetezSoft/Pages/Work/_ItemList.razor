@@ -1,0 +1,269 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<tr class="task_item" style="border-color: @priority.color;">
+  <td class="pl-2">
+    <div class="icon-text item_title">
+      <a class="icon">
+        <i class="material-icons-outlined is-size-6">drag_indicator</i>
+      </a>
+      <a class="icon" @onclick="() => toggleItem = !toggleItem">
+        <i class="material-icons-outlined is-size-6">arrow_@(toggleItem ? "drop_down" : "right")</i>
+      </a>
+      <a class="item_name">
+        Đây là tiêu đề công việc mẫu để test giao diện, có thể nó sẽ rất dài
+      </a>
+      <a class="icon has-text-dark is_hover" title="Thêm công việc phụ">
+        <i class="material-icons-round is-size-6">add</i>
+      </a>
+    </div>
+  </td>
+  <td>
+    <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE">
+      <PickerTemplate>
+        <div id="@context.Id" @onclick="context.Toggle" title="Thay đổi ngày">
+          <a class="icon-text">
+            <span class="icon is-small mr-1">
+              <i class="material-icons-outlined is-size-6">calendar_today</i>
+            </span>
+            @if (context.TStartDate != null && context.TEndDate != null)
+            {
+              <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+              <span class="mx-1">-</span>
+              <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+            }
+          </a>
+        </div>
+      </PickerTemplate>
+    </DateRangePicker>
+  </td>
+  <td>
+    <div class="dropdown is-right @(toggleLabel ? "is-active" : "")">
+      <div class="dropdown-trigger">
+        <div class="tags" style="flex-wrap: nowrap;">
+          @foreach (var item in LabelsShort(labels))
+          {
+            <span class="tag" style="background: @(item.color + "30"); color: @item.color;">@item.name</span>
+          }
+          <a class="tag is-white icon is-bordered has-text-grey" @onclick="() => toggleLabel = !toggleLabel">
+            <i class="material-icons-outlined is-size-6">add</i>
+          </a>
+        </div>
+      </div>
+      <div class="dropdown-menu">
+        <div class="dropdown-content tags pl-2 pb-0">
+          @foreach (var item in labels)
+          {
+            <span class="tag" style="background: @(item.color + "30"); color: @item.color;">@item.name</span>
+          }
+        </div>
+      </div>
+    </div>
+  </td>
+  <td>
+    <div class="dropdown is-right @(toggleMember ? "is-active" : "")">
+      <div class="dropdown-trigger">
+        <div class="avatar_list">
+          @foreach (var item in MembersShort(Layout.UserList))
+          {
+            <span class="image is-rounded is-24x24 has-background-grey" title="@item.FullName">
+              @if(string.IsNullOrEmpty(item.id))
+              {
+                <span class="icon has-text-white is-size-7">@item.FullName</span>
+              }
+              else
+              {
+                <img src="@item.avatar" alt="AVT">
+              }
+            </span>
+          }
+          <a class="icon is-bordered has-text-grey is-rounded ml-4" @onclick="() => toggleMember = !toggleMember">
+            <i class="material-icons-outlined is-size-6">add</i>
+          </a>
+        </div>
+      </div>
+      <div class="dropdown-menu" style="width: 350px;">
+        <div class="dropdown-content px-3">
+          <div class="has-text-dark has-text-weight-medium font_14 mb-3">
+            Cập nhật thành viên
+          </div>
+          <div class="control has-icons-right mb-3">
+            <input class="input is-small is-rounded" type="text" placeholder="Tên thành viên, phòng ban...">
+            <span class="icon is-right">
+              <i class="material-icons-outlined is-size-6">search</i>
+            </span>
+          </div>
+          @foreach (var item in Layout.UserList)
+          {
+            <ul class="columns is-vcentered is-variable is-1">
+              <li class="column is-narrow">
+                <a class="icon has-text-danger">
+                  <i class="material-icons-outlined is-size-6">
+                    remove_circle_outline
+                  </i>
+                </a>
+              </li>
+              <li class="column">
+                <div class="icon-text">
+                  <span class="image is-rounded is-24x24">
+                    <img src="@item.avatar" alt="AVT">
+                  </span>
+                  <span class="ml-2" style="flex-grow: 1;">@item.FullName</span>
+                </div>
+              </li>
+              <li class="column is-narrow">
+                <div class="dropdown is-hoverable is-right">
+                  <div class="dropdown-trigger">
+                    <a class="icon-text">
+                      <span>Người thực hiện</span>
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+                      </span>
+                    </a>
+                  </div>
+                  <div class="dropdown-menu">
+                    <div class="dropdown-content">
+                      <a class="dropdown-item">Quản lý kế hoạch</a>
+                      <a class="dropdown-item">Người thực hiện</a>
+                      <a class="dropdown-item">Người nhận xét</a>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          }
+        </div>
+      </div>
+    </div>
+  </td>
+  <td>
+    <div class="dropdown is-hoverable is-fullwidth">
+      <div class="dropdown-trigger">
+        <a class="icon-text is-fullwidth">
+          <span style="flex-grow: 1;">Trạng thái</span>
+          <span class="icon is-small">
+            <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+          </span>
+        </a>
+      </div>
+      <div class="dropdown-menu">
+        <div class="dropdown-content">
+          @foreach (var item in WorkService.Status())
+          {
+            <a class="dropdown-item">@item.name</a>
+          }
+        </div>
+      </div>
+    </div>
+  </td>
+  <td align="center">
+    <div class="dropdown is-hoverable is-right">
+      <div class="dropdown-trigger">
+        <span class="icon">
+          <i class="material-icons-outlined is-size-6">more_horiz</i>
+        </span>
+      </div>
+      <div class="dropdown-menu">
+        <div class="dropdown-content">
+          <a class="dropdown-item">Tạo công việc phụ</a>
+          <a class="dropdown-item">Tạo Todolist liên kết</a>
+          <a class="dropdown-item has-text-danger">Xóa công việc này</a>
+        </div>
+      </div>
+    </div>
+  </td>
+</tr>
+
+@if(toggleItem)
+{
+  <tr class="task_item is_plan" style="border-color: @priority.color;">
+    <td colspan="6">
+      <a class="icon-text has-text-link">
+        <span class="icon is-small mr-2">
+          <i class="material-icons-outlined is-size-6">link</i>
+        </span>
+        <span>Kế hoạch: Đây là tiêu đề của kế hoạch mẫu để kiểm tra giao diện</span>
+      </a>
+    </td>
+  </tr>
+  @for (int i = 1; i <= 2; i++)
+  {
+    <tr class="task_item is_sub" style="border-color: @priority.color;">
+      <td>
+        Đây là tiêu đề công việc mẫu để test giao diện, có thể nó sẽ rất dài @i
+      </td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+  }
+  <tr class="task_item" style="border-color: @priority.color;">
+    <td colspan="6" class="pl-6">
+      <a class="icon-text has-text-link ml-3">
+        <span class="icon is-small mr-2">
+          <i class="material-icons-outlined is-size-6">add</i>
+        </span>
+        <span>Thêm công việc phụ</span>
+      </a>
+    </td>
+  </tr>
+}
+
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  private List<StaticModel> labels = new();
+  
+  private StaticModel priority = WorkService.Priority(Shared.RandomInt(1, 4));
+  private bool toggleItem = false;
+  private bool toggleLabel = false;
+  private bool toggleMember = false;
+  private DateTimeOffset? dateS = DateTime.Today;
+  private DateTimeOffset? dateE = DateTime.Today.AddDays(10);
+
+  protected override void OnParametersSet()
+  {
+    labels = LabelList(); 
+  }
+
+  private List<StaticModel> LabelsShort(List<StaticModel> list)
+  {
+    var results = new List<StaticModel>();
+
+    if(list.Count > 2)
+    {
+      results = list.Take(2).ToList();
+      results.Add(new () { name = $"+{list.Count - 2}", color = "#0F913D" });
+    }
+
+    return results;
+  }
+
+  private List<UserModel> MembersShort(List<UserModel> list)
+  {
+    var results = new List<UserModel>();
+
+    if(list.Count > 2)
+    {
+      results = list.Take(2).ToList();
+      results.Add(new () { last_name = $"+{list.Count - 2}" });
+    }
+
+    return results;
+  }
+
+  private List<StaticModel> LabelList()
+  {
+      var list = new List<StaticModel>();
+
+      list.Add(new() { id = 1, name = "Nhân sự", color = "#8990A5" });
+      list.Add(new() { id = 2, name = "Kế toán", color = "#6B8FE0" });
+      list.Add(new() { id = 3, name = "Truyền thông", color = "#BCB51F" });
+      list.Add(new() { id = 4, name = "Marketing", color = "#FF5449" });
+
+      return list.OrderBy(x => Guid.NewGuid()).ToList();
+  }
+}

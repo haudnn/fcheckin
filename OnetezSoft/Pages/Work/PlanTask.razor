@@ -1,0 +1,45 @@
+@page "/work/{PlanId}/task"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>_title</PageTitle>
+
+<section class="columns is-gapless has_menu_left">
+  <div class="column is-narrow">
+    <_PlanSidebar />
+  </div>
+  <div class="column">
+    <div class="card p-3 p-4-mobile">
+      <ul class="columns is-multiline">
+        <li class="column is-narrow">
+          <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/detail">
+            TỔNG QUAN
+          </a>
+        </li>
+        <li class="column is-narrow">
+          <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/task">
+            CÔNG VIỆC
+          </a>
+        </li>
+        <li class="column is-narrow">
+          <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/chart">
+            THỐNG KÊ
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string PlanId { get; set; }
+  
+  private string _title = "Công việc của kế hoạch";
+
+
+
+
+}
