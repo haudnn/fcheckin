@@ -86,7 +86,7 @@
             <td>
               @if (item.confirm)
               {
-                <input id="todo_@item.id" @bind="item.name" class="input" type="text" placeholder="Nhập tên công việc" readonly />
+                <input id="todo_@item.id" value="@item.name" class="input" type="text" placeholder="Nhập tên công việc" readonly />
               }
               else
               {
@@ -412,11 +412,11 @@
 
   private TodolistModel current = new() { todos = new() };
   private List<string> editList = new();
-  DateTimeOffset? todoDate { get; set; }
+  private DateTimeOffset? todoDate = null;
 
   protected override async Task OnInitializedAsync()
   {
-    todoDate = string.IsNullOrEmpty(Day) ? Convert.ToDateTime(DateTime.Now.ToShortDateString()) : Convert.ToDateTime(Day);
+    todoDate = string.IsNullOrEmpty(Day) ? DateTime.Today : Convert.ToDateTime(Day);
     await Start();
   }
 
@@ -564,7 +564,7 @@
     }
     else
     {
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn đã tạo xong và muốn nộp TodoList lên quản lý ?"))
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn đã tạo xong và muốn nộp TodoList lên quản lý?"))
         return;
 
       current.todos = current.todos.OrderBy(x => x.start).ToList();
@@ -606,7 +606,7 @@
     }
     else
     {
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Sau khi Check-out bạn không thể chỉnh sửa Todolist.\nBạn có chắc muốn check-out ?"))
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Sau khi Check-out bạn không thể chỉnh sửa Todolist.\nBạn có chắc muốn check-out?"))
         return;
 
       current.todos = current.todos.OrderBy(x => x.start).ToList();
@@ -626,7 +626,7 @@
     {
       if (string.IsNullOrEmpty(item.name) || string.IsNullOrEmpty(item.name.Trim()))
         return false;
-      else if (string.IsNullOrEmpty(item.start) || string.IsNullOrEmpty(item.start))
+      else if (string.IsNullOrEmpty(item.start) || string.IsNullOrEmpty(item.end))
         return false;
     }
     return true;

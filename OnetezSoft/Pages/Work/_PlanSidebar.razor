@@ -16,7 +16,7 @@
         <i class="material-icons-round is-size-5">search</i>
       </span>
     </div>
-    <div class="dropdown is-hoverable is-fullwidth is-size-7 mt-3">
+    <div class="dropdown is-hoverable is-fullwidth is-size-7 mt-3 is-hidden">
       <div class="dropdown-trigger">
         <a class="icon-text is-fullwidth">
           <span style="flex-grow: 1;">Sắp xếp theo</span>
@@ -34,84 +34,69 @@
         </div>
       </div>
     </div>
-    <hr class="my-3">
-    <a class="icon-text is-fullwidth" @onclick="() => togglePin = !togglePin">
-      <span style="flex-grow: 1;">Kế hoạch đã ghim</span>
-      <span class="icon is-small">
-        <i class="material-icons-outlined is-size-5">arrow_@(togglePin ? "drop_down" : "right")</i>
-      </span>
-    </a>
-    @if(togglePin)
+    @foreach (var status in planList)
     {
-      for (int i = 1; i <= 3; i++)
+      var hidden = toggle.Contains(status.Key);
+      <hr class="my-3">
+      <a class="icon-text is-fullwidth" @onclick="() => Toggle(status.Key)">
+        <span style="flex-grow: 1;">@status.Key</span>
+        <span class="icon is-small">
+          <i class="material-icons-outlined is-size-5">arrow_@(hidden ? "drop_down" : "right")</i>
+        </span>
+      </a>
+      if(hidden)
       {
-        var link = $"/work/{i}";
-        <div class="icon-text is-fullwidth mt-3">
-          <a class="has-text-@(url.StartsWith(link) ? "link" : "grey")" style="flex-grow: 1;" href="@link">
-            Kế hoạch số @i
-          </a>
-          <div class="dropdown is-hoverable is-right icon is-small is_hover">
-            <div class="dropdown-trigger">
-              <span class="icon is-small">
-                <i class="material-icons-outlined is-size-6">more_horiz</i>
-              </span>
-            </div>
-            <div class="dropdown-menu is-size-7" style="min-width: 0;">
-              <div class="dropdown-content">
-                <a class="dropdown-item">
-                  Ghi kế hoạch
-                </a>
-                <a class="dropdown-item">
-                  Thêm vào lưu trữ
-                </a>
-                <a class="dropdown-item has-text-danger">
-                  Rời khỏi kế hoạch
-                </a>
-                <a class="dropdown-item has-text-danger">
-                  Xóa kế hoạch
-                </a>
+        foreach (var plan in status.Value)
+        {
+          var link = "/work/" + plan.id;
+          <div class="icon-text is-fullwidth mt-3">
+            <a class="has-text-@(url.StartsWith(link) ? "link" : "grey")" style="flex-grow: 1;" href="@link">
+              @plan.name
+            </a>
+            <div class="dropdown is-hoverable is-right icon is-small is_hover">
+              <div class="dropdown-trigger">
+                <span class="icon is-small">
+                  <i class="material-icons-outlined is-size-6">more_horiz</i>
+                </span>
+              </div>
+              <div class="dropdown-menu is-size-7" style="min-width: 0;">
+                <div class="dropdown-content">
+                  <a class="dropdown-item is-hidden">
+                    Ghim kế hoạch
+                  </a>
+                  @if(plan.is_hide)
+                  {
+                    <a class="dropdown-item" @onclick="() => ToggleHidePlan(plan)">
+                      Hủy lưu trữ
+                    </a>
+                  }
+                  else
+                  {
+                    <a class="dropdown-item" @onclick="() => ToggleHidePlan(plan)">
+                      Thêm vào lưu trữ
+                    </a>
+                  }
+                  <a class="dropdown-item has-text-danger" @onclick="() => LeavePlan(plan)">
+                    Rời khỏi kế hoạch
+                  </a>
+                  <hr class="dropdown-divider">
+                  <a class="dropdown-item has-text-danger" @onclick="() => DeletePlan(plan)">
+                    Xóa kế hoạch
+                  </a>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        }
+        if(status.Value.Count == 0)
+        {
+          <div class="has-text-grey mt-3">Chưa có kế hoạch</div>
+        }
       }
-    }
-    <hr class="my-3">
-    <a class="icon-text is-fullwidth" @onclick="() => toggleTodo = !toggleTodo">
-      <span style="flex-grow: 1;">Kế hoạch đang diễn ra</span>
-      <span class="icon is-small">
-        <i class="material-icons-outlined is-size-5">arrow_@(toggleTodo ? "drop_down" : "right")</i>
-      </span>
-    </a>
-    @if(toggleTodo)
-    {
-      <div class="has-text-grey">Chưa có kế hoạch</div>
-    }
-    <hr class="my-3">
-    <a class="icon-text is-fullwidth" @onclick="() => toggleDone = !toggleDone">
-      <span style="flex-grow: 1;">Kế hoạch hoàn thành</span>
-      <span class="icon is-small">
-        <i class="material-icons-outlined is-size-5">arrow_@(toggleDone ? "drop_down" : "right")</i>
-      </span>
-    </a>
-    @if(toggleDone)
-    {
-      <div class="has-text-grey">Chưa có kế hoạch</div>
-    }
-    <hr class="my-3">
-    <a class="icon-text is-fullwidth" @onclick="() => toggleHide = !toggleHide">
-      <span style="flex-grow: 1;">Kế hoạch lưu trữ</span>
-      <span class="icon is-small">
-        <i class="material-icons-outlined is-size-5">arrow_@(toggleHide ? "drop_down" : "right")</i>
-      </span>
-    </a>
-    @if(toggleHide)
-    {
-      <div class="has-text-grey">Chưa có kế hoạch</div>
     }
   </div>
   <div class="px-3">
-    <a class="button is-info is-fullwidth">
+    <a class="button is-info is-fullwidth" @onclick="CreatePlan">
       <span class="icon">
         <i class="material-icons-round is-size-5">add</i>
       </span>
@@ -120,17 +105,113 @@
   </div>
 </div>
 
+<_PlanCreate model="planEdit" OnUpdate="OnCreate" />
+
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   private string url = string.Empty;
-  private bool togglePin = true;
-  private bool toggleTodo = true;
-  private bool toggleDone = false;
-  private bool toggleHide = false;
+  private List<string> toggle = new() { "Kế hoạch đang diễn ra", "Kế hoạch hoàn thành" };
+  private Dictionary<string, List<WorkPlanModel>> planList = new();
+  private WorkPlanModel planEdit = null;
 
   protected override async Task OnParametersSetAsync()
   {
-    url = navigation.Uri.Replace(navigation.BaseUri, "/"); 
+    url = navigation.Uri.Replace(navigation.BaseUri, "/");
+    await GetList();
+  }
+
+  private async Task GetList()
+  {
+    var data = await DbWorkPlan.GetList(Layout.Company.id, Layout.User.id);
+    var planTodo = data.Where(x => !x.is_hide && x.status == 1).ToList();
+    var planDone = data.Where(x => !x.is_hide && x.status == 2).ToList();
+    var planHide = data.Where(x => x.is_hide).ToList();
+    
+    planList = new();
+    planList.Add("Kế hoạch đang diễn ra", planTodo);
+    planList.Add("Kế hoạch hoàn thành", planDone);
+    planList.Add("Kế hoạch lưu trữ", planHide);
+  }
+
+  private async Task CreatePlan()
+  {
+    planEdit = new() {
+      creator = Layout.User.id,
+      members = new() { new() { id = Layout.User.id, role = 1 } },
+      labels = new(),
+      sections = new(),
+      timelines = new()
+    };
+    await JSRuntime.InvokeVoidAsync("setFocus", "plan_name");
+  }
+
+  private async Task OnCreate(WorkPlanModel item)
+  {
+    if(item != null)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã tạo kế hoạch: " + item.name);
+      navigation.NavigateTo("/work/" + item.id);
+    }
+    planEdit = null;
+  }
+
+  private async Task ToggleHidePlan(WorkPlanModel item)
+  {
+    if(WorkService.RoleInPlan(item, Layout.User.id) == 1)
+    {
+      if(item.is_hide)
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy lưu trữ kế hoạch: {item.name}?"))
+          return;
+        item.is_hide = false; 
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hủy lưu trữ kế hoạch" + item.name);
+      }
+      else
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn lưu trữ kế hoạch: {item.name}?"))
+          return;
+        item.is_hide = true;
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã lưu trữ kế hoạch" + item.name);
+      }
+      await DbWorkPlan.Update(Layout.Company.id, item);
+      await GetList();
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có quyền lưu trữ kế hoạch này!");
+  }
+
+  private async Task DeletePlan(WorkPlanModel item)
+  {
+    if(WorkService.RoleInPlan(item, Layout.User.id) == 1)
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa kế hoạch {item.name}. Việc này sẽ khiến dữ liệu công việc trong kế hoạch bị mất.\nBạn có chắc chắn muốn thực hiện?"))
+        return;
+      await WorkService.DeletePlan(Layout.Company.id, item.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa kế hoạch thành công!");
+      navigation.NavigateTo("/work");
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có quyền xóa kế hoạch này!");
+  }
+
+  private async Task LeavePlan(WorkPlanModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc chắn muốn rời khỏi kế hoạch này?"))
+        return;
+    if(await WorkService.RemoveMemberInPlan(Layout.Company.id, item.id, Layout.User.id))
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã rời khỏi kế hoạch thành công!");
+    else if(WorkService.CheckPlanSingleManager(item, Layout.User.id))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang là quản lý duy nhất của kế hoạch, vui lòng thêm quản lý khác trước khi rời khỏi kế hoạch!");
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Không thành công, vui lòng thử lại!");
+  }
+
+  private void Toggle(string status)
+  {
+    if(toggle.Contains(status))
+      toggle.Remove(status);
+    else
+      toggle.Add(status);
   }
 }

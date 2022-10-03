@@ -526,14 +526,15 @@ namespace OnetezSoft.Handled
       }
     }
 
+
     /// <summary>
     /// Mốc giờ
     /// </summary>
-    public static List<StaticModel> TimeList()
+    public static List<StaticModel> TimeList(int min, int max)
     {
       var list = new List<StaticModel>();
 
-      for (int i = 7; i < 24; i++)
+      for (int i = min; i <= max; i++)
       {
         for (int m = 0; m < 60; m += 10)
         {
@@ -546,6 +547,14 @@ namespace OnetezSoft.Handled
       }
 
       return list;
+    }
+
+    /// <summary>
+    /// Mốc giờ: mặc định từ 7 đến 19 giờ
+    /// </summary>
+    public static List<StaticModel> TimeList()
+    {
+      return TimeList(7, 19);
     }
 
 

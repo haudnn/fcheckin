@@ -84,7 +84,14 @@
         {
           <tr>
             <td>
-              <input id="todo_@item.id" @bind="item.name" class="input" type="text" placeholder="Nhập tên công việc" />
+              @if (item.confirm)
+              {
+                <input id="todo_@item.id" value="@item.name" class="input" type="text" placeholder="Nhập tên công việc" readonly />
+              }
+              else
+              {
+                <input id="todo_@item.id" @bind="item.name" class="input" type="text" placeholder="Nhập tên công việc" />
+              }
             </td>
             <td>
               <label class="td-label">Phân loại</label>
@@ -659,7 +666,7 @@
 
   private TodolistModel current = new() { todos = new() };
   private List<string> editList = new();
-  DateTimeOffset? todoDate { get; set; }
+  private DateTimeOffset? todoDate = DateTime.Today;
 
   private int dateType = 1;
   private List<DepartmentModel> departmentAll = new();
@@ -671,7 +678,6 @@
   protected override void OnInitialized()
   {
     departmentAll = DbDepartment.GetAll(Layout.Company.id);
-    todoDate = Convert.ToDateTime(DateTime.Now.ToShortDateString());
   }
 
   protected override async Task OnParametersSetAsync()
@@ -875,7 +881,7 @@
     {
       if (string.IsNullOrEmpty(item.name) || string.IsNullOrEmpty(item.name.Trim()))
         return false;
-      else if (string.IsNullOrEmpty(item.start) || string.IsNullOrEmpty(item.start))
+      else if (string.IsNullOrEmpty(item.start) || string.IsNullOrEmpty(item.end))
         return false;
     }
     return true;

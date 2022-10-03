@@ -170,7 +170,6 @@
     navMobile = false;
 
     var url = navigation.Uri.Replace(navigation.BaseUri, "");
-
     foreach (var main in ListNav)
     {
       main.active = url.StartsWith(main.link.Replace("#", ""));
@@ -194,14 +193,16 @@
   private async Task ChangeCycle(string id)
   {
     await storage.SetAsync("cycle", id);
-
     navigation.NavigateTo(navigation.Uri, true);
   }
 
   private async Task ToggleSidebar()
   {
     navLess = !navLess;
-    await storage.SetAsync("navLess", navLess.ToString());
+    if(navLess)
+      await storage.SetAsync("navLess", navLess.ToString());
+    else
+      await storage.DeleteAsync("navLess");
   }
 
   private void ToogleMobile()

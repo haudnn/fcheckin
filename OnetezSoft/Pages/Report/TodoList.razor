@@ -151,7 +151,7 @@
                 <td>
                   <label class="td-label">Ngày check-in</label>
                   <div class="td-value">
-                    <span class="mr-3">@string.Format("{0:dd/MM - HH:mm}", new DateTime(item.date_create))</span>
+                    <span class="mr-3">@string.Format("{0:dd/MM - HH:mm}", new DateTime(item.date_checkin))</span>
                     @if (item.ontime_checkin)
                     {
                       <span class="has-text-success">Đúng hạn</span>
@@ -261,8 +261,8 @@
   private List<UserModel> userList = new();
   private List<UserModel> userSuggests = new();
   private string filterUserSearch = string.Empty;
-  private DateTimeOffset? filterStart { get; set; }
-  private DateTimeOffset? filterEnd { get; set; }
+  private DateTimeOffset? filterStart = null;
+  private DateTimeOffset? filterEnd = null;
   private DepartmentModel.SelectList filterDepartment = new() { name = "Tất cả phòng ban" };
   private bool departmentShow = false;
 
@@ -283,8 +283,8 @@
 
   public async Task ChangePicker(DateRange range)
   {
-    filterStart = range.Start;
-    filterEnd = range.End;
+    filterStart = Convert.ToDateTime(range.Start.DateTime.ToString("yyyy-MM-dd"));
+    filterEnd = Convert.ToDateTime(range.End.DateTime.ToString("yyyy-MM-dd"));
     await GetData();
   }
 
@@ -312,6 +312,16 @@
                   select x).ToList();
 
     await GetData();
+  }
+
+  private async Task GetData()
+  {
+    _loaded = false;
+
+    showItems.Clear();
+    database = await DbTodolist.GetList(Layout.Company.id, filterStart.Value.DateTime, filterEnd.Value.DateTime);
+
+    _loaded = true;
   }
 
   private string UserSearch
@@ -345,16 +355,6 @@
     filterUserSearch = item.FullName;
     userList = new() { item };
     await GetData();
-  }
-
-  private async Task GetData()
-  {
-    _loaded = false;
-
-    showItems.Clear();
-    database = await DbTodolist.GetList(Layout.Company.id, filterStart.Value.DateTime, filterEnd.Value.DateTime);
-
-    _loaded = true;
   }
 
   private void ShowItems(string id)

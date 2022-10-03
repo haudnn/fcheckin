@@ -1,0 +1,23 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<ul class="timeline is-size-7 has-text-grey">
+  @foreach (var item in logs)
+  {  
+    <li class="pb-4">
+      <span>@item.name:</span>
+      <span class="has-text-weight-semibold has-text-info">@item.detail</span>
+      <div class="py-1">@string.Format("{0:dd/MM/yyyy - HH:mm}", new DateTime(item.date))</div>
+      <span class="image is-24x24 is-rounded" title="@item.user.name">
+        <img src="@item.user.avatar" alt="IMG">
+      </span>
+    </li>
+  }
+</ul>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<WorkLogModel> logs { get; set; }
+}

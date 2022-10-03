@@ -187,6 +187,9 @@
     }
     else
     {
+      // Cật nhật database công ty
+      await DbUser.Update(Layout.Company.id, user);
+
       if (!string.IsNullOrEmpty(passwordNew))
       {
         if (user.password == Handled.Shared.CreateMD5(passwordOld))

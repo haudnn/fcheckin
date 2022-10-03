@@ -93,45 +93,42 @@
         </li>
       </ul>
 
+      <ul class="task_list columns is-gapless is-size-7 has-text-grey">
+        <li class="column" style="width: calc(100% - 630px);">Công việc</li>
+        <li class="column is-narrow" style="width: 130px;">Thời hạn</li>
+        <li class="column is-narrow" style="width: 250px;">Nhãn công việc</li>
+        <li class="column is-narrow" style="width: 110px;">Thành viên</li>
+        <li class="column is-narrow" style="width: 80px;">Trạng thái</li>
+        <li class="column is-narrow" style="width: 30px;"></li>
+      </ul>
 
-      <table class="table is-fullwidth is-vcentered is-tasks is-size-7">
-        <thead>
-          <tr class="has-text-grey is-size-7">
-            <th>Công việc</th>
-            <th width="130xp">Thời hạn</th>
-            <th width="260px">Nhãn công việc</th>
-            <th width="110px">Thành viên</th>
-            <th width="100px">Trạng thái</th>
-            <th width="40px"></th>
-          </tr>
-        </thead>
-        <tbody>
-          @foreach (var status in WorkService.Status())
-          {
-            var toggle = toggleStatus.Contains(status.id);
-            <tr>
-              <td colspan="6">
-                <div class="icon-text">
-                  <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
-                    <i class="material-icons-outlined is-size-5">arrow_@(toggle ? "drop_down" : "right")</i>
-                  </a>
-                  <span class="has-text-weight-semibold font_14">@status.name</span>
-                  <a class="icon has-text-dark is_hover" title="Thêm công việc">
-                    <i class="material-icons-round is-size-6">add</i>
-                  </a>
-                </div>
-              </td>
-            </tr>
-            @if(toggle)
-            {
-              for (int i = 0; i <= 5; i++)
-              {
-                <_ItemList />
-              }
-            }
-          }
-        </tbody>
-      </table>
+      @foreach (var status in WorkService.Status())
+      {
+        var toggle = toggleStatus.Contains(status.id);
+        var tasks = taskList.Where(x => x.status == status.id).ToList();
+        <ul class="task_list columns is-gapless is-size-7">
+          <li class="column is-full">
+            <div class="icon-text">
+              <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
+                <i class="material-icons-outlined is-size-5">arrow_@(toggle ? "drop_down" : "right")</i>
+              </a>
+              <span class="has-text-weight-semibold font_14">
+                @status.name @(tasks.Count > 0 ? $"({tasks.Count})" : "")
+              </span>
+              <a class="icon has-text-dark is_hover" title="Thêm công việc">
+                <i class="material-icons-round is-size-6">add</i>
+              </a>
+            </div>
+          </li>
+        </ul>
+        @if(toggle)
+        {
+          <Dropzone Items="tasks" TItem="WorkTaskModel" Class="drop_task">
+            @* <_TaskItem model="context" childs="childList" toggleList="toggleList"
+              OnToggle="OnToggle" OnUpdate="OnUpdate" /> *@
+          </Dropzone>
+        }
+      }
     </div>
   </div>
 </section>
@@ -142,17 +139,36 @@
   [Parameter]
   public string TypeView { get; set; }
   private string _title = "Công việc của tôi";
-  private string url = string.Empty;
 
+  private List<WorkTaskModel> taskList = new();
+  private List<WorkTaskModel> childList = new();
   private List<int> toggleStatus = new() { 1, 2 };
+  private List<string> toggleList = new();
 
   protected override async Task OnParametersSetAsync()
   {
     if(string.IsNullOrEmpty(TypeView))
       TypeView = "list";
 
-    url = navigation.Uri.Replace(navigation.BaseUri, "/");
+    taskList = new();
+    for (int i = 1; i <= 20; i++)
+    {
+     taskList.Add(new() { id = Mongo.RandomId(), 
+      name = $"Đây là công việc {i} để test giao diện, có thể nó sẽ rất dài, nhiều khi còn xuống dòng đó nha",
+      status = Shared.RandomInt(1, 5),
+      priority = Shared.RandomInt(1, 4)
+      });
+    }
 
+    childList = new();
+    for (int i = 1; i <= 3; i++)
+    {
+     childList.Add(new() { id = Mongo.RandomId(), 
+      name = $"Đây là công việc phụ {i} để test giao diện",
+      status = Shared.RandomInt(1, 5),
+      priority = Shared.RandomInt(1, 4)
+      });
+    }
   }
 
   private void ToggleStatus(int id)
@@ -161,5 +177,28 @@
       toggleStatus.Remove(id);
     else
       toggleStatus.Add(id);
+  }
+
+  private void OnToggle(string id)
+  {
+    if (toggleList.Contains(id))
+      toggleList.Remove(id);
+    else
+      toggleList.Add(id);
+  }
+
+  private void OnUpdate(WorkTaskModel item)
+  {
+    
+  }
+
+  private async Task OnItemDragdrop(WorkTaskModel item)
+  {
+    await JSRuntime.InvokeVoidAsync("console.log", item.name);
+  }
+
+  private void OnItemReplaced(WorkTaskModel item)
+  {
+    //replaced = item;
   }
 }

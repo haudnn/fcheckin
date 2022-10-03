@@ -1,0 +1,297 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="dropdown @(isRight ? "is-right" : "") @(toggle ? "is-active" : "")">
+  <div class="dropdown-trigger">
+    <div class="avatar_list">
+      @foreach (var item in ShortList())
+      {
+        <span class="image is-rounded is-24x24 has-background-grey" title="@item.name">
+          @if(string.IsNullOrEmpty(item.id))
+          {
+            <span class="icon has-text-white is-size-7">@item.name</span>
+          }
+          else
+          {
+            <img src="@item.avatar" alt="AVT">
+          }
+        </span>
+      }
+      @if(isEdit)
+      {
+        <a class="icon has-text-grey is-bordered is-rounded @(members.Count == 0 ? "" : "ml-4")" @onclick="Toggle">
+          <i class="material-icons-outlined is-size-6">add</i>
+        </a>
+      }
+      else 
+      {
+        <a class="icon has-text-grey @(members.Count == 0 ? "" : "ml-4")" @onclick="Toggle">
+          <i class="material-icons-outlined is-size-5">@(toggle ? "expand_more" : "chevron_right")</i>
+        </a>
+      }
+    </div>
+  </div>
+  @if(toggle)
+  {
+    <div class="dropdown-menu" style="width: 350px;">
+      <div class="dropdown-content px-3" style="max-height: none;">
+        @if(isEdit)
+        {
+          <div class="has-text-dark has-text-weight-medium font_14 mb-3">
+            Cập nhật thành viên
+          </div>
+          <div class="control has-icons-right mb-3">
+            <input id="search_member" class="input is-small is-rounded" type="text" autocomplete="off"
+              @bind="Suggest" @bind:event="oninput" placeholder="Tìm thành viên..." >
+            <span class="icon is-right">
+              <i class="material-icons-outlined is-size-6">search</i>
+            </span>
+          </div>
+        }
+        <div class="scrolly py-1" style="max-height: 250px;">
+          @foreach (var member in members)
+          {
+            var item = sources.SingleOrDefault(x => x.id == member.id); 
+            <ul class="columns is-vcentered is-variable is-1">
+              @if(isEdit)
+              {
+                <li class="column is-narrow">
+                  <a class="icon has-text-danger" @onclick="() => RemoveItem(member.id)">
+                    <i class="material-icons-outlined is-size-6">
+                      remove_circle_outline
+                    </i>
+                  </a>
+                </li>
+                <li class="column has-text-weight-medium">
+                  @if(item != null)
+                  {
+                    <div class="icon-text">
+                      <span class="image is-rounded is-24x24">
+                        <img src="@item.avatar" alt="AVT">
+                      </span>
+                      <span class="ml-2" style="flex-grow: 1;">@item.FullName</span>
+                    </div>
+                  }
+                  else
+                  {
+                    <div class="icon-text">
+                      <span class="image is-rounded is-24x24">
+                        <img src="@item.avatar" alt="AVT">
+                      </span>
+                      <span class="ml-2 is-italic" style="flex-grow: 1;">Tài khoản đã xóa</span>
+                    </div>
+                  }
+                </li>
+                <li class="column is-narrow">
+                  <div class="dropdown is-hoverable is-right">
+                    <div class="dropdown-trigger">
+                      <a class="icon-text">
+                        <span>@RoleName(member.role)</span>
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+                        </span>
+                      </a>
+                    </div>
+                    <div class="dropdown-menu py-0">
+                      <div class="dropdown-content py-0">
+                        @foreach (var role in RoleList())
+                        {
+                          <a class="dropdown-item py-1" @onclick="() => member.role = role.id">@role.name</a>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              }
+              else
+              {
+                <li class="column has-text-weight-medium">
+                  @if(item != null)
+                  {
+                    <div class="icon-text">
+                      <span class="image is-rounded is-24x24">
+                        <img src="@item.avatar" alt="AVT">
+                      </span>
+                      <span class="ml-2" style="flex-grow: 1;">@item.FullName</span>
+                    </div>
+                  }
+                  else
+                  {
+                    <div class="icon-text">
+                      <span class="image is-rounded is-24x24">
+                        <img src="@item.avatar" alt="AVT">
+                      </span>
+                      <span class="ml-2 is-italic" style="flex-grow: 1;">Tài khoản đã xóa</span>
+                    </div>
+                  }
+                </li>
+                <li class="column is-narrow">
+                  <span>@RoleName(member.role)</span>
+                </li>
+              }
+            </ul>
+          }
+          @foreach (var item in suggests)
+          {
+            <ul class="columns is-vcentered is-variable is-1">
+              <li class="column is-narrow">
+                <a class="icon has-text-info" @onclick="() => AddItem(item.id)">
+                  <i class="material-icons-outlined is-size-6">
+                    add_circle_outline
+                  </i>
+                </a>
+              </li>
+              <li class="column">
+                <div class="icon-text">
+                  <span class="image is-rounded is-24x24">
+                    <img src="@item.avatar" alt="AVT">
+                  </span>
+                  <span class="ml-2" style="flex-grow: 1;">@item.name</span>
+                </div>
+              </li>
+            </ul>
+          }
+          @if(!string.IsNullOrEmpty(keyword) && suggests.Count == 0)
+          {
+            <div class="has-text-grey is-italic py-3 has-text-centered">Không tìm thấy thành viên</div>
+          }
+          @if(isEdit)
+          {
+            <div class="py-5"></div>
+          }
+        </div>
+        @if(isEdit)
+        {
+          <hr class="dropdown-divider">
+          <div class="buttons is-right">
+            <a class="button is-link is-small" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">done</i>
+              </span>
+              <span class="is-size-7">Hoàn tất</span>
+            </a>
+            <a class="button is-danger is-small" @onclick="Toggle">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">close</i>
+              </span>
+              <span class="is-size-7">Hủy</span>
+            </a>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+@code {
+  [Parameter]
+  public List<WorkPlanModel.Member> members { get; set; }
+  [Parameter]
+  public List<UserModel> sources { get; set; }
+  [Parameter]
+  public bool isRight { get; set; }
+  [Parameter]
+  public bool isEdit { get; set; }
+  [Parameter]
+  public bool isTask { get; set; }
+  [Parameter]
+  public EventCallback OnUpdate { get; set; }
+
+  private bool toggle = false;
+  private string keyword = string.Empty;
+  private List<MemberModel> suggests = new();
+
+  protected override void OnParametersSet()
+  {
+    toggle = false;
+    suggests = new();
+    keyword = string.Empty;
+  }
+
+  private async Task Update()
+  {
+    toggle = false;
+    suggests = new();
+    keyword = string.Empty;
+    members = members.OrderBy(x => x.role).ToList();
+    await OnUpdate.InvokeAsync();
+  }
+
+  private string Suggest
+  {
+    get => keyword;
+    set
+    {
+      keyword = value;
+      suggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in sources)
+        {
+          if (Shared.SearchKeyword(value, item.id + item.FullName + item.email) 
+            && members.Where(x => x.id == item.id).Count() == 0)
+            suggests.Add(UserService.ConvertToMember(item));
+          if(suggests.Count > 5)
+            break;
+        }
+      }
+    }
+  }
+
+  private async Task Toggle()
+  {
+    toggle = !toggle;
+    suggests = new();
+    keyword = string.Empty;
+    if (toggle)
+      await JSRuntime.InvokeVoidAsync("setFocus", "search_member");
+  }
+
+  private List<MemberModel> ShortList()
+  {
+    var results = new List<MemberModel>();
+    for (int i = 0; i < members.Count; i++)
+    {
+      var item = sources.SingleOrDefault(x => x.id == members[i].id);
+      if(item != null)
+      {
+        results.Add(UserService.ConvertToMember(item));
+        if(i == 1)
+          break;
+      }
+    }
+    
+    if(members.Count > 2)
+      results.Add(new () { name = $"+{members.Count - 2}" });
+    
+    return results;
+  }
+
+  private void AddItem(string id)
+  {
+    if(members.Where(x => x.id == id).Count() == 0)
+      members.Add(new() { id = id, role = 2 });
+    suggests.RemoveAll(x => x.id == id);
+  }
+
+  private void RemoveItem(string id)
+  {
+    members.RemoveAll(x => x.id == id);
+  }
+
+  private List<StaticModel> RoleList()
+  {
+    if(isTask)
+      return WorkService.RoleTask();
+    else
+      return WorkService.RolePlan();
+  }
+
+  private string RoleName(int id)
+  {
+    if(isTask)
+      return WorkService.RoleTask(id).name;
+    else
+      return WorkService.RolePlan(id).name;
+  }
+}

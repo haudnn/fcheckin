@@ -3,12 +3,14 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using BlazorDateRangePicker;
+using Plk.Blazor.DragDrop;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddBlazorDragDrop();
 builder.Services.AddWMBSC(); // Don't using Jquery
 builder.Services.AddDateRangePicker(config =>
 {

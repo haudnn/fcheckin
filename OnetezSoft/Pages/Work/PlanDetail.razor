@@ -3,32 +3,274 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<PageTitle>_title</PageTitle>
+<PageTitle>@_title</PageTitle>
 
 <section class="columns is-gapless has_menu_left">
   <div class="column is-narrow">
     <_PlanSidebar />
   </div>
   <div class="column">
-    <div class="card p-3 p-4-mobile">
+    @if(model != null)
+    {
       <ul class="columns is-multiline">
-        <li class="column is-narrow">
-          <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/detail">
-            TỔNG QUAN
-          </a>
+        <li class="column is-full">
+          <div class="card p-3 p-4-mobile">
+            <ul class="columns is-multiline">
+              <li class="column is-narrow">
+                <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/detail">
+                  TỔNG QUAN
+                </a>
+              </li>
+              <li class="column is-narrow">
+                <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/task">
+                  CÔNG VIỆC
+                </a>
+              </li>
+              <li class="column is-narrow">
+                <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/chart">
+                  THỐNG KÊ
+                </a>
+              </li>
+            </ul>
+          </div>
         </li>
-        <li class="column is-narrow">
-          <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/task">
-            CÔNG VIỆC
-          </a>
+
+        <li class="column is-three-quarters">
+          <div class="scrolly_p-3" style="_height: calc(100vh - 120px);">
+            <div class="card p-5 p-4-mobile">
+              <ul class="columns is-vcentered is-variable is-2 mb-3">
+                @if(editMode)
+                {
+                  <li class="column">
+                    <div class="control has-icons-left">
+                      <input @bind="model.name" id="plan_name" class="input is-size-6 is_bg" type="text" 
+                        placeholder="Nhập tiêu đề kế hoạch"> 
+                      <span class="icon is-left has-text-dark">
+                        <i class="material-icons-outlined is-size-5">edit</i>
+                      </span>
+                    </div>
+                  </li>
+                }
+                else
+                {
+                  <li class="column">
+                    <div class="has-text-black has-text-weight-medium is-size-6 py-2">@model.name</div>
+                  </li>
+                  @if(editRole)
+                  {
+                    <li class="column is-narrow">
+                      <a class="icon-text has-text-link" @onclick="ToggleEdit">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-6">edit</i>
+                        </span>
+                        <span>Chỉnh sửa</span>
+                      </a>
+                    </li>
+                  }
+                }
+                <li class="column is-narrow has-text-right" style="width: 140px;">
+                  <div class="dropdown is-hoverable">
+                    <div class="dropdown-trigger">
+                      <a class="icon-text">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-6">
+                            @(model.is_private ? "lock" : "public")
+                          </i>
+                        </span>
+                        <span>@(model.is_private ? "Riêng tư" : "Công khai")</span>
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                        </span>
+                      </a>
+                    </div>
+                    @if(editRole)
+                    {
+                      <div class="dropdown-menu">
+                        <div class="dropdown-content">
+                          <a class="dropdown-item" @onclick="() => UpdatePrivate(true)">Riêng tư</a>
+                          <a class="dropdown-item" @onclick="() => UpdatePrivate(false)">Công khai</a>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </li>
+                <li class="column is-narrow has-text-right" style="width: 140px;">
+                  <div class="dropdown is-hoverable">
+                    <div class="dropdown-trigger">
+                      <a class="icon-text">
+                        <span>@(model.status == 1 ? "Đang diễn ra" : "Đã hoàn thành")</span>
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                        </span>
+                      </a>
+                    </div>
+                    @if(editRole)
+                    {
+                      <div class="dropdown-menu">
+                        <div class="dropdown-content">
+                          <a class="dropdown-item" @onclick="() => UpdateStatus(1)">Đang diễn ra</a>
+                          <a class="dropdown-item" @onclick="() => UpdateStatus(2)">Đã hoàn thành</a>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </li>
+              </ul>
+              @if(editMode)
+              {
+                <div class="has-text-grey is-size-7 mb-2">Mô tả</div>
+                <textarea @bind="model.detail" id="plan_detail" class="textarea is_bg mb-3" 
+                  placeholder="Nhập mô tả kế hoạch..." rows="5" />
+                <div class="buttons">
+                  <a class="button is-link is-small" @onclick="UpdateContent">
+                    <span class="icon">
+                      <i class="material-icons-round is-size-6">done</i>
+                    </span>
+                    <span>Hoàn tất</span>
+                  </a>
+                  <a class="button has-text-danger is-small" @onclick="ToggleEdit">
+                    <span class="icon">
+                      <i class="material-icons-round is-size-6">close</i>
+                    </span>
+                    <span>Hủy</span>
+                  </a>
+                </div>
+              }
+              else if(!string.IsNullOrEmpty(model.detail))
+              {
+                <div class="has-text-grey is-size-7 mb-2">Mô tả</div>
+                <div class="content mb-3">
+                  @((MarkupString)Shared.TextToHtml(model.detail))
+                </div>
+              }
+              <div class="field is-grouped is-size-7">
+                <div class="control has-text-grey" style="width: 110px;">
+                  Ngày kết thúc:
+                </div>
+                <div class="control is-expanded">
+                  @if(editRole)
+                  {
+                    <DateRangePicker @bind-StartDate="dateE" SingleDatePicker="true" OnRangeSelect="UpdateDateEnd">
+                      <PickerTemplate>
+                        <a id="@context.Id" @onclick="context.Toggle" class="icon-text" title="Thay đổi ngày kết thúc">
+                          <span class="icon is-small mr-1">
+                            <i class="material-icons-outlined is-size-6">calendar_today</i>
+                          </span>
+                          @if (context.TStartDate != null)
+                          {
+                            <span>@context.TStartDate.Value.ToString("dd/MM/yyyy")</span>
+                          }
+                          else
+                          {
+                            <span>dd/MM/yyyy</span>
+                          }
+                        </a>
+                      </PickerTemplate>
+                    </DateRangePicker>
+                  }
+                  else
+                  {
+                   <span class="icon-text">
+                      <span class="icon is-small mr-1">
+                        <i class="material-icons-outlined is-size-6">calendar_today</i>
+                      </span>
+                      @if (dateE != null)
+                      {
+                        <span>@dateE.Value.DateTime.ToString("dd/MM/yyyy")</span>
+                      }
+                      else
+                      {
+                        <span>dd/MM/yyyy</span>
+                      }
+                    </span> 
+                  }
+                </div>
+              </div>
+              <div class="field is-grouped is-size-7">
+                <div class="control has-text-grey" style="width: 110px;">
+                  Người tham gia:
+                </div>
+                <div class="control is-expanded">
+                  <_MemberList members="model.members" sources="Layout.UserList" isEdit="editRole" OnUpdate="UpdateMembers" />
+                </div>
+              </div>
+            </div>
+
+            <div class="card p-5 p-4-mobile">
+              <div class="has-text-black has-text-weight-medium is-size-6 mb-4">
+                Nhãn công việc
+              </div>
+              @if(editRole)
+              {
+                <div class="field is-grouped">
+                  <div class="control" style="width: 50%;">
+                      <input @bind="label.name" class="input is_bg" type="text" placeholder="Nhập tiêu đề nhãn">
+                  </div>
+                  <div class="control">
+                    <div class="input_color" style="background: @(label.color + "30"); color: @label.color;">
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">palette</i>
+                      </span>
+                      <input @bind="label.color" type="color">
+                    </div>
+                  </div>
+                  <div class="control">
+                    <a class="button is-link" @onclick="UpdateLabel">
+                      <span class="icon">
+                      <i class="material-icons-outlined is-size-5">
+                        @(string.IsNullOrEmpty(label.id) ? "add" : "done")
+                      </i>
+                      </span>
+                    </a>
+                  </div>
+                </div>
+                @if(model.labels.Count > 0)
+                {
+                  <div class="has-text-grey py-2">Chọn nhãn để chỉnh sửa</div>
+                  <div class="tags">
+                    @foreach (var item in model.labels)
+                    {
+                      <span class="tag" style="background: @(item.color + "30"); color: @item.color;">
+                        <span class="mr-2" @onclick="() => label = item">@item.name</span>
+                        <a class="delete is-small" @onclick="() => RemoveLabel(item)"></a>
+                      </span>
+                    }
+                  </div>
+                }
+              }
+              else
+              {
+                <div class="tags">
+                  @foreach (var item in model.labels)
+                  {
+                    <span class="tag" style="background: @(item.color + "30"); color: @item.color;">
+                      @item.name
+                    </span>
+                  }
+                </div> 
+              }
+            </div>
+          </div>
         </li>
-        <li class="column is-narrow">
-          <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/chart">
-            THỐNG KÊ
-          </a>
+
+        <li class="column is-one-quarter">
+          <div class="card py-5 py-4-mobile">
+            <div class="has-text-black has-text-weight-medium is-size-6 mb-4 px-5">
+              Lịch sử cập nhật
+            </div>
+            <div class="scrolly px-5" style="height: calc(100vh - 220px);">
+              <_PlanLogs logs="logs" />
+            </div>
+          </div>
         </li>
       </ul>
-    </div>
+    }
+    else
+    {
+      <div class="card p-6 has-text-centered">
+        Không tìm thấy kế hoạch
+      </div> 
+    }
   </div>
 </section>
 
@@ -39,8 +281,110 @@
   public string PlanId { get; set; }
   
   private string _title = "Tổng quan kế hoạch";
+  private WorkPlanModel model = null;
+  private DateTimeOffset? dateE = null;
+  private List<WorkLogModel> logs = new();
+  private WorkPlanModel.Label label = new() { color = Shared.ColorRandom(0) };
+  private bool editMode = false;
+  private bool editRole = false;
+  
+  protected override async Task OnParametersSetAsync()
+  {
+    model = await DbWorkPlan.Get(Layout.Company.id, PlanId);
+    if(model != null)
+    {
+      // Quyền quản lý kế hoạch
+      editRole = WorkService.RoleInPlan(model, Layout.User.id) == 1;
 
+      if(model.date_end != 0)
+        dateE = new DateTime(model.date_end);
 
+      logs = new();
+      foreach (var item in Layout.UserList)
+      {
+        logs.Add(new() {
+          id = Mongo.RandomId(),
+          name = "Thêm thành viên",
+          detail = item.FullName,
+          date = DateTime.Now.Ticks,
+          user = UserService.ConvertToMember(item)
+        });
+      }
+    }
+  }
 
+  private async Task UpdateDateEnd(DateRange range)
+  {
+    model.date_end = dateE != null ? dateE.Value.Ticks : 0;
+    await DbWorkPlan.Update(Layout.Company.id, model);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thời gian kết thúc của kế hoạch.");
+  }
 
+  private async Task UpdatePrivate(bool is_private)
+  {
+    model.is_private = is_private;
+    await DbWorkPlan.Update(Layout.Company.id, model);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật chế độ bảo mật của dự án.");
+  }
+
+  private async Task UpdateStatus(int status)
+  {
+    model.status = status;
+    await DbWorkPlan.Update(Layout.Company.id, model);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật trạng thái của dự án.");
+  }
+
+  private async Task UpdateMembers()
+  {
+    await DbWorkPlan.Update(Layout.Company.id, model);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thành viên của dự án.");
+  }
+
+  private async Task UpdateLabel()
+  {
+    if(string.IsNullOrEmpty(label.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề nhãn.");
+    else if(string.IsNullOrEmpty(label.color))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn màu cho nhãn.");
+    else {
+      if(string.IsNullOrEmpty(label.id))
+      {
+        label.id = Mongo.RandomId();
+        model.labels.Add(label);
+      }
+      await DbWorkPlan.Update(Layout.Company.id, model);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật nhãn công việc.");
+      label = new() { color = Shared.ColorRandom(0) };
+    }
+  }
+
+  private async Task RemoveLabel(WorkPlanModel.Label item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa nhãn: {item.name}?"))
+      return;
+    model.labels.Remove(item);
+    await DbWorkPlan.Update(Layout.Company.id, model);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật xóa nhãn: " + item.name);
+  }
+
+  private async Task UpdateContent()
+  {
+    editMode = false;
+    await DbWorkPlan.Update(Layout.Company.id, model);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin của dự án.");
+  }
+
+  private async Task ToggleEdit()
+  {
+    editMode = !editMode;
+    if(editMode)
+    {
+      await JSRuntime.InvokeVoidAsync("setFocus", "plan_name");
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "plan_detail");
+    }
+    else
+    {
+      model = await DbWorkPlan.Get(Layout.Company.id, model.id);
+    }
+  }
 }

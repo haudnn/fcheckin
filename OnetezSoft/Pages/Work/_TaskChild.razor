@@ -1,66 +1,38 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<tr class="task_item" style="border-color: @priority.color;">
-  <td class="pl-2">
-    <div class="icon-text item_title">
-      <a class="icon">
-        <i class="material-icons-outlined is-size-6">drag_indicator</i>
-      </a>
-      <a class="icon" @onclick="() => toggleItem = !toggleItem">
-        <i class="material-icons-outlined is-size-6">arrow_@(toggleItem ? "drop_down" : "right")</i>
-      </a>
-      <a class="item_name">
-        Đây là tiêu đề công việc mẫu để test giao diện, có thể nó sẽ rất dài
-      </a>
-      <a class="icon has-text-dark is_hover" title="Thêm công việc phụ">
-        <i class="material-icons-round is-size-6">add</i>
-      </a>
+@{
+  var status = WorkService.Status(model.status);
+  var priority = WorkService.Priority(model.priority);
+}
+
+<ul id="task_@model.id" class="task_list is_sub columns is-gapless is-size-7" style="border-color: @priority.color;">
+  <li class="column pr-3" style="width: calc(100% - 630px);">
+    <div class="pr-3">
+      <span class="text_1_line">@model.name</span>
     </div>
-  </td>
-  <td>
+  </li>
+  <li class="column is-narrow" style="width: 130px;">
     <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE">
       <PickerTemplate>
-        <div id="@context.Id" @onclick="context.Toggle" title="Thay đổi ngày">
-          <a class="icon-text">
-            <span class="icon is-small mr-1">
-              <i class="material-icons-outlined is-size-6">calendar_today</i>
-            </span>
-            @if (context.TStartDate != null && context.TEndDate != null)
-            {
-              <span>@context.TStartDate.Value.ToString("dd/MM")</span>
-              <span class="mx-1">-</span>
-              <span>@context.TEndDate.Value.ToString("dd/MM")</span>
-            }
-          </a>
-        </div>
+        <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
+          <span class="icon is-small mr-1">
+            <i class="material-icons-outlined is-size-6">calendar_today</i>
+          </span>
+          @if (context.TStartDate != null && context.TEndDate != null)
+          {
+            <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+            <span class="mx-1">-</span>
+            <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+          }
+        </a>
       </PickerTemplate>
     </DateRangePicker>
-  </td>
-  <td>
-    <div class="dropdown is-right @(toggleLabel ? "is-active" : "")">
-      <div class="dropdown-trigger">
-        <div class="tags" style="flex-wrap: nowrap;">
-          @foreach (var item in LabelsShort(labels))
-          {
-            <span class="tag" style="background: @(item.color + "30"); color: @item.color;">@item.name</span>
-          }
-          <a class="tag is-white icon is-bordered has-text-grey" @onclick="() => toggleLabel = !toggleLabel">
-            <i class="material-icons-outlined is-size-6">add</i>
-          </a>
-        </div>
-      </div>
-      <div class="dropdown-menu">
-        <div class="dropdown-content tags pl-2 pb-0">
-          @foreach (var item in labels)
-          {
-            <span class="tag" style="background: @(item.color + "30"); color: @item.color;">@item.name</span>
-          }
-        </div>
-      </div>
-    </div>
-  </td>
-  <td>
+  </li>
+  <li class="column is-narrow" style="width: 250px;">
+    
+  </li>
+  <li class="column is-narrow" style="width: 110px;">
     <div class="dropdown is-right @(toggleMember ? "is-active" : "")">
       <div class="dropdown-trigger">
         <div class="avatar_list">
@@ -135,12 +107,12 @@
         </div>
       </div>
     </div>
-  </td>
-  <td>
+  </li>
+  <li class="column is-narrow" style="width: 80px;">
     <div class="dropdown is-hoverable is-fullwidth">
       <div class="dropdown-trigger">
-        <a class="icon-text is-fullwidth">
-          <span style="flex-grow: 1;">Trạng thái</span>
+        <a class="icon-text is-fullwidth pr-2">
+          <span style="flex-grow: 1;">@status.name</span>
           <span class="icon is-small">
             <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
           </span>
@@ -150,13 +122,13 @@
         <div class="dropdown-content">
           @foreach (var item in WorkService.Status())
           {
-            <a class="dropdown-item">@item.name</a>
+            <a class="dropdown-item" @onclick="() => model.status = item.id">@item.name</a>
           }
         </div>
       </div>
     </div>
-  </td>
-  <td align="center">
+  </li>
+  <li class="column is-narrow has-text-centered" style="width: 30px;">
     <div class="dropdown is-hoverable is-right">
       <div class="dropdown-trigger">
         <span class="icon">
@@ -165,64 +137,25 @@
       </div>
       <div class="dropdown-menu">
         <div class="dropdown-content">
-          <a class="dropdown-item">Tạo công việc phụ</a>
           <a class="dropdown-item">Tạo Todolist liên kết</a>
           <a class="dropdown-item has-text-danger">Xóa công việc này</a>
         </div>
       </div>
     </div>
-  </td>
-</tr>
-
-@if(toggleItem)
-{
-  <tr class="task_item is_plan" style="border-color: @priority.color;">
-    <td colspan="6">
-      <a class="icon-text has-text-link">
-        <span class="icon is-small mr-2">
-          <i class="material-icons-outlined is-size-6">link</i>
-        </span>
-        <span>Kế hoạch: Đây là tiêu đề của kế hoạch mẫu để kiểm tra giao diện</span>
-      </a>
-    </td>
-  </tr>
-  @for (int i = 1; i <= 2; i++)
-  {
-    <tr class="task_item is_sub" style="border-color: @priority.color;">
-      <td>
-        Đây là tiêu đề công việc mẫu để test giao diện, có thể nó sẽ rất dài @i
-      </td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-  }
-  <tr class="task_item" style="border-color: @priority.color;">
-    <td colspan="6" class="pl-6">
-      <a class="icon-text has-text-link ml-3">
-        <span class="icon is-small mr-2">
-          <i class="material-icons-outlined is-size-6">add</i>
-        </span>
-        <span>Thêm công việc phụ</span>
-      </a>
-    </td>
-  </tr>
-}
-
+  </li>
+</ul>
 
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-  private List<StaticModel> labels = new();
-  
-  private StaticModel priority = WorkService.Priority(Shared.RandomInt(1, 4));
-  private bool toggleItem = false;
+  [Parameter]
+  public WorkPlanModel.Task model { get; set; }
+
   private bool toggleLabel = false;
   private bool toggleMember = false;
   private DateTimeOffset? dateS = DateTime.Today;
   private DateTimeOffset? dateE = DateTime.Today.AddDays(10);
+  private List<StaticModel> labels = new();
 
   protected override void OnParametersSet()
   {

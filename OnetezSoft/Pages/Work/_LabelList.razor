@@ -1,0 +1,151 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="dropdown @(isRight ? "is-right" : "") @(toggle ? "is-active" : "")">
+  <div class="dropdown-trigger">
+    <div class="tags" style="flex-wrap: nowrap;">
+      @foreach (var item in ShortList())
+      {
+        <span class="tag is_label" title="@item.name" 
+          style="background: @(item.color + "30"); color: @item.color;">@item.name</span>
+      }
+      @if(isEdit)
+      {
+        <a class="tag is-white icon is-bordered has-text-grey" @onclick="Toggle">
+          <i class="material-icons-outlined is-size-6">add</i>
+        </a>
+      }
+      else 
+      {
+        <a class="tag is-white icon has-text-grey" @onclick="Toggle">
+          <i class="material-icons-outlined is-size-5">@(toggle ? "expand_more" : "chevron_right")</i>
+        </a>
+      }
+    </div>
+  </div>
+  @if(toggle)
+  {
+    <div class="dropdown-menu" style="width: 300px;">
+      <div class="dropdown-content px-3" style="max-height: none;">
+        @if(sources.Count > 0)
+        {
+          <div class="tags">
+            @foreach (var item in sources)
+            {
+              if(isEdit)
+              {
+                <span class="tag" style="background: @(item.color + "30"); color: @item.color;">
+                  @if(labels.Contains(item.id))
+                  {
+                    <a class="icon has-text-danger" @onclick="() => RemoveItem(item.id)">
+                      <i class="material-icons-outlined is-size-6">remove_circle_outline</i>
+                    </a>
+                  }
+                  else
+                  {
+                    <a class="icon has-text-success" @onclick="() => AddItem(item.id)">
+                      <i class="material-icons-outlined is-size-6">add_circle_outline</i>
+                    </a>
+                  }
+                  <span>@item.name</span>
+                </span>
+              }
+              else if(labels.Contains(item.id))
+              {
+                <span class="tag" style="background: @(item.color + "30"); color: @item.color;">
+                  @item.name
+                </span>
+              }
+            }
+          </div>
+        }
+        else
+        {
+          <div class="has-text-grey">Chưa có nhãn công việc</div>
+        }
+        @if(isEdit)
+        {
+          <hr class="dropdown-divider">
+          <div class="buttons is-right">
+            <a class="button is-link is-small" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">done</i>
+              </span>
+              <span class="is-size-7">Hoàn tất</span>
+            </a>
+            <a class="button is-danger is-small" @onclick="Toggle">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">close</i>
+              </span>
+              <span class="is-size-7">Hủy</span>
+            </a>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+@code {
+  [Parameter]
+  public List<string> labels { get; set; }
+  [Parameter]
+  public List<WorkPlanModel.Label> sources { get; set; }
+  [Parameter]
+  public bool isRight { get; set; }
+  [Parameter]
+  public bool isEdit { get; set; }
+  [Parameter]
+  public EventCallback OnUpdate { get; set; }
+
+
+  private bool toggle = false;
+
+  protected override void OnParametersSet()
+  {
+    toggle = false;
+  }
+
+  private async Task Update()
+  {
+    // TODO: Chuẩn hóa dữ liệu -> Xóa những label không tồn tại
+
+    toggle = false;
+    await OnUpdate.InvokeAsync();
+  }
+
+  private async Task Toggle()
+  {
+    toggle = !toggle;
+  }
+
+  private List<WorkPlanModel.Label> ShortList()
+  {
+    var results = new List<WorkPlanModel.Label>();
+    for (int i = 0; i < labels.Count; i++)
+    {
+      var item = sources.SingleOrDefault(x => x.id == labels[i]);
+      if(item != null)
+      {
+        results.Add(item);
+        if(i == 1)
+          break;
+      }
+    }
+    if(labels.Count > 2)
+      results.Add(new () { name = $"+{labels.Count - 2}", color = "#0F913D" });
+      
+    return results;
+  }
+
+  private void AddItem(string id)
+  {
+    if(!labels.Contains(id))
+      labels.Add(id);
+  }
+
+  private void RemoveItem(string id)
+  {
+    labels.Remove(id);
+  }
+}

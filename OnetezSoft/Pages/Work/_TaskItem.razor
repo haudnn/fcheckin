@@ -1,0 +1,220 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+@{
+  var status = WorkService.Status(model.status);
+  var priority = WorkService.Priority(model.priority);
+  DateTimeOffset? dateS = new DateTime(model.date_start);
+  DateTimeOffset? dateE = new DateTime(model.date_end);
+}
+
+<ul id="task_@model.id" class="task_list is_item columns is-gapless is-size-7" style="border-color: @priority.color;">
+  <li class="column" style="width: calc(100% - 630px);">
+    <div class="icon-text item_title mx-2">
+      <span class="icon is_drag">
+        <i class="material-icons-outlined is-size-6">drag_indicator</i>
+      </span>
+      <a class="icon" @onclick="Toggle">
+        <i class="material-icons-outlined is-size-6">arrow_@(toggle ? "drop_down" : "right")</i>
+      </a>
+      <a class="item_name" @onclick="Edit">
+        @model.name
+      </a>
+      @if(editRole)
+      {
+        <a class="icon has-text-dark is_hover" title="Thêm công việc phụ" @onclick="AddSub">
+          <i class="material-icons-round is-size-6">add</i>
+        </a>
+      }
+    </div>
+  </li>
+  <li class="column is-narrow" style="width: 130px;">
+    <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" OnRangeSelect="UpdateDate">
+      <PickerTemplate>
+        <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
+          <span class="icon is-small mr-1">
+            <i class="material-icons-outlined is-size-6">calendar_today</i>
+          </span>
+          @if (context.TStartDate != null && context.TEndDate != null)
+          {
+            <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+            <span class="px-1">-</span>
+            <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+          }
+        </a>
+      </PickerTemplate>
+    </DateRangePicker>
+  </li>
+  <li class="column is-narrow" style="width: 250px;">
+    <_LabelList labels="model.labels" sources="plan.labels" isEdit="editRole" 
+      OnUpdate="UpdateLabels" />
+  </li>
+  <li class="column is-narrow" style="width: 110px;">
+    <_MemberList members="model.members" sources="Layout.UserList" isRight="true" isEdit="editRole" isTask="true" 
+      OnUpdate="UpdateMembers" />
+  </li>
+  <li class="column is-narrow" style="width: 80px;">
+    <div class="dropdown is-hoverable is-fullwidth">
+      <div class="dropdown-trigger">
+        <a class="icon-text is-fullwidth pr-2">
+          <span style="flex-grow: 1;">@status.name</span>
+          <span class="icon is-small">
+            <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+          </span>
+        </a>
+      </div>
+      @if(editRole)
+      {
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            @foreach (var item in WorkService.Status())
+            {
+              <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </li>
+  <li class="column is-narrow has-text-centered" style="width: 30px;">
+    @if(editRole)
+    {
+      <div class="dropdown is-hoverable is-right">
+        <div class="dropdown-trigger">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">more_horiz</i>
+          </span>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item">Tạo công việc phụ</a>
+            <a class="dropdown-item">Tạo Todolist liên kết</a>
+            <a class="dropdown-item has-text-danger" @onclick="Delete">Xóa công việc này</a>
+          </div>
+        </div>
+      </div>
+    }
+  </li>
+</ul>
+
+@if(toggle)
+{
+  if(showPlan)
+  {
+    <ul class="task_list is_plan columns is-gapless is-size-7" style="border-color: @priority.color;">
+      <li class="column is-full">
+        <a class="icon-text has-text-link">
+          <span class="icon is-small mr-2">
+            <i class="material-icons-outlined is-size-6">link</i>
+          </span>
+          <span>Kế hoạch: Đây là tiêu đề của kế hoạch trong việc @model.priority</span>
+        </a>
+      </li>
+    </ul>
+  }
+  foreach (var child in childs)
+  {
+    <_TaskChild model="child" />
+  }
+  if(editRole)
+  {
+    <ul class="task_list is_item columns is-gapless is-size-7" style="border-color: @priority.color;">
+      <li class="column is-full">
+        <div class="pl-6">
+          <a class="icon-text has-text-link ml-4" @onclick="AddSub">
+            <span class="icon is-small mr-2">
+              <i class="material-icons-outlined is-size-6">add</i>
+            </span>
+            <span>Thêm công việc phụ</span>
+          </a>
+        </div>
+      </li>
+    </ul>
+  }
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public WorkPlanModel.Task model { get; set; }
+  [Parameter]
+  public WorkPlanModel plan { get; set; }
+  [Parameter]
+  public List<WorkPlanModel.Task> childs { get; set; }
+  [Parameter]
+  public bool editRole { get; set; }
+  [Parameter]
+  public bool showPlan { get; set; }
+  //[Parameter]
+  //public List<string> toggleList { get; set; }
+  //[Parameter]
+  //public EventCallback<string> OnToggle { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnEdit { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnAddSub { get; set; }
+
+  private bool toggle = false;
+
+
+  private async Task Toggle()
+  {
+    toggle = !toggle;
+    //if (toggleList.Contains(model.id))
+    //  toggleList.Remove(model.id);
+    //else
+    //  toggleList.Add(model.id);
+    //await OnToggle.InvokeAsync(model.id);
+  }
+
+  private async Task Update()
+  {
+    await OnUpdate.InvokeAsync(model);
+  }
+
+  private async Task Edit()
+  {
+    await OnEdit.InvokeAsync(model);
+  }
+
+  private async Task AddSub()
+  {
+    await OnAddSub.InvokeAsync(model);
+  }
+
+  private async Task Delete()
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa công việc {model.name}. Việc này sẽ khiến dữ liệu công việc phụ bị mất.\nBạn có chắc chắn muốn thực hiện?"))
+      return;
+    await DbWorkTask.Delete(Layout.Company.id, model.id);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
+    await OnUpdate.InvokeAsync(model);
+  }
+
+  private async Task UpdateDate(DateRange range)
+  {
+    model.date_start = range.Start.Ticks;
+    model.date_end = range.End.Ticks;
+    await DbWorkTask.Update(Layout.Company.id, model);
+  }
+
+  private async Task ChangeStatus(int id)
+  {
+    model.status = id;
+    await DbWorkTask.Update(Layout.Company.id, model);
+    await OnUpdate.InvokeAsync(model);
+  }
+
+  private async Task UpdateLabels()
+  {
+    await DbWorkTask.Update(Layout.Company.id, model);
+  }
+
+  private async Task UpdateMembers()
+  {
+    await DbWorkTask.Update(Layout.Company.id, model);
+  }
+}

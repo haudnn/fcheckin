@@ -246,6 +246,7 @@ body {
 
 #sidebar.is_less nav > ul > li:hover > ul {
   display: block;
+  width: 190px;
 }
 
 #sidebar.is_less nav > ul > li > ul::after {
@@ -795,6 +796,26 @@ strong {
   color: #fff;
 }
 
+.input_color {
+  background-color: #fff;
+  border: 1px solid #dbdbdb;
+  border-radius: 4px;
+  height: 35px;
+  width: 35px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.input_color input {
+  opacity: 0;
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+}
+
 .pagination-link {
   font-weight: 600;
 }
@@ -946,12 +967,16 @@ a.tag:hover {
 }
 
 .control {
-  _font-size: 14px;
   font-size: inherit;
 }
 
-.control.has-icons-left a.icon,
-.control.has-icons-right a.icon {
+.control.has-icons-left > .icon,
+.control.has-icons-right > .icon {
+  height: 100%;
+}
+
+.control.has-icons-left > a.icon,
+.control.has-icons-right > a.icon {
   pointer-events: auto;
 }
 
@@ -1607,52 +1632,21 @@ button.dropdown-item {
   width: calc(100% - 30px);
 }
 
-.timeline {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  padding: 10px 0px;
-  margin-bottom: 10px;
-}
-
 .timeline li {
-  display: block;
   position: relative;
-  padding: 0px 25px;
-  text-align: center;
-  flex-grow: 1;
+  border-left: 1px solid #c0c6dc;
+  padding-left: 20px;
 }
 
 .timeline li::before {
   content: "";
-  height: 1px;
-  width: 100%;
-  background: #ddd;
   position: absolute;
-  left: 0px;
-  top: 28px;
-  z-index: 1;
-}
-
-.timeline .is_name {
-  display: block;
-  font-weight: bold;
-  font-size: 16px;
-  line-height: 24px;
-}
-
-.timeline .is_date {
-  display: block;
-  font-size: 12px;
-}
-
-.timeline .tag {
-  padding: 0px;
-  width: 9px;
-  height: 9px;
+  left: -6.5px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  background: #8990a5;
   border-radius: 50%;
-  position: relative;
-  z-index: 2;
 }
 
 .has_suggest:hover .suggest,
@@ -2848,24 +2842,49 @@ button.dropdown-item {
 }
 
 /* CSS for fWork */
-.table.is-tasks > thead > tr > th,
-.table.is-tasks > tbody > tr > td {
-  border: 0px;
+
+.drop_task .plk-dd-spacing.plk-dd-inprogess {
+  height: 1px;
+  background: #ecf0ff;
 }
 
-.task_item {
-  border-left: 4px solid;
+.task_list {
+  margin-bottom: 0px !important;
+  align-items: center;
+  min-height: 35px;
+}
+
+.task_list.is_sub,
+.task_list.is_plan,
+.task_list.is_item {
+  border-left: 4px solid #eee;
   border-top: 1px solid #ecf0ff !important;
 }
 
-.task_item.is_sub > td:first-child,
-.task_item.is_plan > td:first-child {
+.task_list.is_item .item_title a:not(:hover) {
+  color: #333;
+}
+
+.task_list.is_item .item_title .item_name {
+  flex-grow: 1;
+}
+
+.task_list.is_item .item_title .icon {
+  margin: 0px;
+}
+
+.task_list.is_item .item_title .icon.is_drag {
+  cursor: grabbing;
+}
+
+.task_list.is_sub,
+.task_list.is_plan {
   position: relative;
   padding-left: 66px !important;
 }
 
-.task_item.is_sub > td:first-child::before,
-.task_item.is_plan > td:first-child::before {
+.task_list.is_sub::before,
+.task_list.is_plan::before {
   content: "";
   background: #8990a5;
   width: 1px;
@@ -2875,7 +2894,7 @@ button.dropdown-item {
   bottom: 15px;
 }
 
-.task_item.is_sub > td:first-child::after {
+.task_list.is_sub::after {
   content: "";
   background: #8990a5;
   width: 8px;
@@ -2885,14 +2904,15 @@ button.dropdown-item {
   bottom: 15px;
 }
 
-.task_item .item_title a:not(:hover) {
-  color: #333;
+.task_list .tag.is_label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 80px;
+  display: inline-block;
+  line-height: 24px;
 }
 
-.task_item .item_title .item_name {
-  flex-grow: 1;
-}
-
-.task_item .item_title .icon {
-  margin: 0px;
+.task_list div[style="visibility:hidden;"] {
+  display: none;
 }

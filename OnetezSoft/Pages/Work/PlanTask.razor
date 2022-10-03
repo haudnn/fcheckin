@@ -1,45 +1,519 @@
 @page "/work/{PlanId}/task"
+@page "/work/{PlanId}/task/{TypeView}"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<PageTitle>_title</PageTitle>
+<PageTitle>@_title</PageTitle>
 
 <section class="columns is-gapless has_menu_left">
   <div class="column is-narrow">
     <_PlanSidebar />
   </div>
   <div class="column">
-    <div class="card p-3 p-4-mobile">
-      <ul class="columns is-multiline">
-        <li class="column is-narrow">
-          <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/detail">
-            TỔNG QUAN
-          </a>
-        </li>
-        <li class="column is-narrow">
-          <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/task">
-            CÔNG VIỆC
-          </a>
-        </li>
-        <li class="column is-narrow">
-          <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/chart">
-            THỐNG KÊ
-          </a>
-        </li>
-      </ul>
-    </div>
+    @if(model != null)
+    {
+      <div class="card p-3 p-4-mobile">
+        <ul class="columns is-multiline">
+          <li class="column is-narrow">
+            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/detail">
+              TỔNG QUAN
+            </a>
+          </li>
+          <li class="column is-narrow">
+            <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/task">
+              CÔNG VIỆC
+            </a>
+          </li>
+          <li class="column is-narrow">
+            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/chart">
+              THỐNG KÊ
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card p-5 p-4-mobile">
+        <ul class="columns is-vcentered is-variable is-2 mb-3">
+          <li class="column">
+            <h1 class="title is-5 has-text-info is-uppercase">Danh sách công việc</h1>
+          </li>
+          <li class="column is-narrow">
+            <a class="has-text-@(TypeView == "list" ? "link" : "grey")" href="/work/@PlanId/task/list">
+              Chế độ danh sách
+            </a>
+          </li>
+          <li class="column is-narrow">
+            <a class="has-text-@(TypeView == "board" ? "link" : "grey") "href="/work/@PlanId/task/board">
+              Chế độ Board
+            </a>
+          </li>
+          <li class="column is-narrow">
+            <a class="has-text-@(TypeView == "gantt" ? "link" : "grey") "href="/work/@PlanId/task/gantt">
+              Chế độ Gantt
+            </a>
+          </li>
+        </ul>
+
+        <ul class="columns is-vcentered mb-3">
+          <li class="column">
+            @if(editRole)
+            {
+              <div class="field has-addons">
+                <div class="control">
+                  <a class="button is-link is-small" @onclick="() => EditTask(null, null)">
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-6">add</i>
+                    </span>
+                    <span>Tạo công việc</span>
+                  </a>
+                </div>
+                <div class="control">
+                  <div class="dropdown is-hoverable is-right">
+                    <div class="dropdown-trigger">
+                      <a class="button is-link is-small is-outlined">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                        </span>
+                      </a>
+                    </div>
+                    <div class="dropdown-menu is-size-7">
+                      <div class="dropdown-content">
+                        <a class="dropdown-item" @onclick="() => EditSection(null)">Tạo nhóm công việc</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+            else if(WorkService.RoleInPlan(model, Layout.User.id) > 0)
+            {
+              <a class="button is-link is-small" @onclick="() => EditTask(null, null)">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">add</i>
+                </span>
+                <span>Tạo công việc</span>
+              </a>
+            }
+          </li>
+          <li class="column is-narrow">
+            <div class="dropdown is-hoverable is-right is-size-7">
+              <div class="dropdown-trigger">
+                <a class="icon-text">
+                  <span>Trạng thái</span>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                  </span>
+                </a>
+              </div>
+              <div class="dropdown-menu">
+                <div class="dropdown-content">
+                  <a class="dropdown-item">Tất cả</a>
+                  @foreach (var item in WorkService.Status())
+                  {
+                    <a class="dropdown-item" style="color: @item.color;">@item.name</a>
+                  }
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-narrow">
+            <div class="dropdown is-hoverable is-right is-size-7">
+              <div class="dropdown-trigger">
+                <a class="icon-text">
+                  <span>Độ ưu tiên</span>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                  </span>
+                </a>
+              </div>
+              <div class="dropdown-menu">
+                <div class="dropdown-content">
+                  <a class="dropdown-item">Tất cả</a>
+                  <a class="dropdown-item">Trống</a>
+                  @foreach (var item in WorkService.Priority())
+                  {
+                    <a class="dropdown-item" style="color: @item.color;">@item.name</a>
+                  }
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-narrow">
+            <div class="dropdown is-hoverable is-right is-size-7">
+              <div class="dropdown-trigger">
+                <a class="icon-text">
+                  <span>Nhãn dán</span>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                  </span>
+                </a>
+              </div>
+              <div class="dropdown-menu">
+                <div class="dropdown-content">
+                  <a class="dropdown-item">Tất cả</a>
+                  @foreach (var item in model.labels)
+                  {
+                    <div class="dropdown-item">
+                      <span class="tag" style="background: @(item.color + "30"); color: @item.color;">
+                        @item.name
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-narrow">
+            <div class="dropdown is-hoverable is-right is-size-7">
+              <div class="dropdown-trigger">
+                <a class="icon-text">
+                  <span>Sắp xếp theo</span>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                  </span>
+                </a>
+              </div>
+              <div class="dropdown-menu">
+                <div class="dropdown-content">
+                  <a class="dropdown-item">Ngày kết thúc tăng dần</a>
+                  <a class="dropdown-item">Ngày kết thúc giảm dần</a>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-fifth">
+            <div class="control has-icons-right">
+              <input class="input is-small is-rounded" type="text" placeholder="Tiêu đề công việc...">
+              <span class="icon is-right is-small">
+                <i class="material-icons-outlined is-size-5">search</i>
+              </span>
+            </div>
+          </li>
+        </ul>
+
+        <ul class="task_list columns is-gapless is-size-7 has-text-grey">
+          <li class="column" style="width: calc(100% - 630px);">Công việc</li>
+          <li class="column is-narrow" style="width: 130px;">Thời hạn</li>
+          <li class="column is-narrow" style="width: 250px;">Nhãn công việc</li>
+          <li class="column is-narrow" style="width: 110px;">Thành viên</li>
+          <li class="column is-narrow" style="width: 80px;">Trạng thái</li>
+          <li class="column is-narrow" style="width: 30px;"></li>
+        </ul>
+
+        @foreach (var item in model.sections)
+        {
+          var hidden = hideSections.Contains(item.id);
+          var tasks = taskGroups.ContainsKey(item.id) ? taskGroups[item.id] : new();
+          var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
+
+          <ul class="task_list columns is-gapless is-size-7">
+            <li class="column is-full">
+              @if(editSectionId == item.id)
+              {
+                <div class="control has-icons-left ">
+                  <input @bind="item.name" id="section_@item.id"  type="text" 
+                    class="input has-text-weight-semibold font_14 is_bg" placeholder="Nhập tiêu đề nhóm công việc...">
+                  <a class="icon is-left has-text-success" title="Cập nhật" @onclick="UpdateSection">
+                    <i class="material-icons-outlined is-size-5">done</i>
+                  </a>
+                </div>
+              }
+              else
+              {
+                <div class="icon-text">
+                  <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleSection(item.id)">
+                    <i class="material-icons-outlined is-size-5">arrow_@(hidden ? "right" : "drop_down")</i>
+                  </a>
+                  <span class="has-text-weight-semibold font_14">
+                    @item.name @(count > 0 ? $"({count})" : "")
+                  </span>
+                  <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => EditTask(null, item.id)">
+                    <i class="material-icons-round is-size-6">add</i>
+                  </a>
+                  @if(editRole)
+                  {
+                    <div class="dropdown is-hoverable icon is_hover">
+                      <div class="dropdown-trigger">
+                        <a class="icon has-text-dark">
+                          <i class="material-icons-outlined is-size-6">more_horiz</i>
+                        </a>
+                      </div>
+                      <div class="dropdown-menu">
+                        <div class="dropdown-content">
+                          <a class="dropdown-item" @onclick="() => EditSection(item)">Chỉnh sửa</a>
+                          <a class="dropdown-item has-text-danger" @onclick="() => DeleteSection(item)">Xóa</a>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </li>
+          </ul>
+          
+          @if(!hidden)
+          {
+            <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task"
+              InstantReplace="true" OnItemDrop="x => OnItemDragdrop(x)" OnReplacedItemDrop="x => OnItemReplaced(x)">
+              @if(context.id == null)
+              {
+                <ul class="task_list columns is-gapless is-size-7">
+                  <li class="column is-full">
+                    <div class="is-italic pl-5">@context.name</div>
+                  </li>
+                </ul>
+              }
+              else
+              {
+                var editTask = WorkService.RoleEditTask(model, context, Layout.User.id);
+                var subTasks = subTaskList.Where(x => x.parent_id == context.id).ToList();
+                <_TaskItem model="context" plan="model" childs="subTasks" editRole="editTask"
+                  OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" />
+              }
+            </Dropzone>
+          }
+        }
+
+      </div>
+    }
+    else 
+    {
+      <div class="card p-6 has-text-centered">
+        Không tìm thấy kế hoạch
+      </div> 
+    }
   </div>
 </section>
+
+<_TaskPopup plan="model" task="taskEdit" tab="taskEditTab" OnUpdate="OnUpdateTask" />
 
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   [Parameter]
   public string PlanId { get; set; }
+  [Parameter]
+  public string TypeView { get; set; }
   
-  private string _title = "Công việc của kế hoạch";
+  private string _title = "Danh sách công việc";
+  private WorkPlanModel model = null;
+  private bool editRole = false;
+  private Dictionary<string, List<WorkPlanModel.Task>> taskGroups = new();
+  private List<WorkPlanModel.Task> taskList = new();
+  private List<WorkPlanModel.Task> subTaskList = new();
+  //private List<string> toggleList = new();
+  //private List<UserModel> members = new();
+
+  protected override async Task OnParametersSetAsync()
+  {
+    model = await DbWorkPlan.Get(Layout.Company.id, PlanId);
+    if(model != null)
+    {
+      // Chế độ xem
+      if(string.IsNullOrEmpty(TypeView))
+        TypeView = "list";
+      // Quyền quản lý kế hoạch
+      editRole = WorkService.RoleInPlan(model, Layout.User.id) == 1;
+      // Danh sách thành viên
+      //var memberList = model.members.Select(x => x.id).ToList();
+      //members = Layout.UserList.Where(x => memberList.Contains(x.id)).ToList();
+
+      await GetTaskList();
+    }
+  }
+
+  private async Task GetTaskList()
+  {
+    // Lấy danh sách công việc chính
+    taskList = await DbWorkTask.GetListInPlan(Layout.Company.id, model.id);
+    // Lấy danh sách công việc phụ
+    subTaskList = await DbWorkTask.GetListInTask(Layout.Company.id, model.id);
+    // Chia nhóm công việc
+    SplitTaskList();
+  }
+
+  private void SplitTaskList()
+  {
+    taskList = taskList.OrderBy(x => x.date_end).ToList();
+    taskGroups.Clear();
+    foreach (var group in model.sections)
+    {
+      var tasks = taskList.Where(x => x.section_id == group.id).ToList();
+      if(tasks.Count == 0)
+        tasks = new() { new() { name = "Chưa có công việc", section_id = group.id }};
+      taskGroups.Add(group.id, tasks);
+    }
+  }
 
 
+  #region Nhóm công việc
+
+  private string editSectionId = string.Empty;
+  private List<string> hideSections = new();
+ 
+  private void ToggleSection(string id)
+  {
+    if(hideSections.Contains(id))
+      hideSections.Remove(id);
+    else
+      hideSections.Add(id);
+  }
+
+  private async Task EditSection(WorkPlanModel.Section item)
+  {
+    if(string.IsNullOrEmpty(editSectionId))
+    {
+      if(item == null)
+      {
+        item = new() {
+          id = Mongo.RandomId(),
+          pos = model.sections.Count
+        };
+        model.sections.Insert(0, item);
+      }
+      editSectionId = item.id;
+      await JSRuntime.InvokeVoidAsync("setFocus", "section_" + item.id);
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Có nhóm công việc đang được chỉnh sửa!");
+  }
+
+  private async Task DeleteSection(WorkPlanModel.Section item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa nhóm công việc {item.name}. Việc này sẽ khiến dữ liệu công việc trong nhóm bị mất.\nBạn có chắc chắn muốn thực hiện?"))
+      return;
+    if(await WorkService.DeleteSection(Layout.Company.id, model.id, item.id))
+    {
+      model = await DbWorkPlan.Get(Layout.Company.id, PlanId);
+      await GetTaskList();
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa nhóm công việc thành công!");
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Không thành công, vui lòng thử lại!");
+  }
+
+  private async Task UpdateSection()
+  {
+    if(model.sections.Where(x => string.IsNullOrEmpty(x.name)).Count() == 0)
+    {
+      editSectionId = string.Empty;
+      SplitTaskList();
+      await DbWorkPlan.Update(Layout.Company.id, model);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật nhóm công việc!");
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề nhóm công việc!");
+  }
+  
+  #endregion
+  
+
+
+  
+  #region Popup công việc chính
+
+  private WorkPlanModel.Task taskEdit = null;
+  private int taskEditTab = 1;
+
+  private async Task EditTask(WorkPlanModel.Task item, string sectionId)
+  {
+    if(item == null)
+    {
+      item = new()
+      {
+        status = 1,
+        plan_id = model.id,
+        section_id = sectionId,
+        labels = new(),
+        members = new()
+      };
+    }
+    else
+      item = await DbWorkTask.Get(Layout.Company.id, item.id);
+    taskEdit = item;
+    taskEditTab = 1;
+    await JSRuntime.InvokeVoidAsync("setFocus", "task_name");
+  }
+
+  private async Task OnUpdateTask(WorkPlanModel.Task item)
+  {
+    if(item != null)
+    {
+      if(string.IsNullOrEmpty(taskEdit.id))
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã tạo công việc thành công!");
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin công việc!");
+      await GetTaskList();
+    }
+    taskEdit = null;
+  }
+
+  #endregion
+
+
+  #region Chức năng kéo thả công việc
+
+
+  private WorkPlanModel.Task replaced = null;
+  private void OnItemReplaced(WorkPlanModel.Task item)
+  {
+    replaced = item;
+  }
+
+  private async Task OnItemDragdrop(WorkPlanModel.Task item)
+  {
+    if(replaced != null)
+    {
+      item.section_id = replaced.section_id;
+      await DbWorkTask.Update(Layout.Company.id, item);
+      await JSRuntime.InvokeVoidAsync("console.log", "DD => " + item.name);
+      SplitTaskList();
+    }
+    else
+    {
+      foreach (var group in taskGroups)
+      {
+        var section = model.sections.SingleOrDefault(x => x.id == group.Key);
+        await JSRuntime.InvokeVoidAsync("console.log", "Nhóm: " + section.name);
+        foreach (var task in group.Value)
+        {
+          await JSRuntime.InvokeVoidAsync("console.log", " + " + task.name);
+        }
+      }
+    }
+  }
+
+  
+  #endregion
+
+
+  #region Xử lý trong danh sách công việc
+
+  private void OnToggle(string id)
+  {
+    //if (toggleList.Contains(id))
+    //  toggleList.Remove(id);
+    //else
+    //  toggleList.Add(id);
+  }
+
+  private async Task OnEditList(WorkPlanModel.Task item)
+  {
+    await EditTask(item, item.section_id);
+  }
+
+  private async Task OnAddSub(WorkPlanModel.Task item)
+  {
+    await EditTask(item, item.section_id);
+    taskEditTab = 2;
+  }
+
+  private async Task OnUpdateList(WorkPlanModel.Task item)
+  {
+    await GetTaskList();
+  }
+
+  #endregion
 
 
 }
