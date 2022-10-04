@@ -115,6 +115,20 @@ namespace OnetezSoft.Services
     }
 
     /// <summary>
+    /// Danh sách trạng thái
+    /// </summary>
+    public static List<StaticModel> StatusSub()
+    {
+      var list = new List<StaticModel>();
+
+      list.Add(new() { id = 1, name = "Todo" });
+      list.Add(new() { id = 2, name = "Doing" });
+      list.Add(new() { id = 4, name = "Done" });
+
+      return list;
+    }
+
+    /// <summary>
     /// Chi tiết trạng thái
     /// </summary>
     public static StaticModel Status(int id)

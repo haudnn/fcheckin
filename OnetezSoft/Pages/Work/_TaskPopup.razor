@@ -33,32 +33,32 @@
       </section>
       <section class="modal-card-body p-0">
         <ul class="columns is-variable is-0">
-          <li class="column is-2 p-4" style="background-color: #FBFBFB;">
+          <li class="column is-2 p-4" style="background-color: #FBFBFB; height: 478px;">
             <ul>
               <li class="mb-4">
-                <a class="has-text-@(tab == 1 ? "black" : "info")" @onclick="() => tab = 1">
+                <a class="has-text-@(tab == 1 ? "black" : "info")" @onclick="() => ChangeTab(1)">
                   Thông tin chung
                 </a>
               </li>
               @if(!string.IsNullOrEmpty(task.id))
               {
                 <li class="mb-4">
-                  <a class="has-text-@(tab == 2 ? "black" : "info")" @onclick="() => tab = 2">
+                  <a class="has-text-@(tab == 2 ? "black" : "info")" @onclick="() => ChangeTab(2)">
                     Công việc phụ
                   </a>
                 </li>
                 <li class="mb-4">
-                  <a class="has-text-@(tab == 3 ? "black" : "info")" @onclick="() => tab = 3">
+                  <a class="has-text-@(tab == 3 ? "black" : "info")" @onclick="() => ChangeTab(3)">
                     Todolist liên kết
                   </a>
                 </li>
                 <li class="mb-4">
-                  <a class="has-text-@(tab == 4 ? "black" : "info")" @onclick="() => tab = 4">
+                  <a class="has-text-@(tab == 4 ? "black" : "info")" @onclick="() => ChangeTab(4)">
                     Bình luận
                   </a>
                 </li>
                 <li class="mb-4">
-                  <a class="has-text-@(tab == 5 ? "black" : "info")" @onclick="() => tab = 5">
+                  <a class="has-text-@(tab == 5 ? "black" : "info")" @onclick="() => ChangeTab(5)">
                     Lịch sử cập nhật
                   </a>
                 </li>
@@ -240,7 +240,7 @@
                 @if(editTask)
                 {
                   <div class="control">
-                    <textarea @bind="task.detail" class="textarea is_bg" placeholder="Nhập mô tả công việc..." rows="7" />
+                    <textarea @bind="task.detail" class="textarea is_bg" placeholder="Nhập mô tả công việc..." rows="5" />
                   </div>
                 }
                 else
@@ -269,6 +269,36 @@
               }
             </li> 
           }
+          else if(tab == 2)
+          {
+            <li class="column is-10 is-size-7 p-4">
+              <div class="has-text-grey">Công việc phụ</div>
+              <_TaskSubList parent="task" tasks="subTasks" editRole="editTask" />
+            </li>
+          }
+          else if(tab == 3)
+          {
+            <li class="column is-10 is-size-7 p-4">
+              <div class="has-text-grey">Todolist liên kết</div>
+              <div class="is-italic py-2">Đang chờ cập nhật</div>
+            </li>
+          }
+          else if(tab == 4)
+          {
+            <li class="column is-10 is-size-7 p-4">
+              <div class="has-text-grey">Bình luận</div>
+              <_TaskComments task="task" comments="comments" editRole="editTask" />
+            </li>
+          }
+          else if(tab == 5)
+          {
+            <li class="column is-10 is-size-7 p-4">
+              <div class="has-text-grey">Lịch sử cập nhật</div>
+              <div class="scrolly p-2" style="height: 420px;">
+                <_PlanLogs logs="logs" />
+              </div>
+            </li>
+          }
         </ul>
       </section>
     </section>
@@ -285,15 +315,20 @@
   [Parameter]
   public int tab { get; set; }
   [Parameter]
+  public List<WorkPlanModel.Task> subTasks { get; set; }
+  [Parameter]
   public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
 
   private DateTimeOffset? dateS = null;
   private DateTimeOffset? dateE = null;
+  private List<WorkPlanModel.Comment> comments = new();
+  private List<WorkLogModel> logs = new();
 
   private void Reset()
   {
     task = null;
-    tab = 0;
+    dateS = null;
+    dateE = null;
   }
 
   private async Task Cancel()
@@ -371,5 +406,34 @@
   private void UpdateLabels()
   {
 
+  }
+  
+  private async Task ChangeTab(int index)
+  {
+    tab = index;
+    if(tab == 2)
+    {
+      subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, plan.id, task.id);
+    }
+    else if(tab == 4)
+    {
+      comments = await DbWorkComment.GetList(Layout.Company.id, plan.id, task.id);
+      await JSRuntime.InvokeVoidAsync("setFocus", "task_comment");
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
+    }
+    else if(tab == 5)
+    {
+      logs = new();
+      foreach (var item in Layout.UserList)
+      {
+        logs.Add(new() {
+          id = Mongo.RandomId(),
+          name = "Thêm thành viên",
+          detail = item.FullName,
+          date = DateTime.Now.Ticks,
+          user = UserService.ConvertToMember(item)
+        });
+      }
+    }
   }
 }

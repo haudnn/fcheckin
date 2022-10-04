@@ -11,7 +11,7 @@
   <hr class="my-3">
   <div class="scrolly px-3" style="height: calc(100vh - 116px);">
     <div class="control has-icons-right">
-      <input class="input is-rounded" type="text" placeholder="Tiêu đề kế hoạch">
+      <input @bind="keyword" @bind:event="oninput" class="input is-rounded" type="text" placeholder="Tiêu đề kế hoạch">
       <span class="icon is-right">
         <i class="material-icons-round is-size-5">search</i>
       </span>
@@ -49,7 +49,9 @@
         foreach (var plan in status.Value)
         {
           var link = "/work/" + plan.id;
-          <div class="icon-text is-fullwidth mt-3">
+          var show = string.IsNullOrEmpty(keyword) || Shared.SearchKeyword(keyword, plan.name);
+
+          <div class="@(show ? "icon-text is-fullwidth mt-3 " : "is-hidden")">
             <a class="has-text-@(url.StartsWith(link) ? "link" : "grey")" style="flex-grow: 1;" href="@link">
               @plan.name
             </a>
@@ -90,7 +92,7 @@
         }
         if(status.Value.Count == 0)
         {
-          <div class="has-text-grey mt-3">Chưa có kế hoạch</div>
+          <div class="has-text-grey mt-3">Không có dữ liệu</div>
         }
       }
     }
@@ -114,6 +116,7 @@
   private List<string> toggle = new() { "Kế hoạch đang diễn ra", "Kế hoạch hoàn thành" };
   private Dictionary<string, List<WorkPlanModel>> planList = new();
   private WorkPlanModel planEdit = null;
+  private string keyword = string.Empty;
 
   protected override async Task OnParametersSetAsync()
   {

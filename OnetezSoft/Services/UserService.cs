@@ -23,5 +23,21 @@ namespace OnetezSoft.Services
         avatar = user.avatar,
       };
     }
+
+    /// <summary>
+    /// Lấy 1 tài khoản trong danh sách tài khoản theo ID
+    /// </summary>
+    public static UserModel GetUser(List<UserModel> list, string userId)
+    {
+      var user = list.SingleOrDefault(x => x.id == userId);
+      if(user != null)
+        return user;
+      else
+        return new UserModel() {
+          id = userId,
+          last_name = "Tài khoản đã xóa",
+          avatar = "/images/avatar.png"
+        };
+    }
   }
 }

@@ -150,5 +150,29 @@ namespace OnetezSoft.Models
       /// <summary>Người tham gia. role = 1: người nhận xét, 2: người thực hiện</summary>
       public List<Member> members { get; set; }
     }
+
+    /// <summary>
+    /// Bình luận
+    /// </summary> 
+    public class Comment
+    {
+      [BsonId]
+      public string id { get; set; }
+
+      /// <summary>Mô tả</summary>
+      public string detail { get; set; }
+
+      /// <summary>Ngày tạo</summary>
+      public long date { get; set; }
+
+      /// <summary>Kế hoạch</summary>
+      public string plan_id { get; set; }
+
+      /// <summary>Công việc</summary>
+      public string task_id { get; set; }
+
+      /// <summary>Người tạo</summary>
+      public string user_id  { get; set; }
+    }
   }
 }

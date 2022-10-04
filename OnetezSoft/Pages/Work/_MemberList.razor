@@ -51,7 +51,7 @@
         <div class="scrolly py-1" style="max-height: 250px;">
           @foreach (var member in members)
           {
-            var item = sources.SingleOrDefault(x => x.id == member.id); 
+            var item = UserService.GetUser(sources, member.id);
             <ul class="columns is-vcentered is-variable is-1">
               @if(isEdit)
               {
@@ -63,24 +63,12 @@
                   </a>
                 </li>
                 <li class="column has-text-weight-medium">
-                  @if(item != null)
-                  {
-                    <div class="icon-text">
-                      <span class="image is-rounded is-24x24">
-                        <img src="@item.avatar" alt="AVT">
-                      </span>
-                      <span class="ml-2" style="flex-grow: 1;">@item.FullName</span>
-                    </div>
-                  }
-                  else
-                  {
-                    <div class="icon-text">
-                      <span class="image is-rounded is-24x24">
-                        <img src="@item.avatar" alt="AVT">
-                      </span>
-                      <span class="ml-2 is-italic" style="flex-grow: 1;">Tài khoản đã xóa</span>
-                    </div>
-                  }
+                  <div class="icon-text">
+                    <span class="image is-rounded is-24x24">
+                      <img src="@item.avatar" alt="AVT">
+                    </span>
+                    <span class="ml-2" style="flex-grow: 1;">@item.FullName</span>
+                  </div>
                 </li>
                 <li class="column is-narrow">
                   <div class="dropdown is-hoverable is-right">
@@ -106,24 +94,12 @@
               else
               {
                 <li class="column has-text-weight-medium">
-                  @if(item != null)
-                  {
-                    <div class="icon-text">
-                      <span class="image is-rounded is-24x24">
-                        <img src="@item.avatar" alt="AVT">
-                      </span>
-                      <span class="ml-2" style="flex-grow: 1;">@item.FullName</span>
-                    </div>
-                  }
-                  else
-                  {
-                    <div class="icon-text">
-                      <span class="image is-rounded is-24x24">
-                        <img src="@item.avatar" alt="AVT">
-                      </span>
-                      <span class="ml-2 is-italic" style="flex-grow: 1;">Tài khoản đã xóa</span>
-                    </div>
-                  }
+                  <div class="icon-text">
+                    <span class="image is-rounded is-24x24">
+                      <img src="@item.avatar" alt="AVT">
+                    </span>
+                    <span class="ml-2" style="flex-grow: 1;">@item.FullName</span>
+                  </div>
                 </li>
                 <li class="column is-narrow">
                   <span>@RoleName(member.role)</span>

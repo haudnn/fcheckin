@@ -1,0 +1,84 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="scrolly py-1" style="height: 346px;">
+  <ul>
+    @foreach (var item in comments)
+    {
+      var user = UserService.GetUser(Layout.UserList, item.user_id);
+      <li class="mt-3">
+        <div class="icon-text">
+          <span class="image is-24x24 is-rounded mr-2">
+            <img src="@user.avatar" alt="AVT">
+          </span>
+          <span class="has-text-weight-medium font_14">@user.FullName</span>
+          <span class="ml-2" style="flex-grow: 1;">• @Shared.ConvertDate(new DateTime(item.date))</span>
+          @if(Layout.User.id == item.user_id)
+          {
+            <a class="icon has-text-danger is_hover" @onclick="() => DeleteComment(item)">
+              <i class="material-icons-outlined is-size-6">delete</i>
+            </a>
+          }
+        </div>
+        <div class="has-text-grey pl-5 ml-2 mt-1">
+          @((MarkupString)Shared.TextToHtml(item.detail))
+        </div>
+      </li>
+    }
+  </ul>
+</div>
+@if(editRole)
+{
+  <div class="is-flex" style="min-height: 82px; align-items: flex-end;">
+    <div class="control has-icons-right" style="width: 100%;">
+      <textarea @bind="comment" id="task_comment" class="textarea" placeholder="Nhập nội dung..." rows="1" />
+      <a class="icon is-right has-text-link" @onclick="Comment">
+        <i class="material-icons-outlined is-size-5">send</i>
+      </a>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public WorkPlanModel.Task task { get; set; }
+  [Parameter]
+  public List<WorkPlanModel.Comment> comments { get; set; }
+  [Parameter]
+  public bool editRole { get; set; }
+
+  private string comment = string.Empty;
+
+  private async Task DeleteComment(WorkPlanModel.Comment iten)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn đang thực hiện xóa bình luận.\nBạn có chắc muốn thực hiện?"))
+      return;
+    await DbWorkComment.Delete(Layout.Company.id, iten.id);
+    comments.Remove(iten);
+  }
+
+  private async Task Comment()
+  {
+    if(string.IsNullOrEmpty(comment))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập nội dung bình luận!");
+    else
+    {
+      var item = new WorkPlanModel.Comment();
+      item.detail = comment;
+      item.task_id = task.id;
+      item.plan_id = task.plan_id;
+      item.user_id = Layout.User.id;
+      await DbWorkComment.Create(Layout.Company.id, item);
+      await GetComments();
+      comment = string.Empty;
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
+    }
+  }
+  
+  private async Task GetComments()
+  {
+    comments = await DbWorkComment.GetList(Layout.Company.id, task.plan_id, task.id);
+  }
+}

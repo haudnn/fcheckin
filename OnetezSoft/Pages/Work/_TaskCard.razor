@@ -8,7 +8,11 @@
   DateTimeOffset? dateE = new DateTime(model.date_end);
 }
 
-<ul id="task_@model.id" class="task_list is_item columns is-gapless is-size-7" style="border-color: @priority.color;">
+<div class="card p-4 mb-3">
+  <a class="is-block has-text-dark font_14" @onclick="Edit">@model.name</a>
+</div>
+
+<ul id="task_@model.id" class="is-hidden" style="border-color: @priority.color;">
   <li class="column" style="width: calc(100% - 630px);">
     <div class="icon-text item_title mx-2">
       <span class="icon is_drag">
@@ -158,7 +162,6 @@
   private bool toggle = false;
   private List<WorkPlanModel.Task> subTasks = new();
 
-
   private async Task Toggle()
   {
     toggle = !toggle;
@@ -166,16 +169,6 @@
       subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.plan_id, model.id);
     else
       subTasks = new();
-    //if (toggleList.Contains(model.id))
-    //  toggleList.Remove(model.id);
-    //else
-    //  toggleList.Add(model.id);
-    //await OnToggle.InvokeAsync(model.id);
-  }
-  
-  private async Task Update()
-  {
-    await OnUpdate.InvokeAsync(model);
   }
 
   private async Task Edit()

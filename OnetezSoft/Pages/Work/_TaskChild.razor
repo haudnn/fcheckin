@@ -3,7 +3,9 @@
 
 @{
   var status = WorkService.Status(model.status);
-  var priority = WorkService.Priority(model.priority);
+  var priority = WorkService.Priority(parent.priority);
+  DateTimeOffset? dateS = new DateTime(model.date_start);
+  DateTimeOffset? dateE = new DateTime(model.date_end);
 }
 
 <ul id="task_@model.id" class="task_list is_sub columns is-gapless is-size-7" style="border-color: @priority.color;">
@@ -13,7 +15,7 @@
     </div>
   </li>
   <li class="column is-narrow" style="width: 130px;">
-    <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE">
+    <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" OnRangeSelect="UpdateDate">
       <PickerTemplate>
         <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
           <span class="icon is-small mr-1">
@@ -33,80 +35,8 @@
     
   </li>
   <li class="column is-narrow" style="width: 110px;">
-    <div class="dropdown is-right @(toggleMember ? "is-active" : "")">
-      <div class="dropdown-trigger">
-        <div class="avatar_list">
-          @foreach (var item in MembersShort(Layout.UserList))
-          {
-            <span class="image is-rounded is-24x24 has-background-grey" title="@item.FullName">
-              @if(string.IsNullOrEmpty(item.id))
-              {
-                <span class="icon has-text-white is-size-7">@item.FullName</span>
-              }
-              else
-              {
-                <img src="@item.avatar" alt="AVT">
-              }
-            </span>
-          }
-          <a class="icon is-bordered has-text-grey is-rounded ml-4" @onclick="() => toggleMember = !toggleMember">
-            <i class="material-icons-outlined is-size-6">add</i>
-          </a>
-        </div>
-      </div>
-      <div class="dropdown-menu" style="width: 350px;">
-        <div class="dropdown-content px-3">
-          <div class="has-text-dark has-text-weight-medium font_14 mb-3">
-            Cập nhật thành viên
-          </div>
-          <div class="control has-icons-right mb-3">
-            <input class="input is-small is-rounded" type="text" placeholder="Tên thành viên, phòng ban...">
-            <span class="icon is-right">
-              <i class="material-icons-outlined is-size-6">search</i>
-            </span>
-          </div>
-          @foreach (var item in Layout.UserList)
-          {
-            <ul class="columns is-vcentered is-variable is-1">
-              <li class="column is-narrow">
-                <a class="icon has-text-danger">
-                  <i class="material-icons-outlined is-size-6">
-                    remove_circle_outline
-                  </i>
-                </a>
-              </li>
-              <li class="column">
-                <div class="icon-text">
-                  <span class="image is-rounded is-24x24">
-                    <img src="@item.avatar" alt="AVT">
-                  </span>
-                  <span class="ml-2" style="flex-grow: 1;">@item.FullName</span>
-                </div>
-              </li>
-              <li class="column is-narrow">
-                <div class="dropdown is-hoverable is-right">
-                  <div class="dropdown-trigger">
-                    <a class="icon-text">
-                      <span>Người thực hiện</span>
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
-                      </span>
-                    </a>
-                  </div>
-                  <div class="dropdown-menu">
-                    <div class="dropdown-content">
-                      <a class="dropdown-item">Quản lý kế hoạch</a>
-                      <a class="dropdown-item">Người thực hiện</a>
-                      <a class="dropdown-item">Người nhận xét</a>
-                    </div>
-                  </div>
-                </div>
-              </li>
-            </ul>
-          }
-        </div>
-      </div>
-    </div>
+    <_MemberList members="model.members" sources="Layout.UserList" isRight="true" isEdit="isEdit" isTask="true" 
+      OnUpdate="UpdateMembers" />
   </li>
   <li class="column is-narrow" style="width: 80px;">
     <div class="dropdown is-hoverable is-fullwidth">
@@ -118,30 +48,35 @@
           </span>
         </a>
       </div>
-      <div class="dropdown-menu">
-        <div class="dropdown-content">
-          @foreach (var item in WorkService.Status())
-          {
-            <a class="dropdown-item" @onclick="() => model.status = item.id">@item.name</a>
-          }
+      @if(isEdit)
+      {
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            @foreach (var item in WorkService.StatusSub())
+            {
+              <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
+            }
+          </div>
         </div>
-      </div>
+      }
     </div>
   </li>
   <li class="column is-narrow has-text-centered" style="width: 30px;">
-    <div class="dropdown is-hoverable is-right">
-      <div class="dropdown-trigger">
-        <span class="icon">
-          <i class="material-icons-outlined is-size-6">more_horiz</i>
-        </span>
-      </div>
-      <div class="dropdown-menu">
-        <div class="dropdown-content">
-          <a class="dropdown-item">Tạo Todolist liên kết</a>
-          <a class="dropdown-item has-text-danger">Xóa công việc này</a>
+    @if(isEdit)
+    {
+      <div class="dropdown is-hoverable is-right">
+        <div class="dropdown-trigger">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">more_horiz</i>
+          </span>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item has-text-danger" @onclick="Delete">Xóa công việc này</a>
+          </div>
         </div>
       </div>
-    </div>
+    }
   </li>
 </ul>
 
@@ -150,53 +85,44 @@
   public LayoutMain Layout { get; set; }
   [Parameter]
   public WorkPlanModel.Task model { get; set; }
+  [Parameter]
+  public WorkPlanModel.Task parent { get; set; }
+  [Parameter]
+  public bool isEdit { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
+  
 
-  private bool toggleLabel = false;
-  private bool toggleMember = false;
-  private DateTimeOffset? dateS = DateTime.Today;
-  private DateTimeOffset? dateE = DateTime.Today.AddDays(10);
-  private List<StaticModel> labels = new();
-
-  protected override void OnParametersSet()
+  private async Task Delete()
   {
-    labels = LabelList(); 
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa công việc {model.name}.\nBạn có chắc chắn muốn thực hiện?"))
+      return;
+    await DbWorkTask.Delete(Layout.Company.id, model.id);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
+    await OnUpdate.InvokeAsync(model);
   }
 
-  private List<StaticModel> LabelsShort(List<StaticModel> list)
+  private async Task UpdateDate(DateRange range)
   {
-    var results = new List<StaticModel>();
-
-    if(list.Count > 2)
-    {
-      results = list.Take(2).ToList();
-      results.Add(new () { name = $"+{list.Count - 2}", color = "#0F913D" });
-    }
-
-    return results;
+    model.date_start = range.Start.Ticks;
+    model.date_end = range.End.Ticks;
+    await DbWorkTask.Update(Layout.Company.id, model);
   }
 
-  private List<UserModel> MembersShort(List<UserModel> list)
+  private async Task ChangeStatus(int id)
   {
-    var results = new List<UserModel>();
-
-    if(list.Count > 2)
-    {
-      results = list.Take(2).ToList();
-      results.Add(new () { last_name = $"+{list.Count - 2}" });
-    }
-
-    return results;
+    model.status = id;
+    await DbWorkTask.Update(Layout.Company.id, model);
+    await OnUpdate.InvokeAsync(model);
   }
 
-  private List<StaticModel> LabelList()
+  private async Task UpdateLabels()
   {
-      var list = new List<StaticModel>();
+    await DbWorkTask.Update(Layout.Company.id, model);
+  }
 
-      list.Add(new() { id = 1, name = "Nhân sự", color = "#8990A5" });
-      list.Add(new() { id = 2, name = "Kế toán", color = "#6B8FE0" });
-      list.Add(new() { id = 3, name = "Truyền thông", color = "#BCB51F" });
-      list.Add(new() { id = 4, name = "Marketing", color = "#FF5449" });
-
-      return list.OrderBy(x => Guid.NewGuid()).ToList();
+  private async Task UpdateMembers()
+  {
+    await DbWorkTask.Update(Layout.Company.id, model);
   }
 }

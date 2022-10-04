@@ -111,5 +111,19 @@ namespace OnetezSoft.Data
 
       return results;
     }
+
+    /// <summary>
+    /// Danh sách công việc phụ trong kế hoạch
+    /// </summary>
+    public static async Task<List<WorkPlanModel.Task>> GetListInTask(string companyId, string planId, string taskId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<WorkPlanModel.Task>(_collection);
+
+      var results = await collection.Find(x => x.plan_id == planId && x.parent_id == taskId).ToListAsync();
+
+      return results;
+    }
   }
 }

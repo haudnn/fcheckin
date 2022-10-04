@@ -123,6 +123,11 @@
         </ul>
         @if(toggle)
         {
+          <ul class="task_list is_item columns is-gapless is-size-7">
+            <li class="column is-full">
+              <div class="pl-5">Đang chờ cập nhật dữ liệu</div>
+            </li>
+          </ul>
           <Dropzone Items="tasks" TItem="WorkTaskModel" Class="drop_task">
             @* <_TaskItem model="context" childs="childList" toggleList="toggleList"
               OnToggle="OnToggle" OnUpdate="OnUpdate" /> *@
@@ -150,25 +155,6 @@
     if(string.IsNullOrEmpty(TypeView))
       TypeView = "list";
 
-    taskList = new();
-    for (int i = 1; i <= 20; i++)
-    {
-     taskList.Add(new() { id = Mongo.RandomId(), 
-      name = $"Đây là công việc {i} để test giao diện, có thể nó sẽ rất dài, nhiều khi còn xuống dòng đó nha",
-      status = Shared.RandomInt(1, 5),
-      priority = Shared.RandomInt(1, 4)
-      });
-    }
-
-    childList = new();
-    for (int i = 1; i <= 3; i++)
-    {
-     childList.Add(new() { id = Mongo.RandomId(), 
-      name = $"Đây là công việc phụ {i} để test giao diện",
-      status = Shared.RandomInt(1, 5),
-      priority = Shared.RandomInt(1, 4)
-      });
-    }
   }
 
   private void ToggleStatus(int id)

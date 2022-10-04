@@ -1,0 +1,242 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="scrolly py-2" style="height: 420px;">
+  @foreach (var task in tasks)
+  {
+    var toggle = toggleList.Contains(task.id);
+    var isEdit = editList.Contains(task.id);
+    var status = WorkService.Status(task.status);
+    var priority = WorkService.Priority(task.priority);
+    DateTimeOffset? dateS = task.date_start > 0 ? new DateTime(task.date_start) : null;
+    DateTimeOffset? dateE = task.date_end > 0 ? new DateTime(task.date_end) : null;
+
+    <ul class="sub_task columns is-vcentered is-multiline is-gapless is-size-7 mb-0">
+      <li class="column" style="width: calc(100% - 350px);">
+        <div class="icon-text mr-2">
+          <a class="icon is-small" @onclick="() => ToggleItem(task.id)">
+            <i class="material-icons-outlined is-size-6">@(toggle ? "arrow_drop_down" : "arrow_right")</i>
+          </a>
+          @if(isEdit)
+          {
+            <input @bind="task.name" class="input is-small is_bg" type="text" placeholder="Nhập tiêu đề công việc">
+          }
+          else 
+          {
+            <span class="item_name has-text-info">@task.name</span>
+          }
+        </div>
+      </li>
+      <li class="column is-narrow" style="width: 130px;">
+        <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" OnRangeSelect="(x) => UpdateDate(task, x)">
+          <PickerTemplate>
+            <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
+              <span class="icon is-small mr-1">
+                <i class="material-icons-outlined is-size-6">calendar_today</i>
+              </span>
+              @if (context.TStartDate != null && context.TEndDate != null)
+              {
+                <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+                <span class="px-1">-</span>
+                <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+              }
+              else
+              {
+                <span>Chọn ngày</span>
+              }
+            </a>
+          </PickerTemplate>
+        </DateRangePicker>
+      </li>
+      <li class="column is-narrow" style="width: 110px;">
+        <_MemberList members="task.members" sources="Layout.UserList" isRight="true" isEdit="editRole" isTask="true" 
+          OnUpdate="() => UpdateMembers(task)" />
+      </li>
+      <li class="column is-narrow" style="width: 80px;">
+        <div class="dropdown is-hoverable is-fullwidth">
+          <div class="dropdown-trigger">
+            <a class="icon-text is-fullwidth pr-2">
+              <span style="flex-grow: 1;">@status.name</span>
+              <span class="icon is-small">
+                <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+              </span>
+            </a>
+          </div>
+          @if(editRole)
+          {
+            <div class="dropdown-menu">
+              <div class="dropdown-content">
+                @foreach (var item in WorkService.StatusSub())
+                {
+                  <a class="dropdown-item" @onclick="() => ChangeStatus(task, item.id)">@item.name</a>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </li>
+      <li class="column is-narrow" style="width: 30px;">
+        @if(editRole && !isEdit)
+        {
+          <div class="dropdown is-hoverable is-right">
+            <div class="dropdown-trigger">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">more_horiz</i>
+              </span>
+            </div>
+            <div class="dropdown-menu">
+              <div class="dropdown-content">
+                <a class="dropdown-item has-text-link" @onclick="() => ToggleEdit(task)">Chỉnh sửa</a>
+                <a class="dropdown-item has-text-danger" @onclick="() => DeleteItem(task)">Xóa</a>
+              </div>
+            </div>
+          </div>
+        }
+      </li>
+      @if(toggle)
+      {
+        <li class="column is-full">
+          @if(isEdit)
+          {
+            <div class="pl-4 py-2">
+              <textarea @bind="task.detail" class="textarea is-small is_bg" placeholder="Nhập mô tả công việc phụ" rows="2" />
+              <div class="buttons is-right mt-2">
+                <a class="button is-small is-white has-text-link" @onclick="() => UpdateItem(task)">
+                  <span class="icon">
+                    <i class="material-icons-round is-size-6">done</i>
+                  </span>
+                  <span>Cập nhật</span>
+                </a>
+                <a class="button is-small is-white has-text-danger" @onclick="() => ToggleEdit(task)">
+                  <span class="icon">
+                    <i class="material-icons-round is-size-6">close</i>
+                  </span>
+                  <span>Hủy</span>
+                </a>
+              </div>
+            </div>
+          }
+          else
+          {
+            <div class="has-text-grey pl-4 py-2">@task.detail</div>
+          }
+        </li>
+      }
+    </ul>
+  }
+  @if(editRole)
+  {
+    <div class="py-2">
+      <a class="icon-text has-text-link" @onclick="AddItem">
+        <span class="icon">
+          <i class="material-icons-outlined is-size-6">add</i>
+        </span>
+        <span>Thêm công việc phụ</span>
+      </a>
+    </div>
+  }
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public WorkPlanModel.Task parent { get; set; }
+  [Parameter]
+  public List<WorkPlanModel.Task> tasks { get; set; }
+  [Parameter]
+  public bool editRole { get; set; }
+
+  private List<string> toggleList = new();
+  private List<string> editList = new();
+
+  private void ToggleItem(string id)
+  {
+    if(toggleList.Contains(id))
+      toggleList.Remove(id);
+    else
+      toggleList.Add(id);
+  }
+
+  private async Task AddItem()
+  {
+    var item = new WorkPlanModel.Task() {
+      id = Mongo.RandomId(),
+      status = 1,
+      plan_id = parent.plan_id,
+      members = new(),
+    };
+    tasks.Add(item);
+    toggleList.Add(item.id);
+    editList.Add(item.id);
+  }
+
+  private async Task ToggleEdit(WorkPlanModel.Task item)
+  {
+    if(editList.Contains(item.id))
+    {
+      editList.Remove(item.id);
+      if(item.parent_id == null)
+        tasks.Remove(item);
+    }
+    else
+    {
+      editList.Add(item.id);
+      if(!toggleList.Contains(item.id))
+        toggleList.Add(item.id);
+    }
+  }
+
+  private async Task UpdateItem(WorkPlanModel.Task item)
+  {
+    if(string.IsNullOrEmpty(item.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập tiêu đề của công việc");
+    else if(item.date_start == 0 || item.date_end == 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập thời gian thực hiện của công việc.");
+    else if(item.members.Count == 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Chọn người tham gia của công việc.");
+    else
+    {
+      if(item.parent_id == null)
+      {
+        // Tạo mới
+        item.parent_id = parent.id;
+        await DbWorkTask.Create(Layout.Company.id, item);
+      } 
+      else
+      {
+        // Cập nhật
+        await DbWorkTask.Update(Layout.Company.id, item);
+      }
+      await ToggleEdit(item);
+    }
+  }
+
+  private async Task DeleteItem(WorkPlanModel.Task item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa công việc {item.name}.\nBạn có chắc chắn muốn thực hiện?"))
+      return;
+    await DbWorkTask.Delete(Layout.Company.id, item.id);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
+    tasks.Remove(item);
+    // TODO: gửi thông báo
+  }
+
+  private async Task UpdateDate(WorkPlanModel.Task item, DateRange range)
+  {
+    item.date_start = range.Start.Ticks;
+    item.date_end = range.End.Ticks;
+    await DbWorkTask.Update(Layout.Company.id, item);
+  }
+
+  private async Task ChangeStatus(WorkPlanModel.Task item, int id)
+  {
+    item.status = id;
+    await DbWorkTask.Update(Layout.Company.id, item);
+  }
+
+  private async Task UpdateMembers(WorkPlanModel.Task item)
+  {
+    await DbWorkTask.Update(Layout.Company.id, item);
+  }
+}
