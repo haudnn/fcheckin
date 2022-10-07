@@ -71,11 +71,12 @@ namespace OnetezSoft.Data
       return result;
     }
 
+
     /// <summary>
     /// Danh sách kế hoạch có thể xem
     /// Là thành viên hoặc kế hoạch công khai
     /// </summary>
-    public static async Task<List<WorkPlanModel>> GetList(string companyId, string userId)
+    public static async Task<List<WorkPlanModel>> GetListView(string companyId, string userId)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
@@ -89,6 +90,27 @@ namespace OnetezSoft.Data
         if(!item.is_private)
           results.Add(item);
         else if(item.members.Where(x => x.id == userId).Count() > 0)
+          results.Add(item);
+      }
+      return results;
+    }
+
+
+    /// <summary>
+    /// Danh sách kế hoạch đang tham gia
+    /// </summary>
+    public static async Task<List<WorkPlanModel>> GetListJoin(string companyId, string userId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<WorkPlanModel>(_collection);
+
+      var list = await collection.Find(new BsonDocument()).ToListAsync();
+
+      var results = new List<WorkPlanModel>();
+      foreach (var item in list)
+      {
+        if(item.members.Where(x => x.id == userId).Count() > 0)
           results.Add(item);
       }
       return results;

@@ -73,7 +73,7 @@
                   Người tham gia:
                 </div>
                 <div class="control is-expanded">
-                  <_MemberList members="task.members" sources="Layout.UserList" isEdit="editTask" isTask="true" 
+                  <_MemberList members="task.members" sources="members" isEdit="editTask" isTask="true" 
                     OnUpdate="UpdateMembers" />
                 </div>
               </div>
@@ -280,7 +280,7 @@
           {
             <li class="column is-10 is-size-7 p-4">
               <div class="has-text-grey">Todolist liên kết</div>
-              <div class="is-italic py-2">Đang chờ cập nhật</div>
+              <div class="is-italic py-2">Chức năng đang trong quá trình hoàn thiện</div>
             </li>
           }
           else if(tab == 4)
@@ -309,9 +309,11 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   [Parameter]
+  public WorkPlanModel plan { get; set; }
+  [Parameter]
   public WorkPlanModel.Task task { get; set; }
   [Parameter]
-  public WorkPlanModel plan { get; set; }
+  public List<UserModel> members { get; set; }
   [Parameter]
   public int tab { get; set; }
   [Parameter]

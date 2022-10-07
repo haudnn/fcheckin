@@ -28,7 +28,7 @@
           </div>
           <div class="dropdown-menu">
             <div class="dropdown-content">
-              <a class="dropdown-item">Tạo công việc phụ</a>
+              <a class="dropdown-item" @onclick="AddSub">Tạo công việc phụ</a>
               <a class="dropdown-item">Tạo Todolist liên kết</a>
               <a class="dropdown-item has-text-danger" @onclick="Delete">Xóa công việc này</a>
             </div>
@@ -39,14 +39,14 @@
     <li class="column is-full">
       <a class="is-block has-text-dark font_14" @onclick="Edit">@model.name</a>
     </li>
-    @if(showPlan)
+    @if(showPlan && plan != null)
     {
       <li class="column is-full">
         <a class="icon-text has-text-link">
           <span class="icon is-small mr-2">
             <i class="material-icons-outlined is-size-6">link</i>
           </span>
-          <span>Kế hoạch: Đây là tiêu đề của kế hoạch trong việc @model.priority</span>
+          <span>Kế hoạch: @plan.name</span>
         </a>
       </li>
     }
@@ -72,7 +72,7 @@
       </DateRangePicker>
     </li>
     <li class="column is-half has-text-right">
-      <_MemberList members="model.members" sources="Layout.UserList" isRight="true" isEdit="editRole" isTask="true" 
+      <_MemberList members="model.members" sources="members" isRight="true" isEdit="editRole" isTask="true" 
         OnUpdate="UpdateMembers" />
     </li>
     <li class="column is-half">
@@ -111,13 +111,12 @@
       <li class="column is-full">
         @foreach (var child in subTasks)
         {
-          <_TaskCardChild model="child" parent="model" isEdit="editRole" OnUpdate="UpdateSubTasks" />
+          <_TaskCardChild model="child" parent="model" members="members" isEdit="editRole" OnUpdate="UpdateSubTasks" />
         }
       </li>
     }
   </ul>
 </div>
-
 
 @code {
   [CascadingParameter]
@@ -126,6 +125,8 @@
   public WorkPlanModel.Task model { get; set; }
   [Parameter]
   public WorkPlanModel plan { get; set; }
+  [Parameter]
+  public List<UserModel> members { get; set; }
   [Parameter]
   public bool editRole { get; set; }
   [Parameter]

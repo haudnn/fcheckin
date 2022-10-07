@@ -126,7 +126,7 @@
 
   private async Task GetList()
   {
-    var data = await DbWorkPlan.GetList(Layout.Company.id, Layout.User.id);
+    var data = await DbWorkPlan.GetListView(Layout.Company.id, Layout.User.id);
     var planTodo = data.Where(x => !x.is_hide && x.status == 1).ToList();
     var planDone = data.Where(x => !x.is_hide && x.status == 2).ToList();
     var planHide = data.Where(x => x.is_hide).ToList();

@@ -51,7 +51,7 @@
         <div class="scrolly py-1" style="max-height: 250px;">
           @foreach (var member in members)
           {
-            var item = UserService.GetUser(sources, member.id);
+            var item = UserService.GetUser(Layout.UserList, member.id);
             <ul class="columns is-vcentered is-variable is-1">
               @if(isEdit)
               {
@@ -163,6 +163,8 @@
 </div>
 
 @code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
   [Parameter]
   public List<WorkPlanModel.Member> members { get; set; }
   [Parameter]
@@ -234,7 +236,7 @@
     var results = new List<MemberModel>();
     for (int i = 0; i < members.Count; i++)
     {
-      var item = sources.SingleOrDefault(x => x.id == members[i].id);
+      var item = UserService.GetUser(Layout.UserList, members[i].id);
       if(item != null)
       {
         results.Add(UserService.ConvertToMember(item));
@@ -272,7 +274,7 @@
   private string RoleName(int id)
   {
     if(isTask)
-      return WorkService.RoleTask(id).name.Replace("Người ", "");
+      return WorkService.RoleTask(id).name;
     else
       return WorkService.RolePlan(id).name;
   }

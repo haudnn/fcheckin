@@ -51,7 +51,7 @@
       OnUpdate="UpdateLabels" />
   </li>
   <li class="column is-narrow" style="width: 110px;">
-    <_MemberList members="model.members" sources="Layout.UserList" isEdit="editRole" isTask="true" 
+    <_MemberList members="model.members" sources="members" isEdit="editRole" isTask="true" 
       OnUpdate="UpdateMembers" />
   </li>
   <li class="column is-narrow" style="width: 80px;">
@@ -88,7 +88,7 @@
         </div>
         <div class="dropdown-menu">
           <div class="dropdown-content">
-            <a class="dropdown-item">Tạo công việc phụ</a>
+            <a class="dropdown-item" @onclick="AddSub">Tạo công việc phụ</a>
             <a class="dropdown-item">Tạo Todolist liên kết</a>
             <a class="dropdown-item has-text-danger" @onclick="Delete">Xóa công việc này</a>
           </div>
@@ -100,7 +100,7 @@
 
 @if(toggle)
 {
-  if(showPlan)
+  if(showPlan && plan != null)
   {
     <ul class="task_list is_plan columns is-gapless is-size-7" style="border-color: @priority.color;">
       <li class="column is-full">
@@ -108,14 +108,14 @@
           <span class="icon is-small mr-2">
             <i class="material-icons-outlined is-size-6">link</i>
           </span>
-          <span>Kế hoạch: Đây là tiêu đề của kế hoạch trong việc @model.priority</span>
+          <span>Kế hoạch: @plan.name</span>
         </a>
       </li>
     </ul>
   }
   foreach (var child in subTasks)
   {
-    <_TaskListChild model="child" parent="model" isEdit="editRole" OnUpdate="UpdateSubTasks" />
+    <_TaskListChild model="child" parent="model" members="members" isEdit="editRole" OnUpdate="UpdateSubTasks" />
   }
   if(editRole)
   {
@@ -141,6 +141,8 @@
   public WorkPlanModel.Task model { get; set; }
   [Parameter]
   public WorkPlanModel plan { get; set; }
+  [Parameter]
+  public List<UserModel> members { get; set; }
   [Parameter]
   public bool editRole { get; set; }
   [Parameter]

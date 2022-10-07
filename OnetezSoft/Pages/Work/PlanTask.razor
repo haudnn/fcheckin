@@ -303,7 +303,7 @@
                 {
                   var editTask = WorkService.RoleEditTask(model, context, Layout.User.id);
                   <_TaskListItem model="context" plan="model" editRole="editTask"
-                    toggleList="toggleList" OnToggle="OnToggle"
+                    members="members" toggleList="toggleList" OnToggle="OnToggle"
                     OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" />
                 }
               </Dropzone>
@@ -319,7 +319,7 @@
                 var tasks = taskGroups.ContainsKey(item.id) ? taskGroups[item.id] : new();
                 var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
 
-                <li class="column is-narrow mr-5" style="width: 350px;">
+                <li class="column is-narrow mr-3" style="width: 350px;">
                   @if(editSectionId == item.id)
                   {
                     <div class="control has-icons-left ">
@@ -379,7 +379,7 @@
                       }
                     </div>
                   }
-                  <div class="scrolly p-2" style="height: calc(100vh - 320px); background: #fbfbfb; border-radius: 5px;">
+                  <div class="scrolly p-2" style="height: calc(100vh - 300px); background: #fbfbfb; border-radius: 5px;">
                     <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_board"
                       AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
                       @if(context.id == null)
@@ -397,7 +397,7 @@
                       {
                         var editTask = WorkService.RoleEditTask(model, context, Layout.User.id);
                         <_TaskCardItem model="context" plan="model" editRole="editTask"
-                          toggleList="toggleList" OnToggle="OnToggle"
+                          members="members" toggleList="toggleList" OnToggle="OnToggle"
                           OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" />
                       }
                     </Dropzone>
@@ -405,7 +405,6 @@
                 </li> 
               }
             </ul>
-
           </div>
         }
         else
@@ -423,7 +422,8 @@
   </div>
 </section>
 
-<_TaskPopup plan="model" task="taskEdit" tab="taskEditTab" subTasks="subTasks" OnUpdate="OnUpdateTask" />
+<_TaskPopup plan="model" task="taskEdit" members="members" tab="taskEditTab" 
+  subTasks="subTasks" OnUpdate="OnUpdateTask" />
 
 @code {
   [CascadingParameter]
@@ -451,11 +451,16 @@
       // Quyền quản lý kế hoạch
       editRole = WorkService.RoleInPlan(model, Layout.User.id) == 1;
       // Danh sách thành viên
-      //var memberList = model.members.Select(x => x.id).ToList();
-      //members = Layout.UserList.Where(x => memberList.Contains(x.id)).ToList();
+      members = GetMembers();
 
       await GetTaskList();
     }
+  }
+
+  private List<UserModel> GetMembers()
+  {
+    var listId = model.members.Select(x => x.id).ToList();
+    return Layout.UserList.Where(x => listId.Contains(x.id)).ToList();
   }
 
   #region Bộ lọc và lấy dữ liệu
@@ -472,7 +477,7 @@
     taskList = await DbWorkTask.GetListInPlan(Layout.Company.id, model.id);
     // Bộ lọc tìm kiếm
     FilterTaskList();
-    // Chia nhóm công việcÍ
+    // Chia nhóm công việc
     SplitTaskList();
     // Đóng tất cả công việc
     toggleList.Clear();
@@ -688,20 +693,16 @@
     {
       if(group.Value.Contains(item))
       {
-        var section = model.sections.SingleOrDefault(x => x.id == group.Key);
-        if(section != null)
-        {
-          item.section_id = section.id;
-          await DbWorkTask.Update(Layout.Company.id, item);
-          await JSRuntime.InvokeVoidAsync("console.log", "Nhóm: " + section.name);
-        }
+        item.section_id = group.Key;
+        await DbWorkTask.Update(Layout.Company.id, item);
+        await JSRuntime.InvokeVoidAsync("console.log", "Section: " + group.Key);
+        break;
       }
     }
     SplitTaskList();
     toggleList.Clear();
   }
 
-  
   #endregion
 
 
@@ -734,6 +735,4 @@
   }
 
   #endregion
-
-
 }

@@ -106,7 +106,7 @@ namespace OnetezSoft.Services
     #region Dữ liệu cố định
 
     /// <summary>
-    /// Danh sách trạng thái
+    /// Danh sách trạng thái công việc chính
     /// </summary>
     public static List<StaticModel> Status()
     {
@@ -122,7 +122,7 @@ namespace OnetezSoft.Services
     }
 
     /// <summary>
-    /// Danh sách trạng thái
+    /// Danh sách trạng thái công việc phụ
     /// </summary>
     public static List<StaticModel> StatusSub()
     {
@@ -203,8 +203,8 @@ namespace OnetezSoft.Services
     public static List<StaticModel> RoleTask()
     {
       var list = new List<StaticModel>();
-      list.Add(new() { id = 1, name = "Người nhận xét" });
-      list.Add(new() { id = 2, name = "Người thực hiện" });
+      list.Add(new() { id = 1, name = "Nhận xét" });
+      list.Add(new() { id = 2, name = "Thực hiện" });
       return list;
     }
 
