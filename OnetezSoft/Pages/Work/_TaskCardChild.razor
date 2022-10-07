@@ -1,0 +1,102 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+@{
+  var status = WorkService.Status(model.status);
+  var priority = WorkService.Priority(parent.priority);
+  DateTimeOffset? dateS = new DateTime(model.date_start);
+  DateTimeOffset? dateE = new DateTime(model.date_end);
+}
+
+<div class="task_board card px-3 py-2 is-size-7">
+  <ul class="columns is-multiline is-vcentered is-variable is-0">
+    <li class="column is-10">
+      <span class="text_1_line">@model.name</span>
+    </li>
+    <li class="column is-2 has-text-right">
+      @if(isEdit)
+      {
+        <div class="dropdown is-hoverable is-right">
+          <div class="dropdown-trigger">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">more_horiz</i>
+            </span>
+          </div>
+          <div class="dropdown-menu">
+            <div class="dropdown-content">
+              <a class="dropdown-item has-text-danger" @onclick="Delete">Xóa việc phụ này</a>
+            </div>
+          </div>
+        </div>
+      }
+    </li>
+    <li class="column is-half">
+      <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" OnRangeSelect="UpdateDate">
+        <PickerTemplate>
+          <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
+            <span class="icon is-small mr-1">
+              <i class="material-icons-outlined is-size-6">calendar_today</i>
+            </span>
+            @if (context.TStartDate != null && context.TEndDate != null)
+            {
+              <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+              <span class="mx-1">-</span>
+              <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+            }
+          </a>
+        </PickerTemplate>
+      </DateRangePicker>
+    </li>
+    <li class="column is-half has-text-right">
+      <_MemberList members="model.members" sources="Layout.UserList" isRight="true" isEdit="isEdit" 
+        isTask="true" isSubTask="true" OnUpdate="UpdateMembers" />
+    </li>
+  </ul>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public WorkPlanModel.Task model { get; set; }
+  [Parameter]
+  public WorkPlanModel.Task parent { get; set; }
+  [Parameter]
+  public bool isEdit { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
+  
+
+  private async Task Delete()
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa công việc {model.name}.\nBạn có chắc chắn muốn thực hiện?"))
+      return;
+    await DbWorkTask.Delete(Layout.Company.id, model.id);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
+    await OnUpdate.InvokeAsync(model);
+  }
+
+  private async Task UpdateDate(DateRange range)
+  {
+    model.date_start = range.Start.Ticks;
+    model.date_end = range.End.Ticks;
+    await DbWorkTask.Update(Layout.Company.id, model);
+  }
+
+  private async Task ChangeStatus(int id)
+  {
+    model.status = id;
+    await DbWorkTask.Update(Layout.Company.id, model);
+    await OnUpdate.InvokeAsync(model);
+  }
+
+  private async Task UpdateLabels()
+  {
+    await DbWorkTask.Update(Layout.Company.id, model);
+  }
+
+  private async Task UpdateMembers()
+  {
+    await DbWorkTask.Update(Layout.Company.id, model);
+  }
+}

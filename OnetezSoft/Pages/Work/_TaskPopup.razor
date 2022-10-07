@@ -216,7 +216,7 @@
                     {
                       <div class="dropdown-menu">
                         <div class="dropdown-content">
-                          <a class="dropdown-item" @onclick="() => UpdatePriorty(0)">Trống</a>
+                          <a class="dropdown-item is-hidden" @onclick="() => UpdatePriorty(0)">Trống</a>
                           @foreach (var item in WorkService.Priority())
                           {
                             <a class="dropdown-item" style="color: @item.color;" @onclick="() => UpdatePriorty(item.id)">@item.name</a>
@@ -323,17 +323,22 @@
   private DateTimeOffset? dateE = null;
   private List<WorkPlanModel.Comment> comments = new();
   private List<WorkLogModel> logs = new();
+  private bool isChange = false;
 
   private void Reset()
   {
     task = null;
     dateS = null;
     dateE = null;
+    isChange = false;
   }
 
   private async Task Cancel()
   {
-    await OnUpdate.InvokeAsync(null);
+    if(isChange)
+      await OnUpdate.InvokeAsync(task);
+    else
+      await OnUpdate.InvokeAsync(null);
     Reset();
   }
 
@@ -377,35 +382,48 @@
     return false;
   }
 
-  private void UpdateMembers()
+  private async Task Changed()
   {
+    if(!string.IsNullOrEmpty(task.id))
+    {
+      await DbWorkTask.Update(Layout.Company.id, task);
+      isChange = true;
+    }
+  }
 
+  private async Task UpdateMembers()
+  {
+    await Changed(); 
   }
 
   private async Task ChangeStatus(int id)
   {
     task.status = id;
+    await Changed(); 
   }
   
   private async Task UpdateDate(DateRange range)
   {
     task.date_start = dateS.Value.Ticks;
     task.date_end = dateE.Value.Ticks;
+    await Changed(); 
   }
   
   private async Task UpdateSection(string id)
   {
     task.section_id = id;
+    await Changed(); 
   }
   
   private async Task UpdatePriorty(int id)
   {
     task.priority = id;
+    await Changed(); 
   }
 
-  private void UpdateLabels()
+  private async Task UpdateLabels()
   {
-
+    await Changed();
   }
   
   private async Task ChangeTab(int index)
@@ -423,17 +441,8 @@
     }
     else if(tab == 5)
     {
+      // TODO: Lấy dự liệu lịch sử cập nhật
       logs = new();
-      foreach (var item in Layout.UserList)
-      {
-        logs.Add(new() {
-          id = Mongo.RandomId(),
-          name = "Thêm thành viên",
-          detail = item.FullName,
-          date = DateTime.Now.Ticks,
-          user = UserService.ConvertToMember(item)
-        });
-      }
     }
   }
 }

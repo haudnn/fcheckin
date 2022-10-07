@@ -31,6 +31,7 @@ namespace OnetezSoft.Data
     public static async Task<WorkPlanModel> Update(string companyId, WorkPlanModel model)
     {
       model.members = model.members.OrderBy(x => x.role).ToList();
+      model.sections = model.sections.OrderByDescending(x => x.pos).ToList();
 
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 

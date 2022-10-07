@@ -108,6 +108,12 @@ function setTextHeight(text) {
   text.style.overflow = "hidden";
 }
 
+// await JSRuntime.InvokeVoidAsync("dropdownClose");
+function dropdownClose() {
+  const dropdown = document.querySelectorAll(".dropdown.is-active");
+  dropdown.forEach((x) => x.classList.remove("is-active"));
+}
+
 function newTab(link) {
   window.open(link);
 }
@@ -290,7 +296,7 @@ function tagline(success, message) {
     </div>`;
   document.querySelector("body").appendChild(notify);
   setTimeout(function () {
-    taglineHide();
+    if (notify !== null) notify.remove();
   }, 5000);
 }
 

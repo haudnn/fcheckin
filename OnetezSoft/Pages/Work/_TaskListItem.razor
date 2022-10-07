@@ -6,6 +6,7 @@
   var priority = WorkService.Priority(model.priority);
   DateTimeOffset? dateS = new DateTime(model.date_start);
   DateTimeOffset? dateE = new DateTime(model.date_end);
+  var toggle = toggleList.Contains(model.id);
 }
 
 <ul id="task_@model.id" class="task_list is_item columns is-gapless is-size-7" style="border-color: @priority.color;">
@@ -50,13 +51,13 @@
       OnUpdate="UpdateLabels" />
   </li>
   <li class="column is-narrow" style="width: 110px;">
-    <_MemberList members="model.members" sources="Layout.UserList" isRight="true" isEdit="editRole" isTask="true" 
+    <_MemberList members="model.members" sources="Layout.UserList" isEdit="editRole" isTask="true" 
       OnUpdate="UpdateMembers" />
   </li>
   <li class="column is-narrow" style="width: 80px;">
-    <div class="dropdown is-hoverable is-fullwidth">
+    <div class="dropdown is-fullwidth @(toggleStatus ? "is-active" : "")">
       <div class="dropdown-trigger">
-        <a class="icon-text is-fullwidth pr-2">
+        <a class="icon-text is-fullwidth pr-2" @onclick="ToggleStatus">
           <span style="flex-grow: 1;">@status.name</span>
           <span class="icon is-small">
             <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
@@ -114,7 +115,7 @@
   }
   foreach (var child in subTasks)
   {
-    <_TaskChild model="child" parent="model" isEdit="editRole" OnUpdate="UpdateSubTasks" />
+    <_TaskListChild model="child" parent="model" isEdit="editRole" OnUpdate="UpdateSubTasks" />
   }
   if(editRole)
   {
@@ -144,10 +145,10 @@
   public bool editRole { get; set; }
   [Parameter]
   public bool showPlan { get; set; }
-  //[Parameter]
-  //public List<string> toggleList { get; set; }
-  //[Parameter]
-  //public EventCallback<string> OnToggle { get; set; }
+  [Parameter]
+  public List<string> toggleList { get; set; }
+  [Parameter]
+  public EventCallback<string> OnToggle { get; set; }
   [Parameter]
   public EventCallback<WorkPlanModel.Task> OnEdit { get; set; }
   [Parameter]
@@ -155,27 +156,22 @@
   [Parameter]
   public EventCallback<WorkPlanModel.Task> OnAddSub { get; set; }
 
-  private bool toggle = false;
+  private bool toggleStatus = false;
   private List<WorkPlanModel.Task> subTasks = new();
-
 
   private async Task Toggle()
   {
-    toggle = !toggle;
-    if(toggle)
-      subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.plan_id, model.id);
-    else
+    if(toggleList.Contains(model.id))
       subTasks = new();
-    //if (toggleList.Contains(model.id))
-    //  toggleList.Remove(model.id);
-    //else
-    //  toggleList.Add(model.id);
-    //await OnToggle.InvokeAsync(model.id);
+    else
+      subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.plan_id, model.id);
+    await OnToggle.InvokeAsync(model.id);
   }
   
-  private async Task Update()
+  private async Task ToggleStatus()
   {
-    await OnUpdate.InvokeAsync(model);
+    await JSRuntime.InvokeVoidAsync("dropdownClose");
+    toggleStatus = !toggleStatus;
   }
 
   private async Task Edit()

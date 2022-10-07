@@ -33,8 +33,8 @@
   </div>
   @if(toggle)
   {
-    <div class="dropdown-menu" style="width: 350px;">
-      <div class="dropdown-content px-3" style="max-height: none;">
+    <div class="dropdown-menu" style="width: 300px; @(isRight ? "" : "left: -150px;")">
+      <div class="dropdown-content px-3 has-text-left" style="max-height: none;">
         @if(isEdit)
         {
           <div class="has-text-dark has-text-weight-medium font_14 mb-3">
@@ -56,7 +56,7 @@
               @if(isEdit)
               {
                 <li class="column is-narrow">
-                  <a class="icon has-text-danger" @onclick="() => RemoveItem(member.id)">
+                  <a class="icon is-small has-text-danger" @onclick="() => RemoveItem(member.id)">
                     <i class="material-icons-outlined is-size-6">
                       remove_circle_outline
                     </i>
@@ -70,26 +70,29 @@
                     <span class="ml-2" style="flex-grow: 1;">@item.FullName</span>
                   </div>
                 </li>
-                <li class="column is-narrow">
-                  <div class="dropdown is-hoverable is-right">
-                    <div class="dropdown-trigger">
-                      <a class="icon-text">
-                        <span>@RoleName(member.role)</span>
-                        <span class="icon">
-                          <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
-                        </span>
-                      </a>
-                    </div>
-                    <div class="dropdown-menu py-0">
-                      <div class="dropdown-content py-0">
-                        @foreach (var role in RoleList())
-                        {
-                          <a class="dropdown-item py-1" @onclick="() => member.role = role.id">@role.name</a>
-                        }
+                @if(!isSubTask)
+                {
+                  <li class="column is-narrow">
+                    <div class="dropdown is-hoverable is-right">
+                      <div class="dropdown-trigger">
+                        <a class="icon-text">
+                          <span>@RoleName(member.role)</span>
+                          <span class="icon is-small">
+                            <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+                          </span>
+                        </a>
+                      </div>
+                      <div class="dropdown-menu py-0">
+                        <div class="dropdown-content py-0">
+                          @foreach (var role in RoleList())
+                          {
+                            <a class="dropdown-item py-1" @onclick="() => member.role = role.id">@role.name</a>
+                          }
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </li>
+                  </li>
+                }
               }
               else
               {
@@ -111,7 +114,7 @@
           {
             <ul class="columns is-vcentered is-variable is-1">
               <li class="column is-narrow">
-                <a class="icon has-text-info" @onclick="() => AddItem(item.id)">
+                <a class="icon is-small has-text-info" @onclick="() => AddItem(item.id)">
                   <i class="material-icons-outlined is-size-6">
                     add_circle_outline
                   </i>
@@ -171,6 +174,8 @@
   [Parameter]
   public bool isTask { get; set; }
   [Parameter]
+  public bool isSubTask { get; set; }
+  [Parameter]
   public EventCallback OnUpdate { get; set; }
 
   private bool toggle = false;
@@ -216,6 +221,7 @@
 
   private async Task Toggle()
   {
+    await JSRuntime.InvokeVoidAsync("dropdownClose");
     toggle = !toggle;
     suggests = new();
     keyword = string.Empty;
@@ -266,7 +272,7 @@
   private string RoleName(int id)
   {
     if(isTask)
-      return WorkService.RoleTask(id).name;
+      return WorkService.RoleTask(id).name.Replace("Người ", "");
     else
       return WorkService.RolePlan(id).name;
   }

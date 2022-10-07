@@ -32,7 +32,7 @@
         </ul>
       </div>
 
-      <div class="card p-5 p-4-mobile">
+      <div class="card px-5 pt-5 pb-3 p-4-mobile">
         <ul class="columns is-vcentered is-variable is-2 mb-3">
           <li class="column">
             <h1 class="title is-5 has-text-info is-uppercase">Danh sách công việc</h1>
@@ -243,7 +243,7 @@
                     </a>
                     @if(editRole)
                     {
-                      <div class="dropdown is-hoverable icon is_hover">
+                      <div class="dropdown is-hoverable is-right icon is_hover">
                         <div class="dropdown-trigger">
                           <a class="icon has-text-dark">
                             <i class="material-icons-outlined is-size-6">more_horiz</i>
@@ -251,8 +251,30 @@
                         </div>
                         <div class="dropdown-menu">
                           <div class="dropdown-content">
-                            <a class="dropdown-item" @onclick="() => EditSection(item)">Chỉnh sửa</a>
-                            <a class="dropdown-item has-text-danger" @onclick="() => DeleteSection(item)">Xóa</a>
+                            <a class="dropdown-item icon-text" @onclick="() => MoveSection(item, true)">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-6">arrow_upward</i>
+                              </span>
+                              <span>Lên trên</span>
+                            </a>
+                            <a class="dropdown-item icon-text" @onclick="() => MoveSection(item, false)">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-6">arrow_downward</i>
+                              </span>
+                              <span>Xuống dưới</span>
+                            </a>
+                            <a class="dropdown-item icon-text" @onclick="() => EditSection(item)">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-6">edit</i>
+                              </span>
+                              <span>Chỉnh sửa</span>
+                            </a>
+                            <a class="dropdown-item icon-text has-text-danger" @onclick="() => DeleteSection(item)">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-6">delete</i>
+                              </span>
+                              <span>Xóa</span>
+                            </a>
                           </div>
                         </div>
                       </div>
@@ -264,20 +286,24 @@
             
             @if(!hidden)
             {
-              <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task" AllowsDrag="x => x.id != null"
-                InstantReplace="true" OnItemDrop="x => OnItemDragdrop(x)" OnReplacedItemDrop="x => OnItemReplaced(x)">
+              <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_list" 
+                AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
                 @if(context.id == null)
                 {
-                  <ul class="task_list is_item columns is-gapless is-size-7">
-                    <li class="column is-full">
-                      <div class="pl-5">@context.name</div>
-                    </li>
-                  </ul>
+                  <div class="pl-4 py-1">
+                    <a class="icon-text has-text-link" @onclick="() => EditTask(null, item.id)">
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-6">add</i>
+                      </span>
+                      <span class="is-size-7">Thêm công việc</span>
+                    </a>
+                  </div>
                 }
                 else
                 {
                   var editTask = WorkService.RoleEditTask(model, context, Layout.User.id);
-                  <_TaskItem model="context" plan="model" editRole="editTask"
+                  <_TaskListItem model="context" plan="model" editRole="editTask"
+                    toggleList="toggleList" OnToggle="OnToggle"
                     OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" />
                 }
               </Dropzone>
@@ -293,7 +319,7 @@
                 var tasks = taskGroups.ContainsKey(item.id) ? taskGroups[item.id] : new();
                 var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
 
-                <li class="column is-narrow mr-5" style="width: 320px;">
+                <li class="column is-narrow mr-5" style="width: 350px;">
                   @if(editSectionId == item.id)
                   {
                     <div class="control has-icons-left ">
@@ -306,7 +332,7 @@
                   }
                   else
                   {
-                    <div class="icon-text py-2">
+                    <div class="icon-text py-2 pl-2">
                       <span class="has-text-weight-semibold font_14">
                         @item.name @(count > 0 ? $"({count})" : "")
                       </span>
@@ -315,35 +341,63 @@
                       </a>
                       @if(editRole)
                       {
-                        <div class="dropdown is-hoverable icon is_hover">
+                        <div class="dropdown is-hoverable is-right icon is_hover">
                           <div class="dropdown-trigger">
                             <a class="icon has-text-dark">
                               <i class="material-icons-outlined is-size-6">more_horiz</i>
                             </a>
                           </div>
-                          <div class="dropdown-menu">
+                          <div class="dropdown-menu is-size-7">
                             <div class="dropdown-content">
-                              <a class="dropdown-item" @onclick="() => EditSection(item)">Chỉnh sửa</a>
-                              <a class="dropdown-item has-text-danger" @onclick="() => DeleteSection(item)">Xóa</a>
+                              <a class="dropdown-item icon-text" @onclick="() => MoveSection(item, true)">
+                                <span class="icon">
+                                  <i class="material-icons-outlined is-size-6">arrow_back</i>
+                                </span>
+                                <span>Qua trái</span>
+                              </a>
+                              <a class="dropdown-item icon-text" @onclick="() => MoveSection(item, false)">
+                                <span class="icon">
+                                  <i class="material-icons-outlined is-size-6">arrow_forward</i>
+                                </span>
+                                <span>Qua phải</span>
+                              </a>
+                              <a class="dropdown-item icon-text" @onclick="() => EditSection(item)">
+                                <span class="icon">
+                                  <i class="material-icons-outlined is-size-6">edit</i>
+                                </span>
+                                <span>Chỉnh sửa</span>
+                              </a>
+                              <a class="dropdown-item icon-text has-text-danger" @onclick="() => DeleteSection(item)">
+                                <span class="icon">
+                                  <i class="material-icons-outlined is-size-6">delete</i>
+                                </span>
+                                <span>Xóa</span>
+                              </a>
                             </div>
                           </div>
                         </div>
                       }
                     </div>
                   }
-                  <div class="scrolly p-3" style="height: calc(100vh - 320px); background: #fbfbfb; border-radius: 5px;">
-                    <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task" AllowsDrag="x => x.id != null"
-                      InstantReplace="true" OnItemDrop="x => OnItemDragdrop(x)" OnReplacedItemDrop="x => OnItemReplaced(x)">
+                  <div class="scrolly p-2" style="height: calc(100vh - 320px); background: #fbfbfb; border-radius: 5px;">
+                    <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_board"
+                      AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
                       @if(context.id == null)
                       {
-                        <div class="has-text-centered p-4">
-                          @context.name
+                        <div class="has-text-centered p-3">
+                          <a class="icon-text has-text-link" @onclick="() => EditTask(null, item.id)">
+                            <span class="icon">
+                              <i class="material-icons-outlined is-size-6">add</i>
+                            </span>
+                            <span class="is-size-7">Thêm công việc</span>
+                          </a>
                         </div>
                       }
                       else
                       {
                         var editTask = WorkService.RoleEditTask(model, context, Layout.User.id);
-                        <_TaskCard model="context" plan="model" editRole="editTask"
+                        <_TaskCardItem model="context" plan="model" editRole="editTask"
+                          toggleList="toggleList" OnToggle="OnToggle"
                           OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" />
                       }
                     </Dropzone>
@@ -356,7 +410,7 @@
         }
         else
         {
-
+          <div>Chưa hoàn thiện chức năng</div>
         }
       </div>
     }
@@ -383,8 +437,8 @@
   private bool editRole = false;
   private Dictionary<string, List<WorkPlanModel.Task>> taskGroups = new();
   private List<WorkPlanModel.Task> taskList = new();
-  //private List<string> toggleList = new();
-  //private List<UserModel> members = new();
+  private List<string> toggleList = new();
+  private List<UserModel> members = new();
 
   protected override async Task OnParametersSetAsync()
   {
@@ -418,8 +472,10 @@
     taskList = await DbWorkTask.GetListInPlan(Layout.Company.id, model.id);
     // Bộ lọc tìm kiếm
     FilterTaskList();
-    // Chia nhóm công việc
+    // Chia nhóm công việcÍ
     SplitTaskList();
+    // Đóng tất cả công việc
+    toggleList.Clear();
   }
 
   private void FilterTaskList()
@@ -526,8 +582,8 @@
     if(await WorkService.DeleteSection(Layout.Company.id, model.id, item.id))
     {
       model = await DbWorkPlan.Get(Layout.Company.id, PlanId);
-      await GetTaskList();
       await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa nhóm công việc thành công!");
+      await GetTaskList();
     }
     else
       await JSRuntime.InvokeVoidAsync("tagline", false, "Không thành công, vui lòng thử lại!");
@@ -538,12 +594,42 @@
     if(model.sections.Where(x => string.IsNullOrEmpty(x.name)).Count() == 0)
     {
       editSectionId = string.Empty;
-      SplitTaskList();
       await DbWorkPlan.Update(Layout.Company.id, model);
       await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật nhóm công việc!");
+      SplitTaskList();
     }
     else
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề nhóm công việc!");
+  }
+  
+  private async Task MoveSection(WorkPlanModel.Section item, bool isUp)
+  {
+    if(isUp)
+    {
+      var move = model.sections.Where(x => x.pos > item.pos).OrderBy(x => x.pos).FirstOrDefault();
+      if(move != null)
+      {
+        item.pos++;
+        move.pos--;
+        await DbWorkPlan.Update(Layout.Company.id, model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã duy chuyển vị trí nhóm {item.name}!");
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể duy chuyển vị trí nhóm!");
+    }
+    else
+    {
+      var move = model.sections.Where(x => x.pos < item.pos).OrderByDescending(x => x.pos).FirstOrDefault();
+      if(move != null)
+      {
+        item.pos--;
+        move.pos++;
+        await DbWorkPlan.Update(Layout.Company.id, model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã duy chuyển vị trí nhóm {item.name}!");
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể duy chuyển vị trí nhóm!");
+    }
   }
   
   #endregion
@@ -596,33 +682,23 @@
   #region Chức năng kéo thả công việc
 
 
-  private WorkPlanModel.Task replaced = null;
-  private void OnItemReplaced(WorkPlanModel.Task item)
-  {
-    replaced = item;
-  }
-
   private async Task OnItemDragdrop(WorkPlanModel.Task item)
   {
-    if(replaced != null)
+    foreach (var group in taskGroups)
     {
-      item.section_id = replaced.section_id;
-      await DbWorkTask.Update(Layout.Company.id, item);
-      await JSRuntime.InvokeVoidAsync("console.log", "DD => " + item.name);
-      SplitTaskList();
-    }
-    else
-    {
-      foreach (var group in taskGroups)
+      if(group.Value.Contains(item))
       {
         var section = model.sections.SingleOrDefault(x => x.id == group.Key);
-        await JSRuntime.InvokeVoidAsync("console.log", "Nhóm: " + section.name);
-        foreach (var task in group.Value)
+        if(section != null)
         {
-          await JSRuntime.InvokeVoidAsync("console.log", " + " + task.name);
+          item.section_id = section.id;
+          await DbWorkTask.Update(Layout.Company.id, item);
+          await JSRuntime.InvokeVoidAsync("console.log", "Nhóm: " + section.name);
         }
       }
     }
+    SplitTaskList();
+    toggleList.Clear();
   }
 
   
@@ -631,13 +707,13 @@
 
   #region Xử lý trong danh sách công việc
 
-  //private void OnToggle(string id)
-  //{
-    //if (toggleList.Contains(id))
-    //  toggleList.Remove(id);
-    //else
-    //  toggleList.Add(id);
-  //}
+  private void OnToggle(string id)
+  {
+    if (toggleList.Contains(id))
+      toggleList.Remove(id);
+    else
+      toggleList.Add(id);
+  }
 
   private async Task OnEditList(WorkPlanModel.Task item)
   {

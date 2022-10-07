@@ -317,8 +317,6 @@ a.navbar-item b {
   overflow-x: auto;
   overflow-y: hidden;
   width: 100%;
-  scrollbar-color: #3d4160 #f1f1f1;
-  scrollbar-width: thin;
 }
 .scrolly {
   overflow-y: auto;
@@ -328,26 +326,22 @@ a.navbar-item b {
   scrollbar-width: thin;
 }
 /* Scrollbar: width */
-.scrollx::-webkit-scrollbar,
 .scrolly::-webkit-scrollbar {
   width: 3px;
   height: 3px;
   border-radius: 1px;
 }
 /* Scrollbar: Track */
-.scrollx::-webkit-scrollbar-track,
 .scrolly::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.1);
   border-radius: 1px;
 }
 /* Scrollbar: Handle */
-.scrollx::-webkit-scrollbar-thumb,
 .scrolly::-webkit-scrollbar-thumb {
   background: #3d4160;
   border-radius: 1px;
 }
 /* Scrollbar: Handle on hover */
-.scrollx::-webkit-scrollbar-thumb:hover,
 .scrolly::-webkit-scrollbar-thumb:hover {
   background: #2e3250;
   border-radius: 1px;
@@ -1331,6 +1325,11 @@ a.tag:hover {
   color: #fff;
 }
 
+.daterangepicker .today {
+  font-weight: bold;
+  background: #f9f9f9;
+}
+
 .label {
   color: #565c7c !important;
   font-weight: 500;
@@ -1514,8 +1513,8 @@ button.dropdown-item {
 
 .dropdown-item.icon-text {
   display: flex;
-  justify-content: space-between;
-  padding-right: 0.5rem !important;
+  _justify-content: space-between;
+  _padding-right: 0.5rem !important;
 }
 
 .progress_has_value {
@@ -2855,9 +2854,13 @@ button.dropdown-item {
 
 /* CSS for fWork */
 
-.drop_task .plk-dd-spacing.plk-dd-inprogess {
+.drop_task_list .plk-dd-spacing.plk-dd-inprogess {
   height: 1px;
   background: #ecf0ff;
+}
+
+.drop_task_board {
+  min-height: 100% !important;
 }
 
 .task_list {
@@ -2916,7 +2919,7 @@ button.dropdown-item {
   bottom: 15px;
 }
 
-.task_list .tag.is_label {
+.tag.is_short {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2925,11 +2928,21 @@ button.dropdown-item {
   line-height: 24px;
 }
 
-.task_list div[style="visibility:hidden;"] {
+.task_list div[style="visibility:hidden;"],
+.task_board div[style="visibility:hidden;"] {
   display: none;
 }
 
 .sub_task {
   border-top: 1px solid #ecf0ff !important;
   padding: 5px 0px !important;
+}
+
+.task_board {
+  box-shadow: none !important;
+  border: 1px solid #ecf0ff;
+}
+
+.task_board .task_board:not(:first-child) {
+  margin-top: 10px !important;
 }

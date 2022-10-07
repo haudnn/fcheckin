@@ -299,17 +299,8 @@
       if(model.date_end != 0)
         dateE = new DateTime(model.date_end);
 
+      // TODO: lấy dữ liệu lịch sử cập nhật
       logs = new();
-      foreach (var item in Layout.UserList)
-      {
-        logs.Add(new() {
-          id = Mongo.RandomId(),
-          name = "Thêm thành viên",
-          detail = item.FullName,
-          date = DateTime.Now.Ticks,
-          user = UserService.ConvertToMember(item)
-        });
-      }
     }
   }
 

@@ -6,7 +6,7 @@
     <div class="tags" style="flex-wrap: nowrap;">
       @foreach (var item in ShortList())
       {
-        <span class="tag is_label" title="@item.name" 
+        <span class="tag is_short" title="@item.name" 
           style="background: @(item.color + "30"); color: @item.color;">@item.name</span>
       }
       @if(isEdit)
@@ -116,6 +116,7 @@
 
   private async Task Toggle()
   {
+    await JSRuntime.InvokeVoidAsync("dropdownClose");
     toggle = !toggle;
   }
 
