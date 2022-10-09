@@ -155,7 +155,7 @@
               {
                 var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
                 <_TaskListItem model="context" plan="plan" showPlan="true" editRole="true"
-                  members="Layout.UserList" toggleList="toggleList" OnToggle="OnToggle" 
+                  members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle" 
                   OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" />
               }
             </Dropzone>
@@ -198,7 +198,7 @@
                     {
                       var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
                       <_TaskCardItem model="context" plan="plan" showPlan="true" editRole="true"
-                        members="Layout.UserList" toggleList="toggleList" OnToggle="OnToggle"
+                        members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle"
                         OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" />
                     }
                   </Dropzone>
@@ -227,9 +227,24 @@
 
   private List<StaticModel> statusList = new();
   private List<WorkPlanModel> planList = new();
+  private Dictionary<string, List<UserModel>> memberList = new();
   private Dictionary<int, List<WorkPlanModel.Task>> taskGroups = new();
   private List<int> toggleStatus = new() { 1, 2 };
   private List<string> toggleList = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    // Lấy danh sách dự án đang tham gia
+    planList = await DbWorkPlan.GetListJoin(Layout.Company.id, Layout.User.id);
+    // Lấy thành viên trong từng kế hoạch
+    memberList.Clear();
+    foreach (var plan in planList)
+    {
+      var listId = plan.members.Select(x => x.id).ToList();
+      var members = Layout.UserList.Where(x => listId.Contains(x.id)).ToList();
+      memberList.Add(plan.id, members);
+    }
+  }
 
   protected override async Task OnParametersSetAsync()
   {
@@ -247,9 +262,6 @@
 
   private async Task GetTaskList()
   {
-    // Lấy danh sách dự án đang tham gia
-    planList = await DbWorkPlan.GetListJoin(Layout.Company.id, Layout.User.id);
-
     // Lấy danh sách công việc đang tham gia
     List<WorkPlanModel.Task> taskList = new();
     foreach (var plan in planList)
@@ -357,11 +369,13 @@
         item.status = group.Key;
         await DbWorkTask.Update(Layout.Company.id, item);
         await JSRuntime.InvokeVoidAsync("console.log", "Status: " + group.Key);
+        await WorkService.CreateLog(Layout.Company.id, "Cập nhật trạng thái", 
+          WorkService.Status(item.status).name, item.plan_id, item.id, Layout.User);
         break;
       }
     }
-    //SplitTaskList();
     toggleList.Clear();
+    await GetTaskList();
   }
 
   #endregion

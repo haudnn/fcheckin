@@ -230,10 +230,11 @@
       model.date_start = DateTime.Today.Ticks;
       model.date_end = dateE != null ? dateE.Value.Ticks : 0;
       await DbWorkPlan.Create(Layout.Company.id, model);
-
-      // TODO: Lưu lịch sử
-
-      // TODO: Thông báo
+      // Lưu lịch sử
+      await WorkService.CreateLog(Layout.Company.id, "Khỏi tạo kế hoạch", "", model.id, null, Layout.User);
+      // Thông báo chuông
+      foreach (var user in model.members)
+         await DbNotify.ForPlan(Layout.Company.id, 700, model.id, null, user.id, Layout.User.id);
 
       await OnUpdate.InvokeAsync(model);
       Reset();

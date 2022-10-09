@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using MongoDB.Bson.Serialization.Attributes;
+using OnetezSoft.Services;
 
 namespace OnetezSoft.Models
 {
@@ -17,6 +18,12 @@ namespace OnetezSoft.Models
 
     /// <summary>Thời gian thực hiện</summary>
     public long date { get; set; }
+
+    /// <summary>Kế hoạch</summary>
+    public string plan { get; set; }
+
+    /// <summary>Công việc</summary>
+    public string task { get; set; }
 
     /// <summary>Người thực hiện</summary>
     public MemberModel user { get; set; }

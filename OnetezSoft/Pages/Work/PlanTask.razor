@@ -10,7 +10,34 @@
     <_PlanSidebar />
   </div>
   <div class="column">
-    @if(model != null)
+    @if(model != null && string.IsNullOrEmpty(model.id))
+    {
+      <div class="card p-3 p-4-mobile">
+        <ul class="columns is-multiline">
+          <li class="column is-narrow">
+            <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/detail">
+              TỔNG QUAN
+            </a>
+          </li>
+          <li class="column is-narrow">
+            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/task">
+              CÔNG VIỆC
+            </a>
+          </li>
+          <li class="column is-narrow">
+            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/chart">
+              THỐNG KÊ
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="card py-6 px-5 is-loading">
+        <div class="py-6 my-6">
+          Đang tải dữ liệu...
+        </div>
+      </div> 
+    }
+    else if(model != null)
     {
       <div class="card p-3 p-4-mobile">
         <ul class="columns is-multiline">
@@ -433,7 +460,7 @@
   [Parameter]
   public string TypeView { get; set; }
   
-  private WorkPlanModel model = null;
+  private WorkPlanModel model = new();
   private bool editRole = false;
   private Dictionary<string, List<WorkPlanModel.Task>> taskGroups = new();
   private List<WorkPlanModel.Task> taskList = new();
@@ -584,10 +611,15 @@
   {
     if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa nhóm công việc {item.name}. Việc này sẽ khiến dữ liệu công việc trong nhóm bị mất.\nBạn có chắc chắn muốn thực hiện?"))
       return;
+    // Thông báo chuông
+    foreach (var user in model.members)
+        await DbNotify.ForPlan(Layout.Company.id, 704, model.id, item.id, user.id, Layout.User.id);
+    // Hàm tự động xóa
     if(await WorkService.DeleteSection(Layout.Company.id, model.id, item.id))
     {
       model = await DbWorkPlan.Get(Layout.Company.id, PlanId);
       await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa nhóm công việc thành công!");
+      await WorkService.CreateLog(Layout.Company.id, "Xóa nhóm công việc", item.name, model.id, null, Layout.User);
       await GetTaskList();
     }
     else
@@ -598,10 +630,33 @@
   {
     if(model.sections.Where(x => string.IsNullOrEmpty(x.name)).Count() == 0)
     {
-      editSectionId = string.Empty;
-      await DbWorkPlan.Update(Layout.Company.id, model);
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật nhóm công việc!");
-      SplitTaskList();
+      var item = model.sections.SingleOrDefault(x => x.id == editSectionId);
+      if(item != null)
+      {
+        if(item.pos == 0)
+        {
+          item.pos = model.sections.Count;
+          await DbWorkPlan.Update(Layout.Company.id, model);
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm nhóm công việc!");
+          await WorkService.CreateLog(Layout.Company.id, "Thêm nhóm công việc", item.name, model.id, null, Layout.User);
+          // Thông báo chuông
+          foreach (var user in model.members)
+              await DbNotify.ForPlan(Layout.Company.id, 702, model.id, item.id, user.id, Layout.User.id);
+        }
+        else
+        {
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật nhóm công việc!");
+          await WorkService.CreateLog(Layout.Company.id, "Cập nhật nhóm công việc", item.name, model.id, null, Layout.User);
+          // Thông báo chuông
+          foreach (var user in model.members)
+              await DbNotify.ForPlan(Layout.Company.id, 703, model.id, item.id, user.id, Layout.User.id);
+          await DbWorkPlan.Update(Layout.Company.id, model);
+        }
+        editSectionId = string.Empty;
+        SplitTaskList();
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Có lỗi khi cập nhật nhóm công việc!");
     }
     else
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề nhóm công việc!");
@@ -686,19 +741,25 @@
 
   #region Chức năng kéo thả công việc
 
-
   private async Task OnItemDragdrop(WorkPlanModel.Task item)
   {
-    foreach (var group in taskGroups)
+    if(WorkService.RoleEditTask(model, item, Layout.User.id))
     {
-      if(group.Value.Contains(item))
+      foreach (var group in taskGroups)
       {
-        item.section_id = group.Key;
-        await DbWorkTask.Update(Layout.Company.id, item);
-        await JSRuntime.InvokeVoidAsync("console.log", "Section: " + group.Key);
-        break;
+        if(group.Value.Contains(item))
+        {
+          var section = model.sections.SingleOrDefault(x => x.id == item.section_id);
+          item.section_id = group.Key;
+          await DbWorkTask.Update(Layout.Company.id, item);
+          await JSRuntime.InvokeVoidAsync("console.log", "Nhóm: " + section.name);
+          await WorkService.CreateLog(Layout.Company.id, "Cập nhật nhóm công việc", section.name, item.plan_id, item.id, Layout.User);
+          break;
+        }
       }
     }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể thay đổi nhóm, vì bạn không tham gia vào công việc này!");
     SplitTaskList();
     toggleList.Clear();
   }

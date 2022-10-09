@@ -2,11 +2,11 @@
 @inject NavigationManager navigation
 
 @{
+  var toggle = toggleList.Contains(model.id);
   var status = WorkService.Status(model.status);
   var priority = WorkService.Priority(model.priority);
   DateTimeOffset? dateS = new DateTime(model.date_start);
   DateTimeOffset? dateE = new DateTime(model.date_end);
-  var toggle = toggleList.Contains(model.id);
 }
 
 <ul id="task_@model.id" class="task_list is_item columns is-gapless is-size-7" style="border-color: @priority.color;">
@@ -193,6 +193,10 @@
     await DbWorkTask.Delete(Layout.Company.id, model.id);
     await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
     await OnUpdate.InvokeAsync(model);
+    await WorkService.CreateLog(Layout.Company.id, "Xóa công việc", model.name, model.plan_id, null, Layout.User);
+    // Thông báo chuông
+    foreach (var user in plan.members)
+      await DbNotify.ForPlan(Layout.Company.id, 717, plan.id, model.id, user.id, Layout.User.id);
   }
 
   private async Task UpdateDate(DateRange range)
@@ -200,6 +204,8 @@
     model.date_start = range.Start.Ticks;
     model.date_end = range.End.Ticks;
     await DbWorkTask.Update(Layout.Company.id, model);
+    await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện", 
+      string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(model.date_start), new DateTime(model.date_end)), model.plan_id, model.id, Layout.User);
   }
 
   private async Task ChangeStatus(int id)
@@ -207,14 +213,22 @@
     model.status = id;
     await DbWorkTask.Update(Layout.Company.id, model);
     await OnUpdate.InvokeAsync(model);
-  }
-
-  private async Task UpdateLabels()
-  {
-    await DbWorkTask.Update(Layout.Company.id, model);
+    await WorkService.CreateLog(Layout.Company.id, "Cập nhật trạng thái", 
+      WorkService.Status(model.status).name, model.plan_id, model.id, Layout.User);
+    // Thông báo chuông
+    if(model.status == 4)
+      foreach (var user in model.members)
+        await DbNotify.ForPlan(Layout.Company.id, 710, plan.id, model.id, user.id, Layout.User.id);
   }
 
   private async Task UpdateMembers()
+  {
+    var old = await DbWorkTask.Get(Layout.Company.id, model.id);
+    await DbWorkTask.Update(Layout.Company.id, model);
+    await WorkService.LogTaskMembers(Layout.Company.id, old, model, Layout.User, Layout.UserList);
+  }
+
+  private async Task UpdateLabels()
   {
     await DbWorkTask.Update(Layout.Company.id, model);
   }

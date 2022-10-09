@@ -74,6 +74,8 @@
       await GetComments();
       comment = string.Empty;
       await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
+      foreach (var user in task.members)
+        await DbNotify.ForPlan(Layout.Company.id, 712, task.plan_id, task.id, user.id, Layout.User.id);
     }
   }
   

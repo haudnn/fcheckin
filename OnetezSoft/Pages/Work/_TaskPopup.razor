@@ -7,6 +7,8 @@
   var priority = WorkService.Priority(task.priority);
   var sections = plan.sections.SingleOrDefault(x => x.id == task.section_id);
   var editTask = WorkService.RoleEditTask(plan, task, Layout.User.id);
+  DateTimeOffset? dateS = new DateTime(task.date_start);
+  DateTimeOffset? dateE = new DateTime(task.date_end);
   
   <section class="modal is-active">
     <div class="modal-background"></div>
@@ -273,7 +275,7 @@
           {
             <li class="column is-10 is-size-7 p-4">
               <div class="has-text-grey">Công việc phụ</div>
-              <_TaskSubList parent="task" tasks="subTasks" editRole="editTask" />
+              <_TaskSubList parent="task" tasks="subTasks" editRole="editTask" members="members" />
             </li>
           }
           else if(tab == 3)
@@ -321,17 +323,14 @@
   [Parameter]
   public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
 
-  private DateTimeOffset? dateS = null;
-  private DateTimeOffset? dateE = null;
   private List<WorkPlanModel.Comment> comments = new();
+  //private List<UserModel> membersTask = new();
   private List<WorkLogModel> logs = new();
   private bool isChange = false;
 
   private void Reset()
   {
     task = null;
-    dateS = null;
-    dateE = null;
     isChange = false;
   }
 
@@ -352,17 +351,25 @@
       {
         // Lưu vào database
         await DbWorkTask.Create(Layout.Company.id, task);
-        // TODO: Lưu lịch sử
-
-        // TODO: Thông báo
+        // Lưu lịch sử
+        await WorkService.CreateLog(Layout.Company.id, "Khỏi tạo công việc", task.name, task.plan_id, task.id, Layout.User);
+        // Thông báo chuông
+        foreach (var user in task.members)
+          await DbNotify.ForPlan(Layout.Company.id, 708, plan.id, task.id, user.id, Layout.User.id);
       }
       else
       {
+        var old = await DbWorkTask.Get(Layout.Company.id, task.id);
+        if(task.name != old.name)
+        {
+          // Thông báo chuông
+          foreach (var user in task.members)
+            await DbNotify.ForPlan(Layout.Company.id, 708, plan.id, task.id, user.id, Layout.User.id);
+          // Lưu lịch sử
+          await WorkService.CreateLog(Layout.Company.id, "Cập nhật tiêu đề", task.name, task.plan_id, task.id, Layout.User);
+        }
         // Lưu vào database
         await DbWorkTask.Update(Layout.Company.id, task);
-        // TODO: Lưu lịch sử
-
-        // TODO: Thông báo
       }
       await OnUpdate.InvokeAsync(task);
       Reset();
@@ -395,32 +402,57 @@
 
   private async Task UpdateMembers()
   {
-    await Changed(); 
+    var old = await DbWorkTask.Get(Layout.Company.id, task.id);
+    await Changed();
+    // Lưu lịch sử
+    await WorkService.LogTaskMembers(Layout.Company.id, old, task, Layout.User, Layout.UserList);
   }
 
   private async Task ChangeStatus(int id)
   {
     task.status = id;
-    await Changed(); 
+    await Changed();
+    if(!string.IsNullOrEmpty(task.id))
+    {
+      // Lưu lịch sử
+      await WorkService.CreateLog(Layout.Company.id, "Cập nhật trạng thái", 
+        WorkService.Status(task.status).name, task.plan_id, task.id, Layout.User);
+      // Thông báo chuông
+      if(task.status == 4)
+        foreach (var user in task.members)
+          await DbNotify.ForPlan(Layout.Company.id, 710, plan.id, task.id, user.id, Layout.User.id);
+    }
   }
   
   private async Task UpdateDate(DateRange range)
   {
-    task.date_start = dateS.Value.Ticks;
-    task.date_end = dateE.Value.Ticks;
+    task.date_start = range.Start.Ticks;
+    task.date_end = range.End.Ticks;
     await Changed(); 
+    if(!string.IsNullOrEmpty(task.id))
+      await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện", 
+        string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(task.date_start), new DateTime(task.date_end)), task.plan_id, task.id, Layout.User);
   }
   
   private async Task UpdateSection(string id)
   {
     task.section_id = id;
-    await Changed(); 
+    await Changed();
+    if(!string.IsNullOrEmpty(task.id))
+    {
+      var section = plan.sections.SingleOrDefault(x => x.id == task.section_id);
+      await WorkService.CreateLog(Layout.Company.id, "Cập nhật nhóm công việc",
+        section.name, task.plan_id, task.id, Layout.User);
+    }
   }
   
   private async Task UpdatePriorty(int id)
   {
     task.priority = id;
-    await Changed(); 
+    await Changed();
+    if(!string.IsNullOrEmpty(task.id))
+      await WorkService.CreateLog(Layout.Company.id, "Cập nhật mức độ ưu tiên", 
+        WorkService.Priority(task.priority).name, task.plan_id, task.id, Layout.User);
   }
 
   private async Task UpdateLabels()
@@ -433,18 +465,18 @@
     tab = index;
     if(tab == 2)
     {
-      subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, plan.id, task.id);
+      subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, task.plan_id, task.id);
     }
     else if(tab == 4)
     {
-      comments = await DbWorkComment.GetList(Layout.Company.id, plan.id, task.id);
+      comments = await DbWorkComment.GetList(Layout.Company.id, task.plan_id, task.id);
       await JSRuntime.InvokeVoidAsync("setFocus", "task_comment");
       await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
     }
     else if(tab == 5)
     {
-      // TODO: Lấy dự liệu lịch sử cập nhật
-      logs = new();
+      // Lấy dự liệu lịch sử cập nhật
+      logs = await DbWorkLog.GetListTask(Layout.Company.id, task.plan_id, task.id);
     }
   }
 }

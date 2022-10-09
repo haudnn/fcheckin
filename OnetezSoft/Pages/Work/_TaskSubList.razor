@@ -28,7 +28,8 @@
         </div>
       </li>
       <li class="column is-narrow" style="width: 130px;">
-        <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" OnRangeSelect="(x) => UpdateDate(task, x)">
+        <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" OnRangeSelect="(x) => UpdateDate(task, x)"
+          MinDate="new DateTime(parent.date_start)" MaxDate="new DateTime(parent.date_end)">
           <PickerTemplate>
             <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
               <span class="icon is-small mr-1">
@@ -49,7 +50,7 @@
         </DateRangePicker>
       </li>
       <li class="column is-narrow" style="width: 110px;">
-        <_MemberList members="task.members" sources="Layout.UserList" isEdit="editRole" isTask="true" isSubTask="true"
+        <_MemberList members="task.members" sources="members" isEdit="editRole" isTask="true" isSubTask="true"
           OnUpdate="() => UpdateMembers(task)" />
       </li>
       <li class="column is-narrow" style="width: 80px;">
@@ -145,6 +146,8 @@
   [Parameter]
   public List<WorkPlanModel.Task> tasks { get; set; }
   [Parameter]
+  public List<UserModel> members { get; set; }
+  [Parameter]
   public bool editRole { get; set; }
 
   private List<string> toggleList = new();
@@ -173,6 +176,17 @@
 
   private async Task ToggleEdit(WorkPlanModel.Task item)
   {
+    // Cập nhật lại dữ liệu mới nhất
+    var data = await DbWorkTask.Get(Layout.Company.id, item.id);
+    if(data != null)
+    {
+      item.name = data.name;
+      item.date_start = data.date_start;
+      item.date_end = data.date_end;
+      item.members = data.members;
+      item.status = data.status;
+    }
+
     if(editList.Contains(item.id))
     {
       editList.Remove(item.id);
@@ -202,13 +216,15 @@
         // Tạo mới
         item.parent_id = parent.id;
         await DbWorkTask.Create(Layout.Company.id, item);
+        await WorkService.CreateLog(Layout.Company.id, "Thêm công việc phụ", item.name, parent.plan_id, parent.id, Layout.User);
       } 
       else
       {
         // Cập nhật
         await DbWorkTask.Update(Layout.Company.id, item);
+        await WorkService.CreateLog(Layout.Company.id, "Cập nhật tiêu đề công việc phụ", item.name, parent.plan_id, parent.id, Layout.User);
       }
-      await ToggleEdit(item);
+      editList.Remove(item.id);
     }
   }
 
@@ -218,8 +234,8 @@
       return;
     await DbWorkTask.Delete(Layout.Company.id, item.id);
     await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
+    await WorkService.CreateLog(Layout.Company.id, "Xóa công việc phụ", item.name, parent.plan_id, parent.id, Layout.User);
     tasks.Remove(item);
-    // TODO: gửi thông báo
   }
 
   private async Task UpdateDate(WorkPlanModel.Task item, DateRange range)
@@ -237,6 +253,9 @@
 
   private async Task UpdateMembers(WorkPlanModel.Task item)
   {
+    var old = await DbWorkTask.Get(Layout.Company.id, item.id);
     await DbWorkTask.Update(Layout.Company.id, item);
+    // Lưu lịch sử
+    await WorkService.LogTaskMembers(Layout.Company.id, old, item, Layout.User, Layout.UserList);
   }
 }

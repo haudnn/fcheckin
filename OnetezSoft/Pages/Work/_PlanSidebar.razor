@@ -3,9 +3,9 @@
 
 <div class="card teams_left py-3">
   <div class="px-3">
-    <div class="user_item p-1 @(url.StartsWith("/work/my-task") ? "has_bg" : "")">
+    <div class="user_item p-1 @(url.StartsWith("/work/my-task") || url == "/work" ? "has_bg" : "")">
       <img class="image is-24x24 mr-2" src="@Layout.User.avatar" alt="IMG">
-      <a href="/work/my-task">Công việc của tôi</a>
+      <a href="/work">Công việc của tôi</a>
     </div>
   </div>
   <hr class="my-3">
@@ -190,6 +190,9 @@
     {
       if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa kế hoạch {item.name}. Việc này sẽ khiến dữ liệu công việc trong kế hoạch bị mất.\nBạn có chắc chắn muốn thực hiện?"))
         return;
+      // Thông báo chuông
+      foreach (var user in item.members)
+         await DbNotify.ForPlan(Layout.Company.id, 705, item.id, null, user.id, Layout.User.id);
       await WorkService.DeletePlan(Layout.Company.id, item.id);
       await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa kế hoạch thành công!");
       navigation.NavigateTo("/work");

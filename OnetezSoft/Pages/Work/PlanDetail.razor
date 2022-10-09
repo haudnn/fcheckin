@@ -10,7 +10,34 @@
     <_PlanSidebar />
   </div>
   <div class="column">
-    @if(model != null)
+    @if(model != null && string.IsNullOrEmpty(model.id))
+    {
+      <div class="card p-3 p-4-mobile">
+        <ul class="columns is-multiline">
+          <li class="column is-narrow">
+            <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/detail">
+              TỔNG QUAN
+            </a>
+          </li>
+          <li class="column is-narrow">
+            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/task">
+              CÔNG VIỆC
+            </a>
+          </li>
+          <li class="column is-narrow">
+            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/chart">
+              THỐNG KÊ
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="card py-6 px-5 is-loading">
+        <div class="py-6 my-6">
+          Đang tải dữ liệu...
+        </div>
+      </div> 
+    }
+    else if(model != null)
     {
       <ul class="columns is-multiline">
         <li class="column is-full">
@@ -98,7 +125,7 @@
                   <div class="dropdown is-hoverable">
                     <div class="dropdown-trigger">
                       <a class="icon-text">
-                        <span>@(model.status == 1 ? "Đang diễn ra" : "Đã hoàn thành")</span>
+                        <span>@WorkService.StatusPlan(model.status).name</span>
                         <span class="icon">
                           <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
                         </span>
@@ -108,8 +135,10 @@
                     {
                       <div class="dropdown-menu">
                         <div class="dropdown-content">
-                          <a class="dropdown-item" @onclick="() => UpdateStatus(1)">Đang diễn ra</a>
-                          <a class="dropdown-item" @onclick="() => UpdateStatus(2)">Đã hoàn thành</a>
+                          @foreach (var item in WorkService.StatusPlan())
+                          {
+                            <a class="dropdown-item" @onclick="() => UpdateStatus(item.id)">@item.name</a> 
+                          }
                         </div>
                       </div>
                     }
@@ -281,7 +310,7 @@
   public string PlanId { get; set; }
   
   private string _title = "Tổng quan kế hoạch";
-  private WorkPlanModel model = null;
+  private WorkPlanModel model = new();
   private DateTimeOffset? dateE = null;
   private List<WorkLogModel> logs = new();
   private WorkPlanModel.Label label = new() { color = Shared.ColorRandom(0) };
@@ -299,36 +328,108 @@
       if(model.date_end != 0)
         dateE = new DateTime(model.date_end);
 
-      // TODO: lấy dữ liệu lịch sử cập nhật
-      logs = new();
+      // Lấy dữ liệu lịch sử cập nhật
+      await GetLogs();
     }
+  }
+
+  private async Task GetLogs()
+  {
+    logs = await DbWorkLog.GetListPlan(Layout.Company.id, model.id);
   }
 
   private async Task UpdateDateEnd(DateRange range)
   {
+    var old = await DbWorkPlan.Get(Layout.Company.id, model.id);
     model.date_end = dateE != null ? dateE.Value.Ticks : 0;
-    await DbWorkPlan.Update(Layout.Company.id, model);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thời gian kết thúc của kế hoạch.");
+    if(old.date_end != model.date_end)
+    {
+      await DbWorkPlan.Update(Layout.Company.id, model);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thời gian kết thúc của kế hoạch.");
+      await WorkService.CreateLog(Layout.Company.id, "Cập nhật ngày kết thúc", 
+        string.Format("từ {0:dd/MM/yyyy} thành {1:dd/MM/yyyy}", new DateTime(old.date_end), new DateTime(model.date_end)), model.id, null, Layout.User);
+      await GetLogs();
+    }
   }
 
   private async Task UpdatePrivate(bool is_private)
   {
+    var old = await DbWorkPlan.Get(Layout.Company.id, model.id);
     model.is_private = is_private;
-    await DbWorkPlan.Update(Layout.Company.id, model);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật chế độ bảo mật của dự án.");
+    if(old.is_private != model.is_private)
+    {
+      await DbWorkPlan.Update(Layout.Company.id, model);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật chế độ bảo mật của dự án.");
+      await WorkService.CreateLog(Layout.Company.id, "Cập nhật chế độ bảo mật", 
+        "từ " + (old.is_private ? "Riêng tư" : "Công khai") + " thành " + (model.is_private ? "Riêng tư" : "Công khai"), model.id, null, Layout.User);
+      await GetLogs();
+    }
   }
 
   private async Task UpdateStatus(int status)
   {
+    var old = await DbWorkPlan.Get(Layout.Company.id, model.id);
     model.status = status;
-    await DbWorkPlan.Update(Layout.Company.id, model);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật trạng thái của dự án.");
+    if(old.status != model.status)
+    {
+      await DbWorkPlan.Update(Layout.Company.id, model);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật trạng thái của dự án.");
+      await WorkService.CreateLog(Layout.Company.id, "Cập nhật trạng thái kế hoạch", 
+        "từ " + WorkService.StatusPlan(old.status).name + " thành " + WorkService.StatusPlan(model.status).name, model.id, null, Layout.User);
+      await GetLogs();
+    }
   }
 
   private async Task UpdateMembers()
   {
-    await DbWorkPlan.Update(Layout.Company.id, model);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thành viên của dự án.");
+    var old = await DbWorkPlan.Get(Layout.Company.id, model.id);
+    if(model.members.Where(x => x.role == 1).Count() > 0)
+    {
+      await DbWorkPlan.Update(Layout.Company.id, model);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thành viên của dự án.");
+
+      // Các thành viên mới thêm vào
+      var addList = new List<string>();
+      foreach (var item in model.members)
+      {
+        if(old.members.Where(x => x.id == item.id).Count() == 0)
+        {
+          var user = UserService.GetUser(Layout.UserList, item.id);
+          if(user != null)
+          {
+            addList.Add(user.FullName);
+            await DbNotify.ForPlan(Layout.Company.id, 706, model.id, null, user.id, Layout.User.id);
+          }
+        }
+      }
+      if(addList.Count > 0)
+        await WorkService.CreateLog(Layout.Company.id, "Thêm thành viên", 
+          String.Join(", ", addList), model.id, null, Layout.User);
+
+      // Các thành viên đã xóa
+      var removeList = new List<string>();
+      foreach (var item in old.members)
+      {
+        if(model.members.Where(x => x.id == item.id).Count() == 0)
+        {
+          var user = UserService.GetUser(Layout.UserList, item.id);
+          if(user != null)
+          {
+            removeList.Add(user.FullName); 
+            await DbNotify.ForPlan(Layout.Company.id, 707, model.id, null, user.id, Layout.User.id);
+          }
+        } 
+      }
+      if(removeList.Count > 0)
+        await WorkService.CreateLog(Layout.Company.id, "Xóa thành viên", 
+          String.Join(", ", removeList), model.id, null, Layout.User);
+      await GetLogs();
+    }
+    else
+    {
+      model.members = old.members;
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể xóa hết quản lý của kế hoạch.");
+    }
   }
 
   private async Task UpdateLabel()
@@ -360,22 +461,28 @@
 
   private async Task UpdateContent()
   {
-    editMode = false;
+    var old = await DbWorkPlan.Get(Layout.Company.id, model.id);
+    if(model.name != old.name)
+    {
+      await WorkService.CreateLog(Layout.Company.id, "Cập nhật tiêu đề", model.name, model.id, null, Layout.User);
+      // Thông báo chuông
+      foreach (var user in model.members)
+          await DbNotify.ForPlan(Layout.Company.id, 701, model.id, null, user.id, Layout.User.id);
+    }
     await DbWorkPlan.Update(Layout.Company.id, model);
     await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin của dự án.");
+    await GetLogs();
+    editMode = false;
   }
 
   private async Task ToggleEdit()
   {
     editMode = !editMode;
+    model = await DbWorkPlan.Get(Layout.Company.id, model.id);
     if(editMode)
     {
       await JSRuntime.InvokeVoidAsync("setFocus", "plan_name");
       await JSRuntime.InvokeVoidAsync("textAutoSize", "plan_detail");
-    }
-    else
-    {
-      model = await DbWorkPlan.Get(Layout.Company.id, model.id);
     }
   }
 }

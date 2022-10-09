@@ -31,7 +31,8 @@
       }
     </li>
     <li class="column is-half">
-      <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" OnRangeSelect="UpdateDate">
+      <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" OnRangeSelect="UpdateDate"
+        MinDate="new DateTime(parent.date_start)" MaxDate="new DateTime(parent.date_end)">
         <PickerTemplate>
           <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
             <span class="icon is-small mr-1">
@@ -75,6 +76,7 @@
       return;
     await DbWorkTask.Delete(Layout.Company.id, model.id);
     await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
+    await WorkService.CreateLog(Layout.Company.id, "Xóa công việc phụ", model.name, parent.plan_id, parent.id, Layout.User);
     await OnUpdate.InvokeAsync(model);
   }
 
@@ -99,6 +101,9 @@
 
   private async Task UpdateMembers()
   {
+    var old = await DbWorkTask.Get(Layout.Company.id, model.id);
     await DbWorkTask.Update(Layout.Company.id, model);
+    // Lưu lịch sử
+    await WorkService.LogTaskMembers(Layout.Company.id, old, model, Layout.User, Layout.UserList);
   }
 }

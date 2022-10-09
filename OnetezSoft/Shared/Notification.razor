@@ -118,6 +118,16 @@
               }
             </a>
           }
+          @if (CheckAccess("work"))
+          {
+            <a class="@(type == 700 ? "active" : "")" title="Kế hoạch" @onclick="() => ChangeType(700)">
+              <i class="material-icons-outlined">view_timeline</i>
+              @if (news_plan > 0)
+              {
+                <b>@news_plan</b>
+              }
+            </a>
+          }
           @if (CheckAccess("okrs"))
           {
             <a class="@(type == 500 ? "active" : "")" title="CFRs" @onclick="() => ChangeType(500)">
@@ -238,6 +248,7 @@
   private int news_other = 0;
   private int news_kaizen = 0;
   private int news_todo = 0;
+  private int news_plan = 0;
   private int news_store = 0;
   private int news_cfrs = 0;
   private int news_educate = 0;
@@ -290,6 +301,7 @@
     news_other = database.Where(x => !x.read && x.type >= 1 && x.type <= 90).Count();
     news_kaizen = database.Where(x => !x.read && x.type >= 100 && x.type <= 190).Count();
     news_todo = database.Where(x => !x.read && x.type >= 200 && x.type <= 290).Count();
+    news_plan = database.Where(x => !x.read && x.type >= 700 && x.type <= 790).Count();
     news_store = database.Where(x => !x.read && x.type >= 300 && x.type <= 390).Count();
     news_cfrs = database.Where(x => !x.read && x.type >= 500 && x.type <= 590).Count();
     news_educate = database.Where(x => !x.read && x.type >= 600 && x.type <= 690).Count();
@@ -319,6 +331,8 @@
         title = "Thông báo CFRs";
       else if (type == 600)
         title = "Thông báo Đào Tạo";
+      else if (type == 700)
+        title = "Thông báo Kế hoạch";
     }
   }
 

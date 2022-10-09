@@ -33,7 +33,7 @@ namespace OnetezSoft.Services
     }
 
     /// <summary>
-    /// Xóa thành viên khỏi kế hoạch
+    /// Thành viên rời khỏi kế hoạch
     /// </summary>
     public static async Task<bool> RemoveMemberInPlan(string companyId, string planId, string userId)
     {
@@ -89,7 +89,7 @@ namespace OnetezSoft.Services
     }
 
     /// <summary>
-    /// /// Xóa tòa bộ dữ liệu kế hoạch
+    /// Xóa tòa bộ dữ liệu kế hoạch
     /// </summary>
     public static async Task DeletePlan(string companyId, string planId)
     {
@@ -103,7 +103,100 @@ namespace OnetezSoft.Services
       // Gửi thông báo
     }
 
+    /// <summary>
+    /// Tạo lịch sử cập nhật
+    /// </summary>
+    public static async Task CreateLog(string companyId, string name, string detail, string plan, string task, UserModel user)
+    {
+      var model = new WorkLogModel()
+      {
+        name = name,
+        detail = detail,
+        plan = plan,
+        task = task,
+        user = UserService.ConvertToMember(user)
+      };
+      await DbWorkLog.Create(companyId, model);
+    }
+
+    /// <summary>
+    /// Tạo lịch sử chỉnh sửa khi cập nhật người tham gia
+    /// </summary>
+    public static async Task LogTaskMembers(string companyId, WorkPlanModel.Task old, WorkPlanModel.Task task, 
+      UserModel userEdit, List<UserModel> userList)
+    {
+      if(old != null)
+      {
+        // Các thành viên mới thêm vào
+        var addList = new List<string>();
+        foreach (var item in task.members)
+        {
+          if(old.members.Where(x => x.id == item.id).Count() == 0)
+          {
+            var user = UserService.GetUser(userList, item.id);
+            if(user != null)
+            {
+              addList.Add(user.FullName);
+              if(string.IsNullOrEmpty(task.parent_id))
+                await DbNotify.ForPlan(companyId, 713, task.plan_id, task.id, user.id, "");
+              else
+                await DbNotify.ForPlan(companyId, 715, task.plan_id, task.id, user.id, "");
+            }
+          }
+        }
+        if(addList.Count > 0 && string.IsNullOrEmpty(task.parent_id))
+          await WorkService.CreateLog(companyId, "Thêm người tham gia", 
+            String.Join(", ", addList), task.plan_id, task.id, userEdit);
+
+        // Các thành viên đã xóa
+        var removeList = new List<string>();
+        foreach (var item in old.members)
+        {
+          if(task.members.Where(x => x.id == item.id).Count() == 0)
+          {
+            var user = UserService.GetUser(userList, item.id);
+            if(user != null)
+            {
+              removeList.Add(user.FullName);
+              if(string.IsNullOrEmpty(task.parent_id))
+                await DbNotify.ForPlan(companyId, 714, task.plan_id, task.id, user.id, "");
+              else
+                await DbNotify.ForPlan(companyId, 716, task.plan_id, task.id, user.id, "");
+            }
+          } 
+        }
+        if(removeList.Count > 0 && string.IsNullOrEmpty(task.parent_id))
+          await WorkService.CreateLog(companyId, "Xóa người tham gia", 
+            String.Join(", ", removeList), task.plan_id, task.id, userEdit);
+      }
+    }
+
+
     #region Dữ liệu cố định
+
+    /// <summary>
+    /// Danh sách trạng thái kế hoạch
+    /// </summary>
+    public static List<StaticModel> StatusPlan()
+    {
+      var list = new List<StaticModel>();
+
+      list.Add(new() { id = 1, name = "Đang diễn ra" });
+      list.Add(new() { id = 2, name = "Đã hoàn thành" });
+
+      return list;
+    }
+
+    /// <summary>
+    /// Chi tiết trạng thái
+    /// </summary>
+    public static StaticModel StatusPlan(int id)
+    {
+      var result = StatusPlan().SingleOrDefault(x => x.id == id);
+      if (result != null)
+        return result;
+      return new StaticModel();
+    }
 
     /// <summary>
     /// Danh sách trạng thái công việc chính
