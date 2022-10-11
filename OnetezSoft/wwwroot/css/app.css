@@ -2876,10 +2876,19 @@ button.dropdown-item {
 .task_list.is_sub,
 .task_list.is_plan,
 .task_list.is_item {
-  border-left: 4px solid #eee;
   border-top: 1px solid #ecf0ff !important;
 }
 
+.task_list > li:first-child {
+  display: flex;
+  align-items: center;
+  height: 35px;
+}
+
+.task_list.is_item .item_title {
+  width: 100%;
+  padding: 0px 5px 0px 10px;
+}
 .task_list.is_item .item_title a:not(:hover) {
   color: #333;
 }
@@ -2896,31 +2905,31 @@ button.dropdown-item {
   cursor: grabbing;
 }
 
-.task_list.is_sub,
-.task_list.is_plan {
+.task_list.is_sub > li:first-child,
+.task_list.is_plan > li:first-child {
+  padding-left: 70px !important;
   position: relative;
-  padding-left: 66px !important;
 }
 
-.task_list.is_sub::before,
-.task_list.is_plan::before {
+.task_list.is_sub > li:first-child::before,
+.task_list.is_plan > li:first-child::before {
   content: "";
   background: #8990a5;
   width: 1px;
   height: 101%;
   position: absolute;
-  left: 44px;
-  bottom: 15px;
+  left: 45px;
+  bottom: 0px;
 }
 
-.task_list.is_sub::after {
+.task_list.is_sub > li:first-child::after {
   content: "";
   background: #8990a5;
   width: 8px;
   height: 1px;
   position: absolute;
-  left: 44px;
-  bottom: 15px;
+  left: 45px;
+  bottom: 16px;
 }
 
 .tag.is_short {
@@ -2949,4 +2958,163 @@ button.dropdown-item {
 
 .task_board .task_board:not(:first-child) {
   margin-top: 10px !important;
+}
+
+.list_task_gantt {
+  height: calc(100vh - 260px);
+  padding: 0px;
+  overflow: auto;
+  width: 100%;
+  scrollbar-color: #eaebeb #f9f9f9;
+  scrollbar-width: thin;
+}
+
+.list_task_gantt::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.list_task_gantt::-webkit-scrollbar-track {
+  background: #f9f9f9;
+}
+
+.list_task_gantt::-webkit-scrollbar-thumb {
+  background: #eaebeb;
+}
+
+.list_task_gantt::-webkit-scrollbar-thumb:hover {
+  background: #bebfbf;
+}
+
+.list_task_gantt .task_gantt {
+  width: fit-content;
+  border-top: 0px !important;
+}
+
+.task_gantt {
+  margin-bottom: 0px !important;
+  position: relative;
+  z-index: 2;
+  background: #fff;
+}
+
+.task_gantt:hover {
+  z-index: 4;
+}
+
+.task_gantt.is_header {
+  border-bottom: 1px solid #dbdbdb;
+  position: sticky;
+  left: 0px;
+  top: 0px;
+  background: #fff;
+  z-index: 3;
+}
+
+.task_gantt.is_footer {
+  height: calc(100% - 70px);
+}
+.task_gantt.is_footer > li {
+  height: 100%;
+}
+
+.task_gantt > li {
+  display: flex;
+  align-items: center;
+  height: 35px;
+  border-right: 1px solid #ecf0ff;
+}
+
+.task_gantt > li:first-child {
+  width: 360px;
+  justify-content: flex-start;
+  background: #fff;
+  position: sticky;
+  z-index: 2;
+  left: 0px;
+}
+
+.task_gantt > li:not(:first-child) {
+  width: 40px;
+  justify-content: space-between;
+}
+
+.task_gantt > li.is_sun {
+  background: #ecf0ff;
+}
+
+.task_gantt > li.is_today {
+}
+
+.task_gantt.is_item > li:first-child {
+  border-top: 1px solid #ecf0ff !important;
+}
+
+.task_gantt.is_sub > li:first-child,
+.task_gantt.is_plan > li:first-child {
+  padding-left: 70px !important;
+}
+
+.task_gantt.is_sub > li:first-child:before,
+.task_gantt.is_plan > li:first-child:before {
+  content: "";
+  background: #8990a5;
+  width: 1px;
+  height: 101%;
+  position: absolute;
+  left: 45px;
+  bottom: 0px;
+}
+
+.task_gantt.is_sub > li:first-child:after {
+  content: "";
+  background: #8990a5;
+  width: 8px;
+  height: 1px;
+  position: absolute;
+  left: 45px;
+  bottom: 16px;
+}
+
+.task_gantt .item_day {
+  position: relative;
+}
+
+.task_gantt .is_timeline {
+  position: absolute;
+  left: 0px;
+  top: 2px;
+  z-index: 1;
+}
+
+.task_gantt .is_timeline .item_task {
+  background: #aec6ff;
+  border-radius: 5px;
+  width: 100%;
+  height: 30px;
+}
+
+.task_gantt .is_timeline .item_members {
+  position: absolute;
+  left: calc(100% + 6px);
+  top: 3px;
+}
+
+.task_gantt.task_list.is_sub,
+.task_gantt.task_list.is_plan {
+  padding-left: 0px !important;
+}
+
+.task_gantt .item_title {
+  width: 100%;
+  padding: 0px 5px 0px 10px;
+}
+
+.task_gantt .item_title .icon {
+  margin: 0px;
+}
+
+.task_gantt .item_title .item_name {
+  flex-grow: 1;
+  color: #333;
 }

@@ -129,9 +129,6 @@
                 <span class="has-text-weight-semibold font_14">
                   @status.name @(count > 0 ? $"({count})" : "")
                 </span>
-                <a class="icon has-text-dark is_hover is-hidden" title="Thêm công việc" @onclick="() => EditTask(null, status.id)">
-                  <i class="material-icons-round is-size-6">add</i>
-                </a>
               </div>
             </li>
           </ul>
@@ -142,13 +139,8 @@
               AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
               @if(context.id == null)
               {
-                <div class="pl-4 py-1">
-                  <a class="icon-text has-text-link" @onclick="() => EditTask(null, status.id)">
-                    <span class="icon">
-                      <i class="material-icons-outlined is-size-6">add</i>
-                    </span>
-                    <span class="is-size-7">Thêm công việc</span>
-                  </a>
+                <div class="pl-5 py-1 is-size-7">
+                  Chưa có công việc
                 </div>
               }
               else
@@ -210,7 +202,83 @@
       }
       else
       {
-        <div>Chưa hoàn thiện chức năng</div>
+        var dayHtml = string.Empty;
+        <div class="list_task_gantt is-size-7">
+          <ul class="task_gantt is_header columns is-gapless is-vcentered">
+            <li class="column is-narrow">
+              Công việc
+            </li>
+            @for (int d = 0; d < dayTotal; d++)
+            {
+              var day = dayStart.AddDays(d);
+              var today = day == DateTime.Today ? "is_today" : "";
+              var sunday = day.DayOfWeek == DayOfWeek.Sunday ? "is_sun" : "";
+              dayHtml += $"<li class=\"column is-narrow {today} {sunday}\"></li>";
+
+              <li class="column is-narrow @today @sunday">
+                <span class="pl-1" style="color: #C0C6DC;">@day.ToString("ddd").Substring(0, 1)</span>
+                <span class="pr-1">@day.ToString("dd")</span>
+              </li>
+            }
+          </ul>
+
+          @foreach (var status in statusList)
+          {
+            var show = toggleStatus.Contains(status.id);
+            var tasks = taskGroups.ContainsKey(status.id) ? taskGroups[status.id] : new();
+            var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
+            
+            <ul class="task_gantt columns is-gapless is-size-7">
+              <li class="column is-narrow">
+                <div class="icon-text">
+                  <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
+                    <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
+                  </a>
+                  <span class="has-text-weight-semibold font_14">
+                    @status.name @(count > 0 ? $"({count})" : "")
+                  </span>
+                </div>
+              </li>
+              @for (int d = 0; d < dayTotal; d++)
+              {
+                var day = dayStart.AddDays(d);
+                var today = day == DateTime.Today ? "is_today" : "";
+                var sunday = day.DayOfWeek == DayOfWeek.Sunday ? "is_sun" : "";
+
+                <li class="column is-narrow @today @sunday"></li>
+              }
+            </ul>
+
+            @if(show)
+            {
+              <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_list" 
+                AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
+                @if(context.id == null)
+                {
+                  <ul class="task_gantt columns is-gapless is-size-7">
+                    <li class="column is-narrow">
+                      <div class="pl-5 py-1">Chưa có công việc</div>
+                    </li>
+                    @((MarkupString)dayHtml)
+                  </ul>
+                }
+                else
+                {
+                  var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
+                  <_TaskGanttItem model="context" plan="plan" showPlan="true" editRole="true"
+                    members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle"
+                    dayStart="dayStart" dayTotal="dayTotal" dayHtml="@dayHtml"
+                    OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" />
+                }
+              </Dropzone>
+            }
+          }
+
+          <ul class="task_gantt is_footer columns is-gapless is-vcentered">
+            <li class="column is-narrow"></li>
+            @((MarkupString)dayHtml)
+          </ul>
+        </div>
       }
     </div>
   </div>
@@ -231,6 +299,9 @@
   private Dictionary<int, List<WorkPlanModel.Task>> taskGroups = new();
   private List<int> toggleStatus = new() { 1, 2 };
   private List<string> toggleList = new();
+  private int dayTotal = 0;
+  private DateTime dayStart = DateTime.Today;
+  private DateTime dayEnd = DateTime.Today;
 
   protected override async Task OnInitializedAsync()
   {
@@ -287,6 +358,16 @@
       if(tasks.Count == 0)
         tasks = new() { new() { name = "Chưa có công việc", status = status.id }};
       taskGroups.Add(status.id, tasks);
+    }
+
+    // Lấy ngày thấp nhỏ nhất
+    if(taskList.Count > 0)
+    {
+      long minDay = taskList.OrderBy(x => x.date_start).Select(x => x.date_start).FirstOrDefault();
+      long maxDay = taskList.OrderByDescending(x => x.date_end).Select(x => x.date_end).FirstOrDefault();
+      dayStart = new DateTime(minDay);
+      dayEnd = new DateTime(maxDay);
+      dayTotal = dayEnd.Subtract(dayStart).Days + 4;
     }
   }
 
@@ -353,6 +434,7 @@
       await GetTaskList();
     }
     taskEdit = null;
+    planEdit = null;
   }
 
   #endregion

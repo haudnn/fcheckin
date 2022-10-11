@@ -172,6 +172,22 @@ namespace OnetezSoft.Services
     }
 
 
+    /// <summary>
+    /// Tính thống kê từ danh sách công việc
+    /// </summary>
+    public static WorkPlanModel.Report ReportTasks(List<WorkPlanModel.Task> tasks)
+    {
+      var result = new WorkPlanModel.Report();
+      result.total = tasks.Where(x => x.status <= 4).Count();
+      result.done = tasks.Where(x => x.status == 4).Count();
+      result.ontime = tasks.Where(x => x.status == 4 && x.date_end >= x.date_done).Count();
+      result.late = tasks.Where(x => x.date_end < x.date_done || 
+        (x.date_end < DateTime.Today.Ticks && x.status < 4)).Count();
+
+      return result;
+    }
+
+
     #region Dữ liệu cố định
 
     /// <summary>

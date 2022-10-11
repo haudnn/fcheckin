@@ -2,25 +2,28 @@
 @inject NavigationManager navigation
 
 @{
+  var toggle = toggleList.Contains(model.id);
   var status = WorkService.Status(model.status);
   var priority = WorkService.Priority(model.priority);
-  DateTimeOffset? dateS = new DateTime(model.date_start);
-  DateTimeOffset? dateE = new DateTime(model.date_end);
-  var toggle = toggleList.Contains(model.id);
+  var dateS = new DateTime(model.date_start);
+  var dateE = new DateTime(model.date_end);
 }
 
-<div id="task_@model.id" class="task_board card p-4 mb-3 is-size-7">
-  <ul class="columns is-multiline is-vcentered is-variable is-1">
-    <li class="column">
-      @if(priority.id != 0)
-      {
-        <span class="tag" style="background: @(priority.color + "30"); color: @priority.color;">@priority.name</span>
-      }
-    </li>
-    <li class="column is-narrow">
+<ul id="task_@model.id" class="task_gantt is_item columns is-gapless is-size-7">
+  <li class="column is-narrow" style="box-shadow: inset 4px 0px 0px 0px @priority.color;">
+    <div class="icon-text item_title">
+      <span class="icon is_drag">
+        <i class="material-icons-outlined is-size-6">drag_indicator</i>
+      </span>
+      <a class="icon" @onclick="Toggle">
+        <i class="material-icons-outlined is-size-6">@(toggle ? "arrow_drop_down" : "arrow_right")</i>
+      </a>
+      <a class="item_name" @onclick="Edit">
+        @model.name
+      </a>
       @if(editRole)
       {
-        <div class="dropdown is-hoverable is-right">
+        <div class="dropdown is-hoverable is-right icon is_hover">
           <div class="dropdown-trigger">
             <span class="icon">
               <i class="material-icons-outlined is-size-6">more_horiz</i>
@@ -35,13 +38,36 @@
           </div>
         </div>
       }
+    </div>
+  </li>
+  
+  @for (int d = 0; d < dayTotal; d++)
+  {
+    var day = dayStart.AddDays(d);
+    var today = day == DateTime.Today ? "is_today" : "";
+    var sunday = day.DayOfWeek == DayOfWeek.Sunday ? "is_sun" : "";
+    var column = dateE.Subtract(dateS).Days + 1;
+    <li class="column is-narrow item_day @today @sunday">
+      @if(dateS == day)
+      {
+        <div class="is_timeline" style="width: @(column * 40)px">
+          <a class="item_task" @onclick="Edit"></a>
+          <div class="item_members">
+            <_MemberList members="model.members" sources="members" isEdit="editRole" isTask="true" isRight="true"
+              OnUpdate="UpdateMembers" />
+          </div>
+        </div>
+      }
     </li>
-    <li class="column is-full">
-      <a class="is-block has-text-dark font_14" @onclick="Edit">@model.name</a>
-    </li>
-    @if(showPlan && plan != null)
-    {
-      <li class="column is-full">
+  }
+</ul>
+
+@if(toggle)
+{
+  if(showPlan && plan != null)
+  {
+    <ul class="task_gantt is_plan columns is-gapless is-size-7">
+      <li class="column is-narrow" style="box-shadow: inset 4px 0px 0px 0px @priority.color;">
         <a class="icon-text has-text-link">
           <span class="icon is-small mr-2">
             <i class="material-icons-outlined is-size-6">link</i>
@@ -49,74 +75,31 @@
           <span>Kế hoạch: @plan.name</span>
         </a>
       </li>
-    }
-    <li class="column is-full">
-      <_LabelList labels="model.labels" sources="plan.labels" isEdit="editRole" 
-        OnUpdate="UpdateLabels" />
-    </li>
-    <li class="column is-half">
-      <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" OnRangeSelect="UpdateDate">
-        <PickerTemplate>
-          <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
-            <span class="icon is-small mr-1">
-              <i class="material-icons-outlined is-size-6">calendar_today</i>
+      @((MarkupString)dayHtml)
+    </ul>
+  }
+  foreach (var child in subTasks)
+  {
+    <_TaskGanttChild model="child" parent="model" members="members" isEdit="editRole"
+      dayStart="dayStart" dayTotal="dayTotal" OnUpdate="UpdateSubTasks" />
+  }
+  if(editRole)
+  {
+    <ul class="task_gantt is_item columns is-gapless is-size-7">
+      <li class="column is-narrow" style="box-shadow: inset 4px 0px 0px 0px @priority.color;">
+        <div class="pl-6">
+          <a class="icon-text has-text-link ml-4" @onclick="AddSub">
+            <span class="icon is-small mr-2">
+              <i class="material-icons-outlined is-size-6">add</i>
             </span>
-            @if (context.TStartDate != null && context.TEndDate != null)
-            {
-              <span>@context.TStartDate.Value.ToString("dd/MM")</span>
-              <span class="px-1">-</span>
-              <span>@context.TEndDate.Value.ToString("dd/MM")</span>
-            }
-          </a>
-        </PickerTemplate>
-      </DateRangePicker>
-    </li>
-    <li class="column is-half has-text-right">
-      <_MemberList members="model.members" sources="members" isRight="true" isEdit="editRole" isTask="true" 
-        OnUpdate="UpdateMembers" />
-    </li>
-    <li class="column is-half">
-      <a class="icon-text" @onclick="Toggle">
-        <span>Công việc phụ</span>
-        <span class="icon-text">
-          <i class="material-icons-outlined is-size-6">@(toggle ? "arrow_drop_down" : "arrow_right")</i>
-        </span>
-      </a>
-    </li>
-    <li class="column is-half has-text-right">
-      <div class="dropdown is-right @(toggleStatus ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="icon-text" @onclick="ToggleStatus">
-            <span>@status.name</span>
-            <span class="icon is-small">
-              <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
-            </span>
+            <span>Thêm công việc phụ</span>
           </a>
         </div>
-        @if(editRole)
-        {
-          <div class="dropdown-menu">
-            <div class="dropdown-content">
-              @foreach (var item in WorkService.Status())
-              {
-                <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
-              }
-            </div>
-          </div>
-        }
-      </div>
-    </li>
-    @if(toggle)
-    {
-      <li class="column is-full">
-        @foreach (var child in subTasks)
-        {
-          <_TaskCardChild model="child" parent="model" members="members" isEdit="editRole" OnUpdate="UpdateSubTasks" />
-        }
       </li>
-    }
-  </ul>
-</div>
+      @((MarkupString)dayHtml)
+    </ul>
+  }
+}
 
 @code {
   [CascadingParameter]
@@ -127,6 +110,12 @@
   public WorkPlanModel plan { get; set; }
   [Parameter]
   public List<UserModel> members { get; set; }
+  [Parameter]
+  public DateTime dayStart { get; set; }
+  [Parameter]
+  public int dayTotal { get; set; }
+  [Parameter]
+  public string dayHtml { get; set;}
   [Parameter]
   public bool editRole { get; set; }
   [Parameter]
@@ -194,7 +183,6 @@
 
   private async Task ChangeStatus(int id)
   {
-    toggleStatus = false;
     model.status = id;
     await DbWorkTask.Update(Layout.Company.id, model);
     await OnUpdate.InvokeAsync(model);

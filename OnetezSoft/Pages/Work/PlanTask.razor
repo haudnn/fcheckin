@@ -9,7 +9,7 @@
   <div class="column is-narrow">
     <_PlanSidebar />
   </div>
-  <div class="column">
+  <div class="column" style="padding-bottom: 0px !important;">
     @if(model != null && string.IsNullOrEmpty(model.id))
     {
       <div class="card p-3 p-4-mobile">
@@ -406,7 +406,7 @@
                       }
                     </div>
                   }
-                  <div class="scrolly p-2" style="height: calc(100vh - 300px); background: #fbfbfb; border-radius: 5px;">
+                  <div class="scrolly p-2" style="height: calc(100vh - 310px); background: #fbfbfb; border-radius: 5px;">
                     <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_board"
                       AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
                       @if(context.id == null)
@@ -436,7 +436,142 @@
         }
         else
         {
-          <div>Chưa hoàn thiện chức năng</div>
+          var dayHtml = string.Empty;
+          <div class="list_task_gantt is-size-7">
+            <ul class="task_gantt is_header columns is-gapless is-vcentered">
+              <li class="column is-narrow">
+                Công việc
+              </li>
+              @for (int d = 0; d < dayTotal; d++)
+              {
+                var day = dayStart.AddDays(d);
+                var today = day == DateTime.Today ? "is_today" : "";
+                var sunday = day.DayOfWeek == DayOfWeek.Sunday ? "is_sun" : "";
+                dayHtml += $"<li class=\"column is-narrow {today} {sunday}\"></li>";
+
+                <li class="column is-narrow @today @sunday">
+                  <span class="pl-1" style="color: #C0C6DC;">@day.ToString("ddd").Substring(0, 1)</span>
+                  <span class="pr-1">@day.ToString("dd")</span>
+                </li>
+              }
+            </ul>
+
+            @foreach (var item in model.sections)
+            {
+              var hidden = hideSections.Contains(item.id);
+              var tasks = taskGroups.ContainsKey(item.id) ? taskGroups[item.id] : new();
+              var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
+              
+              <ul class="task_gantt columns is-gapless is-size-7">
+                <li class="column is-narrow">
+                  @if(editSectionId == item.id)
+                  {
+                    <div class="control has-icons-left" style="width: 100%;">
+                      <input @bind="item.name" id="section_@item.id"  type="text" 
+                        class="input is-small has-text-weight-semibold font_14 is_bg" placeholder="Nhập tiêu đề nhóm công việc...">
+                      <a class="icon is-left has-text-success" title="Cập nhật" @onclick="UpdateSection">
+                        <i class="material-icons-outlined is-size-5">done</i>
+                      </a>
+                    </div>
+                  }
+                  else
+                  {
+                    <div class="icon-text">
+                      <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleSection(item.id)">
+                        <i class="material-icons-outlined is-size-5">@(hidden ? "arrow_right" : "arrow_drop_down")</i>
+                      </a>
+                      <span class="has-text-weight-semibold font_14">
+                        @item.name @(count > 0 ? $"({count})" : "")
+                      </span>
+                      <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => EditTask(null, item.id)">
+                        <i class="material-icons-round is-size-6">add</i>
+                      </a>
+                      @if(editRole)
+                      {
+                        <div class="dropdown is-hoverable is-right icon is_hover">
+                          <div class="dropdown-trigger">
+                            <a class="icon has-text-dark">
+                              <i class="material-icons-outlined is-size-6">more_horiz</i>
+                            </a>
+                          </div>
+                          <div class="dropdown-menu">
+                            <div class="dropdown-content">
+                              <a class="dropdown-item icon-text" @onclick="() => MoveSection(item, true)">
+                                <span class="icon">
+                                  <i class="material-icons-outlined is-size-6">arrow_upward</i>
+                                </span>
+                                <span>Lên trên</span>
+                              </a>
+                              <a class="dropdown-item icon-text" @onclick="() => MoveSection(item, false)">
+                                <span class="icon">
+                                  <i class="material-icons-outlined is-size-6">arrow_downward</i>
+                                </span>
+                                <span>Xuống dưới</span>
+                              </a>
+                              <a class="dropdown-item icon-text" @onclick="() => EditSection(item)">
+                                <span class="icon">
+                                  <i class="material-icons-outlined is-size-6">edit</i>
+                                </span>
+                                <span>Chỉnh sửa</span>
+                              </a>
+                              <a class="dropdown-item icon-text has-text-danger" @onclick="() => DeleteSection(item)">
+                                <span class="icon">
+                                  <i class="material-icons-outlined is-size-6">delete</i>
+                                </span>
+                                <span>Xóa</span>
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+                </li>
+                @for (int d = 0; d < dayTotal; d++)
+                {
+                  var day = dayStart.AddDays(d);
+                  var today = day == DateTime.Today ? "is_today" : "";
+                  var sunday = day.DayOfWeek == DayOfWeek.Sunday ? "is_sun" : "";
+
+                  <li class="column is-narrow @today @sunday"></li>
+                }
+              </ul>
+
+              @if(!hidden)
+              {
+                <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_list" 
+                  AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
+                  @if(context.id == null)
+                  {
+                    <ul class="task_gantt columns is-gapless is-size-7">
+                      <li class="column is-narrow">
+                        <a class="icon-text has-text-link" @onclick="() => EditTask(null, item.id)">
+                          <span class="icon">
+                            <i class="material-icons-outlined is-size-6">add</i>
+                          </span>
+                          <span class="is-size-7">Thêm công việc</span>
+                        </a>
+                      </li>
+                      @((MarkupString)dayHtml)
+                    </ul>
+                  }
+                  else
+                  {
+                    var editTask = WorkService.RoleEditTask(model, context, Layout.User.id);
+                    <_TaskGanttItem model="context" plan="model" editRole="editTask"
+                      members="members" toggleList="toggleList" OnToggle="OnToggle"
+                      dayStart="dayStart" dayTotal="dayTotal" dayHtml="@dayHtml" showPlan="true"
+                      OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" />
+                  }
+                </Dropzone>
+              }
+            }
+
+            <ul class="task_gantt is_footer columns is-gapless is-vcentered">
+              <li class="column is-narrow"></li>
+              @((MarkupString)dayHtml)
+            </ul>
+          </div>
         }
       </div>
     }
@@ -466,6 +601,9 @@
   private List<WorkPlanModel.Task> taskList = new();
   private List<string> toggleList = new();
   private List<UserModel> members = new();
+  private int dayTotal = 0;
+  private DateTime dayStart = DateTime.Today;
+  private DateTime dayEnd = DateTime.Today;
 
   protected override async Task OnParametersSetAsync()
   {
@@ -479,7 +617,7 @@
       editRole = WorkService.RoleInPlan(model, Layout.User.id) == 1;
       // Danh sách thành viên
       members = GetMembers();
-
+      // Lấy dữ liệu công việc
       await GetTaskList();
     }
   }
@@ -502,12 +640,25 @@
   {
     // Lấy danh sách công việc chính
     taskList = await DbWorkTask.GetListInPlan(Layout.Company.id, model.id);
+
     // Bộ lọc tìm kiếm
     FilterTaskList();
+
     // Chia nhóm công việc
     SplitTaskList();
+
     // Đóng tất cả công việc
     toggleList.Clear();
+    
+    // Lấy ngày thấp nhỏ nhất
+    if(taskList.Count > 0)
+    {
+      long minDay = taskList.OrderBy(x => x.date_start).Select(x => x.date_start).FirstOrDefault();
+      long maxDay = taskList.OrderByDescending(x => x.date_end).Select(x => x.date_end).FirstOrDefault();
+      dayStart = new DateTime(minDay);
+      dayEnd = new DateTime(maxDay);
+      dayTotal = dayEnd.Subtract(dayStart).Days + 4;
+    }
   }
 
   private void FilterTaskList()

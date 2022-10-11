@@ -8,10 +8,10 @@
   DateTimeOffset? dateE = new DateTime(model.date_end);
 }
 
-<ul id="task_@model.id" class="task_list is_sub columns is-gapless is-size-7" style="border-color: @priority.color;">
-  <li class="column pr-3" style="width: calc(100% - 630px);">
-    <div class="pr-3">
-      <span class="text_1_line">@model.name</span>
+<ul id="task_@model.id" class="task_list is_sub columns is-gapless is-size-7">
+  <li class="column" style="width: calc(100% - 630px); box-shadow: inset 4px 0px 0px 0px @priority.color;">
+    <div class="icon-text item_title pl-0">
+      <span class="item_name">@model.name</span>
     </div>
   </li>
   <li class="column is-narrow" style="width: 130px;">
@@ -40,9 +40,9 @@
       OnUpdate="UpdateMembers" />
   </li>
   <li class="column is-narrow" style="width: 80px;">
-    <div class="dropdown is-hoverable is-fullwidth">
+    <div class="dropdown is-fullwidth @(toggleStatus ? "is-active" : "")">
       <div class="dropdown-trigger">
-        <a class="icon-text is-fullwidth pr-2">
+        <a class="icon-text is-fullwidth pr-2" @onclick="ToggleStatus">
           <span style="flex-grow: 1;">@status.name</span>
           <span class="icon is-small">
             <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
@@ -93,8 +93,15 @@
   [Parameter]
   public bool isEdit { get; set; }
   [Parameter]
-  public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
+  public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }  
+
+  private bool toggleStatus = false;
   
+  private async Task ToggleStatus()
+  {
+    await JSRuntime.InvokeVoidAsync("dropdownClose");
+    toggleStatus = !toggleStatus;
+  }
 
   private async Task Delete()
   {
@@ -115,6 +122,7 @@
 
   private async Task ChangeStatus(int id)
   {
+    toggleStatus = false;
     model.status = id;
     await DbWorkTask.Update(Layout.Company.id, model);
     await OnUpdate.InvokeAsync(model);

@@ -135,6 +135,9 @@ namespace OnetezSoft.Models
       /// <summary>Ngày kết thúc</summary>
       public long date_end { get; set; }
 
+      /// <summary>Ngày hoàn thành</summary>
+      public long date_done { get; set; }
+
       /// <summary>Kế hoạch</summary>
       public string plan_id { get; set; }
 
@@ -173,6 +176,24 @@ namespace OnetezSoft.Models
 
       /// <summary>Người tạo</summary>
       public string user_id  { get; set; }
+    }
+
+    /// <summary>
+    /// Báo cáo thống kê
+    /// </summary>
+    public class Report
+    {
+      /// <summary>Số lượng công việc</summary>
+      public int total { get; set; }
+
+      /// <summary>Công việc hoàn thành</summary>
+      public int done { get; set; }
+
+      /// <summary>Đúng hạn</summary>
+      public int ontime { get; set; }
+
+      /// <summary>Trễ hạn</summary>
+      public int late { get; set; }
     }
   }
 }

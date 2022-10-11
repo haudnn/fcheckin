@@ -7,8 +7,8 @@
   var priority = WorkService.Priority(task.priority);
   var sections = plan.sections.SingleOrDefault(x => x.id == task.section_id);
   var editTask = WorkService.RoleEditTask(plan, task, Layout.User.id);
-  DateTimeOffset? dateS = new DateTime(task.date_start);
-  DateTimeOffset? dateE = new DateTime(task.date_end);
+  DateTimeOffset? dateS = task.date_start > 0 ? new DateTime(task.date_start) : null;
+  DateTimeOffset? dateE = task.date_end > 0 ? new DateTime(task.date_end) : null;
   
   <section class="modal is-active">
     <div class="modal-background"></div>

@@ -9,9 +9,9 @@
   DateTimeOffset? dateE = new DateTime(model.date_end);
 }
 
-<ul id="task_@model.id" class="task_list is_item columns is-gapless is-size-7" style="border-color: @priority.color;">
-  <li class="column" style="width: calc(100% - 630px);">
-    <div class="icon-text item_title mx-2">
+<ul id="task_@model.id" class="task_list is_item columns is-gapless is-size-7">
+  <li class="column" style="width: calc(100% - 630px); box-shadow: inset 4px 0px 0px 0px @priority.color;">
+    <div class="icon-text item_title">
       <span class="icon is_drag">
         <i class="material-icons-outlined is-size-6">drag_indicator</i>
       </span>
@@ -102,8 +102,8 @@
 {
   if(showPlan && plan != null)
   {
-    <ul class="task_list is_plan columns is-gapless is-size-7" style="border-color: @priority.color;">
-      <li class="column is-full">
+    <ul class="task_list is_plan columns is-gapless is-size-7">
+      <li class="column is-full" style="box-shadow: inset 4px 0px 0px 0px @priority.color;">
         <a class="icon-text has-text-link">
           <span class="icon is-small mr-2">
             <i class="material-icons-outlined is-size-6">link</i>
@@ -119,8 +119,8 @@
   }
   if(editRole)
   {
-    <ul class="task_list is_item columns is-gapless is-size-7" style="border-color: @priority.color;">
-      <li class="column is-full">
+    <ul class="task_list is_item columns is-gapless is-size-7">
+      <li class="column is-full" style="box-shadow: inset 4px 0px 0px 0px @priority.color;">
         <div class="pl-6">
           <a class="icon-text has-text-link ml-4" @onclick="AddSub">
             <span class="icon is-small mr-2">
@@ -210,15 +210,17 @@
 
   private async Task ChangeStatus(int id)
   {
+    toggleStatus = false;
     model.status = id;
     await DbWorkTask.Update(Layout.Company.id, model);
-    await OnUpdate.InvokeAsync(model);
     await WorkService.CreateLog(Layout.Company.id, "Cập nhật trạng thái", 
       WorkService.Status(model.status).name, model.plan_id, model.id, Layout.User);
     // Thông báo chuông
     if(model.status == 4)
       foreach (var user in model.members)
         await DbNotify.ForPlan(Layout.Company.id, 710, plan.id, model.id, user.id, Layout.User.id);
+    if(showPlan)
+      await OnUpdate.InvokeAsync(model);
   }
 
   private async Task UpdateMembers()
