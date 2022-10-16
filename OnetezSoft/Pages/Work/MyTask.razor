@@ -148,7 +148,7 @@
                 var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
                 <_TaskListItem model="context" plan="plan" showPlan="true" editRole="true"
                   members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle" 
-                  OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" />
+                  OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
               }
             </Dropzone>
           }
@@ -191,7 +191,7 @@
                       var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
                       <_TaskCardItem model="context" plan="plan" showPlan="true" editRole="true"
                         members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle"
-                        OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" />
+                        OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
                     }
                   </Dropzone>
                 </div>
@@ -268,7 +268,7 @@
                   <_TaskGanttItem model="context" plan="plan" showPlan="true" editRole="true"
                     members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle"
                     dayStart="dayStart" dayTotal="dayTotal" dayHtml="@dayHtml"
-                    OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" />
+                    OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
                 }
               </Dropzone>
             }
@@ -285,7 +285,7 @@
 </section>
 
 <_TaskPopup plan="planEdit" task="taskEdit" members="Layout.UserList" tab="taskEditTab" 
-  subTasks="subTasks" OnUpdate="OnUpdateTask" />
+  subTasks="subTasks" todoItems="todoItems" OnUpdate="OnUpdateTask" />
 
 @code {
   [CascadingParameter]
@@ -484,6 +484,14 @@
     subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, item.plan_id, item.id);
     await EditTask(item, item.status);
     taskEditTab = 2;
+  }
+
+  private List<TodolistModel.Todo> todoItems = new();
+  private async Task OnTodolist(WorkPlanModel.Task item)
+  {
+    todoItems = DbTodoItem.GetList(Layout.Company.id, item.id, Layout.User.id);
+    await EditTask(item, item.status);
+    taskEditTab = 3;
   }
 
   private async Task OnUpdateList(WorkPlanModel.Task item)

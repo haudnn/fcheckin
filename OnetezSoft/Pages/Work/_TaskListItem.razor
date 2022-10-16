@@ -89,7 +89,7 @@
         <div class="dropdown-menu">
           <div class="dropdown-content">
             <a class="dropdown-item" @onclick="AddSub">Tạo công việc phụ</a>
-            <a class="dropdown-item">Tạo Todolist liên kết</a>
+            <a class="dropdown-item" @onclick="AddTodo">Tạo Todolist liên kết</a>
             <a class="dropdown-item has-text-danger" @onclick="Delete">Xóa công việc này</a>
           </div>
         </div>
@@ -117,20 +117,13 @@
   {
     <_TaskListChild model="child" parent="model" members="members" isEdit="editRole" OnUpdate="UpdateSubTasks" />
   }
-  if(editRole)
+  if(subTasks.Count == 0)
   {
-    <ul class="task_list is_item columns is-gapless is-size-7">
+    <ul class="task_list is_sub columns is-gapless is-size-7">
       <li class="column is-full" style="box-shadow: inset 4px 0px 0px 0px @priority.color;">
-        <div class="pl-6">
-          <a class="icon-text has-text-link ml-4" @onclick="AddSub">
-            <span class="icon is-small mr-2">
-              <i class="material-icons-outlined is-size-6">add</i>
-            </span>
-            <span>Thêm công việc phụ</span>
-          </a>
-        </div>
+        <i class="has-text-grey">Không có công việc phụ</i>
       </li>
-    </ul>
+    </ul> 
   }
 }
 
@@ -157,6 +150,8 @@
   public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
   [Parameter]
   public EventCallback<WorkPlanModel.Task> OnAddSub { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnTodolist { get; set; }
 
   private bool toggleStatus = false;
   private List<WorkPlanModel.Task> subTasks = new();
@@ -184,6 +179,11 @@
   private async Task AddSub()
   {
     await OnAddSub.InvokeAsync(model);
+  }
+
+  private async Task AddTodo()
+  {
+    await OnTodolist.InvokeAsync(model);
   }
 
   private async Task Delete()

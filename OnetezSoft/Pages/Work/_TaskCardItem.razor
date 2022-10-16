@@ -29,7 +29,7 @@
           <div class="dropdown-menu">
             <div class="dropdown-content">
               <a class="dropdown-item" @onclick="AddSub">Tạo công việc phụ</a>
-              <a class="dropdown-item">Tạo Todolist liên kết</a>
+              <a class="dropdown-item" @onclick="AddTodo">Tạo Todolist liên kết</a>
               <a class="dropdown-item has-text-danger" @onclick="Delete">Xóa công việc này</a>
             </div>
           </div>
@@ -141,6 +141,8 @@
   public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
   [Parameter]
   public EventCallback<WorkPlanModel.Task> OnAddSub { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnTodolist { get; set; }
 
   private bool toggleStatus = false;
   private List<WorkPlanModel.Task> subTasks = new();
@@ -168,6 +170,11 @@
   private async Task AddSub()
   {
     await OnAddSub.InvokeAsync(model);
+  }
+
+  private async Task AddTodo()
+  {
+    await OnTodolist.InvokeAsync(model);
   }
 
   private async Task Delete()

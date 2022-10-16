@@ -32,10 +32,14 @@ namespace OnetezSoft.Services
 
         if (autoConfirm)
         {
+          var todoItems = DbTodoItem.GetList(companyId, item.id);
+          foreach (var todo in todoItems)
+          {
+            todo.confirm = true;
+            await DbTodoItem.Update(companyId, todo);
+          }
           item.date_confirm = DateTime.Now.Ticks;
           item.user_confirm = "auto";
-          foreach (var todo in item.todos)
-            todo.confirm = true;
           await DbTodolist.Update(companyId, item);
         }
       }

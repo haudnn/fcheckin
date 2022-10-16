@@ -56,7 +56,7 @@ namespace OnetezSoft.Services
         // Xóa nhóm công việc
         plan.sections.RemoveAll(x => x.id == sectionId);
         // Cập nhật lại vị trí
-        int pos = plan.sections.Count - 1;
+        int pos = plan.sections.Count;
         foreach (var item in plan.sections)
         {
           item.pos = pos;

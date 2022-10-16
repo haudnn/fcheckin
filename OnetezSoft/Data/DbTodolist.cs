@@ -17,8 +17,6 @@ namespace OnetezSoft.Data
     {
       var date = string.Format("{0:yyMMdd}", new DateTime(model.date));
       model.id = date + model.user_create;
-
-      model.todos = new();
       model.date_create = DateTime.Now.Ticks;
 
       var _db = Mongo.DbConnect("fastdo_" + companyId);
@@ -33,49 +31,43 @@ namespace OnetezSoft.Data
 
     public static async Task<TodolistModel> Update(string companyId, TodolistModel model)
     {
-      // Cập nhật điểm Todolist
-      if (model.todos.Count > 0)
+      int point = 10;
+
+      var day = string.Format("{0:yyyy-MM-dd}", new DateTime(model.date));
+      var config = await DbMainCompany.Get(companyId);
+      var checkin = Convert.ToDateTime(day + " " + config.todolist.time_checkin).AddDays(-1);
+      var checkout = Convert.ToDateTime(day + " " + config.todolist.time_checkout);
+
+      // Checkin đúng hạn
+      if (model.status >= 2 && model.date_checkin <= checkin.Ticks)
       {
-        int point = 10;
+        model.ontime_checkin = true;
+      }
+      else // Checkin trễ hạn
+      {
+        model.ontime_checkin = false;
+        point -= 2;
+      }
 
-        var day = string.Format("{0:yyyy-MM-dd}", new DateTime(model.date));
-        var config = await DbMainCompany.Get(companyId);
-        var checkin = Convert.ToDateTime(day + " " + config.todolist.time_checkin).AddDays(-1);
-        var checkout = Convert.ToDateTime(day + " " + config.todolist.time_checkout);
-
-        // Checkin đúng hạn
-        if (model.status >= 2 && model.date_checkin <= checkin.Ticks)
-        {
-          model.ontime_checkin = true;
-        }
-        else // Checkin trễ hạn
-        {
-          model.ontime_checkin = false;
-          point -= 2;
-        }
-
-        // Checkout trễ hạn
-        if (model.status == 3 && model.date_checkout <= checkout.Ticks)
-        {
-          model.ontime_checkout = true;
-        }
-        else
-        {
-          model.ontime_checkout = false;
-          point -= 2;
-        }
-
-        // Todo chưa hoàn thành
-        point -= model.todos.Where(x => x.status < 4).Count();
-
-        model.point = point > 0 ? point : 0;
+      // Checkout trễ hạn
+      if (model.status == 3 && model.date_checkout <= checkout.Ticks)
+      {
+        model.ontime_checkout = true;
       }
       else
       {
-        model.point = 0;
-        model.status = 0;
+        model.ontime_checkout = false;
+        point -= 2;
       }
 
+      // Todo chưa hoàn thành thì trừ điểm
+      var todoItems = DbTodoItem.GetList(companyId, model.id);
+      model.total = todoItems.Count;
+      model.done = todoItems.Where(x => x.status == 4).Count();
+      point -= todoItems.Where(x => x.status < 4).Count();
+      // Cập nhật điểm Todolist
+      model.point = point > 0 ? point : 0;
+      
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<TodolistModel>(_collection);

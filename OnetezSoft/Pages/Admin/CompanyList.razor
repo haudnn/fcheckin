@@ -1,0 +1,113 @@
+@page "/admin/companys"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="px-4">
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-4">
+    <li class="column">
+      <h1 class="title is-5">
+        @_title
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <div class="control has-icons-left" style="width: 120px;">
+        <div class="select is-small has-text-weight-medium">
+          <select @onchange="ChangeStatus">
+            <option value="0">Trạng thái</option>
+            <option value="1">Đã kích hoạt</option>
+            <option value="2">Chưa kích hoạt</option>
+          </select>
+        </div>
+        <span class="icon is-left has-text-dark">
+          <i class="material-icons-round is-size-6">filter_list</i>
+        </span>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <div class="control has-icons-left" style="width: 250px;" title="Nhấn Enter để tìm">
+        <input @bind="filterKeyword" @onkeyup="ChangeKeyword" type="text" class="input is-small"
+          placeholder="Tên, số điện thoại, email tổ chức" />
+        <span class="icon is-left has-text-dark">
+          <i class="material-icons-round is-size-6">search</i>
+        </span>
+      </div>
+    </li>
+  </ul>
+  
+  <section>
+    @foreach (var item in dataList)
+    {
+      <_CompanyInfo company="item" products="productList" />
+    }
+    @if (dataList.Count == 0)
+    {
+      <div class="has-text-grey has-text-centered py-6">
+        Không tìm thấy dữ liệu phù hợp
+      </div>
+    }
+  </section>
+</section>
+
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  private string _title = "Danh sách tổ chức";
+  private List<CompanyModel> dataList = new();
+  private List<ProductModel> productList = new();
+  private string filterKeyword = string.Empty;
+  private int filterStatus = 0;
+  
+  protected override async Task OnParametersSetAsync()
+  {
+    productList = await DbMainProduct.GetList();
+    await GetList();
+  }
+  
+  private async Task GetList()
+  {
+    // Danh sách công ty
+    var data = await DbMainCompany.GetAll();
+
+    if(filterStatus == 1)
+      dataList = data.Where(x => x.status).ToList();
+    else if(filterStatus == 2)
+      dataList = data.Where(x => !x.status).ToList();
+    else
+      dataList = data;
+
+    if(!string.IsNullOrEmpty(filterKeyword))
+    {
+      var results = new List<CompanyModel>();
+      foreach (var item in dataList)
+      {
+        if(Shared.SearchKeyword(filterKeyword, item.name + item.phone + item.email))
+          results.Add(item);
+      }
+      dataList = results;
+    }
+  }
+  
+
+  private async Task ChangeStatus(ChangeEventArgs e)
+  {
+    filterStatus = Convert.ToInt32(e.Value);
+    await GetList();
+  }
+
+  private async Task ChangeKeyword(KeyboardEventArgs args)
+  {
+    if (args.Key == "Enter")
+    {
+      await GetList();
+    }
+    else if (args.Key == "Escape")
+    {
+      filterKeyword = string.Empty;
+      await GetList();
+    }
+  }
+}

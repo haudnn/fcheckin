@@ -21,28 +21,37 @@
         <a class="title is-5 mb-0" href="/admin/company/@company.id/products">
           @company.name
         </a>
-        <div class="has-text-weight-bold">
-          @members.Count người dùng
-        </div>
-        <div class="avatar_list my-3">
-          @for (int i = 0; i < 8; i++)
-          {
-            if (i < members.Count)
+        @if(members != null)
+        {
+          <div class="has-text-weight-bold">
+            @members.Count người dùng
+          </div>
+          <div class="avatar_list my-3">
+            @for (int i = 0; i < 8; i++)
             {
-              var user = members[i];
-              <span class="image is-rounded is-32x32">
-                <img src="@user.avatar" alt="IMG">
+              if (i < members.Count)
+              {
+                var user = members[i];
+                <span class="image is-rounded is-32x32">
+                  <img src="@user.avatar" alt="IMG">
+                </span>
+              }
+            }
+            @if (members.Count > 8)
+            {
+              <span class="image is-rounded is-32x32 has-text-weight-semibold"
+                style="justify-content: center; align-items: center;">
+                +@(members.Count - 8)
               </span>
             }
-          }
-          @if (members.Count > 8)
-          {
-            <span class="image is-rounded is-32x32 has-text-weight-semibold"
-              style="justify-content: center; align-items: center;">
-              +@(members.Count - 8)
-            </span>
-          }
-        </div>
+          </div>
+        }
+        else
+        {
+          <div class="has-text-weight-bold mb-5">
+            @company.members người dùng
+          </div>
+        }
         <div class="has-text-weight-bold mb-2">
           Sản phẩm sở hữu
         </div>
@@ -66,7 +75,7 @@
               Thông tin tổ chức
               @if(!company.status)
               {
-                <span class="has-text-danger">(Dừng hoạt động)</span>
+                <span class="has-text-danger">(Chưa kích hoạt)</span>
               }
             </div>
           </div>

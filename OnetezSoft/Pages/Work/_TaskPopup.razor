@@ -274,15 +274,20 @@
           else if(tab == 2)
           {
             <li class="column is-10 is-size-7 p-4">
-              <div class="has-text-grey">Công việc phụ</div>
+              <ul class="columns is-vcentered is-gapless is-size-7 mb-0 has-text-grey">
+                <li class="column">Công việc phụ</li>
+                <li class="column is-narrow" style="width: 130px;">Thời gian</li>
+                <li class="column is-narrow" style="width: 110px;">Thành viên</li>
+                <li class="column is-narrow" style="width: 80px;">Trạng thái</li>
+                <li class="column is-narrow" style="width: 30px;"></li>
+              </ul>
               <_TaskSubList parent="task" tasks="subTasks" editRole="editTask" members="members" />
             </li>
           }
           else if(tab == 3)
           {
             <li class="column is-10 is-size-7 p-4">
-              <div class="has-text-grey">Todolist liên kết</div>
-              <div class="is-italic py-2">Chức năng đang trong quá trình hoàn thiện</div>
+              <_TaskTodolist task="task" todos="todoItems" editRole="editTask" />
             </li>
           }
           else if(tab == 4)
@@ -321,10 +326,11 @@
   [Parameter]
   public List<WorkPlanModel.Task> subTasks { get; set; }
   [Parameter]
+  public List<TodolistModel.Todo> todoItems { get; set; }
+  [Parameter]
   public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
 
   private List<WorkPlanModel.Comment> comments = new();
-  //private List<UserModel> membersTask = new();
   private List<WorkLogModel> logs = new();
   private bool isChange = false;
 
@@ -332,6 +338,9 @@
   {
     task = null;
     isChange = false;
+    comments = new();
+    todoItems = new();
+    logs = new();
   }
 
   private async Task Cancel()
@@ -466,6 +475,10 @@
     if(tab == 2)
     {
       subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, task.plan_id, task.id);
+    }
+    else if(tab == 3)
+    {
+      todoItems = DbTodoItem.GetList(Layout.Company.id, task.id, Layout.User.id);
     }
     else if(tab == 4)
     {

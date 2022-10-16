@@ -874,13 +874,13 @@
       var user = Layout.UserList.SingleOrDefault(x => x.id == userId);
       if (user != null)
       {
-        var todolist = data.Where(x => x.user_create == user.id && !x.day_off);
         int done = 0;
         int total = 0;
+        var todolist = data.Where(x => x.user_create == user.id && !x.day_off);
         foreach (var item in todolist)
         {
-          done += item.todos.Where(x => x.status == 4).Count();
-          total += item.todos.Count();
+          done += item.done;
+          total += item.total;
         }
 
         todoProgress.Add(new ProgressModel()

@@ -1,0 +1,221 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="field is-grouped mb-2">
+  <div class="control has-text-grey">
+    Todolist liên kết
+  </div>
+  <div class="control">
+    <a class="icon has-text-link" @onclick="AddItem">
+      <i class="material-icons-round is-size-4">add_box</i>
+    </a>
+  </div>
+</div>
+
+@if(todo != null)
+{
+  <ul class="columns is-multiline is-vcentered is-variable is-1 has-text-centered">
+    <li class="column has-text-left">
+      <input @bind="todo.name" id="task_todo" class="input is-small" type="text" placeholder="Nhập tiêu đề Todolist">
+    </li>
+    <li class="column is-narrow" style="width: 130px;">
+      <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" Opens="SideType.Left"
+        MinDate="new DateTime(task.date_start)" MaxDate="new DateTime(task.date_end)">
+        <PickerTemplate>
+          <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
+            <span class="icon is-small mr-1">
+              <i class="material-icons-outlined is-size-6">calendar_today</i>
+            </span>
+            @if (context.TStartDate != null && context.TEndDate != null)
+            {
+              <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+              <span class="px-1">-</span>
+              <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+            }
+            else
+            {
+              <span>Chọn ngày</span>
+            }
+          </a>
+        </PickerTemplate>
+      </DateRangePicker>
+    </li>
+    <li class="column is-narrow" style="width: 90px;">
+      <div class="select is-small is-fullwidth">
+        <select @bind="todo.start">
+          @foreach (var sl in Shared.TimeList())
+          {
+            <option value="@sl.name">@sl.name</option>
+          }
+        </select>
+      </div>
+    </li>
+    <li class="column is-narrow" style="width: 90px;">
+      <div class="select is-small is-fullwidth">
+        <select @bind="todo.end">
+          @foreach (var sl in Shared.TimeList())
+          {
+            <option value="@sl.name">@sl.name</option>
+          }
+        </select>
+      </div>
+    </li>
+    <li class="column is-full">
+      <div class="buttons is-right">
+        <a class="button is-small is-white has-text-link" @onclick="Update">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">done</i>
+          </span>
+          <span>Cập nhật</span>
+        </a>
+        <a class="button is-small is-white has-text-danger" @onclick="() => todo = null">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">close</i>
+          </span>
+          <span>Hủy</span>
+        </a>
+      </div>
+    </li>
+  </ul>
+}
+
+<div class="scrolly py-2" style="height: 420px;">
+  @for (int i = 0; i < todos.Count; i++)
+  {
+    var item = todos[i];
+    var status = DbTodolist.Status(item.status);
+    var date = i > 0 ? todos[i-1].date : 0;
+    if(date != item.date)
+    {
+      <div class="button is-small is-fullwidth is_bg mb-2">
+        <span class="has-text-left has-text-weight-medium font_14" style="flex-grow: 1;">
+          @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))
+        </span>
+        <span class="icon">
+          <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+        </span>
+      </div>
+    }
+    <ul class="columns is-vcentered is-variable is-1 has-text-centered mb-2">
+      <li class="column has-text-left pl-4">
+        <div class="text_inline">
+          • @item.name
+        </div>
+      </li>
+      <li class="column is-narrow" style="width: 80px;">
+        @item.start
+      </li>
+      <li class="column is-narrow" style="width: 80px;">
+        @item.end
+      </li>
+      <li class="column is-narrow" style="width: 80px;">
+        @status.name
+      </li>
+      <li class="column is-narrow" style="width: 40px;">
+        @if(!item.confirm)
+        {
+          <a class="icon is-small has-text-danger" @onclick="() => DeleteItem(item)">
+            <i class="material-icons-outlined is-size-6">delete</i>
+          </a>
+        }
+      </li>
+    </ul> 
+  }
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public WorkPlanModel.Task task { get; set; }
+  [Parameter]
+  public List<TodolistModel.Todo> todos { get; set; }
+  [Parameter]
+  public bool editRole { get; set; }
+
+  private TodolistModel.Todo todo = null;
+  private DateTimeOffset? dateS = null;
+  private DateTimeOffset? dateE = null;
+
+  private async Task AddItem()
+  {
+    todo = new() {
+      start = "08:30",
+      end = "17:30",
+      user = Layout.User.id,
+      plan_task = task.id
+    };
+    await JSRuntime.InvokeVoidAsync("setFocus", "task_todo");
+  }
+
+  private async Task Update()
+  {
+    if(string.IsNullOrEmpty(todo.name) || string.IsNullOrEmpty(todo.name.Trim()))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập tiêu đề của Todolist");
+    else if(dateS == null || dateE == null)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Chọn ngày tạo Todolist");
+    else
+    {
+      for (DateTime day = dateS.Value.DateTime; day <= dateE.Value.DateTime; day = day.AddDays(1))
+      {
+        await AddTodo(day);
+      }
+      await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã tạo Todolist liên kết với công việc");
+      todos = DbTodoItem.GetList(Layout.Company.id, task.id, Layout.User.id);
+      todo = null;
+    }
+  }
+
+  private async Task AddTodo(DateTime date)
+  {
+    var todolist = await DbTodolist.GetbyDay(Layout.Company.id, Layout.User.id, date);
+    if (todolist == null)
+    {
+      todolist = new TodolistModel();
+      todolist.date = date.Ticks;
+      todolist.user_create = Layout.User.id;
+      todolist = await DbTodolist.Create(Layout.Company.id, todolist);
+    }
+    if(todolist.status < 3)
+    {
+      var item = new TodolistModel.Todo();
+      item.id = Mongo.RandomId();
+      item.type = 1;
+      item.level = 1;
+      item.status = 1;
+      item.name = todo.name;
+      item.start = todo.start;
+      item.end = todo.end;
+      item.date = todolist.date;
+      item.todolist = todolist.id;
+      item.plan_task = task.id;
+      item.user = Layout.User.id;
+      await DbTodoItem.Create(Layout.Company.id, item);
+    }
+  }
+
+  private async Task DeleteItem(TodolistModel.Todo item)
+  {
+    var todolist = await DbTodolist.GetbyDay(Layout.Company.id, Layout.User.id, new DateTime(item.date));
+    if(todolist != null)
+    {
+      if ( todolist.status < 2 || !item.confirm)
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {item.name}?"))
+          return;
+
+        todos.Remove(item);
+        await DbTodoItem.Delete(Layout.Company.id, item.id);
+        await DbTodolist.Update(Layout.Company.id, todolist);
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể xóa công việc đã Check-in !");
+    }
+    else
+    {
+      todos.Remove(item);
+      await DbTodoItem.Delete(Layout.Company.id, item.id);
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Không tìm thấy Todolist liên quan !");
+    }
+  }
+}

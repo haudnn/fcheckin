@@ -158,8 +158,7 @@
           var item = todolist.SingleOrDefault(x => x.date == date.Ticks);
           if (item != null)
           {
-            var done = item.todos.Where(x => x.status == 4).Count();
-            var progress = Shared.Progress(done, item.todos.Count);
+            var progress = Shared.Progress(item.done, item.total);
             <tr>
               <td class="pl-6">
                 <label class="td-label">Ngày</label>
@@ -216,7 +215,7 @@
               <td>
                 <label class="td-label">Hoàn thành</label>
                 <div class="td-value has-text-weight-semibold">
-                  @string.Format("{0}/{1} - {2:0,0}%", done, item.todos.Count, progress)
+                  @string.Format("{0}/{1}", item.done, item.total) - @Shared.ConvertNumber(progress)%
                 </div>
               </td>
               <td>
@@ -251,7 +250,8 @@
             </tr>
             if (showTodoItems.Contains(item.id))
             {
-              foreach (var todo in item.todos)
+              var items = DbTodoItem.GetList(Layout.Company.id, item.id);
+              foreach (var todo in items)
               {
                 var type = DbTodolist.Type(todo.type);
                 var level = DbTodolist.Level(todo.level);
@@ -398,10 +398,14 @@
 
   private async Task ConfirmItem(TodolistModel item)
   {
+    var todoItems = DbTodoItem.GetList(Layout.Company.id, item.id);
+    foreach (var todo in todoItems)
+    {
+      todo.confirm = true;
+      await DbTodoItem.Update(Layout.Company.id, todo);
+    }
     item.date_confirm = DateTime.Now.Ticks;
     item.user_confirm = Layout.User.id;
-    foreach (var todo in item.todos)
-      todo.confirm = true;
     await DbTodolist.Update(Layout.Company.id, item);
 
     // Gửi thông báo chuông

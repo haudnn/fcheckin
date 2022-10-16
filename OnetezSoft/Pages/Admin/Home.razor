@@ -32,8 +32,11 @@
 
       <div class="buttons">
         <span class="button is-dark has-text-weight-bold" style="width: 92px;">BƯỚC 3</span>
-        <a class="button is-warning" @onclick="MoveCompanyData">
+        <a class="button is-warning" @onclick="MoveCompanyAll">
           Chuyển toàn bộ dữ liệu của tổ chức
+        </a>
+        <a class="button is-warning" @onclick="GetCompanyInWork">
+          Xem tất cả tổ chức trong Work.fastdo.vn
         </a>
       </div>
 
@@ -46,6 +49,31 @@
           Lấy danh sách tài khoản
         </a>
       </div>
+
+      @if(companys.Count > 0)
+      {
+        <table class="table is-bordered is-vcentered">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var item in companys)
+            {
+              <tr>
+                <td>@item.id</td>
+                <td>@item.name</td>
+                <td>
+                  <a class="tag is-link" @onclick="() => MoveCompanyData(item)">Đồng bộ</a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
     </div>
   }
   else
@@ -71,6 +99,7 @@
     {
       if(item.id != ConfigSystem.DeveloperId)
       {
+        // Xóa tài khoản cũ
         BackupData.Delete<UserModel>("fastdo", "users", item.id);
         await JSRuntime.InvokeVoidAsync("console.log", item.email + " => delete");
       }
@@ -83,7 +112,8 @@
     var data = await BackupData.GetList<CompanyModel>("fastdo", "companys");
     foreach (var item in data)
     {
-      BackupData.Delete<UserModel>("fastdo", "companys", item.id);
+      // Xóa tổ chức trong database chính
+      BackupData.Delete<CompanyModel>("fastdo", "companys", item.id);
       await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.name + " => delete");
     }
   }
@@ -100,9 +130,16 @@
         // Thêm tài khoản khách hàng
         customers.Add(item.admin_id);
         // Chuyển dữ liệu
-        item.products = new();
-        BackupData.Create<CompanyModel>("fastdo", "companys", item);
-        await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.name + " => OK");
+        try
+        {  
+          item.products = new();
+          BackupData.Create<CompanyModel>("fastdo", "companys", item);
+          await JSRuntime.InvokeVoidAsync("console.log", "DONE => " + item.id + " : " + item.name);
+        }
+        catch (System.Exception)
+        {
+          await JSRuntime.InvokeVoidAsync("console.warn", "EXIST => " + item.id + " : " + item.name);
+        }
       }
     }
   }
@@ -111,116 +148,148 @@
   {
     await JSRuntime.InvokeVoidAsync("console.warn", "Chuyển dữ liệu tài khoản");
     var data = await BackupData.GetList<UserModel>("workdo", "users");
+    int count = 0;
     foreach (var item in data)
     {
       if(item.id != ConfigSystem.DeveloperId && item.active && !item.delete)
       {
         // Chuyển dữ liệu
-        if(customers.Contains(item.id))
-          item.is_customer = true;
-        BackupData.Create<UserModel>("fastdo", "users", item);
-        await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.email + " => OK");
+        try
+        {
+          if(customers.Contains(item.id))
+            item.is_customer = true;
+          BackupData.Create<UserModel>("fastdo", "users", item);
+          await JSRuntime.InvokeVoidAsync("console.log", "DONE => " + item.id + " : " + item.email);
+          count++;
+        }
+        catch (System.Exception)
+        {
+          //await JSRuntime.InvokeVoidAsync("console.warn", "EXIST => " + item.id + " : " + item.email);
+        }
       }
     }
+    await JSRuntime.InvokeVoidAsync("console.log", $"DONE => {count}/{data.Count} user");
   }
 
-  private async Task MoveCompanyData()
+  private List<CompanyModel> companys = new();
+  private async Task GetCompanyInWork()
+  {
+    companys = await BackupData.GetList<CompanyModel>("fastdo", "companys");
+  }
+
+  private async Task MoveCompanyAll()
   {
     var data = await BackupData.GetList<CompanyModel>("fastdo", "companys");
     foreach (var item in data)
     {
-      var db_source = "company_" + item.id;
-      var db_target = "fastdo_" + item.id;
-      await JSRuntime.InvokeVoidAsync("console.warn", $"Chuyển toàn bộ dữ liệu: [{item.id}] {item.name}");
-      await JSRuntime.InvokeVoidAsync("console.log", db_source + " => " + db_target);
-
-      // users
-      await MoveDataUser(db_source, db_target, "users");
-      // departments
-      await MoveDataModel<DepartmentModel>(db_source, db_target, "departments");
-      // okrs
-      await MoveDataModel<OkrModel>(db_source, db_target, "okrs");
-      // okr_config
-      await MoveDataModel<OkrConfigModel>(db_source, db_target, "okr_config");
-      // okr_stars
-      await MoveDataModel<OkrStarModel>(db_source, db_target, "okr_stars");
-      // okr_cfrs
-      await MoveDataModel<OkrCfrModel>(db_source, db_target, "okr_cfrs");
-      // okr_checkins
-      await MoveDataModel<OkrCheckinModel>(db_source, db_target, "okr_checkins");
-      // kaizen
-      await MoveDataModel<KaizenModel>(db_source, db_target, "kaizen");
-      // quotes
-      await MoveDataModel<QuotesModel>(db_source, db_target, "quotes");
-      // todolist
-      await MoveDataModel<TodolistModel>(db_source, db_target, "todolist");
-      // achievement
-      await MoveDataModel<AchievementModel>(db_source, db_target, "achievement");
-      // gift_products
-      await MoveDataModel<GiftProductModel>(db_source, db_target, "gift_products");
-      // days_checkin
-      await MoveDataModel<DayCheckinModel>(db_source, db_target, "days_checkin");
+      await MoveCompanyData(item);
     }
+  }
+
+  private async Task MoveCompanyData(CompanyModel item)
+  {
+    var db_source = "company_" + item.id;
+    var db_target = "fastdo_" + item.id;
+    await JSRuntime.InvokeVoidAsync("console.warn", $"Move data: [{item.id}] {item.name}");
+
+    // users
+    await MoveDataUser(db_source, db_target, "users");
+    // departments
+    await MoveDataModel<DepartmentModel>(db_source, db_target, "departments");
+    // okrs
+    await MoveDataModel<OkrModel>(db_source, db_target, "okrs");
+    // okr_config
+    await MoveDataModel<OkrConfigModel>(db_source, db_target, "okr_config");
+    // okr_stars
+    await MoveDataModel<OkrStarModel>(db_source, db_target, "okr_stars");
+    // okr_cfrs
+    await MoveDataModel<OkrCfrModel>(db_source, db_target, "okr_cfrs");
+    // okr_checkins
+    await MoveDataModel<OkrCheckinModel>(db_source, db_target, "okr_checkins");
+    // kaizen
+    await MoveDataModel<KaizenModel>(db_source, db_target, "kaizen");
+    // quotes
+    await MoveDataModel<QuotesModel>(db_source, db_target, "quotes");
+    // todolist
+    await MoveDataModel<TodolistModel>(db_source, db_target, "todolist");
+    // achievement
+    await MoveDataModel<AchievementModel>(db_source, db_target, "achievement");
+    // gift_products
+    await MoveDataModel<GiftProductModel>(db_source, db_target, "gift_products");
+    // days_checkin
+    await MoveDataModel<DayCheckinModel>(db_source, db_target, "days_checkin");
+
+    await JSRuntime.InvokeVoidAsync("console.log", $"DONE: {db_source} => {db_target}");
+    await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã đồng bộ dữ liệu tổ chức [{item.id}] {item.name}");
   }
 
   private async Task MoveDataUser(string db_source, string db_target, string table_name)
   {
+    int count = 0;
     var data = await BackupData.GetList<UserModel>(db_source, table_name);
     foreach (var item in data)
     {
-      item.products = new();
       try
       {  
+        item.products = new();
         BackupData.Create<UserModel>(db_target, table_name, item);
+        count++;
       }
-      catch (System.Exception ex)
+      catch (System.Exception)
       {
-        await JSRuntime.InvokeVoidAsync("console.error",$"{item.email} => error: {ex.Message}");
+        //await JSRuntime.InvokeVoidAsync("console.warn",$"EXIST => {item.email}");
       }
     }
-    await JSRuntime.InvokeVoidAsync("console.log",$"{table_name} => done {data.Count} item");
+    await JSRuntime.InvokeVoidAsync("console.log",$"{table_name} => done {count}/{data.Count} item");
   }
 
   private async Task MoveDataModel<T>(string db_source, string db_target, string table_name)
   {
+    int count = 0;
     var data = await BackupData.GetList<T>(db_source, table_name);
     foreach (var item in data)
     {
       try
       {
-        BackupData.Create<T>(db_target, table_name, item);  
+        BackupData.Create<T>(db_target, table_name, item);
+        count++;
       }
       catch (System.Exception ex)
       {
-        await JSRuntime.InvokeVoidAsync("console.error",$"Error: {ex.Message}");
+        //await JSRuntime.InvokeVoidAsync("console.warn",$"EXIST => {ex.Message}");
       }
     }
-    await JSRuntime.InvokeVoidAsync("console.log",$"{table_name} => done {data.Count} item");
+    await JSRuntime.InvokeVoidAsync("console.log",$"{table_name} => done {count}/{data.Count} item");
   }
 
   private async Task GetUserList()
   {
-    await JSRuntime.InvokeVoidAsync("console.warn", "Danh sách tài khoản");
     var data = await BackupData.GetList<UserModel>("fastdo", "users");
+    await JSRuntime.InvokeVoidAsync("console.warn", "Danh sách tài khoản");
+    await JSRuntime.InvokeVoidAsync("tagline", true, $"Có {data.Count} tài khoản database");
+    var members = new List<MemberModel>();
     foreach (var item in data)
     {
+      members.Add(UserService.ConvertToMember(item));
       if(item.active && !item.delete)
       {
-        await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.email + " => customer: " + item.is_customer);
+        //await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.email + " => customer: " + item.is_customer);
       }
     }
+    await JSRuntime.InvokeVoidAsync("console.table", members);
   }
 
   private async Task GetCompanyList()
   {
-    await JSRuntime.InvokeVoidAsync("console.warn", "Danh sách tổ chức");
     var data = await BackupData.GetList<CompanyModel>("fastdo", "companys");
+    await JSRuntime.InvokeVoidAsync("console.warn", "Danh sách tổ chức");
+    await JSRuntime.InvokeVoidAsync("tagline", true, $"Có {data.Count} tổ chức trong database");
     foreach (var item in data)
     {
       if(item.status && !item.delete)
       {
-        await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.name + " => members: " + item.members);
         await CompanyService.UpdateProductAccess(item.id);
+        await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.name + " => members: " + item.members);
       }
     }
   }

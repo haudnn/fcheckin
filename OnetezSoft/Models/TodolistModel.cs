@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MongoDB.Bson.Serialization.Attributes;
+using OnetezSoft.Data;
 
 namespace OnetezSoft.Models
 {
@@ -8,54 +9,99 @@ namespace OnetezSoft.Models
   {
     [BsonId]
     public string id { get; set; }
-    // Ngày của todolist
+
+    /// <summary> Ngày của todolist</summary>
     public long date { get; set; }
-    // Người tạo
+    
+    /// <summary> Người tạo</summary>
     public string user_create { get; set; }
-    // Ngày tạo
+    
+    /// <summary> Ngày tạo</summary>
     public long date_create { get; set; }
-    // Ngày checkin
+    
+    /// <summary> Ngày checkin</summary>
     public long date_checkin { get; set; }
-    // Ngày checkout
+    
+    /// <summary> Ngày checkout</summary>
     public long date_checkout { get; set; }
-    // Ngày xác nhận
+    
+    /// <summary> Ngày xác nhận</summary>
     public long date_confirm { get; set; }
-    // Tình trạng checkin
+    
+    /// <summary> Tình trạng checkin</summary>
     public bool ontime_checkin { get; set; }
-    // Tình trạng checkout
+    
+    /// <summary> Tình trạng checkout</summary>
     public bool ontime_checkout { get; set; }
-    // Ngày nghỉ/ngày thường
+    
+    /// <summary> Ngày nghỉ/ngày thường</summary>
     public bool day_off { get; set; }
-    // Người xác nhận  = auto → tự động xác nhận
+    
+    /// <summary> Người xác nhận  = auto → tự động xác nhận</summary>
     public string user_confirm { get; set; }
-    // Trạng thái: 1. Mới tạo, 2. Đã checkin, 3. Đã checkout
+    
+    /// <summary> Trạng thái: 1. Mới tạo, 2. Đã checkin, 3. Đã checkout</summary>
     public int status { get; set; }
-    // Điểm để xếp hạng
+    
+    /// <summary> Điểm để xếp hạng</summary>
     public int point { get; set; }
-    // Danh sách công việc
+
+    /// <summary>Công việc: số lượng</summary>
+    public int total  { get; set; }
+
+    /// <summary>Công việc: hoàn thành</summary>
+    public int done { get; set; }
+    
+    /// <summary> Danh sách công việc -> bỏ</summary>
     public List<Todo> todos { get; set; }
 
+
+    /// <summary>
+    /// Công việc trong Todolist
+    /// </summary>
     public class Todo
     {
+      [BsonId]
       public string id { get; set; }
-      // Tên công việc
+      
+      /// <summary>Todolist ID</summary>
+      public string todolist { get; set; }
+
+      /// <summary>User ID</summary>
+      public string user { get; set; }
+
+      /// <summary> Tên công việc</summary>
       public string name { get; set; }
-      // Chi tiết
+
+      /// <summary> Chi tiết</summary>
       public string detail { get; set; }
-      // Kết quả
+      
+      /// <summary> Kết quả</summary>
       public string result { get; set; }
-      // Bắt đầu
+
+      /// <summary>Ngày của Todolist</summary>
+      public long date { get; set; }
+      
+      /// <summary> Thời gian bắt đầu</summary>
       public string start { get; set; }
-      // Kết thúc
+      
+      /// <summary> Thời gian kết thúc</summary>
       public string end { get; set; }
-      // Phân loại
+      
+      /// <summary> Phân loại</summary>
       public int type { get; set; }
-      // Độ ưu tiên
+      
+      /// <summary> Độ ưu tiên</summary>
       public int level { get; set; }
-      // Trạng thái
+      
+      /// <summary> Trạng thái</summary>
       public int status { get; set; }
-      // Đã được xác nhận
+      
+      /// <summary> Đã được xác nhận</summary>
       public bool confirm { get; set; }
+
+      /// <summary>Liên kết với công việc trong kế hoạch</summary>
+      public string plan_task { get; set; }
     }
   }
 }

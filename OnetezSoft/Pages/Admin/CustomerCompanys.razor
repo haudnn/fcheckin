@@ -109,16 +109,6 @@ else
     }
   }
 
-  private async Task DeleteItem(CompanyModel item)
-  {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tổ chức: {item.name} ?"))
-      return;
-
-    dataList.Remove(item);
-    item.delete = true;
-    await DbMainCompany.Update(item);
-  }
-
   private void CreateItem()
   {
     model = new CompanyModel() { status = true, admin_id = customer.id };

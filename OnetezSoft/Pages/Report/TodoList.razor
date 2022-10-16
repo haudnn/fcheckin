@@ -128,8 +128,7 @@
             var item = todolist.SingleOrDefault(x => x.date == date.Ticks);
             if (item != null)
             {
-              var done = item.todos.Where(x => x.status == 4).Count();
-              var progress = Shared.Progress(done, item.todos.Count);
+              var progress = Shared.Progress(item.done, item.total);
               <tr>
                 <td class="pl-6">
                   <label class="td-label">Ngày</label>
@@ -186,13 +185,14 @@
                 <td class="2">
                   <label class="td-label">Hoàn thành</label>
                   <div class="td-value has-text-weight-semibold">
-                    @string.Format("{0}/{1}", done, item.todos.Count) - @Shared.ConvertNumber(progress)%
+                    @string.Format("{0}/{1}", item.done, item.total) - @Shared.ConvertNumber(progress)%
                   </div>
                 </td>
               </tr>
               if (showItems.Contains(item.id))
               {
-                foreach (var todo in item.todos)
+                var items = DbTodoItem.GetList(Layout.Company.id, item.id);
+                foreach (var todo in items)
                 {
                   var type = DbTodolist.Type(todo.type);
                   var level = DbTodolist.Level(todo.level);

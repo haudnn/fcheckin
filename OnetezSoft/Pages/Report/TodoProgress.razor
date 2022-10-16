@@ -269,11 +269,11 @@
     int total = 0;
     foreach (var item in todolist)
     {
-      done += item.todos.Where(x => x.status == 4).Count();
-      total += item.todos.Count();
+      done += item.done;
+      total += item.total;
     }
     values[0] = done;
-    values[1] = total;
+    values[1] = total - done;
 
     await JSRuntime.InvokeAsync<string>("chartDoughnut", "chart_" + id, labels, values, colors);
 
