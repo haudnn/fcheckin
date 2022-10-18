@@ -6,17 +6,20 @@
 
 <PageTitle>@_title</PageTitle>
 
-<section class="p-4 is-flex" style="height: 90vh; align-items: center; justify-content: center;">
+<section class="p-4 is-flex" style="min-height: 90vh; align-items: center; justify-content: center;">
   @if(Layout.User.id == ConfigSystem.DeveloperId)
   {
     <div>
       <div class="buttons">
         <span class="button is-dark has-text-weight-bold" style="width: 92px;">BƯỚC 1</span>
         <a class="button is-danger" @onclick="DeleteCompanyList">
-          Xóa tổ chức cũ
+          Xóa tất cả tổ chức
         </a>
         <a class="button is-danger" @onclick="DeleteUserList">
-          Xóa tài khoản cũ
+          Xóa tất cả tài khoản
+        </a>
+        <a class="button is-danger" @onclick="Testing">
+          Testing
         </a>
       </div>
 
@@ -36,7 +39,7 @@
           Chuyển toàn bộ dữ liệu của tổ chức
         </a>
         <a class="button is-warning" @onclick="GetCompanyInWork">
-          Xem tất cả tổ chức trong Work.fastdo.vn
+          Xem tất cả tổ chức trong DB Workdo
         </a>
       </div>
 
@@ -56,7 +59,9 @@
           <thead>
             <tr>
               <th>ID</th>
-              <th>Name</th>
+              <th width="300px">Name</th>
+              <th>Status</th>
+              <th>Delete</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -66,8 +71,13 @@
               <tr>
                 <td>@item.id</td>
                 <td>@item.name</td>
+                <td>@(item.status ? "Active" : "")</td>
+                <td>@(item.delete ? "Delete" : "")</td>
                 <td>
-                  <a class="tag is-link" @onclick="() => MoveCompanyData(item)">Đồng bộ</a>
+                  @if(!item.delete)
+                  {
+                    <a class="tag is-@(item.status ? "link" : "danger")" @onclick="() => MoveCompanyData(item)">Đồng bộ</a>
+                  }
                 </td>
               </tr>
             }
@@ -93,17 +103,20 @@
 
   private async Task DeleteUserList()
   {
+    int count = 0;
     await JSRuntime.InvokeVoidAsync("console.warn", "Xóa tài khoản cũ");
     var data = await BackupData.GetList<UserModel>("fastdo", "users");
     foreach (var item in data)
     {
-      if(item.id != ConfigSystem.DeveloperId)
+      if(!item.is_admin)
       {
-        // Xóa tài khoản cũ
+        // Xóa tài khoản cũ nhưng không xóa admin
         BackupData.Delete<UserModel>("fastdo", "users", item.id);
         await JSRuntime.InvokeVoidAsync("console.log", item.email + " => delete");
+        count++;
       }
     }
+    await JSRuntime.InvokeVoidAsync("console.log",$"DELETE {count}/{data.Count} user");
   }
  
   private async Task DeleteCompanyList()
@@ -114,8 +127,71 @@
     {
       // Xóa tổ chức trong database chính
       BackupData.Delete<CompanyModel>("fastdo", "companys", item.id);
-      await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.name + " => delete");
+
+      // Xóa dữ liệu trong database công ty
+      var db_source = "fastdo_" + item.id;
+      // departments
+      await DeleteDataModel<DepartmentModel>(db_source, "departments");
+      // okrs
+      await DeleteDataModel<OkrModel>(db_source, "okrs");
+      // okr_config
+      await DeleteDataModel<OkrConfigModel>(db_source, "okr_config");
+      // okr_stars
+      await DeleteDataModel<OkrStarModel>(db_source, "okr_stars");
+      // okr_cfrs
+      await DeleteDataModel<OkrCfrModel>(db_source, "okr_cfrs");
+      // okr_checkins
+      await DeleteDataModel<OkrCheckinModel>(db_source, "okr_checkins");
+      // kaizen
+      await DeleteDataModel<KaizenModel>(db_source, "kaizen");
+      // quotes
+      await DeleteDataModel<QuotesModel>(db_source, "quotes");
+      // todolist
+      await DeleteDataModel<TodolistModel>(db_source, "todolist");
+      // achievement
+      await DeleteDataModel<AchievementModel>(db_source, "achievement");
+      // gift_products
+      await DeleteDataModel<GiftProductModel>(db_source, "gift_products");
+      // days_checkin
+      await DeleteDataModel<DayCheckinModel>(db_source, "days_checkin");
+
+      await JSRuntime.InvokeVoidAsync("console.warn", item.id + " : " + item.name + " => Delete");
     }
+  }
+
+  private async Task Testing()
+  {
+    //await DeleteDataModel<TodolistModel.Todo>("fastdo_C7A9347733", "todoitems");
+  }
+
+  private async Task DeleteDataModel<T>(string db_source, string table_name)
+  {
+    int count = 0;
+    var data = await BackupData.GetList<T>(db_source, table_name);
+    foreach (var item in data)
+    {
+      try
+      {
+        var id = BackupData.GetValue<T>(item, "id");
+        BackupData.Delete<T>(db_source, table_name, id);
+        count++;
+        //await JSRuntime.InvokeVoidAsync("console.log", "Delete => " + id);
+      }
+      catch (System.Exception)
+      {
+        //await JSRuntime.InvokeVoidAsync("console.warn",$"EXIST => {ex.Message}");
+      }
+    }
+    await JSRuntime.InvokeVoidAsync("console.log",$".....{table_name} => Delete {count}/{data.Count} item");
+  }
+
+  private string delete_id = string.Empty;
+  private string delete_db = string.Empty;
+  private string delete_table = string.Empty;
+  private async Task DeleteItem()
+  {
+    //BackupData.Delete<T>("fastdo_" + delete_db, delete_table, delete_id);
+    //await JSRuntime.InvokeVoidAsync("console.log",$"Delete Item: fastdo_{delete_db} : {delete_table} : {delete_id}");
   }
 
  private async Task MoveCompanyList()
@@ -159,7 +235,7 @@
           if(customers.Contains(item.id))
             item.is_customer = true;
           BackupData.Create<UserModel>("fastdo", "users", item);
-          await JSRuntime.InvokeVoidAsync("console.log", "DONE => " + item.id + " : " + item.email);
+          await JSRuntime.InvokeVoidAsync("console.log", "....." + item.id + " : " + item.email);
           count++;
         }
         catch (System.Exception)
@@ -174,7 +250,8 @@
   private List<CompanyModel> companys = new();
   private async Task GetCompanyInWork()
   {
-    companys = await BackupData.GetList<CompanyModel>("fastdo", "companys");
+    companys = await BackupData.GetList<CompanyModel>("workdo", "companys");
+    companys = companys.OrderBy(x => x.delete).ToList();
   }
 
   private async Task MoveCompanyAll()
@@ -182,7 +259,8 @@
     var data = await BackupData.GetList<CompanyModel>("fastdo", "companys");
     foreach (var item in data)
     {
-      await MoveCompanyData(item);
+      if(item.status && !item.delete)
+        await MoveCompanyData(item);
     }
   }
 
@@ -240,7 +318,7 @@
         //await JSRuntime.InvokeVoidAsync("console.warn",$"EXIST => {item.email}");
       }
     }
-    await JSRuntime.InvokeVoidAsync("console.log",$"{table_name} => done {count}/{data.Count} item");
+    await JSRuntime.InvokeVoidAsync("console.log",$".....{table_name} => done {count}/{data.Count} item");
   }
 
   private async Task MoveDataModel<T>(string db_source, string db_target, string table_name)
@@ -259,7 +337,7 @@
         //await JSRuntime.InvokeVoidAsync("console.warn",$"EXIST => {ex.Message}");
       }
     }
-    await JSRuntime.InvokeVoidAsync("console.log",$"{table_name} => done {count}/{data.Count} item");
+    await JSRuntime.InvokeVoidAsync("console.log",$".....{table_name} => done {count}/{data.Count} item");
   }
 
   private async Task GetUserList()

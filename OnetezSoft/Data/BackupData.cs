@@ -46,5 +46,13 @@ namespace OnetezSoft.Data
 
       return await collection.Find(new BsonDocument()).ToListAsync();
     }
+
+    public static string GetValue<T>(T item, string key)
+    {
+      var type = item.GetType();
+      var prop = type.GetProperty(key);
+      var value = prop.GetValue(item);
+      return value.ToString();
+    }
   }
 }

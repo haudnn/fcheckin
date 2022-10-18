@@ -80,6 +80,20 @@ namespace OnetezSoft.Data
     }
 
 
+    public static async Task<TodolistModel> UpdateData(string companyId, TodolistModel model)
+    { 
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<TodolistModel>(_collection);
+
+      var option = new ReplaceOptions { IsUpsert = false };
+
+      var result = await collection.ReplaceOneAsync(x => x.id.Equals(model.id), model, option);
+
+      return model;
+    }
+
+
     public static async Task<bool> Delete(string companyId, string id)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
@@ -119,6 +133,20 @@ namespace OnetezSoft.Data
          & builder.Eq("date", date.Ticks);
 
       var result = await collection.Find(filtered).FirstOrDefaultAsync();
+
+      // FIXME: Chuẩn hóa dữ liệu cũ và mới
+      if(result != null && result.todos != null && result.todos.Count > 0)
+      {
+        foreach (var item in result.todos)
+        {
+          item.date = result.date;
+          item.user = result.user_create;
+          item.todolist = result.id;
+          await DbTodoItem.Create(companyId, item);
+        }
+        result.todos = null;
+        await UpdateData(companyId, result);
+      }
 
       return result;
     }

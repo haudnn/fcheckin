@@ -186,10 +186,10 @@
     if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?"))
       return;
 
-    item.delete = true;
+    item.is_admin = false;
     await DbMainUser.Update(item);
-    dataList.Remove(item);
     await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa tài khoản " + item.email);
+    dataList.Remove(item);
   }
 
   private async Task EditItem(UserModel item)
