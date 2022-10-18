@@ -223,12 +223,24 @@
     var company = await DbMainCompany.Get(companyId);
     if (company != null && !company.delete)
     {
-      // Cập nhật lại tên tổ chức
-      var item = user.companys.SingleOrDefault(x => x.id == companyId);
-      if (item != null && item.name != company.name)
+      // Lấy thông tin công ty
+      if(user.companys.Where(x => x.id == companyId).Count() > 1)
       {
-        item.name = company.name;
-        user = await DbMainUser.Update(user);
+        // Xóa công ty trùng
+        user.companys.RemoveAll(x => x.id == companyId);
+        // Thêm lại công ty
+        user.companys.Add(new() { id = company.id, name = company.name });
+        await DbMainUser.Update(user);
+      }
+      else
+      {
+        // Cập nhật lại tên tổ chức
+        var item = user.companys.FirstOrDefault(x => x.id == companyId);
+        if (item != null && item.name != company.name)
+        {
+          item.name = company.name;
+          await DbMainUser.Update(user);
+        }
       }
 
       // Truy cập vào tổ chức
@@ -257,7 +269,7 @@
     else
     {
       user.companys.RemoveAll(x => x.id == companyId);
-      user = await DbMainUser.Update(user);
+      await DbMainUser.Update(user);
       await JSRuntime.InvokeVoidAsync("tagline", true, "Công ty này không tồn tại trên hệ thống!");
     }
   }

@@ -54,7 +54,9 @@ namespace OnetezSoft.Services
       }
 
       // Liên kết tài khoản với công ty
-      user.companys.Add(new UserModel.Company { id = company.id, name = company.name });
+      if(user.companys.Where(x => x.id == company.id).Count() == 0)
+        user.companys.Add(new UserModel.Company { id = company.id, name = company.name });
+      
       await DbMainUser.Update(user);
     }
   }
