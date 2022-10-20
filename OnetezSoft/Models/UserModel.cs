@@ -96,6 +96,13 @@ namespace OnetezSoft.Models
     /// <summary>Mã xác minh</summary>
     public string verify { get; set; }
 
+    /// <summary>Các kế hoạch đã ghim</summary>
+    public List<string> plans_pin  { get; set; }
+
+    /// <summary>Các kế hoạch đã lưu trữ</summary>
+    public List<string> plans_hide { get; set; }
+
+
 
     /// <summary>Công ty trực thuộc</summary>
     public class Company

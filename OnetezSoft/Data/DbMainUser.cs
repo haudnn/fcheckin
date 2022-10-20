@@ -159,6 +159,34 @@ namespace OnetezSoft.Data
     }
 
 
+    public static List<UserModel> GetAll(string keyword, int paging, int size, out int total)
+    {
+      var collection = _db.GetCollection<UserModel>(_collection);
+
+      var sorted = Builders<UserModel>.Sort.Descending("create_date");
+
+      var list = collection.Find(new BsonDocument()).Sort(sorted).ToList();
+
+      var results = new List<UserModel>();
+      if (!string.IsNullOrEmpty(keyword))
+      {
+        foreach (var item in list)
+        {
+          if(Handled.Shared.SearchKeyword(keyword, item.id + item.email + item.FullName))
+            results.Add(item);
+        }
+      }
+      else
+        results = list;
+
+      total = results.Count;
+      if (size > 0)
+        return results.Skip(size * (paging - 1)).Take(size).ToList();
+      else
+        return results;
+    }
+
+
     public static async Task<List<UserModel>> GetListAdmin()
     {
       var collection = _db.GetCollection<UserModel>(_collection);

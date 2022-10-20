@@ -25,8 +25,8 @@ namespace OnetezSoft.Data
       var db = Mongo.DbConnect(db_name);
 
       var collection = db.GetCollection<T>(table_name);
-      
-      var result = collection.ReplaceOne(new BsonDocument("_id", id), record, new UpdateOptions { IsUpsert = true});
+
+      var result = collection.ReplaceOne(new BsonDocument("_id", id), record, new ReplaceOptions { IsUpsert = true});
     }
 
     public static void Delete<T>(string db_name, string table_name, string id)

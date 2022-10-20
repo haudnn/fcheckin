@@ -146,6 +146,9 @@ namespace OnetezSoft.Models
 
       /// <summary>Công việc chính</summary>
       public string parent_id { get; set; }
+      
+      /// <summary>Số công việc phụ</summary>
+      public int sub_task { get; set; }
 
       /// <summary>Nhãn công việc</summary>
       public List<string> labels { get; set; }

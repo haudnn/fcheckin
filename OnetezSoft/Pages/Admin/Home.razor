@@ -51,6 +51,9 @@
         <a class="button is-primary" @onclick="GetUserList">
           Lấy danh sách tài khoản
         </a>
+        <a class="button is-primary" @onclick="RestoreCompnay">
+          Cứu DB TP Bank
+        </a>
       </div>
 
       @if(companys.Count > 0)
@@ -161,6 +164,7 @@
 
   private async Task Testing()
   {
+    await JSRuntime.InvokeVoidAsync("console.warn", "Testing");
     //await DeleteDataModel<TodolistModel.Todo>("fastdo_C7A9347733", "todoitems");
   }
 
@@ -183,15 +187,6 @@
       }
     }
     await JSRuntime.InvokeVoidAsync("console.log",$".....{table_name} => Delete {count}/{data.Count} item");
-  }
-
-  private string delete_id = string.Empty;
-  private string delete_db = string.Empty;
-  private string delete_table = string.Empty;
-  private async Task DeleteItem()
-  {
-    //BackupData.Delete<T>("fastdo_" + delete_db, delete_table, delete_id);
-    //await JSRuntime.InvokeVoidAsync("console.log",$"Delete Item: fastdo_{delete_db} : {delete_table} : {delete_id}");
   }
 
  private async Task MoveCompanyList()
@@ -332,12 +327,30 @@
         BackupData.Create<T>(db_target, table_name, item);
         count++;
       }
-      catch (System.Exception ex)
+      catch (System.Exception)
       {
         //await JSRuntime.InvokeVoidAsync("console.warn",$"EXIST => {ex.Message}");
       }
     }
     await JSRuntime.InvokeVoidAsync("console.log",$".....{table_name} => done {count}/{data.Count} item");
+  }
+
+
+  private async Task RestoreCompnay()
+  {
+    var companyId = "22AEB3FA5B";
+    // Tạo tổ chức TP Bank
+    var company = new CompanyModel() {
+      id = companyId,
+      name = "TPBank Quận 3",
+      status = true, 
+      admin_id = Layout.User.id
+    };
+    await DbMainCompany.Create(company);
+    await JSRuntime.InvokeVoidAsync("console.log",$"Tạo tổ chức xong: {company.id} - {company.name}");
+    // Sao chép tài khoản
+    await MoveDataUser("fastdo_" + companyId, "fastdo", "users");
+    await JSRuntime.InvokeVoidAsync("console.log",$"Sao chép tài khoản xong");
   }
 
   private async Task GetUserList()
@@ -348,9 +361,9 @@
     var members = new List<MemberModel>();
     foreach (var item in data)
     {
-      members.Add(UserService.ConvertToMember(item));
       if(item.active && !item.delete)
       {
+        members.Add(UserService.ConvertToMember(item));
         //await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.email + " => customer: " + item.is_customer);
       }
     }

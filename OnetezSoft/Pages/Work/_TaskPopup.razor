@@ -35,8 +35,8 @@
       </section>
       <section class="modal-card-body p-0">
         <ul class="columns is-variable is-0">
-          <li class="column is-2 p-4" style="background-color: #FBFBFB; height: 478px;">
-            <ul>
+          <li class="column is-2 p-4" style="background-color: #FBFBFB; height: calc(100vh - 130px);">
+            <ul style="height: 100%; position: relative;">
               <li class="mb-4">
                 <a class="has-text-@(tab == 1 ? "black" : "info")" @onclick="() => ChangeTab(1)">
                   Thông tin chung
@@ -64,6 +64,14 @@
                     Lịch sử cập nhật
                   </a>
                 </li>
+                @if(editTask)
+                {
+                  <li style="position: absolute; left: 0px; bottom: 0px;">
+                    <a class="has-text-@(tab == 6 ? "black" : "info")" @onclick="() => ChangeTab(6)">
+                      Xóa và rời khỏi
+                    </a>
+                  </li>
+                }
               }
             </ul>
           </li>
@@ -242,7 +250,8 @@
                 @if(editTask)
                 {
                   <div class="control">
-                    <textarea @bind="task.detail" class="textarea is_bg" placeholder="Nhập mô tả công việc..." rows="5" />
+                    <textarea @bind="task.detail" class="textarea is_bg" rows="5"
+                      placeholder="Nhập mô tả công việc..." style="height: calc(100vh - 482px);" />
                   </div>
                 }
                 else
@@ -274,13 +283,6 @@
           else if(tab == 2)
           {
             <li class="column is-10 is-size-7 p-4">
-              <ul class="columns is-vcentered is-gapless is-size-7 mb-0 has-text-grey">
-                <li class="column">Công việc phụ</li>
-                <li class="column is-narrow" style="width: 130px;">Thời gian</li>
-                <li class="column is-narrow" style="width: 110px;">Thành viên</li>
-                <li class="column is-narrow" style="width: 80px;">Trạng thái</li>
-                <li class="column is-narrow" style="width: 30px;"></li>
-              </ul>
               <_TaskSubList parent="task" tasks="subTasks" editRole="editTask" members="members" />
             </li>
           }
@@ -301,9 +303,35 @@
           {
             <li class="column is-10 is-size-7 p-4">
               <div class="has-text-grey">Lịch sử cập nhật</div>
-              <div class="scrolly p-2" style="height: 420px;">
+              <div class="scrolly py-1 px-2" style="height: calc(100vh - 180px);">
                 <_PlanLogs logs="logs" />
               </div>
+            </li>
+          }
+          else if(tab == 6)
+          {
+            <li class="column is-10 is-size-7 p-4 has-text-info">
+              <div class="has-text-grey mb-1">Xóa công việc</div>
+              <div class="font_14 mb-2">
+                Toàn bộ dữ liệu của công việc như file đính kèm, công việc phụ, bình luận của bạn và các thành viên sẽ bị xóa và không thể khôi phục.
+              </div>
+              <a class="button is-danger" @onclick="Delete">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">delete</i>
+                </span>
+                <span>Xóa công việc</span>
+              </a>
+
+              <div class="has-text-grey mb-1 mt-6">Rời khỏi công việc</div>
+              <div class="font_14 mb-2">
+                Bạn sẽ rời khỏi công việc và không nhận thông báo mới. Dữ liệu của công việc không bị ảnh hưởng.
+              </div>
+              <a class="button is-info">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">remove</i>
+                </span>
+                <span>Rời khỏi</span>
+              </a>
             </li>
           }
         </ul>
@@ -350,6 +378,20 @@
     else
       await OnUpdate.InvokeAsync(null);
     Reset();
+  }
+
+  private async Task Delete()
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa công việc {task.name}. Việc này sẽ khiến dữ liệu công việc phụ bị mất.\nBạn có chắc chắn muốn thực hiện?"))
+      return;
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
+    await OnUpdate.InvokeAsync(task);
+    await WorkService.CreateLog(Layout.Company.id, "Xóa công việc", task.name, task.plan_id, null, Layout.User);
+    // Thông báo chuông
+    foreach (var user in plan.members)
+      await DbNotify.ForPlan(Layout.Company.id, 717, plan.id, task.id, user.id, Layout.User.id);
+    // Xóa công việc
+    await DbWorkTask.Delete(Layout.Company.id, task.id);
   }
 
   private async Task Update()

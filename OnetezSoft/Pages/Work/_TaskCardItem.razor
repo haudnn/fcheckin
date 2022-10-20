@@ -76,12 +76,15 @@
         OnUpdate="UpdateMembers" />
     </li>
     <li class="column is-half">
-      <a class="icon-text" @onclick="Toggle">
-        <span>Công việc phụ</span>
-        <span class="icon-text">
-          <i class="material-icons-outlined is-size-6">@(toggle ? "arrow_drop_down" : "arrow_right")</i>
-        </span>
-      </a>
+      @if(model.sub_task > 0)
+      {
+        <a class="icon-text" @onclick="Toggle">
+          <span>Công việc phụ</span>
+          <span class="icon-text">
+            <i class="material-icons-outlined is-size-6">@(toggle ? "arrow_drop_down" : "arrow_right")</i>
+          </span>
+        </a>
+      }
     </li>
     <li class="column is-half has-text-right">
       <div class="dropdown is-right @(toggleStatus ? "is-active" : "")">
@@ -181,13 +184,14 @@
   {
     if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa công việc {model.name}. Việc này sẽ khiến dữ liệu công việc phụ bị mất.\nBạn có chắc chắn muốn thực hiện?"))
       return;
-    await DbWorkTask.Delete(Layout.Company.id, model.id);
     await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
     await OnUpdate.InvokeAsync(model);
     await WorkService.CreateLog(Layout.Company.id, "Xóa công việc", model.name, model.plan_id, null, Layout.User);
     // Thông báo chuông
     foreach (var user in plan.members)
       await DbNotify.ForPlan(Layout.Company.id, 717, plan.id, model.id, user.id, Layout.User.id);
+    // Xóa công việc
+    await DbWorkTask.Delete(Layout.Company.id, model.id);
   }
 
   private async Task UpdateDate(DateRange range)
@@ -228,5 +232,7 @@
   private async Task UpdateSubTasks(WorkPlanModel.Task item)
   {
     subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.plan_id, model.id);
+    // Cập nhật số lượng công việc phụ
+    await WorkService.UpdateSubTaskCount(Layout.Company.id, model.id, subTasks.Count);
   }
 }

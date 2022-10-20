@@ -30,6 +30,8 @@ namespace OnetezSoft.Data
       if (model.products == null)
         model.products = new();
 
+      model.email = model.email.Trim().ToLower();
+
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<UserModel>(_collection);
@@ -94,6 +96,10 @@ namespace OnetezSoft.Data
           result.teams_id = new();
         if (result.products == null)
           result.products = new();
+        if(result.plans_pin == null)
+          result.plans_pin = new();
+        if(result.plans_hide == null)
+          result.plans_hide = new();
       }
 
       return result;

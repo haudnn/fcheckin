@@ -132,12 +132,10 @@
   [Parameter]
   public EventCallback<bool> OnUpdate { get; set; }
 
-  private bool exist = false;
   private List<string> products = new();
 
   private async Task Cancel()
   {
-    exist = false;
     products = new();
     await OnUpdate.InvokeAsync(false);
   }
@@ -153,7 +151,6 @@
       model.first_name = checkUser.first_name;
       model.last_name = checkUser.last_name;
       model.avatar = checkUser.avatar;
-      exist = true;
       var companyUser = await DbUser.Get(company.id, checkUser.id);
       if(companyUser != null)
       {
@@ -166,7 +163,6 @@
       model.first_name = string.Empty;
       model.last_name = string.Empty;
       model.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
-      exist = false;
     }
   }
 
@@ -186,9 +182,9 @@
       {
         await DbMainUser.Create(model);
         // Gửi email cấp tài khoản
-        JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
         bool send = EmailService.UserInfo(model.email, model.id, out string message);
-        JSRuntime.InvokeVoidAsync("tagline", send, message);
+        await JSRuntime.InvokeVoidAsync("tagline", send, message);
       }
       else
         model = checkUser;
@@ -198,7 +194,6 @@
       // Thêm tài khoản vào tổ chức
       await CompanyService.AddStaff(company, model);
       
-      exist = false;
       products = new();
       await OnUpdate.InvokeAsync(true);
     }

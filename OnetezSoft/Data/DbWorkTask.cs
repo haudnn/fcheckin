@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using OnetezSoft.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using OnetezSoft.Services;
 
 namespace OnetezSoft.Data
 {

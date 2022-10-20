@@ -171,6 +171,19 @@ namespace OnetezSoft.Services
       }
     }
 
+    /// <summary>
+    /// Cập nhật số lượng công việc phụ
+    /// </summary>
+    public static async Task UpdateSubTaskCount(string companyId, string taskId, int Count)
+    {
+      var task = await DbWorkTask.Get(companyId, taskId);
+      if(task != null)
+      {
+        task.sub_task = Count;
+        await DbWorkTask.Update(companyId, task);
+      }
+    }
+
 
     /// <summary>
     /// Tính thống kê từ danh sách công việc

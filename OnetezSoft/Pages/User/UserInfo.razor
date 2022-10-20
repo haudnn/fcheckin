@@ -60,7 +60,7 @@
                   <img src="@user.avatar" />
                 </a>
               </div>
-              <div class="control is-expanded">
+              <div class="control is-expanded @(uploading ? "is-loading" : "")">
                 <InputFile OnChange="Upload" accept="image/*" class="input" />
               </div>
             </div>
@@ -149,32 +149,28 @@
     }
   }
 
+  private bool uploading = false;
   private async Task Upload(InputFileChangeEventArgs e)
   {
-    _success = false;
+    uploading = true;
     foreach (var file in e.GetMultipleFiles())
     {
-      _message = "Đang upload file lên...";
-
       try
       {
         if (file.Size <= Layout.MaxFileSize)
         {
           var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
-          var fileLink = await Files.SaveFileAsync(fileContent, file.Name);
-          user.avatar = fileLink;
-          _message = string.Empty;
+          user.avatar = await Files.SaveFileAsync(fileContent, file.Name);
         }
         else
-        {
-          _message = $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB";
-        }
+          await JSRuntime.InvokeVoidAsync("tagline", false, $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB");
       }
       catch (Exception ex)
       {
-        _message = $"ERROR: {ex.Message}";
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.Message}");
       }
     }
+    uploading = false;
   }
 
   private async Task Update()

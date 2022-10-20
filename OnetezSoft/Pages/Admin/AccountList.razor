@@ -1,0 +1,188 @@
+@page "/admin/accounts"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="px-4">
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-4">
+    <li class="column">
+      <h1 class="title is-5">
+        @_title
+      </h1>
+    </li>
+    <li class="column is-one-third">
+      <div class="control has-icons-left" title="Nhấn Enter để tìm">
+        <input @bind="filterKeyword" @onkeyup="ChangeKeyword" type="text" class="input is-small"
+          placeholder="ID, Email, họ và tên khách hàng" />
+        <span class="icon is-left has-text-dark">
+          <i class="material-icons-round is-size-6">search</i>
+        </span>
+      </div>
+    </li>
+  </ul>
+
+  <table class="table is-fullwidth is-vcentered is-responsive is_head_bg is-size-7">
+    <thead>
+      <tr>
+        <th width="100px">ID</th>
+        <th width="20%">Tài khoản</th>
+        <th>Họ và tên</th>
+        <th>Tổ chức</th>
+        <th width="10%" align="center">Trạng thái</th>
+        <th width="10%" align="center">Tình trạng</th>
+        <th width="10%" align="center">Truy cập</th>
+        <th width="80px" align="center">Xử lý</th>
+      </tr>
+    </thead>
+    <tbody class="has-text-weight-medium">
+      @foreach (var item in dataList)
+      {
+        var companys = item.companys != null ? item.companys.Select(x => x.name).ToList() : new List<string>();
+        <tr>
+          <td>@item.id</td>
+          <td>
+            <div class="user_item">
+              <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG" />
+              @if(item.delete)
+              {
+                <del>@item.email</del>
+              }
+              else
+              {
+                <span class="has-text-dark">@item.email</span>
+              }
+            </div>
+          </td>
+          <td>
+            <label class="td-label">Họ tên</label>
+            <div class="td-value">
+              @item.FullName
+            </div>
+          </td>
+          <td>
+            <label class="td-label">Tổ chức</label>
+            <div class="td-value">
+              @string.Join(", ", companys)
+            </div>
+          </td>
+          <td align="center">
+            <label class="td-label">Trạng thái</label>
+            <div class="td-value">
+              <a class="icon" @onclick="() => ActiveItem(item)">
+                <i class="material-icons-round is-size-5 has-text-@(item.active ? "success" : "grey")">
+                  toggle_@(item.active ? "on" : "off")
+                </i>
+              </a>
+            </div>
+          </td>
+          <td align="center">
+            <label class="td-label">Tình trạng</label>
+            <div class="td-value">
+              @(item.delete ? "Đã xóa" : "")
+            </div>
+          </td>
+          <td align="center">
+            <label class="td-label">Truy cập</label>
+            <div class="td-value">
+              @if (item.online > 0)
+              {
+                <span class="text_inline">
+                  @Handled.Shared.ConvertDate(new DateTime(item.online)).Replace(" trước", "")
+                </span>
+              }
+            </div>
+          </td>
+          <td align="center">
+            <label class="td-label">Xử lý</label>
+            <div class="td-value">
+              <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                <i class="material-icons-round is-size-6">delete</i>
+              </a>
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  @if (dataList.Count == 0)
+  {
+    <div class="has-text-grey has-text-centered py-5">
+      Không tìm thấy dữ liệu phù hợp
+    </div>
+  }
+  <nav class="pagination is-right is-small">
+    <ul class="pagination-list">
+      @for (var p = 1; p <= Shared.Paging(total, size); p++)
+      {
+        var active = paging == p ? "is-current" : "";
+        <li>
+          <a class="pagination-link @active" href="/admin/accounts?p=@p">@p</a>
+        </li>
+      }
+    </ul>
+  </nav>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  private string _title = "Danh sách tài khoản";
+  private List<UserModel> dataList = new();
+  private string filterKeyword = string.Empty;
+  private int paging = 1;
+  private int size = 25;
+  private int total = 0;
+
+  protected override void OnParametersSet()
+  {
+    var uri = navigation.ToAbsoluteUri(navigation.Uri);
+    if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("p", out var outPage))
+      paging = Convert.ToInt32(outPage);
+    GetList();
+  }
+
+  private void GetList()
+  {
+    dataList = DbMainUser.GetAll(filterKeyword, paging, size, out total);
+  }
+
+  private void ChangeKeyword(KeyboardEventArgs args)
+  {
+    if (args.Key == "Enter")
+    {
+      GetList();
+    }
+    else if (args.Key == "Escape")
+    {
+      filterKeyword = string.Empty;
+      GetList();
+    }
+  }
+
+  private async Task ActiveItem(UserModel item)
+  {
+    item.active = !item.active;
+    await DbMainUser.Update(item);
+  }
+
+  private async Task DeleteItem(UserModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa vĩnh viễn tài khoản {item.email} ?"))
+      return;
+    
+    int count = 0;
+    if(item.companys != null)
+    {
+      foreach (var company in item.companys)
+      {
+        await DbUser.Delete(company.id, item.id);
+        count++;
+      }
+    }
+    await DbMainUser.Delete(item.id);
+    await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã xóa tài khoản {item.email} khỏi {count} tổ chức");
+    dataList.Remove(item);
+  }
+}

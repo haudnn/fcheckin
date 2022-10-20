@@ -74,7 +74,7 @@
               }
             </div>
             <a class="button is-white is-small is-fullwidth @(uploading ? "is-loading" : "")"
-            onclick="document.getElementById('file').click()">
+              onclick="document.getElementById('file').click()">
               <span class="icon">
                 <i class="material-icons-sharp is-size-6">file_upload</i>
               </span>
@@ -389,10 +389,10 @@
         {
           var fileStream = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
           var fileLink = await Files.SaveFileAsync(fileStream, file.Name);
-          if (step == 1)
-            manager.avatar = fileLink;
-          else
+          if (step == 2 || !string.IsNullOrEmpty(model.id))
             model.logo = fileLink;
+          else
+            manager.avatar = fileLink;
         }
         else
           await JSRuntime.InvokeVoidAsync("tagline", false,

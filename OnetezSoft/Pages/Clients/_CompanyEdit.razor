@@ -94,7 +94,7 @@
               }
             </div>
             <a class="button is-white is-small is-fullwidth @(uploading ? "is-loading" : "")"
-            onclick="document.getElementById('file').click()">
+              onclick="document.getElementById('file').click()">
               <span class="icon">
                 <i class="material-icons-sharp is-size-6">file_upload</i>
               </span>
@@ -414,9 +414,9 @@
         {
           await DbMainUser.Create(manager);
           // Gửi email cấp tài khoản
-          JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
           bool send = EmailService.UserInfo(model.email, model.id, out string message);
-          JSRuntime.InvokeVoidAsync("tagline", send, message);
+          await JSRuntime.InvokeVoidAsync("tagline", send, message);
         }
       }
       else

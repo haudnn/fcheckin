@@ -34,23 +34,23 @@
         </div>
       </div>
     </div>
-    @foreach (var status in planList)
+    @foreach (var type in typeList.OrderBy(x => x.id))
     {
-      var hidden = toggle.Contains(status.Key);
+      var hidden = toggle.Contains(type.id);
       <hr class="my-3">
-      <a class="icon-text is-fullwidth" @onclick="() => Toggle(status.Key)">
-        <span style="flex-grow: 1;">@status.Key</span>
+      <a class="icon-text is-fullwidth" @onclick="() => Toggle(type.id)">
+        <span style="flex-grow: 1;">@type.name</span>
         <span class="icon is-small">
           <i class="material-icons-outlined is-size-5">arrow_@(hidden ? "drop_down" : "right")</i>
         </span>
       </a>
       if(hidden)
       {
-        foreach (var plan in status.Value)
+        var list = planList.ContainsKey(type.id) ? planList[type.id] : new();
+        foreach (var plan in list)
         {
           var link = "/work/" + plan.id;
           var show = string.IsNullOrEmpty(keyword) || Shared.SearchKeyword(keyword, plan.name);
-
           <div class="@(show ? "icon-text is-fullwidth mt-3 " : "is-hidden")">
             <a class="pl-3 has-text-@(url.StartsWith(link) ? "link" : "grey")" style="flex-grow: 1;" href="@link">
               @plan.name
@@ -66,22 +66,33 @@
                   <a class="dropdown-item is-hidden">
                     Ghim kế hoạch
                   </a>
-                  @if(plan.is_hide)
+                  @if(type.id == 0)
                   {
-                    <a class="dropdown-item" @onclick="() => ToggleHidePlan(plan)">
+                    <a class="dropdown-item" @onclick="() => PinPlan(plan)">
+                      Hủy ghim
+                    </a>
+                  }
+                  else
+                  {
+                    <a class="dropdown-item" @onclick="() => PinPlan(plan)">
+                      Ghim kế hoạch
+                    </a>
+                  }
+                  @if(type.id == 3)
+                  {
+                    <a class="dropdown-item" @onclick="() => HidePlan(plan)">
                       Hủy lưu trữ
                     </a>
                   }
                   else
                   {
-                    <a class="dropdown-item" @onclick="() => ToggleHidePlan(plan)">
+                    <a class="dropdown-item" @onclick="() => HidePlan(plan)">
                       Thêm vào lưu trữ
                     </a>
                   }
                   <a class="dropdown-item has-text-danger" @onclick="() => LeavePlan(plan)">
                     Rời khỏi kế hoạch
                   </a>
-                  <hr class="dropdown-divider">
                   <a class="dropdown-item has-text-danger" @onclick="() => DeletePlan(plan)">
                     Xóa kế hoạch
                   </a>
@@ -90,9 +101,9 @@
             </div>
           </div>
         }
-        if(status.Value.Count == 0)
+        if(list.Count == 0)
         {
-          <div class="has-text-grey mt-3">Không có dữ liệu</div>
+          <div class="has-text-grey mt-3 pl-3 is-italic">Không có kế hoạch</div>
         }
       }
     }
@@ -113,10 +124,20 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   private string url = string.Empty;
-  private List<string> toggle = new() { "Kế hoạch đang diễn ra", "Kế hoạch hoàn thành" };
-  private Dictionary<string, List<WorkPlanModel>> planList = new();
+  private List<int> toggle = new() { 0, 1 };
+  private Dictionary<int, List<WorkPlanModel>> planList = new();
   private WorkPlanModel planEdit = null;
   private string keyword = string.Empty;
+  private List<StaticModel> typeList = new();
+
+  protected override void OnInitialized()
+  {
+    typeList.Clear();
+    typeList.Add(new() { id = 0, name = "Kế hoạch đã ghim" });
+    typeList.Add(new() { id = 3, name = "Kế hoạch lưu trữ" });
+    typeList.Add(new() { id = 1, name = "Kế hoạch đang diễn ra" });
+    typeList.Add(new() { id = 2, name = "Kế hoạch hoàn thành" });
+  }
 
   protected override async Task OnParametersSetAsync()
   {
@@ -126,62 +147,78 @@
 
   private async Task GetList()
   {
-    var data = await DbWorkPlan.GetListView(Layout.Company.id, Layout.User.id);
-    var planTodo = data.Where(x => !x.is_hide && x.status == 1).ToList();
-    var planDone = data.Where(x => !x.is_hide && x.status == 2).ToList();
-    var planHide = data.Where(x => x.is_hide).ToList();
-    
-    planList = new();
-    planList.Add("Kế hoạch đang diễn ra", planTodo);
-    planList.Add("Kế hoạch hoàn thành", planDone);
-    planList.Add("Kế hoạch lưu trữ", planHide);
-  }
-
-  private async Task CreatePlan()
-  {
-    planEdit = new() {
-      creator = Layout.User.id,
-      members = new() { new() { id = Layout.User.id, role = 1 } },
-      labels = new(),
-      sections = new(),
-      timelines = new()
-    };
-    await JSRuntime.InvokeVoidAsync("setFocus", "plan_name");
-  }
-
-  private async Task OnCreate(WorkPlanModel item)
-  {
-    if(item != null)
+    var data = await DbWorkPlan.GetListJoin(Layout.Company.id, Layout.User.id);
+    planList.Clear();
+    foreach (var type in typeList)
     {
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã tạo kế hoạch: " + item.name);
-      navigation.NavigateTo("/work/" + item.id);
+      var list = new List<WorkPlanModel>();
+      if(type.id == 0)
+      {
+        list = data.Where(x => Layout.User.plans_pin.Contains(x.id)).ToList();
+        data.RemoveAll(x => Layout.User.plans_pin.Contains(x.id));
+      }
+      else if(type.id == 3)
+      {
+        list = data.Where(x => Layout.User.plans_hide.Contains(x.id)).ToList();
+        data.RemoveAll(x => Layout.User.plans_hide.Contains(x.id));
+      }
+      else if(type.id == 1 || type.id == 2)
+      {
+        list = data.Where(x => x.status == type.id).ToList();
+        data.RemoveAll(x => x.status == type.id);
+      }
+      planList.Add(type.id, list);
     }
-    planEdit = null;
   }
 
-  private async Task ToggleHidePlan(WorkPlanModel item)
+  private void Toggle(int id)
   {
-    if(WorkService.RoleInPlan(item, Layout.User.id) == 1)
+    if(toggle.Contains(id))
+      toggle.Remove(id);
+    else
+      toggle.Add(id);
+  }
+
+  private async Task PinPlan(WorkPlanModel item)
+  {
+    if(Layout.User.plans_pin.Contains(item.id))
     {
-      if(item.is_hide)
-      {
-        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy lưu trữ kế hoạch: {item.name}?"))
-          return;
-        item.is_hide = false; 
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hủy lưu trữ kế hoạch" + item.name);
-      }
-      else
-      {
-        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn lưu trữ kế hoạch: {item.name}?"))
-          return;
-        item.is_hide = true;
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã lưu trữ kế hoạch" + item.name);
-      }
-      await DbWorkPlan.Update(Layout.Company.id, item);
-      await GetList();
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy ghim kế hoạch: {item.name}?"))
+        return;
+      Layout.User.plans_pin.Remove(item.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hủy ghim kế hoạch" + item.name);
     }
     else
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có quyền lưu trữ kế hoạch này!");
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn ghim kế hoạch: {item.name}?"))
+        return;
+      Layout.User.plans_pin.Add(item.id);
+      Layout.User.plans_hide.Remove(item.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã ghim kế hoạch" + item.name);
+    }
+    await DbUser.Update(Layout.Company.id, Layout.User);
+    await GetList();
+  }
+
+  private async Task HidePlan(WorkPlanModel item)
+  {
+    if(Layout.User.plans_hide.Contains(item.id))
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy lưu trữ kế hoạch: {item.name}?"))
+        return;
+      Layout.User.plans_hide.Remove(item.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hủy lưu trữ kế hoạch" + item.name);
+    }
+    else
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn lưu trữ kế hoạch: {item.name}?"))
+        return;
+      Layout.User.plans_hide.Add(item.id);
+      Layout.User.plans_pin.Remove(item.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã lưu trữ kế hoạch" + item.name);
+    }
+    await DbUser.Update(Layout.Company.id, Layout.User);
+    await GetList();
   }
 
   private async Task DeletePlan(WorkPlanModel item)
@@ -213,11 +250,25 @@
       await JSRuntime.InvokeVoidAsync("tagline", false, "Không thành công, vui lòng thử lại!");
   }
 
-  private void Toggle(string status)
+  private async Task CreatePlan()
   {
-    if(toggle.Contains(status))
-      toggle.Remove(status);
-    else
-      toggle.Add(status);
+    planEdit = new() {
+      creator = Layout.User.id,
+      members = new() { new() { id = Layout.User.id, role = 1 } },
+      labels = new(),
+      sections = new(),
+      timelines = new()
+    };
+    await JSRuntime.InvokeVoidAsync("setFocus", "plan_name");
+  }
+
+  private async Task OnCreate(WorkPlanModel item)
+  {
+    if(item != null)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã tạo kế hoạch: " + item.name);
+      navigation.NavigateTo("/work/" + item.id);
+    }
+    planEdit = null;
   }
 }

@@ -12,74 +12,74 @@
   </div>
 </div>
 
-@if(todo != null)
-{
-  <ul class="columns is-multiline is-vcentered is-variable is-1 has-text-centered">
-    <li class="column has-text-left">
-      <input @bind="todo.name" id="task_todo" class="input is-small" type="text" placeholder="Nhập tiêu đề Todolist">
-    </li>
-    <li class="column is-narrow" style="width: 130px;">
-      <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" Opens="SideType.Left"
-        MinDate="new DateTime(task.date_start)" MaxDate="new DateTime(task.date_end)">
-        <PickerTemplate>
-          <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
-            <span class="icon is-small mr-1">
-              <i class="material-icons-outlined is-size-6">calendar_today</i>
+<div class="scrolly py-1" style="height: calc(100vh - 194px);">
+  @if(todo != null)
+  {
+    <ul class="columns is-multiline is-vcentered is-variable is-1 has-text-centered">
+      <li class="column has-text-left">
+        <input @bind="todo.name" id="task_todo" class="input is-small" type="text" placeholder="Nhập tiêu đề Todolist">
+      </li>
+      <li class="column is-narrow" style="width: 130px;">
+        <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" Opens="SideType.Left"
+          MinDate="new DateTime(task.date_start)" MaxDate="new DateTime(task.date_end)">
+          <PickerTemplate>
+            <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
+              <span class="icon is-small mr-1">
+                <i class="material-icons-outlined is-size-6">calendar_today</i>
+              </span>
+              @if (context.TStartDate != null && context.TEndDate != null)
+              {
+                <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+                <span class="px-1">-</span>
+                <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+              }
+              else
+              {
+                <span>Chọn ngày</span>
+              }
+            </a>
+          </PickerTemplate>
+        </DateRangePicker>
+      </li>
+      <li class="column is-narrow" style="width: 90px;">
+        <div class="select is-small is-fullwidth">
+          <select @bind="todo.start">
+            @foreach (var sl in Shared.TimeList())
+            {
+              <option value="@sl.name">@sl.name</option>
+            }
+          </select>
+        </div>
+      </li>
+      <li class="column is-narrow" style="width: 90px;">
+        <div class="select is-small is-fullwidth">
+          <select @bind="todo.end">
+            @foreach (var sl in Shared.TimeList())
+            {
+              <option value="@sl.name">@sl.name</option>
+            }
+          </select>
+        </div>
+      </li>
+      <li class="column is-full">
+        <div class="buttons is-right">
+          <a class="button is-small is-white has-text-link" @onclick="Update">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">done</i>
             </span>
-            @if (context.TStartDate != null && context.TEndDate != null)
-            {
-              <span>@context.TStartDate.Value.ToString("dd/MM")</span>
-              <span class="px-1">-</span>
-              <span>@context.TEndDate.Value.ToString("dd/MM")</span>
-            }
-            else
-            {
-              <span>Chọn ngày</span>
-            }
+            <span>Cập nhật</span>
           </a>
-        </PickerTemplate>
-      </DateRangePicker>
-    </li>
-    <li class="column is-narrow" style="width: 90px;">
-      <div class="select is-small is-fullwidth">
-        <select @bind="todo.start">
-          @foreach (var sl in Shared.TimeList())
-          {
-            <option value="@sl.name">@sl.name</option>
-          }
-        </select>
-      </div>
-    </li>
-    <li class="column is-narrow" style="width: 90px;">
-      <div class="select is-small is-fullwidth">
-        <select @bind="todo.end">
-          @foreach (var sl in Shared.TimeList())
-          {
-            <option value="@sl.name">@sl.name</option>
-          }
-        </select>
-      </div>
-    </li>
-    <li class="column is-full">
-      <div class="buttons is-right">
-        <a class="button is-small is-white has-text-link" @onclick="Update">
-          <span class="icon">
-            <i class="material-icons-round is-size-6">done</i>
-          </span>
-          <span>Cập nhật</span>
-        </a>
-        <a class="button is-small is-white has-text-danger" @onclick="() => todo = null">
-          <span class="icon">
-            <i class="material-icons-round is-size-6">close</i>
-          </span>
-          <span>Hủy</span>
-        </a>
-      </div>
-    </li>
-  </ul>
-}
+          <a class="button is-small is-white has-text-danger" @onclick="() => todo = null">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">close</i>
+            </span>
+            <span>Hủy</span>
+          </a>
+        </div>
+      </li>
+    </ul>
+  }
 
-<div class="scrolly py-2" style="height: 420px;">
   @for (int i = 0; i < todos.Count; i++)
   {
     var item = todos[i];
@@ -87,7 +87,7 @@
     var date = i > 0 ? todos[i-1].date : 0;
     if(date != item.date)
     {
-      <div class="button is-small is-fullwidth is_bg mb-2">
+      <div class="button is-small is-fullwidth is_bg mb-2" style="cursor: initial;">
         <span class="has-text-left has-text-weight-medium font_14" style="flex-grow: 1;">
           @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))
         </span>

@@ -15,9 +15,18 @@
       <span class="icon is_drag">
         <i class="material-icons-outlined is-size-6">drag_indicator</i>
       </span>
-      <a class="icon" @onclick="Toggle">
-        <i class="material-icons-outlined is-size-6">@(toggle ? "arrow_drop_down" : "arrow_right")</i>
-      </a>
+      @if(model.sub_task > 0)
+      {
+        <a class="icon" @onclick="Toggle">
+          <i class="material-icons-outlined is-size-5">@(toggle ? "arrow_drop_down" : "arrow_right")</i>
+        </a>
+      }
+      else 
+      {
+        <span class="icon has-text-grey-light">
+          <i class="material-icons-outlined is-size-5">arrow_right</i>
+        </span>
+      }
       <a class="item_name" @onclick="Edit">
         @model.name
       </a>
@@ -209,5 +218,7 @@
   private async Task UpdateSubTasks(WorkPlanModel.Task item)
   {
     subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.plan_id, model.id);
+    // Cập nhật số lượng công việc phụ
+    await WorkService.UpdateSubTaskCount(Layout.Company.id, model.id, subTasks.Count);
   }
 }

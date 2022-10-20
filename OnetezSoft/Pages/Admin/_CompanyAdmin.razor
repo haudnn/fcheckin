@@ -174,9 +174,9 @@
       {
         await DbMainUser.Create(model);
         // Gửi email cấp tài khoản
-        JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
         bool send = EmailService.UserInfo(model.email, model.id, out string message);
-        JSRuntime.InvokeVoidAsync("tagline", send, message);
+        await JSRuntime.InvokeVoidAsync("tagline", send, message);
       }
       else
       {
