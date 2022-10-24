@@ -48,7 +48,6 @@ namespace OnetezSoft.Models
 
 
 
-
     /// <summary>
     /// Thành viên
     /// </summary>
@@ -186,6 +185,9 @@ namespace OnetezSoft.Models
     /// </summary>
     public class Report
     {
+      [BsonId]
+      public string id { get; set; }
+      
       /// <summary>Số lượng công việc</summary>
       public int total { get; set; }
 

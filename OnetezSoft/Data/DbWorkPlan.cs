@@ -115,5 +115,18 @@ namespace OnetezSoft.Data
       }
       return results;
     }
+
+
+    /// <summary>
+    /// Tất cả kế hoạch đang có
+    /// </summary>
+    public static async Task<List<WorkPlanModel>> GetAll(string companyId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<WorkPlanModel>(_collection);
+
+      return await collection.Find(new BsonDocument()).ToListAsync();
+    }
   }
 }

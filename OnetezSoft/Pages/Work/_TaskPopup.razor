@@ -326,7 +326,7 @@
               <div class="font_14 mb-2">
                 Bạn sẽ rời khỏi công việc và không nhận thông báo mới. Dữ liệu của công việc không bị ảnh hưởng.
               </div>
-              <a class="button is-info">
+              <a class="button is-info" @onclick="OutTask">
                 <span class="icon">
                   <i class="material-icons-outlined is-size-5">remove</i>
                 </span>
@@ -384,14 +384,26 @@
   {
     if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa công việc {task.name}. Việc này sẽ khiến dữ liệu công việc phụ bị mất.\nBạn có chắc chắn muốn thực hiện?"))
       return;
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
-    await OnUpdate.InvokeAsync(task);
-    await WorkService.CreateLog(Layout.Company.id, "Xóa công việc", task.name, task.plan_id, null, Layout.User);
     // Thông báo chuông
     foreach (var user in plan.members)
       await DbNotify.ForPlan(Layout.Company.id, 717, plan.id, task.id, user.id, Layout.User.id);
     // Xóa công việc
     await DbWorkTask.Delete(Layout.Company.id, task.id);
+    await WorkService.CreateLog(Layout.Company.id, "Xóa công việc", task.name, task.plan_id, null, Layout.User);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
+    await OnUpdate.InvokeAsync(task);
+  }
+
+  private async Task OutTask()
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện rời khỏi công việc {task.name}. Bạn sẽ không nhận được thông báo cập nhật về công việc.\nBạn có chắc chắn muốn thực hiện?"))
+      return;
+    // Tự xóa khỏi người thực hiện công việc
+    task.members.RemoveAll(x => x.id == Layout.User.id);
+    await DbWorkTask.Update(Layout.Company.id, task);
+    await WorkService.CreateLog(Layout.Company.id, Layout.User.FullName, "Đã rời khỏi công việc", task.plan_id, task.id, Layout.User);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Bạn đã tự rời khỏi công việc!");
+    await OnUpdate.InvokeAsync(task);
   }
 
   private async Task Update()
@@ -407,6 +419,7 @@
         // Thông báo chuông
         foreach (var user in task.members)
           await DbNotify.ForPlan(Layout.Company.id, 708, plan.id, task.id, user.id, Layout.User.id);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã tạo công việc thành công!");
       }
       else
       {
@@ -421,6 +434,7 @@
         }
         // Lưu vào database
         await DbWorkTask.Update(Layout.Company.id, task);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin công việc!");
       }
       await OnUpdate.InvokeAsync(task);
       Reset();
@@ -459,20 +473,15 @@
     await WorkService.LogTaskMembers(Layout.Company.id, old, task, Layout.User, Layout.UserList);
   }
 
-  private async Task ChangeStatus(int id)
+  private async Task ChangeStatus(int statusId)
   {
-    task.status = id;
-    await Changed();
     if(!string.IsNullOrEmpty(task.id))
     {
-      // Lưu lịch sử
-      await WorkService.CreateLog(Layout.Company.id, "Cập nhật trạng thái", 
-        WorkService.Status(task.status).name, task.plan_id, task.id, Layout.User);
-      // Thông báo chuông
-      if(task.status == 4)
-        foreach (var user in task.members)
-          await DbNotify.ForPlan(Layout.Company.id, 710, plan.id, task.id, user.id, Layout.User.id);
+      var message = await WorkService.ChangeTaskStatus(Layout.Company.id, Layout.User, task, statusId);
+      await JSRuntime.InvokeVoidAsync("tagline", true, message);
     }
+    else
+      task.status = statusId;
   }
   
   private async Task UpdateDate(DateRange range)

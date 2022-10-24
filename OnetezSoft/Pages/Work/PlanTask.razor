@@ -13,14 +13,14 @@
     @if(model != null && string.IsNullOrEmpty(model.id))
     {
       <div class="card p-3 p-4-mobile">
-        <ul class="columns is-multiline">
+        <ul class="columns is-variable is-2">
           <li class="column is-narrow">
-            <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/detail">
+            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/detail">
               TỔNG QUAN
             </a>
           </li>
           <li class="column is-narrow">
-            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/task">
+            <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/task">
               CÔNG VIỆC
             </a>
           </li>
@@ -31,16 +31,15 @@
           </li>
         </ul>
       </div>
-      <div class="card py-6 px-5 is-loading">
-        <div class="py-6 my-6">
-          Đang tải dữ liệu...
-        </div>
-      </div> 
+      <div class="card p-5 p-4-mobile">
+        <div class="has-text-black has-text-weight-medium is-size-6 py-2">@model.name</div>
+        <div class="py-6">@model.detail</div>
+      </div>
     }
     else if(model != null)
     {
       <div class="card p-3 p-4-mobile">
-        <ul class="columns is-multiline">
+        <ul class="columns is-variable is-2">
           <li class="column is-narrow">
             <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/detail">
               TỔNG QUAN
@@ -59,7 +58,7 @@
         </ul>
       </div>
 
-      <div class="card px-5 pt-5 pb-3 p-4-mobile">
+      <div class="card px-5 pt-5 pb-3 p-4-mobile mt-4">
         <ul class="columns is-vcentered is-variable is-2 mb-3">
           <li class="column">
             <h1 class="title is-5 has-text-info is-uppercase">Danh sách công việc</h1>
@@ -612,15 +611,25 @@
     model = await DbWorkPlan.Get(Layout.Company.id, PlanId);
     if(model != null)
     {
-      // Chế độ xem
-      if(string.IsNullOrEmpty(TypeView))
-        TypeView = "list";
-      // Quyền quản lý kế hoạch
-      editRole = WorkService.RoleInPlan(model, Layout.User.id) == 1;
-      // Danh sách thành viên
-      members = GetMembers();
-      // Lấy dữ liệu công việc
-      await GetTaskList();
+      if(WorkService.ViewInPlan(model, Layout.User.id))
+      {
+        // Chế độ xem
+        if(string.IsNullOrEmpty(TypeView))
+          TypeView = "list";
+        // Quyền quản lý kế hoạch
+        editRole = WorkService.RoleInPlan(model, Layout.User.id) == 1;
+        // Danh sách thành viên
+        members = GetMembers();
+        // Lấy dữ liệu công việc
+        await GetTaskList();
+        // Cập nhật thống kê
+        await DbWorkReport.Update(Layout.Company.id, PlanId);
+      }
+      else
+      {
+        model.id = string.Empty;
+        model.detail = "Bạn không có quyền xem chi tiết kế hoạch này!";
+      }
     }
   }
 
@@ -857,7 +866,7 @@
     taskEditTab = 1;
     if(item == null)
     {
-      item = new()
+      taskEdit = new()
       {
         status = 1,
         plan_id = model.id,
@@ -865,26 +874,18 @@
         labels = new(),
         members = new()
       };
-      taskEdit = item;
       await JSRuntime.InvokeVoidAsync("setFocus", "task_name");
     }
     else
     {
-      item = await DbWorkTask.Get(Layout.Company.id, item.id);
-      taskEdit = item;
+      taskEdit = await DbWorkTask.Get(Layout.Company.id, item.id);
     }
   }
 
   private async Task OnUpdateTask(WorkPlanModel.Task item)
   {
     if(item != null)
-    {
-      if(string.IsNullOrEmpty(taskEdit.id))
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã tạo công việc thành công!");
-      else
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin công việc!");
       await GetTaskList();
-    }
     taskEdit = null;
   }
 

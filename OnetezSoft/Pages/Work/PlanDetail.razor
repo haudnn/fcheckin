@@ -13,7 +13,7 @@
     @if(model != null && string.IsNullOrEmpty(model.id))
     {
       <div class="card p-3 p-4-mobile">
-        <ul class="columns is-multiline">
+        <ul class="columns is-variable is-2">
           <li class="column is-narrow">
             <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/detail">
               TỔNG QUAN
@@ -31,18 +31,17 @@
           </li>
         </ul>
       </div>
-      <div class="card py-6 px-5 is-loading">
-        <div class="py-6 my-6">
-          Đang tải dữ liệu...
-        </div>
-      </div> 
+      <div class="card p-5 p-4-mobile">
+        <div class="has-text-black has-text-weight-medium is-size-6 py-2">@model.name</div>
+        <div class="py-6">@model.detail</div>
+      </div>
     }
     else if(model != null)
     {
-      <ul class="columns is-multiline">
+      <ul class="columns is-multiline is-variable is-2">
         <li class="column is-full">
           <div class="card p-3 p-4-mobile">
-            <ul class="columns is-multiline">
+            <ul class="columns is-variable is-2">
               <li class="column is-narrow">
                 <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/detail">
                   TỔNG QUAN
@@ -65,7 +64,7 @@
         <li class="column is-three-quarters">
           <div class="scrolly_p-3" style="_height: calc(100vh - 120px);">
             <div class="card p-5 p-4-mobile">
-              <ul class="columns is-vcentered is-variable is-2 mb-3">
+              <ul class="columns is-vcentered is-variable is-2 mb-0">
                 @if(editMode)
                 {
                   <li class="column">
@@ -322,14 +321,22 @@
     model = await DbWorkPlan.Get(Layout.Company.id, PlanId);
     if(model != null)
     {
-      // Quyền quản lý kế hoạch
-      editRole = WorkService.RoleInPlan(model, Layout.User.id) == 1;
+      if(WorkService.ViewInPlan(model, Layout.User.id))
+      {
+        // Quyền quản lý kế hoạch
+        editRole = WorkService.RoleInPlan(model, Layout.User.id) == 1;
 
-      if(model.date_end != 0)
-        dateE = new DateTime(model.date_end);
+        // Ngày kết thúc
+        dateE = model.date_end != 0 ? new DateTime(model.date_end) : null;
 
-      // Lấy dữ liệu lịch sử cập nhật
-      await GetLogs();
+        // Lấy dữ liệu lịch sử cập nhật
+        await GetLogs();
+      }
+      else
+      {
+        model.id = string.Empty;
+        model.detail = "Bạn không có quyền xem chi tiết kế hoạch này!";
+      }
     }
   }
 

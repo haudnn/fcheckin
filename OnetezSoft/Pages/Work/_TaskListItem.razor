@@ -199,14 +199,14 @@
   {
     if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa công việc {model.name}. Việc này sẽ khiến dữ liệu công việc phụ bị mất.\nBạn có chắc chắn muốn thực hiện?"))
       return;
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
-    await OnUpdate.InvokeAsync(model);
-    await WorkService.CreateLog(Layout.Company.id, "Xóa công việc", model.name, model.plan_id, null, Layout.User);
     // Thông báo chuông
     foreach (var user in plan.members)
       await DbNotify.ForPlan(Layout.Company.id, 717, plan.id, model.id, user.id, Layout.User.id);
     // Xóa công việc
     await DbWorkTask.Delete(Layout.Company.id, model.id);
+    await WorkService.CreateLog(Layout.Company.id, "Xóa công việc", model.name, model.plan_id, null, Layout.User);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
+    await OnUpdate.InvokeAsync(model);
   }
 
   private async Task UpdateDate(DateRange range)
@@ -218,19 +218,12 @@
       string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(model.date_start), new DateTime(model.date_end)), model.plan_id, model.id, Layout.User);
   }
 
-  private async Task ChangeStatus(int id)
+  private async Task ChangeStatus(int statusId)
   {
     toggleStatus = false;
-    model.status = id;
-    await DbWorkTask.Update(Layout.Company.id, model);
-    await WorkService.CreateLog(Layout.Company.id, "Cập nhật trạng thái", 
-      WorkService.Status(model.status).name, model.plan_id, model.id, Layout.User);
-    // Thông báo chuông
-    if(model.status == 4)
-      foreach (var user in model.members)
-        await DbNotify.ForPlan(Layout.Company.id, 710, plan.id, model.id, user.id, Layout.User.id);
-    if(showPlan)
-      await OnUpdate.InvokeAsync(model);
+    var message = await WorkService.ChangeTaskStatus(Layout.Company.id, Layout.User, model, statusId);
+    await JSRuntime.InvokeVoidAsync("tagline", true, message);
+    if(showPlan) await OnUpdate.InvokeAsync(model);
   }
 
   private async Task UpdateMembers()

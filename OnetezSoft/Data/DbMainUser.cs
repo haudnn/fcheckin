@@ -51,6 +51,8 @@ namespace OnetezSoft.Data
 
     public static async Task<UserModel> Update(UserModel model)
     {
+      model.email = model.email.Trim().ToLower();
+
       var collection = _db.GetCollection<UserModel>(_collection);
 
       var option = new ReplaceOptions { IsUpsert = false };
@@ -65,6 +67,7 @@ namespace OnetezSoft.Data
           var user = await DbUser.Get(item.id, model.id);
           if(user != null)
           {
+            user.email = model.email;
             user.is_admin = model.is_admin;
             user.is_customer = model.is_customer;
             user.password = model.password;
@@ -93,6 +96,12 @@ namespace OnetezSoft.Data
       return await collection.Find(x => x.id == id && !x.delete).FirstOrDefaultAsync();
     }
 
+    public static async Task<UserModel> GetbySession(string session)
+    {
+      var collection = _db.GetCollection<UserModel>(_collection);
+
+      return await collection.Find(x => !x.delete && x.session == session).FirstOrDefaultAsync();
+    }
 
     public static async Task<UserModel> GetbyEmail(string email)
     {
@@ -103,15 +112,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<UserModel>(_collection);
 
-      return await collection.Find(x => !x.delete && x.email == email.Trim()).FirstOrDefaultAsync();
-    }
-
-
-    public static async Task<UserModel> GetbySession(string session)
-    {
-      var collection = _db.GetCollection<UserModel>(_collection);
-
-      return await collection.Find(x => !x.delete && x.session == session).FirstOrDefaultAsync();
+      return await collection.Find(x => !x.delete && x.email.ToLower() == email).FirstOrDefaultAsync();
     }
 
     /// <summary>
@@ -126,7 +127,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<UserModel>(_collection);
 
-      var result = collection.Find(x => !x.delete && x.email == email).FirstOrDefault();
+      var result = collection.Find(x => !x.delete && x.email.ToLower() == email).FirstOrDefault();
 
       return result != null;
     }
@@ -174,6 +175,12 @@ namespace OnetezSoft.Data
         {
           if(Handled.Shared.SearchKeyword(keyword, item.id + item.email + item.FullName))
             results.Add(item);
+          else
+          {
+            var company = item.companys != null ? item.companys.Select(x => x.name).ToList() : new();
+            if(Handled.Shared.SearchKeyword(keyword, string.Join(", ", company)))
+              results.Add(item);
+          }
         }
       }
       else

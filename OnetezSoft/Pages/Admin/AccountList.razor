@@ -9,7 +9,8 @@
   <ul class="columns is-vcentered is-multiline is-variable is-2 mb-4">
     <li class="column">
       <h1 class="title is-5">
-        @_title
+        @_title:
+        <span class="has-text-weight-normal">@total.ToString() tài khoản</span>
       </h1>
     </li>
     <li class="column is-one-third">
@@ -97,8 +98,11 @@
           <td align="center">
             <label class="td-label">Xử lý</label>
             <div class="td-value">
+              <a class="icon" @onclick="() => UpdateItem(item)">
+                <i class="material-icons-outlined is-size-6">sync</i>
+              </a>
               <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
-                <i class="material-icons-round is-size-6">delete</i>
+                <i class="material-icons-outlined is-size-6">delete</i>
               </a>
             </div>
           </td>
@@ -112,7 +116,9 @@
       Không tìm thấy dữ liệu phù hợp
     </div>
   }
-  <nav class="pagination is-right is-small">
+  <nav class="pagination is-small mb-5">
+    <a class="pagination-previous" href="/admin/accounts?p=@(paging - 1)">Prev</a>
+    <a class="pagination-next" href="/admin/accounts?p=@(paging + 1)">Next</a>
     <ul class="pagination-list">
       @for (var p = 1; p <= Shared.Paging(total, size); p++)
       {
@@ -132,7 +138,7 @@
   private List<UserModel> dataList = new();
   private string filterKeyword = string.Empty;
   private int paging = 1;
-  private int size = 25;
+  private int size = 50;
   private int total = 0;
 
   protected override void OnParametersSet()
@@ -159,6 +165,12 @@
       filterKeyword = string.Empty;
       GetList();
     }
+  }
+
+  private async Task UpdateItem(UserModel item)
+  {
+    await DbMainUser.Update(item);
+    await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã cập nhật tài khoản {item.email}");
   }
 
   private async Task ActiveItem(UserModel item)

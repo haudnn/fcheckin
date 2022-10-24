@@ -1,0 +1,112 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="card p-5">
+  <ul class="columns is-vcentered is-variable is-2 mb-3">
+    <li class="column">
+      <h1 class="title is-5 has-text-info">
+        DANH SÁCH KẾ HOẠCH
+      </h1>
+    </li>
+  </ul>
+  
+  <table class="table is-fullwidth is-vcentered is-noborder is-responsive mt-3">
+    <thead>
+      <tr>
+        <th>Kế hoạch</th>
+        <th width="110px">Chế độ</th>
+        <th width="110px">Công việc</th>
+        <th width="120px">Quản lý</th>
+        <th width="150px">Thành viên</th>
+        <th width="90px">Kết thúc</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var item in planList)
+      {
+        var show = toggleStatus.Contains(item.Key);
+        var status = WorkService.StatusPlan(item.Key);
+        <tr>
+          <td colspan="6">
+            <div class="icon-text">
+              <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
+                <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
+              </a>
+              <span class="has-text-weight-semibold font_14 is-uppercase">
+                Kế hoạch @status.name
+              </span>
+            </div>
+          </td>
+        </tr>
+
+        @if(show)
+        {
+          foreach (var plan in item.Value)
+          {
+            var report = DbWorkReport.Get(Layout.Company.id, plan.id);
+            var manages = plan.members.Where(x => x.role == 1).ToList();
+            var members = plan.members.Where(x => x.role == 2).ToList();
+            <tr>
+              <td class="pl-5">
+                <a class="has-text-link has-text-weight-semibold" href="/work/@plan.id/detail">
+                  @plan.name
+                </a>
+              </td>
+              <td>
+                <span class="icon-text">
+                  <span class="icon is-small">
+                    <i class="material-icons-outlined is-size-6">
+                      @(plan.is_private ? "lock" : "public")
+                    </i>
+                  </span>
+                  <span>@(plan.is_private ? "Riêng tư" : "Công khai")</span>
+                </span>
+              </td>
+              <td>
+                <span class="has-text-weight-semibold">@report.total</span>
+              </td>
+              <td>
+                <OnetezSoft.Pages.Work._MemberList members="manages" sources="Layout.UserList" isRight="true" />
+              </td>
+              <td>
+                <OnetezSoft.Pages.Work._MemberList members="members" sources="Layout.UserList" isRight="true" />
+              </td>
+              <td>
+                @string.Format("{0:dd/MM/yyyy}", new DateTime(plan.date_end))
+              </td>
+            </tr>
+          }
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public UserModel User { get; set; }
+  private Dictionary<int, List<WorkPlanModel>> planList = new();
+  private List<int> toggleStatus = new() { 1, 2 };
+
+  protected override async Task OnParametersSetAsync()
+  {
+    // Lấy danh sách dự án đang tham gia
+    var data = await DbWorkPlan.GetListJoin(Layout.Company.id, User.id);
+    planList.Clear();
+    foreach (var status in WorkService.StatusPlan())
+    {
+      var list = data.Where(x => x.status == status.id).ToList();
+      planList.Add(status.id, list);
+    }
+  }
+  
+  private void ToggleStatus(int id)
+  {
+    if(toggleStatus.Contains(id))
+      toggleStatus.Remove(id);
+    else
+      toggleStatus.Add(id);
+  }
+}

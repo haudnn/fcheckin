@@ -31,6 +31,9 @@ namespace OnetezSoft.Data
         model.products = new();
 
       model.email = model.email.Trim().ToLower();
+      model.star_total = 0;
+      model.star_receive = 0;
+      model.star_distribute = 0;
 
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 

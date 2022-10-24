@@ -12,9 +12,9 @@
     @if(model != null && string.IsNullOrEmpty(model.id))
     {
       <div class="card p-3 p-4-mobile">
-        <ul class="columns is-multiline">
+        <ul class="columns is-variable is-2">
           <li class="column is-narrow">
-            <a class="button p-5 has-text-link is-size-5 is-white" href="/work/@PlanId/detail">
+            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/detail">
               TỔNG QUAN
             </a>
           </li>
@@ -24,24 +24,23 @@
             </a>
           </li>
           <li class="column is-narrow">
-            <a class="button p-5 has-text-dark is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/chart">
+            <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/chart">
               THỐNG KÊ
             </a>
           </li>
         </ul>
       </div>
-      <div class="card py-6 px-5 is-loading">
-        <div class="py-6 my-6">
-          Đang tải dữ liệu...
-        </div>
-      </div> 
+      <div class="card p-5 p-4-mobile">
+        <div class="has-text-black has-text-weight-medium is-size-6 py-2">@model.name</div>
+        <div class="py-6">@model.detail</div>
+      </div>
     }
     else if(model != null)
     {
       <div class="card p-3 p-4-mobile">
-        <ul class="columns is-multiline">
+        <ul class="columns is-variable is-2">
           <li class="column is-narrow">
-            <a class="button p-5 has-text-link is-size-5 is-white" href="/work/@PlanId/detail">
+            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/detail">
               TỔNG QUAN
             </a>
           </li>
@@ -51,14 +50,14 @@
             </a>
           </li>
           <li class="column is-narrow">
-            <a class="button p-5 has-text-dark is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/chart">
+            <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/chart">
               THỐNG KÊ
             </a>
           </li>
         </ul>
       </div>
 
-      <div class="card p-5 p-4-mobile">
+      <div class="card p-5 p-4-mobile mt-4">
         <h1 class="title is-5 has-text-info is-uppercase">THỐNG KÊ CÔNG VIỆC</h1>
         <ul class="columns is-variable is-2">
           <li class="column is-half pl-6">
@@ -228,12 +227,20 @@
     model = await DbWorkPlan.Get(Layout.Company.id, PlanId);
     if(model != null)
     {
-      // Danh sách thành viên
-      members = GetMembers();
-      // Lấy dữ liệu công việc
-      await GetTaskList();
-      // Thống kê công việc
-      await ChartOverView();
+      if(WorkService.ViewInPlan(model, Layout.User.id))
+      {
+        // Danh sách thành viên
+        members = GetMembers();
+        // Lấy dữ liệu công việc
+        await GetTaskList();
+        // Thống kê công việc
+        await ChartOverView();
+      }
+      else
+      {
+        model.id = string.Empty;
+        model.detail = "Bạn không có quyền xem chi tiết kế hoạch này!";
+      }
     }
   }
 

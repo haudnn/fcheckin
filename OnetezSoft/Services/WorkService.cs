@@ -23,6 +23,18 @@ namespace OnetezSoft.Services
     }
 
     /// <summary>
+    /// Kiểm tra quyền xem kế hoạch
+    /// </summary>
+    public static bool ViewInPlan(WorkPlanModel plan, string userId)
+    {
+      if(!plan.is_private)
+        return true;
+      if(plan.members.Where(x => x.id == userId).Count() > 0)
+        return true;
+      return false; 
+    }
+
+    /// <summary>
     /// Kiểm tra userId có phải là quản lý duy nhất
     /// </summary>
     /// <returns>true: duy nhất, false: không phải duy nhất</returns>
@@ -75,6 +87,75 @@ namespace OnetezSoft.Services
     }
 
     /// <summary>
+    /// Xóa tòa bộ dữ liệu kế hoạch
+    /// </summary>
+    public static async Task DeletePlan(string companyId, string planId)
+    {
+      // Xóa lịch sử
+
+      // Xóa công việc
+
+      // Xóa kế hoạch
+      await DbWorkPlan.Delete(companyId, planId);
+
+      // Gửi thông báo
+    }
+
+    /// <summary>
+    /// Chuyển trạng thái công việc
+    /// </summary>
+    public static async Task<string> ChangeTaskStatus(string companyId, UserModel user, WorkPlanModel.Task task, int statusId)
+    {
+      var status = WorkService.Status(statusId);
+      var reviews = task.members.Where(x => x.role == 1).Select(x => x.id).ToList();
+      if(statusId != 4)
+      {
+        // Cập nhật database
+        task.status = statusId;
+        await DbWorkTask.Update(companyId, task);
+        // Lưu lịch sử
+        await WorkService.CreateLog(companyId, "Cập nhật trạng thái", status.name, task.plan_id, task.id, user);
+        // Thông báo cho người nhận xét
+        if(statusId == 3)
+        {
+          foreach (var memberId in reviews)
+            await DbNotify.ForPlan(companyId, 711, task.plan_id, task.id, memberId, user.id);
+        }
+        return "Đã chuyển trạng thái công việc.";
+      }
+      else if(statusId == 4)
+      {
+        // Người nhận xét chuyển trạng thái hoặc không có người nhận xét
+        if(reviews.Count == 0 || reviews.Contains(user.id))
+        {
+          // Cập nhật database
+          task.status = statusId;
+          await DbWorkTask.Update(companyId, task);
+          // Lưu lịch sử
+          await WorkService.CreateLog(companyId, "Cập nhật trạng thái", status.name, task.plan_id, task.id, user);
+          // Thông báo cho thành viên
+          foreach (var member in task.members)
+            await DbNotify.ForPlan(companyId, 710, task.plan_id, task.id, member.id, user.id);
+          return "Đã chuyển trạng thái công việc.";
+        }
+        // Người thực hiện chuyển trạng thái
+        else
+        {
+          // Cập nhật database
+          task.status = 3;
+          await DbWorkTask.Update(companyId, task);
+          // Lưu lịch sử
+          await WorkService.CreateLog(companyId, "Cập nhật trạng thái", status.name, task.plan_id, task.id, user);
+          // Thông báo cho người nhận xét
+          foreach (var memberId in reviews)
+            await DbNotify.ForPlan(companyId, 711, task.plan_id, task.id, memberId, user.id);
+          return "Chờ người nhận xét review công việc.";
+        }
+      }
+      return string.Empty;
+    }
+
+    /// <summary>
     /// Kiểm tra quyền của nhân viên trong công việc
     /// </summary>
     public static bool RoleEditTask(WorkPlanModel plan, WorkPlanModel.Task task, string userId)
@@ -89,18 +170,31 @@ namespace OnetezSoft.Services
     }
 
     /// <summary>
-    /// Xóa tòa bộ dữ liệu kế hoạch
+    /// Cập nhật số lượng công việc phụ
     /// </summary>
-    public static async Task DeletePlan(string companyId, string planId)
+    public static async Task UpdateSubTaskCount(string companyId, string taskId, int Count)
     {
-      // Xóa lịch sử
+      var task = await DbWorkTask.Get(companyId, taskId);
+      if(task != null)
+      {
+        task.sub_task = Count;
+        await DbWorkTask.Update(companyId, task);
+      }
+    }
 
-      // Xóa công việc
+    /// <summary>
+    /// Tính thống kê từ danh sách công việc
+    /// </summary>
+    public static WorkPlanModel.Report ReportTasks(List<WorkPlanModel.Task> tasks)
+    {
+      var result = new WorkPlanModel.Report();
+      result.total = tasks.Where(x => x.status <= 4).Count();
+      result.done = tasks.Where(x => x.status == 4).Count();
+      result.ontime = tasks.Where(x => x.status == 4 && x.date_end >= x.date_done).Count();
+      result.late = tasks.Where(x => x.date_end < x.date_done || 
+        (x.date_end < DateTime.Today.Ticks && x.status < 4)).Count();
 
-      // Xóa kế hoạch
-      await DbWorkPlan.Delete(companyId, planId);
-
-      // Gửi thông báo
+      return result;
     }
 
     /// <summary>
@@ -169,35 +263,6 @@ namespace OnetezSoft.Services
           await WorkService.CreateLog(companyId, "Xóa người tham gia", 
             String.Join(", ", removeList), task.plan_id, task.id, userEdit);
       }
-    }
-
-    /// <summary>
-    /// Cập nhật số lượng công việc phụ
-    /// </summary>
-    public static async Task UpdateSubTaskCount(string companyId, string taskId, int Count)
-    {
-      var task = await DbWorkTask.Get(companyId, taskId);
-      if(task != null)
-      {
-        task.sub_task = Count;
-        await DbWorkTask.Update(companyId, task);
-      }
-    }
-
-
-    /// <summary>
-    /// Tính thống kê từ danh sách công việc
-    /// </summary>
-    public static WorkPlanModel.Report ReportTasks(List<WorkPlanModel.Task> tasks)
-    {
-      var result = new WorkPlanModel.Report();
-      result.total = tasks.Where(x => x.status <= 4).Count();
-      result.done = tasks.Where(x => x.status == 4).Count();
-      result.ontime = tasks.Where(x => x.status == 4 && x.date_end >= x.date_done).Count();
-      result.late = tasks.Where(x => x.date_end < x.date_done || 
-        (x.date_end < DateTime.Today.Ticks && x.status < 4)).Count();
-
-      return result;
     }
 
 

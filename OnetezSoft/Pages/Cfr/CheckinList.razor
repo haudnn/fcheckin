@@ -209,6 +209,23 @@
 
 <TaskPopup Okr="taskOkr" Kr="taskKr" />
 
+@if(!CheckAccess())
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-content" style="max-width: 360px;">
+      <div class="box has-text-centered pt-5">
+        <span class="icon is-large has-text-danger">
+          <i class="material-icons-outlined is-size-1">error_outline</i>
+        </span>
+        <div class="is-size-6 py-4 has-text-weight-semibold">
+          @msgAccess
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
@@ -234,12 +251,7 @@
   protected override async Task OnInitializedAsync()
   {
     departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
-    await OnLoad();
-    ShowOkrList();
-  }
-
-  protected async Task OnLoad()
-  {
+    
     var uri = navigation.ToAbsoluteUri(navigation.Uri);
     if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("user", out var outkey))
       filterUserId = outkey.ToString();
@@ -248,12 +260,20 @@
       filterUser = await DbUser.Get(Layout.Company.id, filterUserId);
     if (filterUser == null)
       filterUser = Layout.User;
+
+    ShowOkrList();
   }
 
   protected override void OnAfterRender(bool firstRender)
   {
     taskOkr = null;
     taskKr = null;
+  }
+  
+  private string msgAccess = string.Empty;
+  private bool CheckAccess()
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, "okrs", out msgAccess);
   }
 
   private void ChangeDepartment(ChangeEventArgs e)

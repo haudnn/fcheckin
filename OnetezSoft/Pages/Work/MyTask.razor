@@ -405,7 +405,7 @@
     taskEditTab = 1;
     if(item == null)
     {
-      item = new()
+      taskEdit = new()
       {
         status = status,
         //plan_id = model.id,
@@ -413,7 +413,6 @@
         labels = new(),
         members = new()
       };
-      taskEdit = item;
       await JSRuntime.InvokeVoidAsync("setFocus", "task_name");
     }
     else
@@ -426,13 +425,7 @@
   private async Task OnUpdateTask(WorkPlanModel.Task item)
   {
     if(item != null)
-    {
-      if(string.IsNullOrEmpty(taskEdit.id))
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã tạo công việc thành công!");
-      else
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin công việc!");
       await GetTaskList();
-    }
     taskEdit = null;
     planEdit = null;
   }
@@ -448,11 +441,9 @@
     {
       if(group.Value.Contains(item))
       {
-        item.status = group.Key;
-        await DbWorkTask.Update(Layout.Company.id, item);
-        await JSRuntime.InvokeVoidAsync("console.log", "Status: " + group.Key);
-        await WorkService.CreateLog(Layout.Company.id, "Cập nhật trạng thái", 
-          WorkService.Status(item.status).name, item.plan_id, item.id, Layout.User);
+        var statusId = group.Key;
+        var message = await WorkService.ChangeTaskStatus(Layout.Company.id, Layout.User, item, statusId);
+        await JSRuntime.InvokeVoidAsync("tagline", true, message);
         break;
       }
     }
