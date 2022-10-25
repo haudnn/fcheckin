@@ -190,7 +190,7 @@
                           }
                           else
                           {
-                            <span>dd/MM/yyyy</span>
+                            <span>dd/mm/yyyy</span>
                           }
                         </a>
                       </PickerTemplate>
@@ -208,7 +208,7 @@
                       }
                       else
                       {
-                        <span>dd/MM/yyyy</span>
+                        <span>dd/mm/yyyy</span>
                       }
                     </span> 
                   }
@@ -468,18 +468,23 @@
 
   private async Task UpdateContent()
   {
-    var old = await DbWorkPlan.Get(Layout.Company.id, model.id);
-    if(model.name != old.name)
+    if(string.IsNullOrEmpty(model.name) || string.IsNullOrEmpty(model.name.Trim()))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề kế hoạch!");
+    else
     {
-      await WorkService.CreateLog(Layout.Company.id, "Cập nhật tiêu đề", model.name, model.id, null, Layout.User);
-      // Thông báo chuông
-      foreach (var user in model.members)
-          await DbNotify.ForPlan(Layout.Company.id, 701, model.id, null, user.id, Layout.User.id);
+      var old = await DbWorkPlan.Get(Layout.Company.id, model.id);
+      if(model.name != old.name)
+      {
+        await WorkService.CreateLog(Layout.Company.id, "Cập nhật tiêu đề", model.name, model.id, null, Layout.User);
+        // Thông báo chuông
+        foreach (var user in model.members)
+            await DbNotify.ForPlan(Layout.Company.id, 701, model.id, null, user.id, Layout.User.id);
+      }
+      await DbWorkPlan.Update(Layout.Company.id, model);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin của dự án.");
+      await GetLogs();
+      editMode = false;
     }
-    await DbWorkPlan.Update(Layout.Company.id, model);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin của dự án.");
-    await GetLogs();
-    editMode = false;
   }
 
   private async Task ToggleEdit()

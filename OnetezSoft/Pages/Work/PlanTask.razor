@@ -80,7 +80,7 @@
           </li>
         </ul>
 
-        <ul class="columns is-vcentered mb-3">
+        <ul class="columns is-vcentered is-variable is-2 mb-3">
           <li class="column">
             @if(editRole)
             {
@@ -193,28 +193,6 @@
               </div>
             </div>
           </li>
-          <li class="column is-narrow">
-            <div class="dropdown is-hoverable is-right is-size-7">
-              <div class="dropdown-trigger">
-                <a class="icon-text">
-                  <span>Sắp xếp theo</span>
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                  </span>
-                </a>
-              </div>
-              <div class="dropdown-menu">
-                <div class="dropdown-content">
-                  <a class="dropdown-item @(!orderByDesc ? "has-text-weight-bold" : "")" @onclick="() => OrderBy(false)">
-                    Ngày kết thúc tăng dần
-                  </a>
-                  <a class="dropdown-item @(orderByDesc ? "has-text-weight-bold" : "")" @onclick="() => OrderBy(true)">
-                    Ngày kết thúc giảm dần
-                  </a>
-                </div>
-              </div>
-            </div>
-          </li>
           <li class="column is-one-fifth">
             <div class="control has-icons-right">
               <input @bind="filterKey" class="input is-small is-rounded" type="text" 
@@ -247,8 +225,8 @@
               <li class="column is-full">
                 @if(editSectionId == item.id)
                 {
-                  <div class="control has-icons-left ">
-                    <input @bind="item.name" id="section_@item.id"  type="text" 
+                  <div class="control has-icons-left" style="width: 300px;">
+                    <input @bind="item.name" id="section_@item.id" type="text" 
                       class="input has-text-weight-semibold font_14 is_bg" placeholder="Nhập tiêu đề nhóm công việc...">
                     <a class="icon is-left has-text-success" title="Cập nhật" @onclick="UpdateSection">
                       <i class="material-icons-outlined is-size-5">done</i>
@@ -313,7 +291,7 @@
             @if(!hidden)
             {
               <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_list" 
-                AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
+                AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)" InstantReplace="true">
                 @if(context.id == null)
                 {
                   <div class="pl-4 py-1">
@@ -407,7 +385,7 @@
                   }
                   <div class="scrolly p-2" style="height: calc(100vh - 310px); background: #fbfbfb; border-radius: 5px;">
                     <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_board"
-                      AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
+                      AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)" InstantReplace="true">
                       @if(context.id == null)
                       {
                         <div class="has-text-centered p-3">
@@ -437,6 +415,26 @@
         {
           var dayHtml = string.Empty;
           <div class="list_task_gantt is-size-7">
+            <ul class="task_gantt is_month columns is-gapless is-vcentered">
+              <li class="column is-narrow"></li>
+              @for (int d = 0; d < dayTotal; d++)
+              {
+                var day = dayStart.AddDays(d);
+                var month = Convert.ToDateTime(day.AddMonths(1).ToString("yyyy/MM/01"));
+                var column = month.Subtract(day).Days;
+                if(month > dayEnd)
+                  column = dayEnd.Subtract(day).Days;
+                @if(day <= month && day <= dayEnd)
+                {
+                  d += column - 1;
+                  <li class="column is-narrow" style="width: @(column * 40)px">
+                    <div class="has-text-weight-medium has-text-info pl-1 font_14">
+                      @month.ToString("MM/yyyy")
+                    </div>
+                  </li>
+                }
+              }
+            </ul>
             <ul class="task_gantt is_header columns is-gapless is-vcentered">
               <li class="column is-narrow">
                 Công việc
@@ -539,7 +537,7 @@
               @if(!hidden)
               {
                 <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_list" 
-                  AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
+                  AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)" InstantReplace="true">
                   @if(context.id == null)
                   {
                     <ul class="task_gantt columns is-gapless is-size-7">
@@ -595,7 +593,6 @@
   public string PlanId { get; set; }
   [Parameter]
   public string TypeView { get; set; }
-  
   private WorkPlanModel model = new();
   private bool editRole = false;
   private Dictionary<string, List<WorkPlanModel.Task>> taskGroups = new();
@@ -645,7 +642,6 @@
   private int filterPriority = 0;
   private string filterLabel = string.Empty;
   private string filterKey = string.Empty;
-  private bool orderByDesc = false;
 
   private async Task GetTaskList()
   {
@@ -667,8 +663,8 @@
       long minDay = taskList.OrderBy(x => x.date_start).Select(x => x.date_start).FirstOrDefault();
       long maxDay = taskList.OrderByDescending(x => x.date_end).Select(x => x.date_end).FirstOrDefault();
       dayStart = new DateTime(minDay);
-      dayEnd = new DateTime(maxDay);
-      dayTotal = dayEnd.Subtract(dayStart).Days + 4;
+      dayEnd = new DateTime(maxDay).AddDays(4);
+      dayTotal = dayEnd.Subtract(dayStart).Days;
     }
   }
 
@@ -682,15 +678,12 @@
       taskList = taskList.Where(x => x.labels.Contains(filterLabel)).ToList();
     if(!string.IsNullOrEmpty(filterKey))
       taskList = taskList.Where(x => Shared.SearchKeyword(filterKey, x.name)).ToList();
-    if(orderByDesc)
-      taskList = taskList.OrderByDescending(x => x.date_end).ToList();
-    else
-      taskList = taskList.OrderBy(x => x.date_end).ToList();
   }
 
   private void SplitTaskList()
   {
     taskGroups.Clear();
+    taskList = (from x in taskList orderby x.pos, x.date_end select x).ToList();
     foreach (var group in model.sections)
     {
       var tasks = taskList.Where(x => x.section_id == group.id).ToList();
@@ -727,12 +720,6 @@
       filterKey = string.Empty;
       await GetTaskList();
     }
-  }
-
-  private async Task OrderBy(bool isDesc)
-  {
-    orderByDesc = isDesc;
-    await GetTaskList();
   }
 
   #endregion
@@ -902,10 +889,18 @@
       {
         if(group.Value.Contains(item))
         {
+          // Sắp xếp lại
+          for (int i = 0; i < group.Value.Count; i++)
+          {
+            var task = group.Value[i];
+            task.pos = i;
+            await DbWorkTask.Update(Layout.Company.id, task);
+            await JSRuntime.InvokeVoidAsync("console.log", $"{task.pos}: {task.name}");
+          }
+          // Chuyển nhóm
           var section = model.sections.SingleOrDefault(x => x.id == item.section_id);
           item.section_id = group.Key;
           await DbWorkTask.Update(Layout.Company.id, item);
-          await JSRuntime.InvokeVoidAsync("console.log", "Nhóm: " + section.name);
           await WorkService.CreateLog(Layout.Company.id, "Cập nhật nhóm công việc", section.name, item.plan_id, item.id, Layout.User);
           break;
         }

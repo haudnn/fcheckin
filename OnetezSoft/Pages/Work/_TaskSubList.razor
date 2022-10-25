@@ -240,7 +240,7 @@
 
   private async Task DeleteItem(WorkPlanModel.Task item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa công việc {item.name}.\nBạn có chắc chắn muốn thực hiện?"))
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa \"{item.name}\".\nBạn có chắc chắn muốn thực hiện?"))
       return;
     await DbWorkTask.Delete(Layout.Company.id, item.id);
     await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");

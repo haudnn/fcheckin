@@ -71,7 +71,7 @@
 
   private async Task Delete()
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa công việc {model.name}.\nBạn có chắc chắn muốn thực hiện?"))
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa \"{model.name}\".\nBạn có chắc chắn muốn thực hiện?"))
       return;
     await DbWorkTask.Delete(Layout.Company.id, model.id);
     await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");

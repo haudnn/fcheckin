@@ -128,6 +128,9 @@ namespace OnetezSoft.Models
       /// <summary>Độ ưu tiên</summary>
       public int priority { get; set; }
 
+      /// <summary>Thứ tự sắp xếp</summary>
+      public int pos { get; set; }
+
       /// <summary>Ngày bắt đầu</summary>
       public long date_start { get; set; }
 

@@ -51,8 +51,9 @@
         {
           var link = "/work/" + plan.id;
           var show = string.IsNullOrEmpty(keyword) || Shared.SearchKeyword(keyword, plan.name);
+          var active = url.StartsWith(link) ? "has-text-link has-text-weight-semibold" : "has-text-grey";
           <div class="@(show ? "icon-text is-fullwidth mt-3 " : "is-hidden")">
-            <a class="pl-3 has-text-@(url.StartsWith(link) ? "link" : "grey")" style="flex-grow: 1;" href="@link">
+            <a class="pl-3 @active" href="@link" style="flex-grow: 1;" >
               @plan.name
             </a>
             <div class="dropdown is-hoverable is-right icon is-small is_hover">
@@ -186,7 +187,7 @@
       if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy ghim kế hoạch: {item.name}?"))
         return;
       Layout.User.plans_pin.Remove(item.id);
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hủy ghim kế hoạch" + item.name);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hủy ghim kế hoạch " + item.name);
     }
     else
     {
@@ -194,7 +195,7 @@
         return;
       Layout.User.plans_pin.Add(item.id);
       Layout.User.plans_hide.Remove(item.id);
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã ghim kế hoạch" + item.name);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã ghim kế hoạch " + item.name);
     }
     await DbUser.Update(Layout.Company.id, Layout.User);
     await GetList();
@@ -207,7 +208,7 @@
       if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy lưu trữ kế hoạch: {item.name}?"))
         return;
       Layout.User.plans_hide.Remove(item.id);
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hủy lưu trữ kế hoạch" + item.name);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hủy lưu trữ kế hoạch " + item.name);
     }
     else
     {
@@ -215,7 +216,7 @@
         return;
       Layout.User.plans_hide.Add(item.id);
       Layout.User.plans_pin.Remove(item.id);
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã lưu trữ kế hoạch" + item.name);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã lưu trữ kế hoạch " + item.name);
     }
     await DbUser.Update(Layout.Company.id, Layout.User);
     await GetList();

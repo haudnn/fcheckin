@@ -42,13 +42,24 @@
       {
         var companys = item.companys != null ? item.companys.Select(x => x.name).ToList() : new List<string>();
         <tr>
-          <td>@item.id</td>
           <td>
-            <div class="user_item">
-              <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG" />
+            @if(item.delete)
+            {
+              <del class="has-text-grey">@item.id</del>
+            }
+            else
+            {
+              <span class="has-text-dark">@item.id</span>
+            }
+          </td>
+          <td>
+            <div class="icon-text">
+              <a class="icon image is-24x24 is-rounded mr-2" @onclick="() => AvatarItem(item)">
+                <img src="@item.avatar" alt="IMG" />
+              </a>
               @if(item.delete)
               {
-                <del>@item.email</del>
+                <del class="has-text-grey">@item.email</del>
               }
               else
               {
@@ -165,6 +176,12 @@
       filterKeyword = string.Empty;
       GetList();
     }
+  }
+
+  private async Task AvatarItem(UserModel item)
+  {
+    item.avatar = $"https://avatars.dicebear.com/api/micah/{Mongo.RandomId()}.svg?background=pink";
+    await DbMainUser.Update(item);
   }
 
   private async Task UpdateItem(UserModel item)
