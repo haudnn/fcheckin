@@ -31,18 +31,6 @@ namespace OnetezSoft.Data
 
     public static async Task<WorkPlanModel.Task> Update(string companyId, WorkPlanModel.Task model)
     {
-      if(string.IsNullOrEmpty(model.parent_id))
-      {
-        if(model.status == 4)
-        {
-          var old = await Get(companyId, model.id);
-          if(old != null && old.status != 4)
-            model.date_done = DateTime.Today.Ticks;
-        }
-        else
-          model.date_done = 0;
-      }
-
       model.members = model.members.OrderBy(x => x.role).ToList();
 
       var _db = Mongo.DbConnect("fastdo_" + companyId);

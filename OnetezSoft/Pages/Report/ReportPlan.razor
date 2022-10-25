@@ -1,0 +1,29 @@
+@page "/reports/work"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>Thống kê Kế hoạch</PageTitle>
+
+<section class="columns is-gapless has_menu_left">
+  <div class="column is-narrow">
+    <_MenuLeft Company="Layout.Company" User="Layout.User" />
+  </div>
+  <div class="column">
+    <PlanList departmentAll="departmentAll" departments="departments" />
+    <PlanStaff departmentAll="departmentAll" departments="departments" />
+  </div>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private List<DepartmentModel> departmentAll = new();
+  private List<DepartmentModel.SelectList> departments = new();
+
+  protected override void OnInitialized()
+  {
+    departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+  }
+}

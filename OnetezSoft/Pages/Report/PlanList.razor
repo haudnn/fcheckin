@@ -1,0 +1,197 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>Thống kê Kế hoạch</PageTitle>
+
+<div class="card p-5">
+  <ul class="columns is-vcentered is-variable is-2 mb-3">
+    <li class="column">
+      <h1 class="title is-5 has-text-info">
+        DANH SÁCH KẾ HOẠCH
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <div class="dropdown is-hoverable">
+        <div class="dropdown-trigger">
+          <a class="icon-text">
+            <span class="has-text-link">
+              @(filterStatus != 0 ? WorkService.StatusPlan(filterStatus).name : "Trạng thái")      
+            </span>
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item" @onclick="() => FilterStatus(0)">Tất cả</a>
+            @foreach (var item in WorkService.StatusPlan())
+            {
+              <a class="dropdown-item" @onclick="() => FilterStatus(item.id)">@item.name</a>
+            }
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <div class="dropdown is-right @(toggleDepartment ? "is-active" : "")">
+        <div class="dropdown-trigger">
+          <a class="icon-text" @onclick="() => toggleDepartment = !toggleDepartment">
+            <span class="has-text-link">
+              @department.name
+            </span>
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item is-family-code" @onclick="() => FilterDepartment(null)">
+              Tất cả phòng ban
+            </a>
+            @foreach (var sl in departments)
+            {
+              <a class="dropdown-item is-family-code" @onclick="() => FilterDepartment(sl)">
+                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
+              </a>
+            }
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-one-quarter">
+      <div class="control has-icons-right">
+        <input @bind="filterKey" class="input is-small is-rounded" type="text" 
+          placeholder="Tiêu đề kế hoạch..." @onkeydown="FilterKey">
+        <span class="icon is-right is-small">
+          <i class="material-icons-outlined is-size-5">search</i>
+        </span>
+      </div>
+    </li>
+  </ul>
+
+  <table class="table is-fullwidth is-vcentered is-noborder is-responsive mt-3">
+    <thead>
+      <tr class="is-size-7">
+        <th>Kế hoạch</th>
+        <th align="center" width="140px">Trạng thái kế hoạch</th>
+        <th align="center" width="150px">Công việc hoàn thành</th>
+        <th align="center" width="150px">Công việc trễ hạn</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var plan in planList)
+      {
+        var status = WorkService.StatusPlan(plan.status);
+        var report = DbWorkReport.Get(Layout.Company.id, plan.id);
+        var done = Shared.Progress(report.done, report.total);
+        var late = Shared.Progress(report.late, report.total);
+        <tr>
+          <td>
+            <div class="icon-text">
+              <span class="icon is-small" title="@(plan.is_private ? "Riêng tư" : "Công khai")">
+                <i class="material-icons-outlined is-size-6">
+                  @(plan.is_private ? "lock" : "public")
+                </i>
+              </span>
+              <a class="has-text-link has-text-weight-medium" href="/work/@plan.id/detail">
+                @plan.name
+              </a>
+            </div>
+          </td>
+          <td align="center">
+            @status.name
+          </td>
+          <td align="center">
+            <span>@string.Format("{0}/{1}", report.done, report.total)</span>
+            <span class="px-1">•</span>
+            <span>@Shared.ConvertNumber(done)%</span>
+          </td>
+          <td align="center">
+            <span>@string.Format("{0}/{1}", report.late, report.total)</span>
+            <span class="px-1">•</span>
+            <span>@Shared.ConvertNumber(late)%</span>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<DepartmentModel> departmentAll { get; set; }
+  [Parameter]
+  public List<DepartmentModel.SelectList> departments { get; set; }
+
+  private List<WorkPlanModel> planList = new();
+  private DepartmentModel department = new() { name = "Tất cả phòng ban" };
+  private bool toggleDepartment = false;
+  private string filterKey = string.Empty;
+  private int filterStatus = 0;
+
+  protected override async Task OnInitializedAsync()
+  {
+    if (!string.IsNullOrEmpty(Layout.User.department_default))
+      department = departmentAll.FirstOrDefault(x => x.id == Layout.User.department_default);
+    
+    await GetDataList();
+  }
+  
+  private async Task FilterDepartment(DepartmentModel.SelectList item)
+  {
+    toggleDepartment = false;
+    if (item != null)
+      department = departmentAll.FirstOrDefault(x => x.id == item.id);
+    else
+      department = new() { name = "Tất cả phòng ban" };
+    await GetDataList();
+  }
+  
+  private async Task FilterStatus(int value)
+  {
+    filterStatus = value;
+    await GetDataList();
+  }
+  
+  private async Task FilterKey(KeyboardEventArgs args)
+  {
+    if (args.Key == "Enter")
+    {
+      await GetDataList();
+    }
+    else if(args.Key == "Escape")
+    {
+      filterKey = string.Empty;
+      await GetDataList();
+    }
+  }
+
+  private async Task GetDataList()
+  {
+    // Lấy tất cả kế hoạch đang có
+    var data = await DbWorkPlan.GetAll(Layout.Company.id);
+    // Tìm kiếm theo tiêu đề kế hoạch
+    if(!string.IsNullOrEmpty(filterKey))
+      data = data.Where(x => Shared.SearchKeyword(filterKey, x.name)).ToList();
+    // Tìm kiếm theo trạng thái kế hoạch
+    if(filterStatus != 0)
+      data = data.Where(x => x.status == filterStatus).ToList();
+
+    planList = new List<WorkPlanModel>();
+    foreach (var item in data)
+    {
+      if(department.members_id == null)
+        planList.Add(item);
+      else
+      {
+        var check = item.members.Where(x => department.members_id.Contains(x.id)).Count();
+        if(check > 0)
+          planList.Add(item);
+      }
+    }
+  }
+}

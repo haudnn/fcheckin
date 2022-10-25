@@ -129,7 +129,9 @@ namespace OnetezSoft.Services
         if(reviews.Count == 0 || reviews.Contains(user.id))
         {
           // Cập nhật database
-          task.status = statusId;
+          if(task.status != 4)
+            task.date_done = DateTime.Now.Ticks;
+          task.status = 4;
           await DbWorkTask.Update(companyId, task);
           // Lưu lịch sử
           await WorkService.CreateLog(companyId, "Cập nhật trạng thái", status.name, task.plan_id, task.id, user);

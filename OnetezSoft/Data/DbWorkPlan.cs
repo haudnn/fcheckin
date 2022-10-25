@@ -73,30 +73,6 @@ namespace OnetezSoft.Data
 
 
     /// <summary>
-    /// Danh sách kế hoạch có thể xem
-    /// Là thành viên hoặc kế hoạch công khai
-    /// </summary>
-    public static async Task<List<WorkPlanModel>> GetListView(string companyId, string userId)
-    {
-      var _db = Mongo.DbConnect("fastdo_" + companyId);
-
-      var collection = _db.GetCollection<WorkPlanModel>(_collection);
-
-      var list = await collection.Find(new BsonDocument()).ToListAsync();
-
-      var results = new List<WorkPlanModel>();
-      foreach (var item in list)
-      {
-        if(!item.is_private)
-          results.Add(item);
-        else if(item.members.Where(x => x.id == userId).Count() > 0)
-          results.Add(item);
-      }
-      return results;
-    }
-
-
-    /// <summary>
     /// Danh sách kế hoạch đang tham gia
     /// </summary>
     public static async Task<List<WorkPlanModel>> GetListJoin(string companyId, string userId)
@@ -113,7 +89,8 @@ namespace OnetezSoft.Data
         if(item.members.Where(x => x.id == userId).Count() > 0)
           results.Add(item);
       }
-      return results;
+
+      return results.OrderBy(x => x.date_end).ToList();
     }
 
 
@@ -126,7 +103,9 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<WorkPlanModel>(_collection);
 
-      return await collection.Find(new BsonDocument()).ToListAsync();
+      var results = await collection.Find(new BsonDocument()).ToListAsync();
+
+      return results.OrderBy(x => x.date_end).ToList();
     }
   }
 }

@@ -77,7 +77,7 @@
 
       <div class="card p-5 p-4-mobile">
         <h1 class="title is-5 has-text-info is-uppercase">THỐNG KÊ NHÓM CÔNG VIỆC</h1>
-        <ul class="columns is-multiline is-vcentered is-variable is-1 mb-0 has-text-grey">
+        <ul class="columns is-multiline is-vcentered is-variable is-1 mb-0 has-text-grey is-size-7">
           <li class="column is-5">
             Công viêc
           </li>
@@ -135,7 +135,7 @@
             </div>
           </li>
         </ul>
-        <ul class="columns is-multiline is-vcentered is-variable is-1 mb-0 has-text-grey">
+        <ul class="columns is-multiline is-vcentered is-variable is-1 mb-0 has-text-grey is-size-7">
           <li class="column is-5">
             Thành viên
           </li>
@@ -199,7 +199,6 @@
             }
           }
         </ul>
-
       </div>
     }
     else
@@ -235,6 +234,8 @@
         await GetTaskList();
         // Thống kê công việc
         await ChartOverView();
+        // Cập nhật thống kê
+        await DbWorkReport.Update(Layout.Company.id, PlanId);
       }
       else
       {

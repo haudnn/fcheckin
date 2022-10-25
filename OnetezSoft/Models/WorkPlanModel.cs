@@ -194,11 +194,14 @@ namespace OnetezSoft.Models
       /// <summary>Công việc hoàn thành</summary>
       public int done { get; set; }
 
-      /// <summary>Đúng hạn</summary>
+      /// <summary>Công việc đúng hạn</summary>
       public int ontime { get; set; }
 
-      /// <summary>Trễ hạn</summary>
+      /// <summary>Công việc trễ hạn</summary>
       public int late { get; set; }
+
+      /// <summary>Thông số khác</summary>
+      public int other { get; set; }
     }
   }
 }

@@ -95,7 +95,8 @@
         </li>
         <li class="column is-one-fifth">
           <div class="control has-icons-right">
-            <input class="input is-small is-rounded" type="text" placeholder="Tiêu đề công việc...">
+              <input @bind="filterKey" class="input is-small is-rounded" type="text" 
+                placeholder="Tiêu đề công việc..." @onkeydown="FilterKey">
             <span class="icon is-right is-small">
               <i class="material-icons-outlined is-size-5">search</i>
             </span>
@@ -329,7 +330,7 @@
 
   private int filterPriority = 0;
   private int filterDate = 0;
-  
+  private string filterKey = string.Empty;
 
   private async Task GetTaskList()
   {
@@ -342,9 +343,11 @@
     }
     
     // Bộ lọc tìm kiếm
-    if(filterPriority != 0)
+    if(filterPriority != 0) // Lọc theo độ ưu tiên
       taskList = taskList.Where(x => x.priority == filterPriority).ToList();
-    if(filterDate != 0)
+    if(!string.IsNullOrEmpty(filterKey)) // Lọc theo tiêu đề công việc
+      taskList = taskList.Where(x => Shared.SearchKeyword(filterKey, x.name)).ToList();
+    if(filterDate != 0) // Lọc theo ngày kết thúc
     {
       Shared.GetTimeSpan(filterDate, out DateTime start, out DateTime end);
       taskList = taskList.Where(x => start.Ticks <= x.date_end && x.date_end <= end.Ticks).ToList();
@@ -381,6 +384,17 @@
   {
     filterDate = value;
     await GetTaskList();
+  }
+  
+  private async Task FilterKey(KeyboardEventArgs args)
+  {
+    if (args.Key == "Enter")
+      await GetTaskList();
+    else if(args.Key == "Escape")
+    {
+      filterKey = string.Empty;
+      await GetTaskList();
+    }
   }
 
   private void ToggleStatus(int id)
