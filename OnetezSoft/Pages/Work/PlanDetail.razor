@@ -354,7 +354,8 @@
       await DbWorkPlan.Update(Layout.Company.id, model);
       await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thời gian kết thúc của kế hoạch.");
       await WorkService.CreateLog(Layout.Company.id, "Cập nhật ngày kết thúc", 
-        string.Format("từ {0:dd/MM/yyyy} thành {1:dd/MM/yyyy}", new DateTime(old.date_end), new DateTime(model.date_end)), model.id, null, Layout.User);
+        string.Format("từ {0:dd/MM/yyyy} thành {1:dd/MM/yyyy}", new DateTime(old.date_end), 
+        new DateTime(model.date_end)), model.id, null, Layout.User);
       await GetLogs();
     }
   }
@@ -368,7 +369,8 @@
       await DbWorkPlan.Update(Layout.Company.id, model);
       await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật chế độ bảo mật của dự án.");
       await WorkService.CreateLog(Layout.Company.id, "Cập nhật chế độ bảo mật", 
-        "từ " + (old.is_private ? "Riêng tư" : "Công khai") + " thành " + (model.is_private ? "Riêng tư" : "Công khai"), model.id, null, Layout.User);
+        "từ " + (old.is_private ? "Riêng tư" : "Công khai") + " thành " + (model.is_private ? "Riêng tư" : "Công khai"), 
+        model.id, null, Layout.User);
       await GetLogs();
     }
   }
@@ -382,7 +384,8 @@
       await DbWorkPlan.Update(Layout.Company.id, model);
       await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật trạng thái của dự án.");
       await WorkService.CreateLog(Layout.Company.id, "Cập nhật trạng thái kế hoạch", 
-        "từ " + WorkService.StatusPlan(old.status).name + " thành " + WorkService.StatusPlan(model.status).name, model.id, null, Layout.User);
+        "từ " + WorkService.StatusPlan(old.status).name + " thành " + WorkService.StatusPlan(model.status).name, 
+        model.id, null, Layout.User);
       await GetLogs();
     }
   }

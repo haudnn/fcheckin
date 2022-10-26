@@ -70,10 +70,13 @@ namespace OnetezSoft.Services
     /// <summary>
     /// Gửi email xác nhận tạo tổ chức
     /// </summary>
-    public static bool CompanyActive(string email, string code, out string msg)
+    public static bool CompanyActive(string email, string code, string company, out string msg)
     {
-      string title = "Xác nhận tạo tổ chức";
-      string content = "Mã xác thực: " + code;
+      string title = "FASTDO | Thư xác nhận tạo tổ chức";
+      string content = "Đường link truy cập: https://work.fastdo.vn";
+      content += $"<br>Tên tổ chức: {company}";
+      content += $"<br>Mã xác thực: {code}";
+      content += "<br>Hướng dẫn sử dụng hệ thống Fastdo: https://help.fastdo.vn";
       
       return SendMail(email, title, content, null, out msg);
     }
@@ -84,8 +87,9 @@ namespace OnetezSoft.Services
     /// </summary>
     public static bool ForgotPassword(string email, string code, out string msg)
     {
-      string title = "Xác thực tài khoản";
-      string content = "Mã xác thực: " + code;
+      string title = "FASTDO | Mã xác thực tài khoản";
+      string content = $"<br>Tên đăng nhập:  {{Gmail}}";
+      content += $"<br>Mã xác thực: {code}";
       
       return SendMail(email, title, content, null, out msg);
     }
@@ -94,11 +98,27 @@ namespace OnetezSoft.Services
     /// <summary>
     /// Gửi email thông báo tạo tài khoản
     /// </summary>
-    public static bool UserInfo(string email, string password, out string msg)
+    public static bool UserInfo(string email, string password, string name, string company,  out string msg)
     {
-      string title = "Thông tin tài khoản FASTDO";
-      string content = $"<div>Tên đăng nhập: {email}</div>";
-      content += $"<div>Mật khẩu: {password}</div>";
+      string title = "FASTDO | Thư cung cấp tài khoản giải pháp Fastdo ";
+      string content = $"<p>Kính chào {name},</p>";
+      content += "<p>";
+      content += $"Fastdo rất vui khi được cùng đồng hành trong quá trình chuyển đổi số của {company}. ";
+      content += "Dưới đây chính là thông tin tài khoản đăng nhập bộ giải pháp quản trị Doanh nghiệp Fastdo.";
+      content += "</p>";
+      content += "<p>TÀI KHOẢN ĐƯỢC KÍCH HOẠT THÀNH CÔNG</p>";
+      content += "<p>";
+      content += "<strong>1. Thông tin tài khoản:</strong>";
+      content += "<br>Liên kết đăng nhập: https://work.fastdo.vn";
+      content += $"<br>Tên đăng nhập: {email}";
+      content += $"<br>Mật khẩu: {password}";
+      content += "</p>";
+      content += "<p>";
+      content += "<strong>2. Tài nguyên đi kèm:</strong>";
+      content += "<br>Hướng dẫn sử dụng hệ thống Fastdo: https://help.fastdo.vn";
+      content += "<br>Trong trường hợp cần hỗ trợ gấp, Anh/Chị có thể liên hệ trực tiếp qua Hotline  Fastdo: 0905.852.933";
+      content += "</p>";
+      content += "<p>Trân trọng,<br>Fastdo team</p>";
       
       return SendMail(email, title, content, null, out msg);
     }

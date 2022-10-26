@@ -170,7 +170,8 @@ namespace OnetezSoft.Handled
       content = content.Replace("<input", "&lt;input");
 
       List<string> links = new List<string>();
-      Regex urlRx = new Regex(@"((https?|ftp|file)\://|www.)[A-Za-z0-9\.\-]+(/[A-Za-z0-9\?\&\=;\+!'\(\)\*\-\._~%]*)*", RegexOptions.IgnoreCase);
+      Regex urlRx = new Regex(@"((https?|ftp|file)\://|www.)[A-Za-z0-9\.\-]+(/[A-Za-z0-9\?\&\=;\+!'\(\)\*\-\._~%]*)*",
+        RegexOptions.IgnoreCase);
 
       MatchCollection matches = urlRx.Matches(text);
       foreach (Match match in matches)

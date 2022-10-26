@@ -142,7 +142,7 @@
     model.verify = Shared.RandomInt(100000, 999999).ToString();
     await DbMainCompany.Update(model);
 
-    bool send = EmailService.CompanyActive(Layout.User.email, model.verify, out message);
+    bool send = EmailService.CompanyActive(Layout.User.email, model.verify, model.name, out message);
     await JSRuntime.InvokeVoidAsync("tagline", send, message);
     return send;
   }

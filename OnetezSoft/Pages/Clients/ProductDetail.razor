@@ -55,7 +55,7 @@
             @foreach (var image in model.images)
             {
               <div class="column is-one-third">
-                <a class="image is-2by1 is-radius">
+                <a class="image is-2by1 is-radius" @onclick="() => PopupImage(image)">
                   <img src="@image" alt="img" />
                 </a>
               </div>
@@ -73,7 +73,7 @@
           <div class="columns is-multiline is-vcentered is-variable is-1 font_14">
             <div class="column is-7">
               <span class="has-text-weight-bold">Sản phẩm</span>
-              <span class="is-block is-size-7">Bộ giải pháp đi kèm</span>
+              <span class="is-block is-size-7">Bộ giải pháp phần mềm đi kèm</span>
               <hr class="mt-2 mb-0" />
             </div>
             <div class="column is-5 has-text-centered">
@@ -220,6 +220,19 @@ else
 
 <_ProductBuy product="product" companys="companys" promotions="promotions" OnUpdate="OnUpdate" />
 
+@if(!string.IsNullOrEmpty(popupImage))
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-content">
+      <p class="image">
+        <img src="@popupImage" alt="IMG">
+      </p>
+    </div>
+    <a id="btn_close" class="modal-close is-large" @onclick="() => popupImage = null"></a>
+  </div>
+}
+
 @code {
   [CascadingParameter]
   public LayoutAdmin Layout { get; set; }
@@ -274,5 +287,11 @@ else
   private void OnUpdate(bool isUpdate)
   {
     product = null;
+  }
+
+  private string popupImage = null;
+  private void PopupImage(string image)
+  {
+    popupImage = image;
   }
 }

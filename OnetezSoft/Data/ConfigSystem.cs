@@ -4,11 +4,11 @@ namespace OnetezSoft.Data
 {
   public class ConfigSystem
   {
-    public static string BankName = "Ngân hàng Vietinbank";
+    public static string BankName = "Ngân hàng TMCP Công Thương Việt Nam (VietinBank)";
 
-    public static string BankNumber = "1234567890";
+    public static string BankNumber = "111002921599";
 
-    public static string BankHolder = "Công ty FASTDO";
+    public static string BankHolder = "CÔNG TY TNHH CÔNG NGHỆ FASTDO";
 
     public static string DeveloperId = "3CAE481CFC";
 

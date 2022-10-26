@@ -329,3 +329,23 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log(ask);
   }
 });
+
+window.addEventListener("keydown", function (e) {
+  if (e.code === "F8") {
+    console.log("F8 = Draft");
+    const btn = this.document.getElementById("btn_draft");
+    if (btn != null) btn.click();
+  } else if (e.code === "F9") {
+    console.log("F9 = Update");
+    const btn = this.document.getElementById("btn_update");
+    if (btn != null) btn.click();
+  } else if (e.code === "F10") {
+    console.log("F10 = Create");
+    const btn = this.document.getElementById("btn_create");
+    if (btn != null) btn.click();
+  } else if (e.code === "Escape") {
+    console.log("Escape = Close");
+    const btn = this.document.getElementById("btn_close");
+    if (btn != null) btn.click();
+  }
+});

@@ -82,7 +82,7 @@
 
         <ul class="columns is-vcentered is-variable is-2 mb-3">
           <li class="column">
-            @if(editRole)
+            @if(roleManager)
             {
               <div class="field has-addons">
                 <div class="control">
@@ -111,7 +111,7 @@
                 </div>
               </div>
             }
-            else if(WorkService.RoleInPlan(model, Layout.User.id) > 0)
+            else if(roleMember)
             {
               <a class="button is-link is-small" @onclick="() => EditTask(null, null)">
                 <span class="icon">
@@ -120,6 +120,34 @@
                 <span>Tạo công việc</span>
               </a>
             }
+          </li>
+          <li class="column is-narrow">
+            <div class="dropdown is-hoverable is-right is-size-7">
+              <div class="dropdown-trigger">
+                <a class="icon-text">
+                  <span>@filterMemberName</span>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                  </span>
+                </a>
+              </div>
+              <div class="dropdown-menu">
+                <div class="dropdown-content">
+                  <a class="dropdown-item" @onclick="() => FilterMember(null)">Tất cả thành viên</a>
+                  @foreach (var item in members)
+                  {
+                    <a class="dropdown-item py-0" @onclick="() => FilterMember(item)">
+                      <div class="icon-text">
+                        <span class="icon image is-rounded is-16x16 mr-2">
+                          <img src="@item.avatar" alt="IMG">
+                        </span>
+                        <span>@item.FullName</span>
+                      </div>
+                    </a>
+                  }
+                </div>
+              </div>
+            </div>
           </li>
           <li class="column is-narrow">
             <div class="dropdown is-hoverable is-right is-size-7">
@@ -242,10 +270,13 @@
                     <span class="has-text-weight-semibold font_14">
                       @item.name @(count > 0 ? $"({count})" : "")
                     </span>
-                    <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => EditTask(null, item.id)">
-                      <i class="material-icons-round is-size-6">add</i>
-                    </a>
-                    @if(editRole)
+                    @if(roleMember)
+                    {
+                      <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => EditTask(null, item.id)">
+                        <i class="material-icons-round is-size-6">add</i>
+                      </a>
+                    }
+                    @if(roleManager)
                     {
                       <div class="dropdown is-hoverable is-right icon is_hover">
                         <div class="dropdown-trigger">
@@ -295,12 +326,19 @@
                 @if(context.id == null)
                 {
                   <div class="pl-4 py-1">
-                    <a class="icon-text has-text-link" @onclick="() => EditTask(null, item.id)">
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-6">add</i>
-                      </span>
-                      <span class="is-size-7">Thêm công việc</span>
-                    </a>
+                    @if(roleMember)
+                    {
+                      <a class="icon-text has-text-link" @onclick="() => EditTask(null, item.id)">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-6">add</i>
+                        </span>
+                        <span class="is-size-7">Thêm công việc</span>
+                      </a>
+                    }
+                    else 
+                    {
+                      <span class="is-size-7">Không có công việc</span>
+                    }
                   </div>
                 }
                 else
@@ -340,10 +378,13 @@
                       <span class="has-text-weight-semibold font_14">
                         @item.name @(count > 0 ? $"({count})" : "")
                       </span>
-                      <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => EditTask(null, item.id)">
-                        <i class="material-icons-round is-size-6">add</i>
-                      </a>
-                      @if(editRole)
+                      @if(roleMember)
+                      {
+                        <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => EditTask(null, item.id)">
+                          <i class="material-icons-round is-size-6">add</i>
+                        </a>
+                      }
+                      @if(roleManager)
                       {
                         <div class="dropdown is-hoverable is-right icon is_hover">
                           <div class="dropdown-trigger">
@@ -389,12 +430,19 @@
                       @if(context.id == null)
                       {
                         <div class="has-text-centered p-3">
-                          <a class="icon-text has-text-link" @onclick="() => EditTask(null, item.id)">
-                            <span class="icon">
-                              <i class="material-icons-outlined is-size-6">add</i>
-                            </span>
-                            <span class="is-size-7">Thêm công việc</span>
-                          </a>
+                          @if(roleMember)
+                          {  
+                            <a class="icon-text has-text-link" @onclick="() => EditTask(null, item.id)">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-6">add</i>
+                              </span>
+                              <span class="is-size-7">Thêm công việc</span>
+                            </a>
+                          }
+                          else
+                          {
+                            <span class="is-size-7">Không có công việc</span>
+                          }
                         </div>
                       }
                       else
@@ -480,10 +528,13 @@
                       <span class="has-text-weight-semibold font_14">
                         @item.name @(count > 0 ? $"({count})" : "")
                       </span>
-                      <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => EditTask(null, item.id)">
-                        <i class="material-icons-round is-size-6">add</i>
-                      </a>
-                      @if(editRole)
+                      @if(roleMember)
+                      {
+                        <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => EditTask(null, item.id)">
+                          <i class="material-icons-round is-size-6">add</i>
+                        </a>
+                      }
+                      @if(roleManager)
                       {
                         <div class="dropdown is-hoverable is-right icon is_hover">
                           <div class="dropdown-trigger">
@@ -543,12 +594,19 @@
                     <ul class="task_gantt columns is-gapless is-size-7">
                       <li class="column is-narrow">
                         <div class="pl-4 py-1">
-                          <a class="icon-text has-text-link" @onclick="() => EditTask(null, item.id)">
-                            <span class="icon">
-                              <i class="material-icons-outlined is-size-6">add</i>
-                            </span>
-                            <span class="is-size-7">Thêm công việc</span>
-                          </a>
+                          @if(roleMember)
+                          {
+                            <a class="icon-text has-text-link" @onclick="() => EditTask(null, item.id)">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-6">add</i>
+                              </span>
+                              <span class="is-size-7">Thêm công việc</span>
+                            </a>
+                          }
+                          else
+                          {
+                            <span class="is-size-7">Không có công việc</span>
+                          }
                         </div>
                       </li>
                       @((MarkupString)dayHtml)
@@ -594,11 +652,12 @@
   [Parameter]
   public string TypeView { get; set; }
   private WorkPlanModel model = new();
-  private bool editRole = false;
   private Dictionary<string, List<WorkPlanModel.Task>> taskGroups = new();
   private List<WorkPlanModel.Task> taskList = new();
   private List<string> toggleList = new();
   private List<UserModel> members = new();
+  private bool roleManager = false;
+  private bool roleMember = false;
   private int dayTotal = 0;
   private DateTime dayStart = DateTime.Today;
   private DateTime dayEnd = DateTime.Today;
@@ -613,8 +672,10 @@
         // Chế độ xem
         if(string.IsNullOrEmpty(TypeView))
           TypeView = "list";
-        // Quyền quản lý kế hoạch
-        editRole = WorkService.RoleInPlan(model, Layout.User.id) == 1;
+        // Quyền trong kế hoạch
+        var role = WorkService.RoleInPlan(model, Layout.User.id);
+        roleManager = role == 1;
+        roleMember = role > 0;
         // Danh sách thành viên
         members = GetMembers();
         // Lấy dữ liệu công việc
@@ -640,6 +701,8 @@
   
   private int filterStatus = 0;
   private int filterPriority = 0;
+  private string filterMember = string.Empty;
+  private string filterMemberName = "Thành viên";
   private string filterLabel = string.Empty;
   private string filterKey = string.Empty;
 
@@ -678,6 +741,8 @@
       taskList = taskList.Where(x => x.labels.Contains(filterLabel)).ToList();
     if(!string.IsNullOrEmpty(filterKey))
       taskList = taskList.Where(x => Shared.SearchKeyword(filterKey, x.name)).ToList();
+    if(!string.IsNullOrEmpty(filterMember))
+      taskList = taskList.Where(x => x.members.Where(x => x.id == filterMember).Count() > 0).ToList();
   }
 
   private void SplitTaskList()
@@ -702,6 +767,21 @@
   private async Task FilterPriority(int value)
   {
     filterPriority = value;
+    await GetTaskList();
+  }
+
+  private async Task FilterMember(UserModel value)
+  {
+    if(value != null)
+    {
+      filterMember = value.id;
+      filterMemberName = value.FullName;
+    }
+    else
+    {
+      filterMember = null;
+      filterMemberName = "Thành viên";
+    }
     await GetTaskList();
   }
 

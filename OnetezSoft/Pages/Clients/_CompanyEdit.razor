@@ -364,7 +364,7 @@
     model.verify = Shared.RandomInt(100000, 999999).ToString();
     await DbMainCompany.Update(model);
 
-    bool send = EmailService.CompanyActive(Layout.User.email, model.verify, out message);
+    bool send = EmailService.CompanyActive(Layout.User.email, model.verify, model.name, out message);
     await JSRuntime.InvokeVoidAsync("tagline", send, message);
     return send;
   }
@@ -415,7 +415,7 @@
           await DbMainUser.Create(manager);
           // Gửi email cấp tài khoản
           await JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
-          bool send = EmailService.UserInfo(model.email, model.id, out string message);
+          bool send = EmailService.UserInfo(manager.email, manager.id, manager.FullName, model.name, out string message);
           await JSRuntime.InvokeVoidAsync("tagline", send, message);
         }
       }
