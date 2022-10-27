@@ -23,9 +23,7 @@
       }
       else 
       {
-        <span class="icon has-text-grey-light">
-          <i class="material-icons-outlined is-size-5">arrow_right</i>
-        </span>
+        <span class="icon"></span>
       }
       <a class="item_name" @onclick="Edit">
         @model.name
@@ -90,7 +88,7 @@
   foreach (var child in subTasks)
   {
     <_TaskGanttChild model="child" parent="model" members="members" isEdit="editRole"
-      dayStart="dayStart" dayTotal="dayTotal" OnUpdate="UpdateSubTasks" />
+      dayStart="dayStart" dayTotal="dayTotal" OnUpdate="UpdateSubTasks" OnView="AddSub" />
   }
   if(subTasks.Count == 0)
   {

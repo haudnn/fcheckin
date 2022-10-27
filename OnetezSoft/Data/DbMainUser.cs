@@ -53,6 +53,9 @@ namespace OnetezSoft.Data
     {
       model.email = model.email.Trim().ToLower();
 
+      if(model.companys == null)
+        model.companys = new();
+
       var collection = _db.GetCollection<UserModel>(_collection);
 
       var option = new ReplaceOptions { IsUpsert = false };
@@ -60,30 +63,23 @@ namespace OnetezSoft.Data
       var result = await collection.ReplaceOneAsync(x => x.id.Equals(model.id), model, option);
 
       // Cập nhật tất cả công ty
-      if (model.companys != null)
+      foreach (var item in model.companys)
       {
-        foreach (var item in model.companys)
+        var user = await DbUser.Get(item.id, model.id);
+        if(user != null)
         {
-          var user = await DbUser.Get(item.id, model.id);
-          if(user != null)
-          {
-            user.email = model.email;
-            user.is_admin = model.is_admin;
-            user.is_customer = model.is_customer;
-            user.password = model.password;
-            user.session = model.session;
-            user.companys = model.companys;
-            user.online = model.online;
-            user.avatar = model.avatar;
-            user.balance = model.balance;
-            //user.phone = model.phone;
-            //user.first_name = model.first_name;
-            //user.last_name = model.last_name;
-            await DbUser.Update(item.id, user);
-          }
+          user.email = model.email;
+          user.password = model.password;
+          user.companys = model.companys;
+          user.session = model.session;
+          user.balance = model.balance;
+          user.online = model.online;
+          user.avatar = model.avatar;
+          user.is_admin = model.is_admin;
+          user.is_customer = model.is_customer;
+          await DbUser.Update(item.id, user);
         }
       }
-
 
       return model;
     }
@@ -160,7 +156,7 @@ namespace OnetezSoft.Data
     }
 
 
-    public static List<UserModel> GetAll(string keyword, int paging, int size, out int total)
+    public static List<UserModel> GetAll(string keyword, int orderby, int paging, int size, out int total)
     {
       var collection = _db.GetCollection<UserModel>(_collection);
 
@@ -185,6 +181,13 @@ namespace OnetezSoft.Data
       }
       else
         results = list;
+
+      if(orderby == 2)
+        results = results.OrderByDescending(x => x.online).ToList();
+      else if(orderby == 3)
+        results = results.OrderBy(x => x.email).ToList();
+      else if(orderby == 4)
+        results = results.OrderBy(x => x.companys.Count).ToList();
 
       total = results.Count;
       if (size > 0)

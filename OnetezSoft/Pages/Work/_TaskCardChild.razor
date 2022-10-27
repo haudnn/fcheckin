@@ -68,6 +68,13 @@
   public bool isEdit { get; set; }
   [Parameter]
   public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
+  [Parameter]
+  public EventCallback OnView { get; set; }
+
+  private async Task View()
+  {
+    await OnView.InvokeAsync();
+  }
 
   private async Task Delete()
   {

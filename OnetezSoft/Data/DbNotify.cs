@@ -302,7 +302,7 @@ namespace OnetezSoft.Data
 
       #endregion
 
-      if (!string.IsNullOrEmpty(name) && create != target)
+      if (create != target)
       {
         var model = new NotifyModel();
         model.name = name;

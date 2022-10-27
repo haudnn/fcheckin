@@ -12,5 +12,7 @@ namespace OnetezSoft.Data
 
     public static string DeveloperId = "3CAE481CFC";
 
+    public static string Domain = "https://work.fastdo.vn";
+
   }
 }

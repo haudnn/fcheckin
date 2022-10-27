@@ -12,7 +12,7 @@
 <ul id="task_@model.id" class="task_gantt is_item is_sub columns is-gapless is-size-7">
   <li class="column is-narrow" style="box-shadow: inset 4px 0px 0px 0px @priority.color;">
     <div class="icon-text item_title pl-0">
-      <span class="item_name">@model.name</span>
+      <a class="item_name has-text-black" @onclick="View">@model.name</a>
       @if(isEdit)
       {
         <div class="dropdown is-hoverable is-right icon is_hover">
@@ -69,7 +69,13 @@
   public bool isEdit { get; set; }
   [Parameter]
   public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
+  [Parameter]
+  public EventCallback OnView { get; set; }
   
+  private async Task View()
+  {
+    await OnView.InvokeAsync();
+  }
 
   private async Task Delete()
   {

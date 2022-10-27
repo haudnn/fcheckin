@@ -11,7 +11,7 @@
 <ul id="task_@model.id" class="task_list is_sub columns is-gapless is-size-7">
   <li class="column" style="width: calc(100% - 630px); box-shadow: inset 4px 0px 0px 0px @priority.color;">
     <div class="icon-text item_title pl-0">
-      <span class="item_name">@model.name</span>
+      <a class="item_name has-text-black" @onclick="View">@model.name</a>
     </div>
   </li>
   <li class="column is-narrow" style="width: 130px;">
@@ -32,9 +32,7 @@
       </PickerTemplate>
     </DateRangePicker>
   </li>
-  <li class="column is-narrow" style="width: 250px;">
-    
-  </li>
+  <li class="column is-narrow" style="width: 250px;"></li>
   <li class="column is-narrow" style="width: 110px;">
     <_MemberList members="model.members" sources="members" isEdit="isEdit" isTask="true" isSubTask="true"
       OnUpdate="UpdateMembers" />
@@ -94,6 +92,8 @@
   public bool isEdit { get; set; }
   [Parameter]
   public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }  
+  [Parameter]
+  public EventCallback OnView { get; set; }
 
   private bool toggleStatus = false;
   
@@ -101,6 +101,11 @@
   {
     await JSRuntime.InvokeVoidAsync("dropdownClose");
     toggleStatus = !toggleStatus;
+  }
+
+  private async Task View()
+  {
+    await OnView.InvokeAsync();
   }
 
   private async Task Delete()
