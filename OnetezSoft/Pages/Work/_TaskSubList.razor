@@ -35,8 +35,8 @@
         </div>
       </li>
       <li class="column is-narrow" style="width: 130px;">
-        <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" OnRangeSelect="(x) => UpdateDate(task, x)"
-          MinDate="new DateTime(parent.date_start)" MaxDate="new DateTime(parent.date_end)" Opens="SideType.Left">
+        <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE"
+          OnRangeSelect="(x) => UpdateDate(task, x)" Opens="SideType.Left">
           <PickerTemplate>
             <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
               <span class="icon is-small mr-1">
@@ -224,7 +224,7 @@
         item.parent_id = parent.id;
         await DbWorkTask.Create(Layout.Company.id, item);
         await WorkService.CreateLog(Layout.Company.id, "Thêm công việc phụ", item.name, parent.plan_id, parent.id, Layout.User);
-        
+        await WorkService.LogTaskMembers(Layout.Company.id, null, item, Layout.User, Layout.UserList);
         // Cập nhật số lượng công việc phụ
         await WorkService.UpdateSubTaskCount(Layout.Company.id, parent.id, tasks.Count);
       } 
@@ -267,8 +267,10 @@
   private async Task UpdateMembers(WorkPlanModel.Task item)
   {
     var old = await DbWorkTask.Get(Layout.Company.id, item.id);
-    await DbWorkTask.Update(Layout.Company.id, item);
-    // Lưu lịch sử
-    await WorkService.LogTaskMembers(Layout.Company.id, old, item, Layout.User, Layout.UserList);
+    if(old != null)
+    {
+      await DbWorkTask.Update(Layout.Company.id, item);
+      await WorkService.LogTaskMembers(Layout.Company.id, old, item, Layout.User, Layout.UserList);
+    }
   }
 }

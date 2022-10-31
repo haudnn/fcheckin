@@ -258,9 +258,13 @@
     suggests.RemoveAll(x => x.id == id);
   }
 
-  private void RemoveItem(string id)
+  private async Task RemoveItem(string id)
   {
     members.RemoveAll(x => x.id == id);
+    if(isTask)
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa thành viên ra khỏi công việc!");
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa thành viên ra khỏi kế hoạch!");
   }
 
   private List<StaticModel> RoleList()

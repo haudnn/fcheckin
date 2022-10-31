@@ -88,7 +88,7 @@ namespace OnetezSoft.Services
     public static bool ForgotPassword(string email, string code, out string msg)
     {
       string title = "FASTDO | Mã xác thực tài khoản";
-      string content = $"<br>Tên đăng nhập:  {{Gmail}}";
+      string content = $"<br>Tên đăng nhập: {email}";
       content += $"<br>Mã xác thực: {code}";
       
       return SendMail(email, title, content, null, out msg);

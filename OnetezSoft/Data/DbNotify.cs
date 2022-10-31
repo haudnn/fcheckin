@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using OnetezSoft.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using OnetezSoft.Services;
 
 namespace OnetezSoft.Data
 {
@@ -330,7 +331,7 @@ namespace OnetezSoft.Data
       var plan = await DbWorkPlan.Get(companyId, planId);
       if (type == 700)
       {
-        name = $"Kế hoạch <b>{plan.name}</b> đã được tạo bởi {create}";
+        name = $"Kế hoạch <b>{plan.name}</b> đã được tạo bởi {creator}";
         link = "/work/" + planId;
       }
       else if (type == 701)
@@ -341,20 +342,20 @@ namespace OnetezSoft.Data
       else if (type == 702)
       {
         var data = plan.sections.SingleOrDefault(x => x.id == itemId);
-        name = $"<b>{data.name}</b> thuộc kế hoạch <b>{plan.name}</b> đã được thêm mới.";
-        link = "/work/" + planId;
+        name = $"<b>{data.name}</b> thuộc kế hoạch <b>{plan.name}</b> đã được thêm bởi {creator}.";
+        link = $"/work/{planId}/task";
       }
       else if (type == 703)
       {
         var data = plan.sections.SingleOrDefault(x => x.id == itemId);
         name = $"<b>{data.name}</b> thuộc kế hoạch <b>{plan.name}</b> đã được cập nhật tiêu đề mới.";
-        link = "/work/" + planId;
+        link = $"/work/{planId}/task";
       }
       else if (type == 704)
       {
         var data = plan.sections.SingleOrDefault(x => x.id == itemId);
         name = $"<b>{data.name}</b> thuộc kế hoạch <b>{plan.name}</b> đã bị xóa bởi {creator}.";
-        link = "/work/" + planId;
+        link = $"/work/{planId}/task";
       }
       else if (type == 705)
       {
@@ -431,6 +432,22 @@ namespace OnetezSoft.Data
         var data = await DbWorkTask.Get(companyId, itemId);
         name = $"Công việc <b>{data.name}</b> thuộc kế hoạch <b>{plan.name}</b> đã bị xóa bởi {creator}.";
         link = $"/work/{planId}/task";
+      }
+      else if (type == 718)
+      {
+        name = $"<b>{creator}</b> đã rời khỏi kế hoạch <b>{plan.name}</b>!";
+        link = $"/work/{planId}";
+      }
+      else if (type == 719)
+      {
+        name = $"<b>{creator}</b> đã phân quyền bạn trở thành quản lý tại kế hoạch <b>{plan.name}</b>.";
+        link = "/work/" + planId;
+      }
+      else if (type == 720)
+      {
+        var data = WorkService.StatusPlan(Convert.ToInt32(itemId));
+        name = $"Kế hoạch <b>{plan.name}</b> đã được chuyển trạng thái thành <b>{data.name}</b>.";
+        link = $"/work/{planId}";
       }
 
       if (create != target)

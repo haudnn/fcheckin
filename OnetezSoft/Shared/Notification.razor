@@ -255,9 +255,10 @@
 
   protected override void OnInitialized()
   {
+    Timer();
     new Task(async () =>
     {
-      await Timer();
+      //await Timer();
     }).Start();
   }
 
@@ -279,7 +280,14 @@
       {
         var type = DbNotify.Type(item.type);
         var content = Shared.HtmlToText(item.name);
-        await JSRuntime.InvokeVoidAsync("notification", "FASTDO - " + type.name, content, item.link);
+        try
+        {
+          await JSRuntime.InvokeVoidAsync("notification", "FASTDO - " + type.name, content, item.link);
+        }
+        catch (Exception ex)
+        {
+          await JSRuntime.InvokeVoidAsync("console.log", "Error notification: " + ex.Message);
+        }
       }
     }
   }

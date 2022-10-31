@@ -41,7 +41,7 @@
     </li>
   </ul>
 
-  <table class="table is-fullwidth is-vcentered is-responsive is_head_bg is-size-7">
+  <table class="table is-fullwidth is-vcentered is-hoverable is-responsive is_head_bg is-size-7">
     <thead>
       <tr>
         <th width="100px">ID</th>
@@ -59,7 +59,7 @@
       {
         var companys = item.companys != null ? item.companys.Select(x => x.name).ToList() : new List<string>();
         var duplicate = dataList.Where(x => x.email == item.email).Count() > 1;
-        var avatar = item.avatar.StartsWith("/") ? ConfigSystem.Domain : item.avatar;
+        var avatar = item.avatar.StartsWith("/") ? ConfigSystem.Domain + item.avatar : item.avatar;
         <tr>
           <td>
             @if(item.delete)
@@ -74,7 +74,7 @@
           <td>
             <div class="icon-text">
               <a class="icon image is-24x24 is-rounded mr-2" @onclick="() => AvatarItem(item)">
-                <img src="@item.avatar" alt="IMG" />
+                <img src="@avatar" alt="IMG" />
               </a>
               <span class="has-text-@(duplicate ? "dark" : "dark")">@item.email</span>
             </div>

@@ -165,46 +165,55 @@ else
                     <b>Phòng ban, Nhân sự, Thiết lập ngày nghỉ</b>
                   </div>
                 </div>
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.role_manage.okrs" />
-                      <span class="has-text-weight-bold has-text-link">OKRs - CFRs</span>
-                    </label>
+                if (CheckAccess("okrs"))
+                {
+                  <div class="field">
+                    <div class="control">
+                      <label class="checkbox">
+                        <input type="checkbox" @bind="user.role_manage.okrs" />
+                        <span class="has-text-weight-bold has-text-link">OKRs - CFRs</span>
+                      </label>
+                    </div>
+                    <div class="control has-text-grey mt-2">
+                      Truy cập tất cả chức năng trong trang <b>Cấu hình - OKRs-CFRs</b> bao gồm:
+                      <b>Đơn vị tính, Chu kỳ OKRs, Phiếu góp ý, Tiêu chí đánh giá, Cấp sao</b>
+                    </div>
                   </div>
-                  <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Cấu hình - OKRs-CFRs</b> bao gồm:
-                    <b>Đơn vị tính, Chu kỳ OKRs, Phiếu góp ý, Tiêu chí đánh giá, Cấp sao</b>
+                }
+                if (CheckAccess("kaizen"))
+                {      
+                  <div class="field">
+                    <div class="control">
+                      <label class="checkbox">
+                        <input type="checkbox" @bind="user.role_manage.kaizen" />
+                        <span class="has-text-weight-bold has-text-link">KAIZEN</span>
+                      </label>
+                    </div>
+                    <div class="control has-text-grey mt-2">
+                      Truy cập tất cả chức năng trong trang <b>Cấu hình - Kaizen</b>
+                      <br />
+                      Truy cập tất cả chức năng nâng cao tại trang <b>Kaizen</b> bao gồm:
+                      <b>Xóa góp ý Kaizen, Đánh giá quản lý cho góp ý Kaizen, Ghim, Xóa phản hồi Kaizen</b>
+                    </div>
                   </div>
-                </div>
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.role_manage.kaizen" />
-                      <span class="has-text-weight-bold has-text-link">KAIZEN</span>
-                    </label>
+                }
+                if (CheckAccess("train"))
+                {  
+                  <div class="field">
+                    <div class="control">
+                      <label class="checkbox">
+                        <input type="checkbox" @bind="user.role_manage.educate" />
+                        <span class="has-text-weight-bold has-text-link">ĐÀO TẠO</span>
+                      </label>
+                    </div>
+                    <div class="control has-text-grey mt-2">
+                      Truy cập tất cả chức năng trong trang <b>Cấu hình - Đào tạo</b> bao gồm:
+                      <b>Danh mục, Mẫu chứng chỉ</b>
+                      <br />
+                      Truy cập, chỉnh sửa tất cả các khóa học tại trang <b>Đào tạo - Quản lý khóa học</b>
+                    </div>
                   </div>
-                  <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Cấu hình - Kaizen</b>
-                    <br />
-                    Truy cập tất cả chức năng nâng cao tại trang <b>Kaizen</b> bao gồm:
-                    <b>Xóa góp ý Kaizen, Đánh giá quản lý cho góp ý Kaizen, Ghim, Xóa phản hồi Kaizen</b>
-                  </div>
-                </div>
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.role_manage.educate" />
-                      <span class="has-text-weight-bold has-text-link">ĐÀO TẠO</span>
-                    </label>
-                  </div>
-                  <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Cấu hình - Đào tạo</b> bao gồm:
-                    <b>Danh mục, Mẫu chứng chỉ</b>
-                    <br />
-                    Truy cập, chỉnh sửa tất cả các khóa học tại trang <b>Đào tạo - Quản lý khóa học</b>
-                  </div>
-                </div>
+                }
                 <div class="field">
                   <div class="control">
                     <label class="checkbox">
@@ -367,5 +376,10 @@ else
         _message = $"ERROR: {ex.Message}";
       }
     }
+  }
+
+  private bool CheckAccess(string productId)
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, productId, out string message);
   }
 }

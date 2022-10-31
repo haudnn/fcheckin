@@ -215,13 +215,25 @@
     results.Add("/blogs", "Tin tức");
     results.Add("/reports", "Thống kê");
     results.Add("/teams", "Đội nhóm");
-    results.Add("/todolist", "Todolist");
-    results.Add("/work", "Kế hoạch");
-    results.Add("/okr/overview", "OKRs");
-    results.Add("/cfr/checkin", "Check-in");
-    results.Add("/cfr/star", "Ghi nhận - tặng sao");
-    results.Add("/kaizen", "Kaizen");
-    //results.Add("/educate", "Đào tạo");
+    if (CheckAccess("todolist"))
+      results.Add("/todolist", "Todolist");
+    if (CheckAccess("work"))
+      results.Add("/work", "Kế hoạch");
+    if (CheckAccess("okrs"))
+      results.Add("/okr/overview", "OKRs");
+    if (CheckAccess("okrs"))
+      results.Add("/cfr/checkin", "Check-in");
+    if (CheckAccess("okrs"))
+      results.Add("/cfr/star", "Ghi nhận - tặng sao");
+    if (CheckAccess("kaizen"))
+      results.Add("/kaizen", "Kaizen");
+    if (CheckAccess("train"))
+      results.Add("/educate", "Đào tạo");
     return results;
+  }
+  
+  private bool CheckAccess(string productId)
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, productId, out string message);
   }
 }

@@ -45,7 +45,7 @@ namespace OnetezSoft.Services
     }
 
     /// <summary>
-    /// Thành viên rời khỏi kế hoạch
+    /// Thành viên tự rời khỏi kế hoạch
     /// </summary>
     public static async Task<bool> RemoveMemberInPlan(string companyId, string planId, string userId)
     {
@@ -54,6 +54,11 @@ namespace OnetezSoft.Services
       {
         plan.members.RemoveAll(x => x.id == userId);
         await DbWorkPlan.Update(companyId, plan);
+
+        // Gửi thông báo cho QLKH
+        foreach (var member in plan.members.Where(x => x.role == 1))
+          await DbNotify.ForPlan(companyId, 718, plan.id, null, member.id, userId);
+
         return true;
       }
       return false;
@@ -264,6 +269,26 @@ namespace OnetezSoft.Services
         if(removeList.Count > 0 && string.IsNullOrEmpty(task.parent_id))
           await WorkService.CreateLog(companyId, "Xóa người tham gia", 
             String.Join(", ", removeList), task.plan_id, task.id, userEdit);
+      }
+      else
+      {
+        // Các thành viên mới thêm vào
+        var addList = new List<string>();
+        foreach (var item in task.members)
+        {
+          var user = UserService.GetUser(userList, item.id);
+          if(user != null)
+          {
+            addList.Add(user.FullName);
+            if(string.IsNullOrEmpty(task.parent_id))
+              await DbNotify.ForPlan(companyId, 713, task.plan_id, task.id, user.id, "");
+            else
+              await DbNotify.ForPlan(companyId, 715, task.plan_id, task.id, user.id, "");
+          }
+        }
+        if(addList.Count > 0 && string.IsNullOrEmpty(task.parent_id))
+          await WorkService.CreateLog(companyId, "Thêm người tham gia", 
+            String.Join(", ", addList), task.plan_id, task.id, userEdit); 
       }
     }
 

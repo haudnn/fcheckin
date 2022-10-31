@@ -313,7 +313,7 @@ function notification(title, content, link) {
       if (permission === "granted") {
         let msg = new Notification(title, {
           body: content,
-          icon: "/favicon/conando.png",
+          icon: "/images/favicon.png",
         });
         msg.addEventListener("click", (event) => {
           location.href = link;

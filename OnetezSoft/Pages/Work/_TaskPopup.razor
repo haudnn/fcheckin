@@ -492,9 +492,11 @@
   private async Task UpdateMembers()
   {
     var old = await DbWorkTask.Get(Layout.Company.id, task.id);
-    await Changed();
-    // Lưu lịch sử
-    await WorkService.LogTaskMembers(Layout.Company.id, old, task, Layout.User, Layout.UserList);
+    if(old != null)
+    {
+      await Changed();
+      await WorkService.LogTaskMembers(Layout.Company.id, old, task, Layout.User, Layout.UserList);
+    }
   }
 
   private async Task ChangeStatus(int statusId)

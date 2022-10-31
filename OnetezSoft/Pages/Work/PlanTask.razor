@@ -667,7 +667,7 @@
     model = await DbWorkPlan.Get(Layout.Company.id, PlanId);
     if(model != null)
     {
-      if(WorkService.ViewInPlan(model, Layout.User.id))
+      if(RoleView())
       {
         // Chế độ xem
         if(string.IsNullOrEmpty(TypeView))
@@ -689,6 +689,23 @@
         model.detail = "Bạn không có quyền xem chi tiết kế hoạch này!";
       }
     }
+  }
+
+  private bool RoleView()
+  {
+    // Kiểm tra quyền xem kế hoạch
+    if(WorkService.ViewInPlan(model, Layout.User.id))
+      return true;
+    // Kiểm tra theo quyền cấp trên có cấp dưới tham gia
+    var departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    foreach (var member in model.members)
+    {
+      var staff = Layout.UserList.FirstOrDefault(x => x.id == member.id);
+      if(staff != null && DbDepartment.CheckManagerRole(Layout.Company.id, staff, Layout.User.id, departmentAll))
+        return true;
+    }
+
+    return false;
   }
 
   private List<UserModel> GetMembers()
@@ -939,7 +956,7 @@
         plan_id = model.id,
         section_id = sectionId,
         labels = new(),
-        members = new()
+        members = new() { new() { id = Layout.User.id, role = 2 }}
       };
       await JSRuntime.InvokeVoidAsync("setFocus", "task_name");
     }
