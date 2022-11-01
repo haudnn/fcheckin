@@ -326,11 +326,11 @@ namespace OnetezSoft.Services
     {
       var list = new List<StaticModel>();
 
-      list.Add(new() { id = 1, name = "Todo" });
-      list.Add(new() { id = 2, name = "Doing" });
-      list.Add(new() { id = 3, name = "Review" });
-      list.Add(new() { id = 4, name = "Done" });
-      list.Add(new() { id = 5, name = "Cancel" });
+      list.Add(new() { id = 1, name = "Todo", color = "is-grey" });
+      list.Add(new() { id = 2, name = "Doing", color = "is-link" });
+      list.Add(new() { id = 3, name = "Review", color = "is-info" });
+      list.Add(new() { id = 4, name = "Done", color = "is-success" });
+      list.Add(new() { id = 5, name = "Cancel", color = "is-dark" });
 
       return list;
     }
@@ -342,9 +342,9 @@ namespace OnetezSoft.Services
     {
       var list = new List<StaticModel>();
 
-      list.Add(new() { id = 1, name = "Todo" });
-      list.Add(new() { id = 2, name = "Doing" });
-      list.Add(new() { id = 4, name = "Done" });
+      list.Add(new() { id = 1, name = "Todo", color = "is-light" });
+      list.Add(new() { id = 2, name = "Doing", color = "is-link" });
+      list.Add(new() { id = 4, name = "Done", color = "is-success" });
 
       return list;
     }
@@ -384,7 +384,7 @@ namespace OnetezSoft.Services
       var result = Priority().SingleOrDefault(x => x.id == id);
       if (result != null)
         return result;
-      return new StaticModel();
+      return new StaticModel() { id = id, color = "#dddddd"};
     }
     
 

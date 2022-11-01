@@ -3,21 +3,11 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<PageTitle>@_title</PageTitle>
-
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
+<PageTitle>CFRs - Check-in 1:1</PageTitle>
 
 @if (okr != null && okr.user_create == Layout.User.id)
 {
-  <section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+  <section class="columns is-gapless has_menu_left">
     <div class="column is-narrow">
       <div class="card p-3 menu_left">
         <a class="button is-transparent has-text-link mb-5" onclick="goBack()">
@@ -61,10 +51,9 @@
           <thead>
             <tr>
               <th>Mục tiêu</th>
-              <th width="200px"></th>
               <th width="200px" align="center">Tiến độ</th>
               <th width="100px" align="center">Thay đổi</th>
-              <th width="100px" align="center">Tự tin</th>
+              <th width="120px" align="center">Tự tin</th>
             </tr>
           </thead>
           <tbody>
@@ -74,7 +63,7 @@
               var okrColor = Shared.ProgressColor(progress);
 
               <tr>
-                <td colspan="2">
+                <td>
                   <span class="has-text-weight-semibold has-text-link">
                     @okr.name
                   </span>
@@ -99,6 +88,7 @@
                   <div class="td-value">
                     <div class="select is-fullwidth">
                       <select @bind="current.confident">
+                        <option value="0">- Chọn -</option>
                         @foreach (var sl in DbOkr.Confident())
                         {
                           <option value="@sl.id">@sl.name</option>
@@ -109,13 +99,12 @@
                 </td>
               </tr>
               <tr>
-                <td colspan="5">
+                <td colspan="4">
                   <hr class="m-0" />
                 </td>
               </tr>
               <tr>
                 <td>Kết quả then chốt</td>
-                <td></td>
                 <td align="center">Đạt được</td>
                 <td></td>
                 <td align="center">Tự tin</td>
@@ -133,32 +122,18 @@
                         @kr.name
                       </span>
                     </td>
-                    <td class="pl-2">
-                      <a class="icon-text has-text-link" @onclick="() => ShowTask(okr, kr)">
-                        <span class="icon is-small">
-                          <i class="material-icons-outlined">task</i>
-                        </span>
-                        <span>Hành động</span>
-                      </a>
-                      @if (!string.IsNullOrEmpty(kr.link))
-                      {
-                        <a class="icon-text ml-2 has-text-link" href="@kr.link" target="_blank">
-                          <span class="icon is-small">
-                            <i class="material-icons-outlined">attach_file</i>
-                          </span>
-                          <span>Kết quả</span>
-                        </a>
-                      }
-                    </td>
                     <td colspan="2">
                       <label class="td-label">Đạt được</label>
                       <div class="td-value">
-                        <div class="field is-grouped">
-                          <div class="control" style="width: 90px">
-                            <input @bind="checkin.result" type="text" class="input has-text-right" />
+                        <div class="field has-addons">
+                          <div class="control" style="width: 140px">
+                            <InputDouble @bind-Value="checkin.result" @bind-Value:event="OnInput" Class="input has-text-right" 
+                              Text="Đã đạt được" />
                           </div>
                           <div class="control is-expanded">
-                            @Shared.ConvertNumber(kr.target) @kr.unit
+                            <div class="button is-static has-text-link">
+                              @Shared.ConvertCurrency(kr.target) @kr.unit
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -168,6 +143,7 @@
                       <div class="td-value">
                         <div class="select is-fullwidth">
                           <select @bind="checkin.confident">
+                            <option value="0">- Chọn -</option>
                             @foreach (var sl in DbOkr.Confident())
                             {
                               <option value="@sl.id">@sl.name</option>
@@ -178,7 +154,7 @@
                     </td>
                   </tr>
                   <tr>
-                    <td colspan="5" class="pl-6 pb-4">
+                    <td colspan="4" class="pl-6 pb-4">
                       <ul class="columns is-multiline is-variable is-2">
                         @foreach (var qs in DbOkrCheckin.Question())
                         {
@@ -364,8 +340,6 @@
   </div>
 }
 
-<TaskPopup Okr="taskOkr" Kr="taskKr" />
-
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
@@ -375,18 +349,10 @@
   [Parameter]
   public string CheckinId { get; set; }
 
-  private bool _loaded = false;
-  private bool _success = false;
   private string _message = string.Empty;
-  private string _title = "CFRs - Check-in 1:1";
-
   private OkrCheckinModel current = new();
   private OkrModel okr = null;
-  DateTimeOffset? nextCheckin { get; set; }
-
-  private OkrModel taskOkr = null;
-  private OkrModel.KeyResult taskKr = null;
-
+  private DateTimeOffset? nextCheckin = null;
   private List<DepartmentModel.SelectList> departments = new();
   private List<UserModel> userSuggests = new();
   private List<UserModel> managerList = new();
@@ -425,23 +391,11 @@
         }
       }
     }
-
-    if (okr == null || current == null)
-      _message = "Dữ liệu không tồn tại hoặc đã bị xóa !";
-
-    _loaded = true;
   }
 
   protected override void OnAfterRender(bool firstRender)
   {
-    taskOkr = null;
-    taskKr = null;
-  }
-
-  private void ShowTask(OkrModel okr, OkrModel.KeyResult kr)
-  {
-    taskOkr = okr;
-    taskKr = kr;
+    _message = string.Empty;
   }
 
   private void ChangeDepartment(ChangeEventArgs e)
@@ -502,39 +456,28 @@
 
   private async Task Update()
   {
-    _success = false;
-    _message = string.Empty;
-
     if (current.confident == 0)
     {
       _message = "Chưa nhập mức độ tự tin của Mục tiêu !";
-      await Task.Delay(5000);
-      _message = string.Empty;
     }
     else if (current.key_results.Where(x => x.confident == 0).Count() > 0)
     {
       _message = "Chưa nhập mức độ tự tin của Kết quả then chốt !";
-      await Task.Delay(5000);
-      _message = string.Empty;
     }
     else if(ValidationQuestion() == false)
     {
       _message = "Bạn cần nhập đầy đủ tất cả thông tin bắt buộc !";
-      await Task.Delay(5000);
-      _message = string.Empty;
     }
     else if (string.IsNullOrEmpty(okr.user_checkin) && managerList.Count == 0)
     {
       _message = "Bạn chưa chọn quản lý sẽ check-in với bạn !";
-      await Task.Delay(5000);
-      _message = string.Empty;
     }
     else
     {
       if (string.IsNullOrEmpty(current.id))
       {
         // Create Checkin on DB
-        current = await DbOkrCheckin.Create(Layout.Company.id, current);
+        await DbOkrCheckin.Create(Layout.Company.id, current);
 
         // Gửi thông báo chuông cho quản lý
         if (!string.IsNullOrEmpty(okr.user_checkin))
@@ -548,22 +491,20 @@
       else
       {
         // Update Checkin on DB
-        current = await DbOkrCheckin.Update(Layout.Company.id, current);
+        await DbOkrCheckin.Update(Layout.Company.id, current);
       }
 
       okr.date_checkin = current.date_create;
       okr.status_checkin = 1;
       await DbOkr.Update(Layout.Company.id, okr);
-
       navigation.NavigateTo($"/cfr/checkin/{okr.id}/info");
+      return;
     }
+    await JSRuntime.InvokeVoidAsync("tagline", false, _message);
   }
 
   private async Task AlertCheckin()
   {
-    _success = false;
-    _message = string.Empty;
-
     #region Loại bỏ các KR đã xoá
 
     var key_results = new List<OkrCheckinModel.KeyResult>();
@@ -580,26 +521,18 @@
     if (current.confident == 0)
     {
       _message = "Chưa nhập mức độ tự tin của Mục tiêu !";
-      await Task.Delay(5000);
-      _message = string.Empty;
     }
     else if (current.key_results.Where(x => x.confident == 0).Count() > 0)
     {
       _message = "Chưa nhập mức độ tự tin của Kết quả then chốt !";
-      await Task.Delay(5000);
-      _message = string.Empty;
     }
     else if (current.key_results.Where(x => string.IsNullOrEmpty(x.feedback)).Count() > 0)
     {
       _message = "Bạn chưa nhập phản hồi cho kết quả then chốt !";
-      await Task.Delay(5000);
-      _message = string.Empty;
     }
     else if (nextCheckin == null && !okr.done && !Layout.User.okr_checkin)
     {
       _message = "Bạn chưa chọn lần check-in tiếp theo hoặc chọn Hoàn thành OKRs!";
-      await Task.Delay(5000);
-      _message = string.Empty;
     }
     else
     {
@@ -613,7 +546,9 @@
         // Không yêu cầu xác nhận
         await ConfirmCheckin();
       }
+      return;
     }
+    await JSRuntime.InvokeVoidAsync("tagline", false, _message);
   }
 
   private async Task ConfirmCheckin()
@@ -638,7 +573,7 @@
     okr.confident = current.confident;
     okr.progress_prev = current.progress_prev;
     okr.status_checkin = 3;
-    if (!okr.done)
+    if (!okr.done && nextCheckin != null)
       okr.next_checkin = nextCheckin.Value.DateTime.Ticks;
     await DbOkr.Update(Layout.Company.id, okr);
 
@@ -665,25 +600,17 @@
 
   private async Task AutoCheckin()
   {
-    _success = false;
-    _message = string.Empty;
     if (current.confident == 0)
     {
       _message = "Chưa nhập mức độ tự tin của Mục tiêu !";
-      await Task.Delay(5000);
-      _message = string.Empty;
     }
     else if (current.key_results.Where(x => x.confident == 0).Count() > 0)
     {
       _message = "Chưa nhập mức độ tự tin của Kết quả then chốt !";
-      await Task.Delay(5000);
-      _message = string.Empty;
     }
     else if(ValidationQuestion() == false)
     {
       _message = "Bạn cần nhập đầy đủ tất cả thông tin bắt buộc !";
-      await Task.Delay(5000);
-      _message = string.Empty;
     }
     else
     {
@@ -704,6 +631,7 @@
           kr.confident = checkin.confident;
         }
       }
+
       // Cập nhật OKRs khi checkin
       okr.status_checkin = 3;
       okr.next_checkin = 0;
@@ -714,6 +642,7 @@
 
       navigation.NavigateTo($"/cfr/checkin/{okr.id}/info", false);
     }
+    await JSRuntime.InvokeVoidAsync("tagline", false, _message);
   }
 
   private bool ValidationQuestion()

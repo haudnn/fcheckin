@@ -30,7 +30,8 @@
           }
           else 
           {
-            <span class="item_name has-text-info">@task.name</span>
+            <span class="item_name has-text-@(task.status == 4 ? "success is-line-through " : "info")">
+              @task.name</span>
           }
         </div>
       </li>
@@ -61,10 +62,10 @@
           OnUpdate="() => UpdateMembers(task)" />
       </li>
       <li class="column is-narrow" style="width: 80px;">
-        <div class="dropdown is-hoverable is-fullwidth">
+        <div class="dropdown is-hoverable">
           <div class="dropdown-trigger">
-            <a class="icon-text is-fullwidth pr-2">
-              <span style="flex-grow: 1;">@status.name</span>
+            <a class="icon-text">
+              <span class="tag @status.color" style="width: 52px;">@status.name</span>
               <span class="icon is-small">
                 <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
               </span>

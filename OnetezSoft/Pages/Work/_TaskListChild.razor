@@ -11,7 +11,8 @@
 <ul id="task_@model.id" class="task_list is_sub columns is-gapless is-size-7">
   <li class="column" style="width: calc(100% - 630px); box-shadow: inset 4px 0px 0px 0px @priority.color;">
     <div class="icon-text item_title pl-0">
-      <a class="item_name has-text-black" @onclick="View">@model.name</a>
+      <a class="item_name has-text-@(model.status == 4 ? "success is-line-through " : "black")"
+        @onclick="View">@model.name</a>
     </div>
   </li>
   <li class="column is-narrow" style="width: 130px;">
@@ -31,16 +32,16 @@
       </PickerTemplate>
     </DateRangePicker>
   </li>
-  <li class="column is-narrow" style="width: 250px;"></li>
+  <li class="column is-narrow" style="width: 130px;"></li>
   <li class="column is-narrow" style="width: 110px;">
     <_MemberList members="model.members" sources="members" isEdit="isEdit" isTask="true" isSubTask="true"
       OnUpdate="UpdateMembers" />
   </li>
   <li class="column is-narrow" style="width: 80px;">
-    <div class="dropdown is-fullwidth @(toggleStatus ? "is-active" : "")">
+    <div class="dropdown @(toggleStatus ? "is-active" : "")">
       <div class="dropdown-trigger">
-        <a class="icon-text is-fullwidth pr-2" @onclick="ToggleStatus">
-          <span style="flex-grow: 1;">@status.name</span>
+        <a class="icon-text" @onclick="ToggleStatus">
+          <span class="tag @status.color" style="width: 58px;">@status.name</span>
           <span class="icon is-small">
             <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
           </span>

@@ -237,7 +237,7 @@
           <ul class="task_list columns is-gapless is-size-7 has-text-grey">
             <li class="column" style="width: calc(100% - 630px);">Công việc</li>
             <li class="column is-narrow" style="width: 130px;">Thời hạn</li>
-            <li class="column is-narrow" style="width: 250px;">Nhãn công việc</li>
+            <li class="column is-narrow" style="width: 130px;">Mức độ ưu tiên</li>
             <li class="column is-narrow" style="width: 110px;">Thành viên</li>
             <li class="column is-narrow" style="width: 80px;">Trạng thái</li>
             <li class="column is-narrow" style="width: 30px;"></li>
@@ -477,7 +477,7 @@
                   d += column - 1;
                   <li class="column is-narrow" style="width: @(column * 40)px">
                     <div class="has-text-weight-medium has-text-info pl-1 font_14">
-                      @month.ToString("MM/yyyy")
+                      @month.AddMonths(-1).ToString("MM/yyyy")
                     </div>
                   </li>
                 }
@@ -742,7 +742,7 @@
     {
       long minDay = taskList.OrderBy(x => x.date_start).Select(x => x.date_start).FirstOrDefault();
       long maxDay = taskList.OrderByDescending(x => x.date_end).Select(x => x.date_end).FirstOrDefault();
-      dayStart = new DateTime(minDay);
+      dayStart = new DateTime(minDay).AddDays(-4);
       dayEnd = new DateTime(maxDay).AddDays(4);
       dayTotal = dayEnd.Subtract(dayStart).Days;
     }

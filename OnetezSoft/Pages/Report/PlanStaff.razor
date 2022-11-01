@@ -140,7 +140,7 @@
 
   private List<UserModel> members = new();
   private List<WorkPlanModel.Report> reportList = new();
-  private DepartmentModel department = new() { name = "Tất cả phòng ban" };
+  private DepartmentModel department = new() { name = "Tất cả phòng ban", members_id = new() };
   private List<UserModel> userSuggests = new();
   private List<string> staffList = new();
   private bool toggleDepartment = false;
@@ -149,13 +149,14 @@
 
   protected override async Task OnInitializedAsync()
   {
+    // Phòng ban mặc định
     if (!string.IsNullOrEmpty(Layout.User.department_default))
-    {
-      // Phòng ban mặc định
       department = departmentAll.FirstOrDefault(x => x.id == Layout.User.department_default);
-      staffList = department == null ? new() : department.members_id;
-    }
+
+    if(department == null)
+      department = new() { name = "Tất cả phòng ban", members_id = new() };
     
+    staffList = department.members_id;
     
     await GetDataList();
   }

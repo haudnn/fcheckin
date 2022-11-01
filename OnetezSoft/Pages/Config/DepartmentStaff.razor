@@ -249,7 +249,7 @@ else if (current != null)
 
     current.members_list.Remove(item);
     current.members_id.Remove(item.id);
-    current = await DbDepartment.Update(Layout.Company.id, current);
+    await DbDepartment.Update(Layout.Company.id, current);
 
     // Lấy thông tin nhân viên
     var user = Layout.UserList.SingleOrDefault(x => x.id == item.id);
@@ -328,6 +328,5 @@ else if (current != null)
       user.departments_name = String.Join(" / ", department);
       await DbUser.Update(Layout.Company.id, user);
     }
-    await Layout.RefreshData();
   }
 }

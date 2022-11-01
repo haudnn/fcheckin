@@ -1,0 +1,36 @@
+<input @bind="formatData" @bind:event="onchange" class="@Class" type="text" placeholder="@Text" />
+
+@code {
+  [Parameter]
+  public double Value { get; set; }
+  [Parameter]
+  public string Class { get; set; }
+  [Parameter]
+  public string Text { get; set; }
+  [Parameter]
+  public EventCallback<double> OnInput { get; set; }
+
+  private string formatData
+  {
+    get => Value != 0 ? Format(Value) : "";
+    set
+    {
+      //if (Double.TryParse(value.Replace(".", "").Replace(",", ""), out double parse))
+      if (Double.TryParse(value, out double parse))
+        Value = parse;
+      else
+        Value = 0;
+      OnInput.InvokeAsync(Convert.ToDouble(Value));
+    }
+  }
+
+  private string Format(double value)
+  {
+    if(value == 0)
+      return "";
+    else if(value >= 1000 || value <= -1000)
+      return value.ToString("0,0");
+    else
+      return value.ToString();
+  }
+}

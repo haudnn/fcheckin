@@ -25,7 +25,8 @@
       {
         <span class="icon"></span>
       }
-      <a class="item_name has-text-black" @onclick="Edit">@model.name</a>
+      <a class="item_name has-text-@(model.status == 4 ? "success is-line-through " : "black")"
+        @onclick="Edit">@model.name</a>
       @if(editRole)
       {
         <a class="icon has-text-dark is_hover" title="Thêm công việc phụ" @onclick="AddSub">
@@ -51,19 +52,21 @@
       </PickerTemplate>
     </DateRangePicker>
   </li>
-  <li class="column is-narrow" style="width: 250px;">
-    <_LabelList labels="model.labels" sources="plan.labels" isEdit="editRole" 
-      OnUpdate="UpdateLabels" />
+  <li class="column is-narrow" style="width: 130px;">
+    @if(priority.id != 0)
+    {
+      <span class="tag" style="background: @(priority.color + "30"); color: @priority.color;">@priority.name</span>
+    }
   </li>
   <li class="column is-narrow" style="width: 110px;">
     <_MemberList members="model.members" sources="members" isEdit="editRole" isTask="true" 
       OnUpdate="UpdateMembers" />
   </li>
   <li class="column is-narrow" style="width: 80px;">
-    <div class="dropdown is-fullwidth @(toggleStatus ? "is-active" : "")">
+    <div class="dropdown @(toggleStatus ? "is-active" : "")">
       <div class="dropdown-trigger">
-        <a class="icon-text is-fullwidth pr-2" @onclick="ToggleStatus">
-          <span style="flex-grow: 1;">@status.name</span>
+        <a class="icon-text" @onclick="ToggleStatus">
+          <span class="tag @status.color" style="width: 58px;">@status.name</span>
           <span class="icon is-small">
             <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
           </span>

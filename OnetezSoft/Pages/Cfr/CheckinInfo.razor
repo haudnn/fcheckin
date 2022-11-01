@@ -4,19 +4,9 @@
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
 @if (okr != null)
 {
-  <section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+  <section class="columns is-gapless has_menu_left">
     <div class="column is-narrow">
       <div class="card p-3 menu_left">
         <a class="button is-transparent has-text-link mb-5" href="/cfr/checkin?user=@okr.user_create">
@@ -156,8 +146,7 @@
           <thead>
             <tr>
               <th>Mục tiêu</th>
-              <th width="160px"></th>
-              <th width="200px" align="center">Tiến độ</th>
+              <th width="250px" align="center">Tiến độ</th>
               <th width="100px" align="center">Thay đổi</th>
               <th width="100px" align="center">Tự tin</th>
             </tr>
@@ -170,7 +159,7 @@
               var okrColor = Shared.ProgressColor(progress);
 
               <tr>
-                <td colspan="2">
+                <td>
                   <div class="is-flex">
                     <span class="has-text-weight-semibold has-text-link">@okr.name</span>
                     @if (okr.done)
@@ -185,7 +174,7 @@
                   <label class="td-label">Tiến độ</label>
                   <div class="td-value">
                     <div class="progress_has_value">
-                      <progress class="progress is-small @okrColor" value="@progress" max="100"></progress>
+                      <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100"></progress>
                       <span>@Shared.ConvertNumber(progress)%</span>
                     </div>
                   </div>
@@ -204,13 +193,12 @@
                 </td>
               </tr>
               <tr class="tr-hide">
-                <td colspan="5">
+                <td colspan="4">
                   <hr class="m-0" />
                 </td>
               </tr>
               <tr class="tr-hide">
                 <td>Kết quả then chốt</td>
-                <td></td>
                 <td align="center">Đạt được</td>
                 <td align="center">Thay đổi</td>
                 <td align="center">Tự tin</td>
@@ -228,30 +216,13 @@
                         @kr.name
                       </span>
                     </td>
-                    <td class="pl-2">
-                      <a class="icon-text has-text-link is-hidden" @onclick="() => ShowTask(okr, kr)">
-                        <span class="icon is-small">
-                          <i class="material-icons-outlined">task</i>
-                        </span>
-                        <span>Hành động</span>
-                      </a>
-                      @if (!string.IsNullOrEmpty(kr.link))
-                      {
-                        <a class="icon-text has-text-link" href="@kr.link" target="_blank">
-                          <span class="icon is-small">
-                            <i class="material-icons-outlined">attach_file</i>
-                          </span>
-                          <span>Kết quả</span>
-                        </a>
-                      }
-                    </td>
                     <td>
                       <label class="td-label">Đạt được</label>
-                      <div class="td-value">
+                      <div class="td-value has-text-right">
                         <span class="has-text-success" title="@string.Format("{0:0,0}/{1:0,0}", checkin.result, kr.target)">
                           @Shared.ConvertCurrency(checkin.result)/@Shared.ConvertCurrency(kr.target)
                         </span>
-                        <span class="is-pulled-right">@kr.unit</span>
+                        <span>@kr.unit</span>
                       </div>
                     </td>
                     <td align="center">
@@ -268,7 +239,7 @@
                     </td>
                   </tr>
                   <tr>
-                    <td colspan="5" class="pl-6 pb-4">
+                    <td colspan="4" class="pl-6 pb-4">
                       <ul class="columns is-multiline is-variable is-2">
                         @foreach (var qs in DbOkrCheckin.Question())
                         {
@@ -303,8 +274,6 @@ else
   </section>
 }
 
-<TaskPopup Okr="taskOkr" Kr="taskKr" />
-
 @if(!CheckAccess())
 {
   <div class="modal is-active">
@@ -329,17 +298,11 @@ else
   [Parameter]
   public string Id { get; set; }
 
-  private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
   private string _title = "CFRs - Check-in 1:1";
 
   private List<OkrCheckinModel> dataList = new();
   private OkrCheckinModel current = null;
   private OkrModel okr = null;
-
-  private OkrModel taskOkr = null;
-  private OkrModel.KeyResult taskKr = null;
 
   protected override async Task OnParametersSetAsync()
   {
@@ -357,25 +320,12 @@ else
           current = dataList[0];
       }
     }
-    _loaded = true;
-  }
-
-  protected override void OnAfterRender(bool firstRender)
-  {
-    taskOkr = null;
-    taskKr = null;
   }
   
   private string msgAccess = string.Empty;
   private bool CheckAccess()
   {
     return ProductService.CheckAccess(Layout.Company, Layout.User, "okrs", out msgAccess);
-  }
-
-  private void ShowTask(OkrModel okr, OkrModel.KeyResult kr)
-  {
-    taskOkr = okr;
-    taskKr = kr;
   }
 
   private void ChangeCheckin(ChangeEventArgs e)
@@ -417,7 +367,7 @@ else
     }
     else
     {
-      _message = "Bạn không thể xác nhận Check-in nháp. Bạn không phải là cấp trên của " + user.FullName;
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể xác nhận Check-in nháp. Bạn không phải là cấp trên của " + user.FullName);
     }
   }
 }

@@ -230,6 +230,14 @@ else
       </p>
     </div>
     <a id="btn_close" class="modal-close is-large" @onclick="() => popupImage = null"></a>
+    <div class="modal-nav">
+      <a class="icon is-large" @onclick="() => ChangeImage(false)">
+        <i class="material-icons-outlined is-size-2">arrow_back_ios</i>
+      </a>
+      <a class="icon is-large" @onclick="() => ChangeImage(false)">
+        <i class="material-icons-outlined is-size-2">arrow_forward_ios</i>
+      </a>
+    </div>
   </div>
 }
 
@@ -293,5 +301,26 @@ else
   private void PopupImage(string image)
   {
     popupImage = image;
+  }
+
+  private void ChangeImage(bool isNext)
+  {
+    int total = model.images.Count - 1;
+    var index = model.images.IndexOf(popupImage);
+    if(isNext)
+    {
+      if(index == total)
+      popupImage = model.images[0];
+      else
+        popupImage = model.images[index + 1];
+    }
+    else
+    {
+      if(index == 0)
+        popupImage = model.images[total];
+      else
+        popupImage = model.images[index - 1];
+    }
+
   }
 }

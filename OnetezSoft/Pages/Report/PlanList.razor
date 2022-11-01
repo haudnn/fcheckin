@@ -137,6 +137,8 @@
   {
     if (!string.IsNullOrEmpty(Layout.User.department_default))
       department = departmentAll.FirstOrDefault(x => x.id == Layout.User.department_default);
+    if(department == null)
+      department = new() { name = "Tất cả phòng ban" };
     
     await GetDataList();
   }
@@ -174,9 +176,11 @@
   {
     // Lấy tất cả kế hoạch đang có
     var data = await DbWorkPlan.GetAll(Layout.Company.id);
+
     // Tìm kiếm theo tiêu đề kế hoạch
     if(!string.IsNullOrEmpty(filterKey))
       data = data.Where(x => Shared.SearchKeyword(filterKey, x.name)).ToList();
+      
     // Tìm kiếm theo trạng thái kế hoạch
     if(filterStatus != 0)
       data = data.Where(x => x.status == filterStatus).ToList();
@@ -186,7 +190,7 @@
     {
       if(department.members_id == null)
         planList.Add(item);
-      else
+      else if(item.members != null)
       {
         var check = item.members.Where(x => department.members_id.Contains(x.id)).Count();
         if(check > 0)

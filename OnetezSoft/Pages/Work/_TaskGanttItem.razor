@@ -25,8 +25,8 @@
       {
         <span class="icon"></span>
       }
-      <a class="item_name" @onclick="Edit">
-        @model.name
+      <a class="item_name has-text-@(model.status == 4 ? "success is-line-through " : "black")"
+        @onclick="Edit">@model.name
       </a>
       @if(editRole)
       {
@@ -58,9 +58,9 @@
       @if(dateS == day)
       {
         <div class="is_timeline" style="width: @(column * 40)px">
-          <a class="item_task" @onclick="Edit"></a>
+          <a class="item_task @status.color" @onclick="Edit"></a>
           <div class="item_members">
-            <_MemberList members="model.members" sources="members" isEdit="editRole" isTask="true" isRight="true"
+            <_MemberList members="model.members" sources="members" isEdit="editRole" isTask="true"
               OnUpdate="UpdateMembers" />
           </div>
         </div>
