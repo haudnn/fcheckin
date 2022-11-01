@@ -223,8 +223,8 @@
           </li>
           <li class="column is-one-fifth">
             <div class="control has-icons-right">
-              <input @bind="filterKey" class="input is-small is-rounded" type="text" 
-                placeholder="Tiêu đề công việc..." @onkeydown="FilterKey">
+              <input class="input is-small is-rounded" type="text" 
+                placeholder="Tiêu đề công việc..." @onchange="FilterKeyword">
               <span class="icon is-right is-small">
                 <i class="material-icons-outlined is-size-5">search</i>
               </span>
@@ -808,15 +808,10 @@
     await GetTaskList();
   }
 
-  private async Task FilterKey(KeyboardEventArgs args)
+  private async Task FilterKeyword(ChangeEventArgs e)
   {
-    if (args.Key == "Enter")
-      await GetTaskList();
-    else if(args.Key == "Escape")
-    {
-      filterKey = string.Empty;
-      await GetTaskList();
-    }
+    filterKey = e.Value.ToString();
+    await GetTaskList();
   }
 
   #endregion

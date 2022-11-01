@@ -95,8 +95,8 @@
         </li>
         <li class="column is-one-fifth">
           <div class="control has-icons-right">
-              <input @bind="filterKey" class="input is-small is-rounded" type="text" 
-                placeholder="Tiêu đề công việc..." @onkeydown="FilterKey">
+            <input class="input is-small is-rounded" type="text" 
+                placeholder="Tiêu đề công việc..." @onchange="FilterKeyword">
             <span class="icon is-right is-small">
               <i class="material-icons-outlined is-size-5">search</i>
             </span>
@@ -109,7 +109,7 @@
         <ul class="task_list columns is-gapless is-size-7 has-text-grey">
           <li class="column" style="width: calc(100% - 630px);">Công việc</li>
           <li class="column is-narrow" style="width: 130px;">Thời hạn</li>
-          <li class="column is-narrow" style="width: 250px;">Nhãn công việc</li>
+          <li class="column is-narrow" style="width: 130px;">Mức độ ưu tiên</li>
           <li class="column is-narrow" style="width: 110px;">Thành viên</li>
           <li class="column is-narrow" style="width: 80px;">Trạng thái</li>
           <li class="column is-narrow" style="width: 30px;"></li>
@@ -385,16 +385,11 @@
     filterDate = value;
     await GetTaskList();
   }
-  
-  private async Task FilterKey(KeyboardEventArgs args)
+
+  private async Task FilterKeyword(ChangeEventArgs e)
   {
-    if (args.Key == "Enter")
-      await GetTaskList();
-    else if(args.Key == "Escape")
-    {
-      filterKey = string.Empty;
-      await GetTaskList();
-    }
+    filterKey = e.Value.ToString();
+    await GetTaskList();
   }
 
   private void ToggleStatus(int id)
