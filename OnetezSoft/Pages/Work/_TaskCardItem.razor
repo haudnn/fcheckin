@@ -4,9 +4,10 @@
 @{
   var status = WorkService.Status(model.status);
   var priority = WorkService.Priority(model.priority);
+  var toggle = toggleList.Contains(model.id);
+  var deadline = WorkService.TaskDeadline(model);
   DateTimeOffset? dateS = new DateTime(model.date_start);
   DateTimeOffset? dateE = new DateTime(model.date_end);
-  var toggle = toggleList.Contains(model.id);
 }
 
 <div id="task_@model.id" class="task_board card p-4 mb-3 is-size-7">
@@ -14,7 +15,11 @@
     <li class="column">
       @if(priority.id != 0)
       {
-        <span class="tag" style="background: @(priority.color + "30"); color: @priority.color;">@priority.name</span>
+        <span class="tag mr-2" style="background: @(priority.color + "30"); color: #555;">@priority.name</span>
+      }
+      @if(deadline != null)
+      {
+        <span class="tag" style="background: @(deadline.color + "30"); color: #555;">@deadline.name</span>
       }
     </li>
     <li class="column is-narrow">
@@ -43,7 +48,7 @@
     @if(showPlan && plan != null)
     {
       <li class="column is-full">
-        <a class="icon-text has-text-link">
+        <a class="icon-text has-text-link" href="/work/@plan.id/task">
           <span class="icon is-small mr-2">
             <i class="material-icons-outlined is-size-6">link</i>
           </span>
@@ -52,7 +57,8 @@
       </li>
     }
     <li class="column is-half">
-      <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" OnRangeSelect="UpdateDate">
+      <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE"
+        TimePicker="true" TimePicker24Hour="true" OnRangeSelect="UpdateDate">
         <PickerTemplate>
           <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
             <span class="icon is-small mr-1">
@@ -199,6 +205,7 @@
     await DbWorkTask.Update(Layout.Company.id, model);
     await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện", 
       string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(model.date_start), new DateTime(model.date_end)), model.plan_id, model.id, Layout.User);
+    await OnUpdate.InvokeAsync(model);
   }
 
   private async Task ChangeStatus(int statusId)
@@ -206,7 +213,7 @@
     toggleStatus = false;
     var message = await WorkService.ChangeTaskStatus(Layout.Company.id, Layout.User, model, statusId);
     await JSRuntime.InvokeVoidAsync("tagline", true, message);
-    if(showPlan) await OnUpdate.InvokeAsync(model);
+    await OnUpdate.InvokeAsync(model);
   }
 
   private async Task UpdateMembers()
@@ -214,11 +221,7 @@
     var old = await DbWorkTask.Get(Layout.Company.id, model.id);
     await DbWorkTask.Update(Layout.Company.id, model);
     await WorkService.LogTaskMembers(Layout.Company.id, old, model, Layout.User, Layout.UserList);
-  }
-
-  private async Task UpdateLabels()
-  {
-    await DbWorkTask.Update(Layout.Company.id, model);
+    await OnUpdate.InvokeAsync(model);
   }
 
   private async Task UpdateSubTasks(WorkPlanModel.Task item)

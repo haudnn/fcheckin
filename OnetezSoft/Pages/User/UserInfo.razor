@@ -4,17 +4,7 @@
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<section class="columns is-centered p-4 @(_loaded ? "" : "is-loading")">
+<section class="columns is-centered p-4">
   <div class="column is-small">
     <div class="card p-5">
       <h1 class="title is-5 has-text-info is-uppercase">
@@ -120,9 +110,6 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
 
-  private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
   private string _title = "Thông tin tài khoản";
 
   private UserModel user = new() { companys = new() };
@@ -136,8 +123,6 @@
     pageList = PageList();
 
     await OnLoad();
-
-    _loaded = true;
   }
 
   private async Task OnLoad()
@@ -175,11 +160,9 @@
 
   private async Task Update()
   {
-    _success = false;
-    _message = string.Empty;
     if (string.IsNullOrEmpty(user.id))
     {
-      _message = "Dữ liệu không tồn tại hoặc đã bị xóa !";
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Dữ liệu không tồn tại hoặc đã bị xóa !");
     }
     else
     {
@@ -193,18 +176,16 @@
           // Cập nhật cho tất cả database
           user.password = Handled.Shared.CreateMD5(passwordNew);
           await DbMainUser.Update(user);
-          _message = "Đã cập nhật thông tin thành công !";
-          _success = true;
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin thành công!");
         }
         else
-          _message = "Mật khẩu cũ không chính xác!";
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Mật khẩu cũ không chính xác!");
       }
       else
       {
         // Cập nhật cho tất cả database
         await DbMainUser.Update(user);
-        _message = "Đã cập nhật thông tin thành công !";
-        _success = true;
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin thành công!");
       }
     }
   }

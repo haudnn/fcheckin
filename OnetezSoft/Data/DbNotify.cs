@@ -373,44 +373,44 @@ namespace OnetezSoft.Data
       }
       else if (type == 708)
       {
-        var data = await DbWorkTask.Get(companyId, itemId);
-        name = $"Công việc <b>{data.name}</b> thuộc kế hoạch <b>{plan.name}</b> đã thêm mới bởi {creator}.";
-        link = $"/work/{planId}/task";
+        var task = await DbWorkTask.Get(companyId, itemId);
+        name = $"Công việc <b>{task.name}</b> thuộc kế hoạch <b>{plan.name}</b> đã thêm mới bởi {creator}.";
+        link = $"/work/{planId}/task?task={task.id}&tab=1";
       }
       else if (type == 709)
       {
-        var data = await DbWorkTask.Get(companyId, itemId);
-        name = $"Công việc <b>{data.name}</b> thuộc kế hoạch <b>{plan.name}</b> đã cập nhật tiêu đề mới.";
-        link = $"/work/{planId}/task";
+        var task = await DbWorkTask.Get(companyId, itemId);
+        name = $"Công việc <b>{task.name}</b> thuộc kế hoạch <b>{plan.name}</b> đã cập nhật tiêu đề mới.";
+        link = $"/work/{planId}/task?task={task.id}&tab=1";
       }
       else if (type == 710)
       {
-        var data = await DbWorkTask.Get(companyId, itemId);
-        name = $"Công việc <b>{data.name}</b> thuộc kế hoạch <b>{plan.name}</b> đã cập nhật trạng thái Done.";
-        link = $"/work/{planId}/task";
+        var task = await DbWorkTask.Get(companyId, itemId);
+        name = $"Công việc <b>{task.name}</b> thuộc kế hoạch <b>{plan.name}</b> đã cập nhật trạng thái Done.";
+        link = $"/work/{planId}/task?task={task.id}&tab=1";
       }
       else if (type == 711)
       {
-        var data = await DbWorkTask.Get(companyId, itemId);
-        name = $"Công việc <b>{data.name}</b> thuộc kế hoạch <b>{plan.name}</b> cần được bạn Review.";
-        link = $"/work/{planId}/task";
+        var task = await DbWorkTask.Get(companyId, itemId);
+        name = $"Công việc <b>{task.name}</b> thuộc kế hoạch <b>{plan.name}</b> cần được bạn Review.";
+        link = $"/work/{planId}/task?task={task.id}&tab=1";
       }
       else if (type == 712)
       {
-        var data = await DbWorkTask.Get(companyId, itemId);
-        name = $"Công việc <b>{data.name}</b> thuộc kế hoạch <b>{plan.name}</b> có bình luận mới.";
-        link = $"/work/{planId}/task";
+        var task = await DbWorkTask.Get(companyId, itemId);
+        name = $"Công việc <b>{task.name}</b> thuộc kế hoạch <b>{plan.name}</b> có bình luận mới.";
+        link = $"/work/{planId}/task?task={task.id}&tab=4";
       }
       else if (type == 713)
       {
-        var data = await DbWorkTask.Get(companyId, itemId);
-        name = $"Bạn đã được thêm vào công việc <b>{data.name}</b> thuộc kế hoạch <b>{plan.name}</b>.";
-        link = $"/work/{planId}/task";
+        var task = await DbWorkTask.Get(companyId, itemId);
+        name = $"Bạn đã được thêm vào công việc <b>{task.name}</b> thuộc kế hoạch <b>{plan.name}</b>.";
+        link = $"/work/{planId}/task?task={task.id}&tab=1";
       }
       else if (type == 714)
       {
-        var data = await DbWorkTask.Get(companyId, itemId);
-        name = $"Bạn đã bị xóa khỏi công việc <b>{data.name}</b> thuộc kế hoạch <b>{plan.name}</b>.";
+        var task = await DbWorkTask.Get(companyId, itemId);
+        name = $"Bạn đã bị xóa khỏi công việc <b>{task.name}</b> thuộc kế hoạch <b>{plan.name}</b>.";
         link = $"/work/{planId}/task";
       }
       else if (type == 715)
@@ -418,14 +418,14 @@ namespace OnetezSoft.Data
         var child = await DbWorkTask.Get(companyId, itemId);
         var task = await DbWorkTask.Get(companyId, child.parent_id);
         name = $"Bạn đã được thêm vào công việc phụ <b>{child.name}</b> của công việc <b>{task.name}</b> thuộc kế hoạch <b>{plan.name}</b>.";
-        link = $"/work/{planId}/task";
+        link = $"/work/{planId}/task?task={task.id}&tab=2";
       }
       else if (type == 716)
       {
         var child = await DbWorkTask.Get(companyId, itemId);
         var task = await DbWorkTask.Get(companyId, child.parent_id);
         name = $"Bạn đã bị xóa khỏi công việc phụ <b>{child.name}</b> của công việc <b>{task.name}</b> thuộc kế hoạch <b>{plan.name}</b>.";
-        link = $"/work/{planId}/task";
+        link = $"/work/{planId}/task?task={task.id}&tab=2";
       }
       else if (type == 717)
       {

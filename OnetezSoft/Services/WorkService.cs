@@ -64,7 +64,9 @@ namespace OnetezSoft.Services
       return false;
     }
 
-
+    /// <summary>
+    /// Xóa nhóm công việc
+    /// </summary>
     public static async Task<bool> DeleteSection(string companyId, string planId, string sectionId)
     {
       var plan = await DbWorkPlan.Get(companyId, planId);
@@ -190,6 +192,20 @@ namespace OnetezSoft.Services
     }
 
     /// <summary>
+    /// Hiển thị label sắp hết hạn, trễ hạn
+    /// </summary>
+    public static StaticModel TaskDeadline(WorkPlanModel.Task task)
+    {
+      var now = DateTime.Now;
+      if(task.status < 4 && now.Ticks <= task.date_end && task.date_end <= now.AddDays(1).Ticks)
+        return new StaticModel() { name = "Sắp hết hạn", color = "#BCB51F" };
+      else if(task.date_end < task.date_done || task.date_end < now.Ticks && task.status < 4)
+        return new StaticModel() { name = "Trễ hạn", color = "#FF5449" };
+      else
+        return null;
+    }
+
+    /// <summary>
     /// Tính thống kê từ danh sách công việc
     /// </summary>
     public static WorkPlanModel.Report ReportTasks(List<WorkPlanModel.Task> tasks)
@@ -199,7 +215,7 @@ namespace OnetezSoft.Services
       result.done = tasks.Where(x => x.status == 4).Count();
       result.ontime = tasks.Where(x => x.status == 4 && x.date_end >= x.date_done).Count();
       result.late = tasks.Where(x => x.date_end < x.date_done || 
-        (x.date_end < DateTime.Today.Ticks && x.status < 4)).Count();
+        (x.date_end < DateTime.Now.Ticks && x.status < 4)).Count();
 
       return result;
     }

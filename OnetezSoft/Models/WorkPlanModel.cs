@@ -151,6 +151,9 @@ namespace OnetezSoft.Models
       
       /// <summary>Số công việc phụ</summary>
       public int sub_task { get; set; }
+      
+      /// <summary>Số lượng bình luận</summary>
+      public int comment { get; set; }
 
       /// <summary>Nhãn công việc</summary>
       public List<string> labels { get; set; }

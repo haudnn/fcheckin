@@ -86,7 +86,7 @@
             {
               <div class="field has-addons">
                 <div class="control">
-                  <a class="button is-link is-small" @onclick="() => EditTask(null, null)">
+                  <a class="button is-link is-small" @onclick="() => AddTask(null, null)">
                     <span class="icon">
                       <i class="material-icons-outlined is-size-6">add</i>
                     </span>
@@ -113,7 +113,7 @@
             }
             else if(roleMember)
             {
-              <a class="button is-link is-small" @onclick="() => EditTask(null, null)">
+              <a class="button is-link is-small" @onclick="() => AddTask(null, null)">
                 <span class="icon">
                   <i class="material-icons-outlined is-size-6">add</i>
                 </span>
@@ -272,7 +272,7 @@
                     </span>
                     @if(roleMember)
                     {
-                      <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => EditTask(null, item.id)">
+                      <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => AddTask(null, item.id)">
                         <i class="material-icons-round is-size-6">add</i>
                       </a>
                     }
@@ -328,7 +328,7 @@
                   <div class="pl-4 py-1">
                     @if(roleMember)
                     {
-                      <a class="icon-text has-text-link" @onclick="() => EditTask(null, item.id)">
+                      <a class="icon-text has-text-link" @onclick="() => AddTask(null, item.id)">
                         <span class="icon">
                           <i class="material-icons-outlined is-size-6">add</i>
                         </span>
@@ -346,7 +346,7 @@
                   var editTask = WorkService.RoleEditTask(model, context, Layout.User.id);
                   <_TaskListItem model="context" plan="model" editRole="editTask"
                     members="members" toggleList="toggleList" OnToggle="OnToggle"
-                    OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
+                    OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnSubTasks" OnTodolist="OnTodolist" />
                 }
               </Dropzone>
             }
@@ -380,7 +380,7 @@
                       </span>
                       @if(roleMember)
                       {
-                        <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => EditTask(null, item.id)">
+                        <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => AddTask(null, item.id)">
                           <i class="material-icons-round is-size-6">add</i>
                         </a>
                       }
@@ -432,7 +432,7 @@
                         <div class="has-text-centered p-3">
                           @if(roleMember)
                           {  
-                            <a class="icon-text has-text-link" @onclick="() => EditTask(null, item.id)">
+                            <a class="icon-text has-text-link" @onclick="() => AddTask(null, item.id)">
                               <span class="icon">
                                 <i class="material-icons-outlined is-size-6">add</i>
                               </span>
@@ -450,7 +450,7 @@
                         var editTask = WorkService.RoleEditTask(model, context, Layout.User.id);
                         <_TaskCardItem model="context" plan="model" editRole="editTask"
                           members="members" toggleList="toggleList" OnToggle="OnToggle"
-                          OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
+                          OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnSubTasks" OnTodolist="OnTodolist" />
                       }
                     </Dropzone>
                   </div>
@@ -468,16 +468,16 @@
               @for (int d = 0; d < dayTotal; d++)
               {
                 var day = dayStart.AddDays(d);
-                var month = Convert.ToDateTime(day.AddMonths(1).ToString("yyyy/MM/01"));
-                var column = month.Subtract(day).Days;
-                if(month > dayEnd)
+                var month = Shared.DateToMonth(day);
+                var column = month.AddMonths(1).Subtract(day).Days;
+                if(month.AddMonths(1) > dayEnd)
                   column = dayEnd.Subtract(day).Days;
-                @if(day <= month && day <= dayEnd)
+                @if(day <= month.AddMonths(1) && day <= dayEnd)
                 {
                   d += column - 1;
                   <li class="column is-narrow" style="width: @(column * 40)px">
                     <div class="has-text-weight-medium has-text-info pl-1 font_14">
-                      @month.AddMonths(-1).ToString("MM/yyyy")
+                      @month.ToString("MM/yyyy")
                     </div>
                   </li>
                 }
@@ -530,7 +530,7 @@
                       </span>
                       @if(roleMember)
                       {
-                        <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => EditTask(null, item.id)">
+                        <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => AddTask(null, item.id)">
                           <i class="material-icons-round is-size-6">add</i>
                         </a>
                       }
@@ -596,7 +596,7 @@
                         <div class="pl-4 py-1">
                           @if(roleMember)
                           {
-                            <a class="icon-text has-text-link" @onclick="() => EditTask(null, item.id)">
+                            <a class="icon-text has-text-link" @onclick="() => AddTask(null, item.id)">
                               <span class="icon">
                                 <i class="material-icons-outlined is-size-6">add</i>
                               </span>
@@ -618,7 +618,7 @@
                     <_TaskGanttItem model="context" plan="model" editRole="editTask"
                       members="members" toggleList="toggleList" OnToggle="OnToggle"
                       dayStart="dayStart" dayTotal="dayTotal" dayHtml="@dayHtml"
-                      OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
+                      OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnSubTasks" OnTodolist="OnTodolist" />
                   }
                 </Dropzone>
               }
@@ -641,8 +641,8 @@
   </div>
 </section>
 
-<_TaskPopup plan="model" task="taskEdit" members="members" tab="taskEditTab" 
-  subTasks="subTasks" todoItems="todoItems" OnUpdate="OnUpdateTask" />
+<_TaskPopup plan="model" task="editTask" members="members" tab="editTab" 
+  subTasks="subTasks" todoItems="todoItems" comments="comments" OnUpdate="OnUpdateTask" />
 
 @code {
   [CascadingParameter]
@@ -661,6 +661,27 @@
   private int dayTotal = 0;
   private DateTime dayStart = DateTime.Today;
   private DateTime dayEnd = DateTime.Today;
+
+  protected override async Task OnInitializedAsync()
+  {
+    // Auto update realtime
+    MessagingCenter.Subscribe<_TaskPopup, string>(this, "plan_" + PlanId, async (sender, value) =>
+    {
+      if(PlanId == value)
+      {
+        await GetTaskList();
+        await InvokeAsync(StateHasChanged);
+      }
+    });
+    MessagingCenter.Subscribe<PlanTask, string>(this, "plan_" + PlanId, async (sender, value) =>
+    {
+      if(PlanId == value)
+      {
+        await GetTaskList();
+        await InvokeAsync(StateHasChanged);
+      }
+    });
+  }
 
   protected override async Task OnParametersSetAsync()
   {
@@ -682,12 +703,33 @@
         await GetTaskList();
         // Cập nhật thống kê
         await DbWorkReport.Update(Layout.Company.id, PlanId);
+        // Tự động mở popup
+        await OpenTaskPopup();
+        // Đóng tất cả công việc
+        toggleList.Clear();
       }
       else
       {
         model.id = string.Empty;
         model.detail = "Bạn không có quyền xem chi tiết kế hoạch này!";
       }
+    }
+  }
+
+  private async Task OpenTaskPopup()
+  {
+    int tab = 1;
+    var taskId = string.Empty;
+    var uri = navigation.ToAbsoluteUri(navigation.Uri);
+    if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("task", out var outTask))
+      taskId = outTask.ToString();
+    if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("tab", out var outTab))
+      tab = Convert.ToInt32(outTab);
+
+    if(!string.IsNullOrEmpty(taskId))
+    {
+      editTab = tab;
+      await EditTask(taskId);
     }
   }
 
@@ -733,18 +775,18 @@
 
     // Chia nhóm công việc
     SplitTaskList();
-
-    // Đóng tất cả công việc
-    toggleList.Clear();
     
     // Lấy ngày thấp nhỏ nhất
-    if(taskList.Count > 0)
+    if(taskList.Count > 0 && TypeView == "gantt")
     {
       long minDay = taskList.OrderBy(x => x.date_start).Select(x => x.date_start).FirstOrDefault();
       long maxDay = taskList.OrderByDescending(x => x.date_end).Select(x => x.date_end).FirstOrDefault();
-      dayStart = new DateTime(minDay).AddDays(-4);
-      dayEnd = new DateTime(maxDay).AddDays(4);
+      dayStart = Shared.DateToDay(new DateTime(minDay)).AddDays(-4);
+      dayEnd = Shared.DateToDay(new DateTime(maxDay)).AddDays(4);
       dayTotal = dayEnd.Subtract(dayStart).Days;
+      // Tự scroll đến ngày hôm nay
+      int today = DateTime.Today.Subtract(dayStart).Days;
+      await JSRuntime.InvokeVoidAsync("scrollGantt", today * 40 - 160);
     }
   }
 
@@ -937,77 +979,72 @@
   
   #region Popup công việc chính
 
-  private WorkPlanModel.Task taskEdit = null;
-  private int taskEditTab = 1;
+  private int editTab = 1;
+  private WorkPlanModel.Task editTask = null;
+  private List<WorkPlanModel.Task> subTasks = new();
+  private List<TodolistModel.Todo> todoItems = new();
+  private List<WorkPlanModel.Comment> comments = new();
 
-  private async Task EditTask(WorkPlanModel.Task item, string sectionId)
+  private async Task AddTask(WorkPlanModel.Task item, string sectionId)
   {
-    taskEditTab = 1;
-    if(item == null)
+    editTab = 1;
+    editTask = new()
     {
-      taskEdit = new()
-      {
-        status = 1,
-        plan_id = model.id,
-        section_id = sectionId,
-        labels = new(),
-        members = new() { new() { id = Layout.User.id, role = 2 }}
-      };
-      await JSRuntime.InvokeVoidAsync("setFocus", "task_name");
-    }
-    else
+      status = 1,
+      plan_id = model.id,
+      section_id = sectionId,
+      labels = new(),
+      members = new() { new() { id = Layout.User.id, role = 2 }}
+    };
+    await JSRuntime.InvokeVoidAsync("setFocus", "task_name");
+  }
+
+  private async Task EditTask(string taskId)
+  {
+    if(editTab == 2)
+      subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.id, taskId);
+    else if(editTab == 3)
+      todoItems = DbTodoItem.GetList(Layout.Company.id, taskId, Layout.User.id);
+    else if(editTab == 4)
     {
-      taskEdit = await DbWorkTask.Get(Layout.Company.id, item.id);
+      comments = await DbWorkComment.GetList(Layout.Company.id, model.id, taskId);
+      await JSRuntime.InvokeVoidAsync("setFocus", "task_comment");
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
     }
+    editTask = await DbWorkTask.Get(Layout.Company.id, taskId);
+  }
+
+  private async Task OnEditList(WorkPlanModel.Task item)
+  {
+    editTab = 1;
+    await EditTask(item.id);
+  }
+
+  private async Task OnSubTasks(WorkPlanModel.Task item)
+  {
+    editTab = 2;
+    await EditTask(item.id);
+  }
+
+  private async Task OnTodolist(WorkPlanModel.Task item)
+  {
+    editTab = 3;
+    await EditTask(item.id);
   }
 
   private async Task OnUpdateTask(WorkPlanModel.Task item)
   {
-    if(item != null)
-      await GetTaskList();
-    taskEdit = null;
+    editTab = 1;
+    editTask = null;
+    //if(item != null)
+      //await GetTaskList();
   }
 
-  #endregion
-
-
-  #region Chức năng kéo thả công việc
-
-  private async Task OnItemDragdrop(WorkPlanModel.Task item)
+  private async Task OnUpdateList(WorkPlanModel.Task item)
   {
-    if(WorkService.RoleEditTask(model, item, Layout.User.id))
-    {
-      foreach (var group in taskGroups)
-      {
-        if(group.Value.Contains(item))
-        {
-          // Sắp xếp lại
-          for (int i = 0; i < group.Value.Count; i++)
-          {
-            var task = group.Value[i];
-            task.pos = i;
-            await DbWorkTask.Update(Layout.Company.id, task);
-            await JSRuntime.InvokeVoidAsync("console.log", $"{task.pos}: {task.name}");
-          }
-          // Chuyển nhóm
-          var section = model.sections.SingleOrDefault(x => x.id == item.section_id);
-          item.section_id = group.Key;
-          await DbWorkTask.Update(Layout.Company.id, item);
-          await WorkService.CreateLog(Layout.Company.id, "Cập nhật nhóm công việc", section.name, item.plan_id, item.id, Layout.User);
-          break;
-        }
-      }
-    }
-    else
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể thay đổi nhóm, vì bạn không tham gia vào công việc này!");
-    SplitTaskList();
-    toggleList.Clear();
+    MessagingCenter.Send(this, "plan_" + item.plan_id, item.plan_id);
+    //await GetTaskList();
   }
-
-  #endregion
-
-
-  #region Xử lý trong danh sách công việc
 
   private void OnToggle(string id)
   {
@@ -1017,30 +1054,48 @@
       toggleList.Add(id);
   }
 
-  private async Task OnEditList(WorkPlanModel.Task item)
-  {
-    await EditTask(item, item.section_id);
-  }
+  #endregion
 
-  private List<WorkPlanModel.Task> subTasks = new();
-  private async Task OnAddSub(WorkPlanModel.Task item)
-  {
-    subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, item.plan_id, item.id);
-    await EditTask(item, item.section_id);
-    taskEditTab = 2;
-  }
 
-  private List<TodolistModel.Todo> todoItems = new();
-  private async Task OnTodolist(WorkPlanModel.Task item)
-  {
-    todoItems = DbTodoItem.GetList(Layout.Company.id, item.id, Layout.User.id);
-    await EditTask(item, item.section_id);
-    taskEditTab = 3;
-  }
+  #region Chức năng kéo thả công việc
 
-  private async Task OnUpdateList(WorkPlanModel.Task item)
+  private async Task OnItemDragdrop(WorkPlanModel.Task item)
   {
-    await GetTaskList();
+    toggleList.Clear();
+    if(WorkService.RoleEditTask(model, item, Layout.User.id))
+    {
+      foreach (var group in taskGroups)
+      {
+        if(group.Value.Contains(item))
+        {
+          for (int pos = 0; pos < group.Value.Count; pos++)
+          {
+            var task = group.Value[pos];
+            if(task.id != null)
+            {
+              // Sắp xếp lại
+              task.pos = pos;
+              // Chuyển nhóm
+              if(task.id == item.id)
+              {
+                var section = model.sections.SingleOrDefault(x => x.id == group.Key);
+                task.section_id = section.id;
+                await WorkService.CreateLog(Layout.Company.id, "Cập nhật nhóm công việc", section.name, task.plan_id, task.id, Layout.User);
+              }
+              await DbWorkTask.Update(Layout.Company.id, task);
+              await JSRuntime.InvokeVoidAsync("console.log", $"{task.pos} : {task.name}");
+            }
+          }
+          break;
+        }
+      }
+      MessagingCenter.Send(this, "plan_" + item.plan_id, item.plan_id);
+    }
+    else
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể thay đổi nhóm, vì bạn không tham gia vào công việc này!");
+      SplitTaskList();
+    }
   }
 
   #endregion

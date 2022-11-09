@@ -343,7 +343,24 @@ namespace OnetezSoft.Handled
 
 
     #region Các hàm liên quan tới thời gian
+    
 
+    /// <summary>
+    /// Chuyển mốc thời gian trong ngày về đầu ngày
+    /// </summary>
+    public static DateTime DateToDay(DateTime date)
+    {
+      return Convert.ToDateTime(date.ToString("yyyy-MM-dd"));
+    }
+    
+
+    /// <summary>
+    /// Chuyển mốc thời gian trong ngày về đầu tháng
+    /// </summary>
+    public static DateTime DateToMonth(DateTime date)
+    {
+      return Convert.ToDateTime(date.ToString("yyyy-MM-01"));
+    }
 
     /// <summary>
     /// Đổi cách hiển thị thời gian

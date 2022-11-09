@@ -4,6 +4,7 @@
 @{
   var status = WorkService.Status(model.status);
   var priority = WorkService.Priority(parent.priority);
+  var deadline = WorkService.TaskDeadline(model);
   DateTimeOffset? dateS = new DateTime(model.date_start);
   DateTimeOffset? dateE = new DateTime(model.date_end);
 }
@@ -12,7 +13,15 @@
   <li class="column" style="width: calc(100% - 630px); box-shadow: inset 4px 0px 0px 0px @priority.color;">
     <div class="icon-text item_title pl-0">
       <a class="item_name has-text-@(model.status == 4 ? "success is-line-through " : "black")"
-        @onclick="View">@model.name</a>
+        @onclick="View" title="@model.name">
+        @model.name
+      </a>
+      @if(deadline != null)
+      {
+        <span class="tag mr-5" style="background: @(deadline.color + "30"); color: #555; overflow: visible;">
+          @deadline.name
+        </span>
+      }
     </div>
   </li>
   <li class="column is-narrow" style="width: 130px;">

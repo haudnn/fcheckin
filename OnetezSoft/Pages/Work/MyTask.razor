@@ -34,14 +34,7 @@
       </ul>
 
       <ul class="columns is-vcentered mb-3">
-        <li class="column">
-          <a class="button is-link is-small is-hidden" @onclick="() => EditTask(null, 1)">
-            <span class="icon">
-              <i class="material-icons-outlined is-size-6">add</i>
-            </span>
-            <span>Tạo công việc</span>
-          </a>
-        </li>
+        <li class="column"></li>
         <li class="column is-narrow">
           <div class="dropdown is-hoverable is-right is-size-7">
             <div class="dropdown-trigger">
@@ -140,9 +133,23 @@
               AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
               @if(context.id == null)
               {
-                <div class="pl-5 py-1 is-size-7">
-                  Chưa có công việc
-                </div>
+                if(context.plan_id == null)
+                {
+                  <div class="pl-4 py-1 is-size-7">
+                    @context.name
+                  </div>
+                }
+                else
+                {
+                  <div class="is-size-7 pb-1">
+                    <a class="icon-text has-text-link" href="/work/@context.plan_id/task">
+                      <span class="icon is-small mr-2">
+                        <i class="material-icons-outlined is-size-6">link</i>
+                      </span>
+                      <span>@context.name</span>
+                    </a>
+                  </div>
+                }
               }
               else
               {
@@ -169,9 +176,6 @@
                   <span class="has-text-weight-semibold font_14">
                     @status.name @(count > 0 ? $"({count})" : "")
                   </span>
-                  <a class="icon has-text-dark is_hover is-hidden" title="Thêm công việc" @onclick="() => EditTask(null, status.id)">
-                    <i class="material-icons-round is-size-6">add</i>
-                  </a>
                 </div>
                 <div class="scrolly p-2" style="height: calc(100vh - 220px); background: #fbfbfb; border-radius: 5px;">
                   <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_board"
@@ -179,12 +183,7 @@
                     @if(context.id == null)
                     {
                       <div class="has-text-centered p-3">
-                        <a class="icon-text has-text-link" @onclick="() => EditTask(null, status.id)">
-                          <span class="icon">
-                            <i class="material-icons-outlined is-size-6">add</i>
-                          </span>
-                          <span class="is-size-7">Thêm công việc</span>
-                        </a>
+                        <span class="is-size-7">Không có công việc</span>
                       </div>
                     }
                     else
@@ -205,6 +204,26 @@
       {
         var dayHtml = string.Empty;
         <div class="list_task_gantt is-size-7" style="height: calc(100vh - 165px);">
+          <ul class="task_gantt is_month columns is-gapless is-vcentered">
+            <li class="column is-narrow"></li>
+            @for (int d = 0; d < dayTotal; d++)
+            {
+              var day = dayStart.AddDays(d);
+              var month = Shared.DateToMonth(day);
+              var column = month.AddMonths(1).Subtract(day).Days;
+              if(month.AddMonths(1) > dayEnd)
+                column = dayEnd.Subtract(day).Days;
+              @if(day <= month.AddMonths(1) && day <= dayEnd)
+              {
+                d += column - 1;
+                <li class="column is-narrow" style="width: @(column * 40)px">
+                  <div class="has-text-weight-medium has-text-info pl-1 font_14">
+                    @month.ToString("MM/yyyy")
+                  </div>
+                </li>
+              }
+            }
+          </ul>
           <ul class="task_gantt is_header columns is-gapless is-vcentered">
             <li class="column is-narrow">
               Công việc
@@ -258,7 +277,7 @@
                 {
                   <ul class="task_gantt columns is-gapless is-size-7">
                     <li class="column is-narrow">
-                      <div class="pl-5 py-1">Chưa có công việc</div>
+                      <div class="pl-4 py-1 is-size-7">Không có công việc</div>
                     </li>
                     @((MarkupString)dayHtml)
                   </ul>
@@ -285,8 +304,8 @@
   </div>
 </section>
 
-<_TaskPopup plan="planEdit" task="taskEdit" members="Layout.UserList" tab="taskEditTab" 
-  subTasks="subTasks" todoItems="todoItems" OnUpdate="OnUpdateTask" />
+<_TaskPopup plan="editPlan" task="editTask" members="Layout.UserList" tab="editTab" 
+  subTasks="subTasks" todoItems="todoItems" comments="comments" OnUpdate="OnUpdateTask" />
 
 @code {
   [CascadingParameter]
@@ -298,7 +317,7 @@
   private List<WorkPlanModel> planList = new();
   private Dictionary<string, List<UserModel>> memberList = new();
   private Dictionary<int, List<WorkPlanModel.Task>> taskGroups = new();
-  private List<int> toggleStatus = new() { 1, 2 };
+  private List<int> toggleStatus = new() { 1, 2, 3 };
   private List<string> toggleList = new();
   private int dayTotal = 0;
   private DateTime dayStart = DateTime.Today;
@@ -316,6 +335,7 @@
       var members = Layout.UserList.Where(x => listId.Contains(x.id)).ToList();
       memberList.Add(plan.id, members);
     }
+
   }
 
   protected override async Task OnParametersSetAsync()
@@ -324,6 +344,8 @@
       TypeView = "list";
     statusList = WorkService.Status();
     await GetTaskList();
+    // Đóng tất cả công việc
+    toggleList.Clear();
   }
 
   #region Bộ lọc và lấy dữ liệu
@@ -350,27 +372,40 @@
     if(filterDate != 0) // Lọc theo ngày kết thúc
     {
       Shared.GetTimeSpan(filterDate, out DateTime start, out DateTime end);
-      taskList = taskList.Where(x => start.Ticks <= x.date_end && x.date_end <= end.Ticks).ToList();
+      taskList = taskList.Where(x => start.Ticks <= x.date_end && x.date_end < end.AddDays(1).Ticks).ToList();
     }
     
     // Chia nhóm công việc
     taskGroups.Clear();
     foreach (var status in statusList)
     {
-      var tasks = taskList.Where(x => x.status == status.id).OrderByDescending(x => x.date_end).ToList();
+      List<WorkPlanModel.Task> tasks= new();
+      foreach (var plan in planList)
+      {
+        var planTasks = (from x in taskList where x.status == status.id && x.plan_id == plan.id
+                        orderby x.pos, x.date_end select x).ToList();
+        if(planTasks.Count > 0)
+        {
+          planTasks.Insert(0, new() { name = "Kế hoạch: " + plan.name, plan_id = plan.id, status = status.id });
+          tasks.AddRange(planTasks);
+        }
+      }
       if(tasks.Count == 0)
         tasks = new() { new() { name = "Chưa có công việc", status = status.id }};
       taskGroups.Add(status.id, tasks);
     }
 
     // Lấy ngày thấp nhỏ nhất
-    if(taskList.Count > 0)
+    if(taskList.Count > 0 && TypeView == "gantt")
     {
       long minDay = taskList.OrderBy(x => x.date_start).Select(x => x.date_start).FirstOrDefault();
       long maxDay = taskList.OrderByDescending(x => x.date_end).Select(x => x.date_end).FirstOrDefault();
-      dayStart = new DateTime(minDay);
-      dayEnd = new DateTime(maxDay);
-      dayTotal = dayEnd.Subtract(dayStart).Days + 4;
+      dayStart = Shared.DateToDay(new DateTime(minDay)).AddDays(-4);
+      dayEnd = Shared.DateToDay(new DateTime(maxDay)).AddDays(4);
+      dayTotal = dayEnd.Subtract(dayStart).Days;
+      // Tự scroll đến ngày hôm nay
+      int today = DateTime.Today.Subtract(dayStart).Days;
+      await JSRuntime.InvokeVoidAsync("scrollGantt", today * 40 - 160);
     }
   }
 
@@ -405,38 +440,65 @@
 
   #region Popup công việc chính
 
-  private WorkPlanModel planEdit = null;
-  private WorkPlanModel.Task taskEdit = null;
-  private int taskEditTab = 1;
+  private int editTab = 1;
+  private WorkPlanModel editPlan = null;
+  private WorkPlanModel.Task editTask = null;
+  private List<WorkPlanModel.Task> subTasks = new();
+  private List<TodolistModel.Todo> todoItems = new();
+  private List<WorkPlanModel.Comment> comments = new();
 
   private async Task EditTask(WorkPlanModel.Task item, int status)
   {
-    taskEditTab = 1;
-    if(item == null)
+    if(editTab == 2)
+      subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, item.plan_id, item.id);
+    else if(editTab == 3)
+      todoItems = DbTodoItem.GetList(Layout.Company.id, item.id, Layout.User.id);
+    else if(editTab == 4)
     {
-      taskEdit = new()
-      {
-        status = status,
-        //plan_id = model.id,
-        //section_id = sectionId,
-        labels = new(),
-        members = new()
-      };
-      await JSRuntime.InvokeVoidAsync("setFocus", "task_name");
+      comments = await DbWorkComment.GetList(Layout.Company.id, item.plan_id, item.id);
+      await JSRuntime.InvokeVoidAsync("setFocus", "task_comment");
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
     }
-    else
-    {
-      planEdit = planList.SingleOrDefault(x => x.id == item.plan_id);
-      taskEdit = await DbWorkTask.Get(Layout.Company.id, item.id);
-    }
+    editPlan = planList.SingleOrDefault(x => x.id == item.plan_id);
+    editTask = await DbWorkTask.Get(Layout.Company.id, item.id);
+  }
+
+  private async Task OnEditList(WorkPlanModel.Task item)
+  {
+    editTab = 1;
+    await EditTask(item, item.status);
+  }
+
+  private async Task OnAddSub(WorkPlanModel.Task item)
+  {
+    editTab = 2;
+    await EditTask(item, item.status);
+  }
+
+  private async Task OnTodolist(WorkPlanModel.Task item)
+  {
+    editTab = 3;
+    await EditTask(item, item.status);
   }
 
   private async Task OnUpdateTask(WorkPlanModel.Task item)
   {
-    if(item != null)
-      await GetTaskList();
-    taskEdit = null;
-    planEdit = null;
+    await GetTaskList();
+    editTask = null;
+    editPlan = null;
+  }
+
+  private async Task OnUpdateList(WorkPlanModel.Task item)
+  {
+    await GetTaskList();
+  }
+
+  private void OnToggle(string id)
+  {
+    if (toggleList.Contains(id))
+      toggleList.Remove(id);
+    else
+      toggleList.Add(id);
   }
 
   #endregion
@@ -446,6 +508,7 @@
 
   private async Task OnItemDragdrop(WorkPlanModel.Task item)
   {
+    toggleList.Clear();
     foreach (var group in taskGroups)
     {
       if(group.Value.Contains(item))
@@ -456,46 +519,6 @@
         break;
       }
     }
-    toggleList.Clear();
-    await GetTaskList();
-  }
-
-  #endregion
-
-
-  #region Xử lý trong danh sách công việc
-
-  private void OnToggle(string id)
-  {
-    if (toggleList.Contains(id))
-      toggleList.Remove(id);
-    else
-      toggleList.Add(id);
-  }
-
-  private async Task OnEditList(WorkPlanModel.Task item)
-  {
-    await EditTask(item, item.status);
-  }
-
-  private List<WorkPlanModel.Task> subTasks = new();
-  private async Task OnAddSub(WorkPlanModel.Task item)
-  {
-    subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, item.plan_id, item.id);
-    await EditTask(item, item.status);
-    taskEditTab = 2;
-  }
-
-  private List<TodolistModel.Todo> todoItems = new();
-  private async Task OnTodolist(WorkPlanModel.Task item)
-  {
-    todoItems = DbTodoItem.GetList(Layout.Company.id, item.id, Layout.User.id);
-    await EditTask(item, item.status);
-    taskEditTab = 3;
-  }
-
-  private async Task OnUpdateList(WorkPlanModel.Task item)
-  {
     await GetTaskList();
   }
 

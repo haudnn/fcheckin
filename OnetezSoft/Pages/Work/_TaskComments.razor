@@ -57,6 +57,7 @@
       return;
     await DbWorkComment.Delete(Layout.Company.id, iten.id);
     comments.Remove(iten);
+    await UpdateTask();
   }
 
   private async Task Comment()
@@ -82,5 +83,12 @@
   private async Task GetComments()
   {
     comments = await DbWorkComment.GetList(Layout.Company.id, task.plan_id, task.id);
+    await UpdateTask();
+  }
+
+  private async Task UpdateTask()
+  {
+    task.comment = comments.Count;
+    await DbWorkTask.Update(Layout.Company.id, task);
   }
 }

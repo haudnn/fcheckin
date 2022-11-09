@@ -39,7 +39,10 @@
       var hidden = toggle.Contains(type.id);
       <hr class="my-3">
       <a class="icon-text is-fullwidth" @onclick="() => Toggle(type.id)">
-        <span style="flex-grow: 1;">@type.name</span>
+        <span class="icon mr-2" style="border-radius: 4px; background: @type.color;">
+          <i class="material-icons-outlined is-size-6">@type.icon</i>
+        </span>
+        <span class="is-size-7 has-text-weight-semibold" style="flex-grow: 1;">@type.name</span>
         <span class="icon is-small">
           <i class="material-icons-outlined is-size-5">@(hidden ? "arrow_drop_down" : "arrow_right")</i>
         </span>
@@ -51,9 +54,9 @@
         {
           var link = "/work/" + plan.id;
           var show = string.IsNullOrEmpty(keyword) || Shared.SearchKeyword(keyword, plan.name);
-          var active = url.StartsWith(link) ? "has-text-link has-text-weight-semibold" : "has-text-grey";
-          <div class="@(show ? "icon-text is-fullwidth mt-3 " : "is-hidden")">
-            <a class="pl-3 @active" href="@link" style="flex-grow: 1;" >
+          var active = url.StartsWith(link) ? "active" : "";
+          <div class="sidebar_plan_item @active @(show ? "icon-text " : "is-hidden")">
+            <a class="has-text-info" href="@link" style="flex-grow: 1;" >
               @plan.name
             </a>
             <div class="dropdown is-hoverable is-right icon is-small is_hover">
@@ -104,7 +107,7 @@
         }
         if(list.Count == 0)
         {
-          <div class="has-text-grey mt-3 pl-3 is-italic">Không có kế hoạch</div>
+          <div class="sidebar_plan_item has-text-grey is-italic">Không có kế hoạch</div>
         }
       }
     }
@@ -134,10 +137,10 @@
   protected override void OnInitialized()
   {
     typeList.Clear();
-    typeList.Add(new() { id = 0, name = "Kế hoạch đã ghim" });
-    typeList.Add(new() { id = 3, name = "Kế hoạch lưu trữ" });
-    typeList.Add(new() { id = 1, name = "Kế hoạch đang diễn ra" });
-    typeList.Add(new() { id = 2, name = "Kế hoạch hoàn thành" });
+    typeList.Add(new() { id = 0, name = "Kế hoạch đã ghim", icon = "push_pin", color ="#AEC6FF" });
+    typeList.Add(new() { id = 3, name = "Kế hoạch lưu trữ", icon = "archive", color = "#FFEDE9" });
+    typeList.Add(new() { id = 1, name = "Kế hoạch đang diễn ra", icon = "show_chart", color = "#FFFDC6" });
+    typeList.Add(new() { id = 2, name = "Kế hoạch hoàn thành", icon = "done_all", color = "#CEF9CC" });
   }
 
   protected override async Task OnParametersSetAsync()

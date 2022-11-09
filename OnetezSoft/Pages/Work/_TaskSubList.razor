@@ -30,8 +30,9 @@
           }
           else 
           {
-            <span class="item_name has-text-@(task.status == 4 ? "success is-line-through " : "info")">
-              @task.name</span>
+            <span class="item_name has-text-@(task.status == 4 ? "success is-line-through " : "info")" title="@task.name">
+              @task.name
+            </span>
           }
         </div>
       </li>
@@ -247,7 +248,6 @@
     await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
     await WorkService.CreateLog(Layout.Company.id, "Xóa công việc phụ", item.name, parent.plan_id, parent.id, Layout.User);
     tasks.Remove(item);
-
     // Cập nhật số lượng công việc phụ
     await WorkService.UpdateSubTaskCount(Layout.Company.id, parent.id, tasks.Count);
   }

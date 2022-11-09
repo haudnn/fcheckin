@@ -1,19 +1,27 @@
-
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
 @{
   var status = WorkService.Status(model.status);
   var priority = WorkService.Priority(parent.priority);
-  var dateS = new DateTime(model.date_start);
-  var dateE = new DateTime(model.date_end);
+  var deadline = WorkService.TaskDeadline(model);
+  var dateS = Shared.DateToDay(new DateTime(model.date_start));
+  var dateE = Shared.DateToDay(new DateTime(model.date_end));
 }
 
 <ul id="task_@model.id" class="task_gantt is_item is_sub columns is-gapless is-size-7">
   <li class="column is-narrow" style="box-shadow: inset 4px 0px 0px 0px @priority.color;">
     <div class="icon-text item_title pl-0">
       <a class="item_name has-text-@(model.status == 4 ? "success is-line-through " : "black")"
-        @onclick="View">@model.name</a>
+        @onclick="View" title="@model.name">
+        @model.name
+      </a>
+      @if(deadline != null)
+      {
+        <span class="tag" style="background: @(deadline.color + "30"); color: #555; overflow: visible;">
+          @deadline.name
+        </span>
+      }
       @if(isEdit)
       {
         <div class="dropdown is-hoverable is-right icon is_hover">
@@ -41,8 +49,10 @@
     <li class="column is-narrow item_day @today @sunday">
       @if(dateS == day)
       {
+        var time = string.Format("Từ ngày {0:dd/MM/yyyy, HH:mm} đến ngày {1:dd/MM/yyyy, HH:mm}", 
+          new DateTime(model.date_start), new DateTime(model.date_end));
         <div class="is_timeline" style="width: @(column * 40)px">
-          <a class="item_task @status.color" @onclick="View"></a>
+          <a class="item_task @status.color" @onclick="View" title="@time"></a>
           <div class="item_members">
             <_MemberList members="model.members" sources="members" isEdit="isEdit" isTask="true"
               OnUpdate="UpdateMembers" />

@@ -55,7 +55,8 @@
                   </a>
                 </li>
                 <li class="mb-4">
-                  <a class="has-text-@(tab == 4 ? "black" : "info")" @onclick="() => ChangeTab(4)">
+                  <a class="has-text-@(tab == 4 ? "black" : "info")" @onclick="() => ChangeTab(4)"
+                    title="@(task.comment > 0 ? $"Có {task.comment} bình luận" : "Chưa có bình luận")">
                     Bình luận
                   </a>
                 </li>
@@ -124,26 +125,33 @@
               </div>
               <div class="field is-grouped">
                 <div class="control has-text-grey" style="width: 120px;">
-                  Thời hạn:
+                  Ngày bắt đầu
                 </div>
                 <div class="control is-expanded">
                   @if(editTask)
                   {
-                    <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" OnRangeSelect="UpdateDate">
+                    <DateRangePicker @bind-StartDate="dateS" TimePicker="true" TimePicker24Hour="true"
+                      SingleDatePicker="true" OnRangeSelect="UpdateDateStart">
                       <PickerTemplate>
                         <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
                           <span class="icon is-small mr-1">
                             <i class="material-icons-outlined is-size-6">calendar_today</i>
                           </span>
-                          @if (context.TStartDate != null && context.TEndDate != null)
+                          @if (context.TStartDate != null)
                           {
                             <span>@context.TStartDate.Value.ToString("dd/MM/yyyy")</span>
-                            <span class="px-1">-</span>
-                            <span>@context.TEndDate.Value.ToString("dd/MM/yyyy")</span>
+                            <span class="icon is-small ml-3 mr-1">
+                              <i class="material-icons-outlined is-size-6">schedule</i>
+                            </span>
+                            <span>@context.TStartDate.Value.ToString("HH:mm")</span>
                           }
                           else
                           {
-                            <span>chọn ngày</span>
+                            <span>dd/mm/yyyy</span>
+                            <span class="icon is-small ml-3 mr-1">
+                              <i class="material-icons-outlined is-size-6">schedule</i>
+                            </span>
+                            <span>hh:mm</span>
                           }
                         </a>
                       </PickerTemplate>
@@ -151,14 +159,65 @@
                   }
                   else
                   {
-                    <span class="icon-text">
+                    <div class="icon-text">
                       <span class="icon is-small mr-1">
                         <i class="material-icons-outlined is-size-6">calendar_today</i>
                       </span>
-                      <span>
-                        @string.Format("{0:dd/MM/yyyy} - {1:dd/MM/yyyy}", new DateTime(task.date_start), new DateTime(task.date_end))
+                      <span>@string.Format("{0:dd/MM/yyyy}}", new DateTime(task.date_start))</span>
+                      <span class="icon is-small ml-3 mr-1">
+                        <i class="material-icons-outlined is-size-6">schedule</i>
                       </span>
-                    </span> 
+                      <span>@string.Format("{0:HH:mm}}", new DateTime(task.date_start))</span>
+                    </div> 
+                  }
+                </div>
+              </div>
+              <div class="field is-grouped">
+                <div class="control has-text-grey" style="width: 120px;">
+                  Ngày kết thúc
+                </div>
+                <div class="control is-expanded">
+                  @if(editTask)
+                  {
+                    <DateRangePicker @bind-StartDate="dateE" TimePicker="true" TimePicker24Hour="true"
+                      SingleDatePicker="true" OnRangeSelect="UpdateDateEnd">
+                      <PickerTemplate>
+                        <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
+                          <span class="icon is-small mr-1">
+                            <i class="material-icons-outlined is-size-6">calendar_today</i>
+                          </span>
+                          @if (context.TStartDate != null)
+                          {
+                            <span>@context.TStartDate.Value.ToString("dd/MM/yyyy")</span>
+                            <span class="icon is-small ml-3 mr-1">
+                              <i class="material-icons-outlined is-size-6">schedule</i>
+                            </span>
+                            <span>@context.TStartDate.Value.ToString("HH:mm")</span>
+                          }
+                          else
+                          {
+                            <span>dd/mm/yyyy</span>
+                            <span class="icon is-small ml-3 mr-1">
+                              <i class="material-icons-outlined is-size-6">schedule</i>
+                            </span>
+                            <span>hh:mm</span>
+                          }
+                        </a>
+                      </PickerTemplate>
+                    </DateRangePicker>
+                  }
+                  else
+                  {
+                    <div class="icon-text">
+                      <span class="icon is-small mr-1">
+                        <i class="material-icons-outlined is-size-6">calendar_today</i>
+                      </span>
+                      <span>@string.Format("{0:dd/MM/yyyy}}", new DateTime(task.date_end))</span>
+                      <span class="icon is-small ml-3 mr-1">
+                        <i class="material-icons-outlined is-size-6">schedule</i>
+                      </span>
+                      <span>@string.Format("{0:HH:mm}}", new DateTime(task.date_end))</span>
+                    </div> 
                   }
                 </div>
               </div>
@@ -275,7 +334,7 @@
                 {
                   <div class="control">
                     <textarea @bind="task.detail" class="textarea is_bg" rows="5"
-                      placeholder="Nhập mô tả công việc..." style="height: calc(100vh - 482px);" />
+                      placeholder="Nhập mô tả công việc..." style="height: calc(100vh - 518px);" />
                   </div>
                 }
                 else
@@ -380,11 +439,17 @@
   [Parameter]
   public List<TodolistModel.Todo> todoItems { get; set; }
   [Parameter]
+  public List<WorkPlanModel.Comment> comments { get; set; }
+  [Parameter]
   public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
 
-  private List<WorkPlanModel.Comment> comments = new();
   private List<WorkLogModel> logs = new();
   private bool isChange = false;
+
+  private void OnChanged()
+  {
+    MessagingCenter.Send(this, "plan_" + task.plan_id, task.plan_id);
+  }
 
   private void Reset()
   {
@@ -398,7 +463,10 @@
   private async Task Cancel()
   {
     if(isChange)
+    {
+      OnChanged();
       await OnUpdate.InvokeAsync(task);
+    }
     else
       await OnUpdate.InvokeAsync(null);
     Reset();
@@ -415,6 +483,7 @@
     await DbWorkTask.Delete(Layout.Company.id, task.id);
     await WorkService.CreateLog(Layout.Company.id, "Xóa công việc", task.name, task.plan_id, null, Layout.User);
     await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
+    OnChanged();
     await OnUpdate.InvokeAsync(task);
   }
 
@@ -427,6 +496,7 @@
     await DbWorkTask.Update(Layout.Company.id, task);
     await WorkService.CreateLog(Layout.Company.id, Layout.User.FullName, "Đã rời khỏi công việc", task.plan_id, task.id, Layout.User);
     await JSRuntime.InvokeVoidAsync("tagline", true, "Bạn đã tự rời khỏi công việc!");
+    OnChanged();
     await OnUpdate.InvokeAsync(task);
   }
 
@@ -452,7 +522,7 @@
         {
           // Thông báo chuông
           foreach (var user in task.members)
-            await DbNotify.ForPlan(Layout.Company.id, 708, plan.id, task.id, user.id, Layout.User.id);
+            await DbNotify.ForPlan(Layout.Company.id, 709, plan.id, task.id, user.id, Layout.User.id);
           // Lưu lịch sử
           await WorkService.CreateLog(Layout.Company.id, "Cập nhật tiêu đề", task.name, task.plan_id, task.id, Layout.User);
         }
@@ -460,6 +530,7 @@
         await DbWorkTask.Update(Layout.Company.id, task);
         await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin công việc!");
       }
+      OnChanged();
       await OnUpdate.InvokeAsync(task);
       Reset();
     }
@@ -480,7 +551,7 @@
     return false;
   }
 
-  private async Task Changed()
+  private async Task UpdateDB()
   {
     if(!string.IsNullOrEmpty(task.id))
     {
@@ -494,7 +565,7 @@
     var old = await DbWorkTask.Get(Layout.Company.id, task.id);
     if(old != null)
     {
-      await Changed();
+      await UpdateDB();
       await WorkService.LogTaskMembers(Layout.Company.id, old, task, Layout.User, Layout.UserList);
     }
   }
@@ -505,19 +576,38 @@
     {
       var message = await WorkService.ChangeTaskStatus(Layout.Company.id, Layout.User, task, statusId);
       await JSRuntime.InvokeVoidAsync("tagline", true, message);
+      isChange = true;
     }
     else
       task.status = statusId;
   }
   
-  private async Task UpdateDate(DateRange range)
+  private async Task UpdateDateStart(DateRange range)
   {
     task.date_start = range.Start.Ticks;
-    task.date_end = range.End.Ticks;
-    await Changed(); 
-    if(!string.IsNullOrEmpty(task.id))
-      await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện", 
-        string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(task.date_start), new DateTime(task.date_end)), task.plan_id, task.id, Layout.User);
+    if(task.date_start < task.date_end)
+    {
+      await UpdateDB(); 
+      if(!string.IsNullOrEmpty(task.id))
+        await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện", 
+          string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(task.date_start), new DateTime(task.date_end)), task.plan_id, task.id, Layout.User);
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày bắt đầu đang lớn hơn ngày kết thúc!");
+  }
+  
+  private async Task UpdateDateEnd(DateRange range)
+  {
+    task.date_end = range.Start.Ticks;
+    if(task.date_start < task.date_end)
+    {
+      await UpdateDB(); 
+      if(!string.IsNullOrEmpty(task.id))
+        await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện", 
+          string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(task.date_start), new DateTime(task.date_end)), task.plan_id, task.id, Layout.User);
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc đang nhỏ hơn ngày bắt đầu!");
   }
 
   private string sectionNew = string.Empty;
@@ -547,7 +637,7 @@
   private async Task UpdateSection(string id)
   {
     task.section_id = id;
-    await Changed();
+    await UpdateDB();
     if(!string.IsNullOrEmpty(task.id))
     {
       var section = plan.sections.SingleOrDefault(x => x.id == task.section_id);
@@ -559,7 +649,7 @@
   private async Task UpdatePriorty(int id)
   {
     task.priority = id;
-    await Changed();
+    await UpdateDB();
     if(!string.IsNullOrEmpty(task.id))
       await WorkService.CreateLog(Layout.Company.id, "Cập nhật mức độ ưu tiên", 
         WorkService.Priority(task.priority).name, task.plan_id, task.id, Layout.User);
@@ -567,29 +657,32 @@
 
   private async Task UpdateLabels()
   {
-    await Changed();
+    await UpdateDB();
   }
   
   private async Task ChangeTab(int index)
   {
     tab = index;
-    if(tab == 2)
+    if(index == 2)
     {
+      // Công việc phụ
       subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, task.plan_id, task.id);
     }
-    else if(tab == 3)
+    else if(index == 3)
     {
+      // Todolist liên kết
       todoItems = DbTodoItem.GetList(Layout.Company.id, task.id, Layout.User.id);
     }
-    else if(tab == 4)
+    else if(index == 4)
     {
+      // Bình luận
       comments = await DbWorkComment.GetList(Layout.Company.id, task.plan_id, task.id);
       await JSRuntime.InvokeVoidAsync("setFocus", "task_comment");
       await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
     }
-    else if(tab == 5)
+    else if(index == 5)
     {
-      // Lấy dự liệu lịch sử cập nhật
+      // Lịch sử cập nhật
       logs = await DbWorkLog.GetListTask(Layout.Company.id, task.plan_id, task.id);
     }
   }

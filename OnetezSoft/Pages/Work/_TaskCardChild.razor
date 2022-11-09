@@ -4,12 +4,21 @@
 @{
   var status = WorkService.Status(model.status);
   var priority = WorkService.Priority(parent.priority);
+  var deadline = WorkService.TaskDeadline(model);
   DateTimeOffset? dateS = new DateTime(model.date_start);
   DateTimeOffset? dateE = new DateTime(model.date_end);
 }
 
 <div class="task_board card px-3 py-2 is-size-7">
   <ul class="columns is-multiline is-vcentered is-variable is-0">
+    @if(deadline != null)
+    {
+      <li class="column is-full">
+        <span class="tag" style="background: @(deadline.color + "30"); color: #555;">
+          @deadline.name
+        </span>
+      </li>
+    }
     <li class="column is-10">
       <a class="text_1_line has-text-@(model.status == 4 ? "success is-line-through " : "black")"
         @onclick="View">@model.name</a>

@@ -85,6 +85,19 @@ function scrollDiv(id, top) {
   }, 100);
 }
 
+function scrollGantt(value) {
+  setTimeout(function () {
+    const element = document.querySelector(".list_task_gantt");
+    if (element != null) {
+      element.scrollTo({
+        top: 0,
+        left: value,
+        behavior: "smooth",
+      });
+    }
+  }, 500);
+}
+
 function toggleText(item) {
   if (item.className.indexOf("is-show") === -1) item.classList.add("is-show");
   else item.classList.remove("is-show");

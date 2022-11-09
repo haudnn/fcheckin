@@ -24,7 +24,7 @@
       </li>
       <li class="column is-narrow" style="width: 130px;">
         <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" Opens="SideType.Left"
-          MinDate="new DateTime(task.date_start)" MaxDate="new DateTime(task.date_end)">
+          MinDate="DateTime.Today">
           <PickerTemplate>
             <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
               <span class="icon is-small mr-1">
@@ -101,7 +101,7 @@
     }
     <ul class="columns is-vcentered is-variable is-1 has-text-centered mb-2">
       <li class="column has-text-left pl-4">
-        <div class="text_inline">
+        <div class="text_inline" title="@item.name">
           • @item.name
         </div>
       </li>

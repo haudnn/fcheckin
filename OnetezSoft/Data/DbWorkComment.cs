@@ -79,7 +79,7 @@ namespace OnetezSoft.Data
 
       var results = await collection.Find(x => x.plan_id == planId && x.task_id == taskId).ToListAsync();
 
-      return results.OrderBy(x => x.date).ToList();
+      return results.OrderByDescending(x => x.date).ToList();
     }
   }
 }

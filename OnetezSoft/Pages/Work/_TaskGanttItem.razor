@@ -5,8 +5,9 @@
   var toggle = toggleList.Contains(model.id);
   var status = WorkService.Status(model.status);
   var priority = WorkService.Priority(model.priority);
-  var dateS = new DateTime(model.date_start);
-  var dateE = new DateTime(model.date_end);
+  var deadline = WorkService.TaskDeadline(model);
+  var dateS = Shared.DateToDay(new DateTime(model.date_start));
+  var dateE = Shared.DateToDay(new DateTime(model.date_end));
 }
 
 <ul id="task_@model.id" class="task_gantt is_item columns is-gapless is-size-7">
@@ -26,8 +27,15 @@
         <span class="icon"></span>
       }
       <a class="item_name has-text-@(model.status == 4 ? "success is-line-through " : "black")"
-        @onclick="Edit">@model.name
+        @onclick="Edit" title="@model.name">
+        @model.name
       </a>
+      @if(deadline != null)
+      {
+        <span class="tag" style="background: @(deadline.color + "30"); color: #555; overflow: visible;">
+          @deadline.name
+        </span>
+      }
       @if(editRole)
       {
         <div class="dropdown is-hoverable is-right icon is_hover">
@@ -57,8 +65,10 @@
     <li class="column is-narrow item_day @today @sunday">
       @if(dateS == day)
       {
+        var time = string.Format("Từ ngày {0:dd/MM/yyyy, HH:mm} đến ngày {1:dd/MM/yyyy, HH:mm}", 
+          new DateTime(model.date_start), new DateTime(model.date_end));
         <div class="is_timeline" style="width: @(column * 40)px">
-          <a class="item_task @status.color" @onclick="Edit"></a>
+          <a class="item_task @status.color" @onclick="Edit" title="@time"></a>
           <div class="item_members">
             <_MemberList members="model.members" sources="members" isEdit="editRole" isTask="true"
               OnUpdate="UpdateMembers" />
@@ -75,7 +85,7 @@
   {
     <ul class="task_gantt is_plan columns is-gapless is-size-7">
       <li class="column is-narrow" style="box-shadow: inset 4px 0px 0px 0px @priority.color;">
-        <a class="icon-text has-text-link">
+        <a class="icon-text has-text-link" href="/work/@plan.id/task">
           <span class="icon is-small mr-2">
             <i class="material-icons-outlined is-size-6">link</i>
           </span>
@@ -180,21 +190,12 @@
     await OnUpdate.InvokeAsync(model);
   }
 
-  private async Task UpdateDate(DateRange range)
-  {
-    model.date_start = range.Start.Ticks;
-    model.date_end = range.End.Ticks;
-    await DbWorkTask.Update(Layout.Company.id, model);
-    await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện", 
-      string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(model.date_start), new DateTime(model.date_end)), model.plan_id, model.id, Layout.User);
-  }
-
   private async Task ChangeStatus(int statusId)
   {
     toggleStatus = false;
     var message = await WorkService.ChangeTaskStatus(Layout.Company.id, Layout.User, model, statusId);
     await JSRuntime.InvokeVoidAsync("tagline", true, message);
-    if(showPlan) await OnUpdate.InvokeAsync(model);
+    await OnUpdate.InvokeAsync(model);
   }
 
   private async Task UpdateMembers()
@@ -202,11 +203,7 @@
     var old = await DbWorkTask.Get(Layout.Company.id, model.id);
     await DbWorkTask.Update(Layout.Company.id, model);
     await WorkService.LogTaskMembers(Layout.Company.id, old, model, Layout.User, Layout.UserList);
-  }
-
-  private async Task UpdateLabels()
-  {
-    await DbWorkTask.Update(Layout.Company.id, model);
+    await OnUpdate.InvokeAsync(model);
   }
 
   private async Task UpdateSubTasks(WorkPlanModel.Task item)
