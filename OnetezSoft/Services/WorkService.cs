@@ -192,15 +192,31 @@ namespace OnetezSoft.Services
     }
 
     /// <summary>
+    /// Kiểm tra thời hạn của công việc
+    /// </summary>
+    public static int CheckDeadline(WorkPlanModel.Task task)
+    {
+      var now = DateTime.Now;
+      if(task.status == 5)
+        return 0;
+      if(task.status < 4 && now.Ticks <= task.date_end && task.date_end <= now.AddDays(1).Ticks)
+        return 1;
+      else if(task.date_end < task.date_done || task.date_end < now.Ticks && task.status < 4)
+        return 2;
+      else
+        return 0;
+    }
+
+    /// <summary>
     /// Hiển thị label sắp hết hạn, trễ hạn
     /// </summary>
     public static StaticModel TaskDeadline(WorkPlanModel.Task task)
     {
-      var now = DateTime.Now;
-      if(task.status < 4 && now.Ticks <= task.date_end && task.date_end <= now.AddDays(1).Ticks)
-        return new StaticModel() { name = "Sắp hết hạn", color = "#BCB51F" };
-      else if(task.date_end < task.date_done || task.date_end < now.Ticks && task.status < 4)
-        return new StaticModel() { name = "Trễ hạn", color = "#FF5449" };
+      var check = CheckDeadline(task);
+      if(check == 1)
+        return new StaticModel() { id = 1, name = "Sắp hết hạn", color = "#BCB51F" };
+      else if(check == 2)
+        return new StaticModel() { id= 2, name = "Trễ hạn", color = "#FF5449" };
       else
         return null;
     }

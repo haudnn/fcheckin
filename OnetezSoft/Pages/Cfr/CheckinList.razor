@@ -283,7 +283,7 @@
     userSuggests = new();
     foreach (var item in Layout.UserList)
     {
-      if (!string.IsNullOrEmpty(filterDepartment) && item.departments_id != null && item.departments_id.Contains(filterDepartment))
+      if (!string.IsNullOrEmpty(filterDepartment) && item.departments_id.Contains(filterDepartment))
         userSuggests.Add(item);
     }
   }
@@ -301,7 +301,7 @@
         {
           bool check = true;
           if (!string.IsNullOrEmpty(filterDepartment))
-            if (item.departments_id == null || !item.departments_id.Contains(filterDepartment))
+            if (!item.departments_id.Contains(filterDepartment))
               check = false;
           if (!Handled.Shared.SearchKeyword(filterUserName, item.first_name + item.last_name))
             check = false;

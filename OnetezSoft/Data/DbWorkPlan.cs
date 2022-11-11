@@ -95,6 +95,28 @@ namespace OnetezSoft.Data
 
 
     /// <summary>
+    /// Danh sách kế hoạch đang tham gia, theo trạng thái
+    /// </summary>
+    public static async Task<List<WorkPlanModel>> GetListJoin(string companyId, string userId, int status)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<WorkPlanModel>(_collection);
+
+      var list = await collection.Find(x => x.status == status).ToListAsync();
+
+      var results = new List<WorkPlanModel>();
+      foreach (var item in list)
+      {
+        if(item.members.Where(x => x.id == userId).Count() > 0)
+          results.Add(item);
+      }
+
+      return results.OrderBy(x => x.date_end).ToList();
+    }
+
+
+    /// <summary>
     /// Tất cả kế hoạch đang có
     /// </summary>
     public static async Task<List<WorkPlanModel>> GetAll(string companyId)

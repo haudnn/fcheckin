@@ -34,7 +34,7 @@ namespace OnetezSoft.Services
         return user;
       else
         return new UserModel() {
-          id = userId,
+          //id = userId,
           last_name = "Tài khoản đã xóa",
           avatar = "/images/avatar.png"
         };

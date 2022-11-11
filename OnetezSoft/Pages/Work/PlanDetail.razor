@@ -95,43 +95,54 @@
                   }
                 }
                 <li class="column is-narrow has-text-right" style="width: 140px;">
-                  <div class="dropdown is-hoverable">
-                    <div class="dropdown-trigger">
-                      <a class="icon-text">
-                        <span class="icon">
-                          <i class="material-icons-outlined is-size-6">
-                            @(model.is_private ? "lock" : "public")
-                          </i>
-                        </span>
-                        <span>@(model.is_private ? "Riêng tư" : "Công khai")</span>
-                        <span class="icon">
-                          <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                        </span>
-                      </a>
-                    </div>
-                    @if(editRole)
-                    {
+                  @if(editRole)
+                  {
+                    <div class="dropdown is-hoverable">
+                      <div class="dropdown-trigger">
+                        <a class="icon-text">
+                          <span class="icon">
+                            <i class="material-icons-outlined is-size-6">
+                              @(model.is_private ? "lock" : "public")
+                            </i>
+                          </span>
+                          <span>@(model.is_private ? "Riêng tư" : "Công khai")</span>
+                          <span class="icon">
+                            <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                          </span>
+                        </a>
+                      </div>
                       <div class="dropdown-menu">
                         <div class="dropdown-content">
                           <a class="dropdown-item" @onclick="() => UpdatePrivate(true)">Riêng tư</a>
                           <a class="dropdown-item" @onclick="() => UpdatePrivate(false)">Công khai</a>
                         </div>
                       </div>
-                    }
-                  </div>
+                    </div>
+                  }
+                  else
+                  {
+                    <span class="icon-text">
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-6">
+                          @(model.is_private ? "lock" : "public")
+                        </i>
+                      </span>
+                      <span>@(model.is_private ? "Riêng tư" : "Công khai")</span>
+                    </span>
+                  }
                 </li>
                 <li class="column is-narrow has-text-right" style="width: 140px;">
-                  <div class="dropdown is-hoverable">
-                    <div class="dropdown-trigger">
-                      <a class="icon-text">
-                        <span>@WorkService.StatusPlan(model.status).name</span>
-                        <span class="icon">
-                          <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                        </span>
-                      </a>
-                    </div>
-                    @if(editRole)
-                    {
+                  @if(editRole)
+                  {
+                    <div class="dropdown is-hoverable">
+                      <div class="dropdown-trigger">
+                        <a class="icon-text">
+                          <span>@WorkService.StatusPlan(model.status).name</span>
+                          <span class="icon">
+                            <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                          </span>
+                        </a>
+                      </div>
                       <div class="dropdown-menu">
                         <div class="dropdown-content">
                           @foreach (var item in WorkService.StatusPlan())
@@ -140,8 +151,12 @@
                           }
                         </div>
                       </div>
-                    }
-                  </div>
+                    </div>
+                  }
+                  else
+                  {
+                    <span>@WorkService.StatusPlan(model.status).name</span>
+                  }
                 </li>
               </ul>
               @if(editMode)
@@ -167,7 +182,7 @@
               else if(!string.IsNullOrEmpty(model.detail))
               {
                 <div class="has-text-grey is-size-7 mb-2">Mô tả</div>
-                <div class="content mb-3">
+                <div class="is-size-7 content mb-3">
                   @((MarkupString)Shared.TextToHtml(model.detail))
                 </div>
               }
@@ -219,7 +234,7 @@
                   Người tham gia:
                 </div>
                 <div class="control is-expanded">
-                  <_MemberList members="model.members" sources="Layout.UserList" isEdit="editRole" OnUpdate="UpdateMembers" />
+                  <_MemberPlan members="model.members" sources="Layout.UserList" isEdit="editRole" OnUpdate="UpdateMembers" />
                 </div>
               </div>
             </div>
@@ -407,6 +422,7 @@
       foreach (var user in model.members)
         await DbNotify.ForPlan(Layout.Company.id, 720, model.id, status.ToString(), user.id, Layout.User.id);
       await GetLogs();
+      await JSRuntime.InvokeVoidAsync("clickBtn", "sidebar_plan_refresh");
     }
   }
 

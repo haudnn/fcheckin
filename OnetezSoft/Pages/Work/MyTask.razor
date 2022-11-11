@@ -33,10 +33,58 @@
         </li>
       </ul>
 
-      <ul class="columns is-vcentered mb-3">
+      <ul class="columns is-vcentered is-variable is-2 mb-3">
         <li class="column"></li>
         <li class="column is-narrow">
-          <div class="dropdown is-hoverable is-right is-size-7">
+          <div class="dropdown is-hoverable is-size-7">
+            <div class="dropdown-trigger">
+              <a class="icon-text">
+                <span>Thời hạn</span>
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                </span>
+              </a>
+            </div>
+            <div class="dropdown-menu">
+              <div class="dropdown-content">
+                <a class="dropdown-item @(filterDeadline == 0 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(0)">
+                  Tất cả
+                </a>
+                <a class="dropdown-item @(filterDeadline == 1 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(1)">
+                  Sắp hết hạn
+                </a>
+                <a class="dropdown-item @(filterDeadline == 2 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(2)">
+                  Trễ hạn 
+                </a>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li class="column is-narrow">
+          <div class="dropdown is-hoverable is-size-7">
+            <div class="dropdown-trigger">
+              <a class="icon-text">
+                <span>Kế hoạch</span>
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                </span>
+              </a>
+            </div>
+            <div class="dropdown-menu">
+              <div class="dropdown-content">
+                <a class="dropdown-item @(filterPlan == null ? "has-text-weight-semibold" : "")"
+                  @onclick="() => FilterPlan(null)">Tất cả</a>
+                @foreach (var item in planList)
+                {
+                  <a class="dropdown-item @(filterPlan == item.id ? "has-text-weight-semibold" : "")"
+                    @onclick="() => FilterPlan(item.id)">@item.name</a>
+                }
+              </div>
+            </div>
+          </div>
+        </li>
+        <li class="column is-narrow" style="width: 110px;">
+          <div class="dropdown is-hoverable is-size-7">
             <div class="dropdown-trigger">
               <a class="icon-text">
                 <span>
@@ -49,17 +97,19 @@
             </div>
             <div class="dropdown-menu">
               <div class="dropdown-content">
-                <a class="dropdown-item" @onclick="() => FilterPriority(0)">Tất cả</a>
+                <a class="dropdown-item @(filterPriority == 0 ? "has-text-weight-semibold" : "")"
+                  @onclick="() => FilterPriority(0)">Tất cả</a>
                 @foreach (var item in WorkService.Priority())
                 {
-                  <a class="dropdown-item" style="color: @item.color;" @onclick="() => FilterPriority(item.id)">@item.name</a>
+                  <a class="dropdown-item @(filterPriority == item.id ? "has-text-weight-semibold" : "")" style="color: @item.color;" 
+                    @onclick="() => FilterPriority(item.id)">@item.name</a>
                 }
               </div>
             </div>
           </div>
         </li>
         <li class="column is-narrow">
-          <div class="dropdown is-hoverable is-right is-size-7">
+          <div class="dropdown is-hoverable is-size-7">
             <div class="dropdown-trigger">
               <a class="icon-text">
                 <span>Theo ngày kết thúc</span>
@@ -70,17 +120,17 @@
             </div>
             <div class="dropdown-menu">
               <div class="dropdown-content">
-                <a class="dropdown-item @(filterDate == 1 ? "has-text-weight-bold" : "")" @onclick="() => FilterDate(1)">
+                <a class="dropdown-item @(filterDate == 0 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDate(0)">
+                  Tất cả
+                </a>
+                <a class="dropdown-item @(filterDate == 1 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDate(1)">
                   Tuần này
                 </a>
-                <a class="dropdown-item @(filterDate == 2 ? "has-text-weight-bold" : "")" @onclick="() => FilterDate(2)">
+                <a class="dropdown-item @(filterDate == 2 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDate(2)">
                   Tháng này
                 </a>
-                <a class="dropdown-item @(filterDate == 3 ? "has-text-weight-bold" : "")" @onclick="() => FilterDate(3)">
+                <a class="dropdown-item @(filterDate == 3 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDate(3)">
                   Quý này
-                </a>
-                <a class="dropdown-item @(filterDate == 0 ? "has-text-weight-bold" : "")" @onclick="() => FilterDate(0)">
-                  Tất cả
                 </a>
               </div>
             </div>
@@ -182,9 +232,23 @@
                     AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
                     @if(context.id == null)
                     {
-                      <div class="has-text-centered p-3">
-                        <span class="is-size-7">Không có công việc</span>
-                      </div>
+                      if(context.plan_id == null)
+                      {
+                        <div class="has-text-centered p-3">
+                          <span class="is-size-7">@context.name</span>
+                        </div>
+                      }
+                      else
+                      {
+                        <div class="is-size-7 p-1">
+                          <a class="icon-text has-text-link" href="/work/@context.plan_id/task">
+                            <span class="icon is-small mr-2">
+                              <i class="material-icons-outlined is-size-6">link</i>
+                            </span>
+                            <span>@context.name</span>
+                          </a>
+                        </div>
+                      }
                     }
                     else
                     {
@@ -277,7 +341,21 @@
                 {
                   <ul class="task_gantt columns is-gapless is-size-7">
                     <li class="column is-narrow">
-                      <div class="pl-4 py-1 is-size-7">Không có công việc</div>
+                      @if(context.plan_id == null)
+                      {
+                        <div class="pl-4 py-1 is-size-7">@context.name</div>
+                      }
+                      else
+                      {
+                        <div class="py-1 is-size-7">
+                          <a class="icon-text has-text-link" href="/work/@context.plan_id/task">
+                            <span class="icon is-small mr-2">
+                              <i class="material-icons-outlined is-size-6">link</i>
+                            </span>
+                            <span>@context.name</span>
+                          </a>
+                        </div>
+                      }
                     </li>
                     @((MarkupString)dayHtml)
                   </ul>
@@ -325,8 +403,8 @@
 
   protected override async Task OnInitializedAsync()
   {
-    // Lấy danh sách dự án đang tham gia
-    planList = await DbWorkPlan.GetListJoin(Layout.Company.id, Layout.User.id);
+    // Lấy danh sách kế hoạch tham gia và đang diễn ra
+    planList = await DbWorkPlan.GetListJoin(Layout.Company.id, Layout.User.id, 1);
     // Lấy thành viên trong từng kế hoạch
     memberList.Clear();
     foreach (var plan in planList)
@@ -335,7 +413,6 @@
       var members = Layout.UserList.Where(x => listId.Contains(x.id)).ToList();
       memberList.Add(plan.id, members);
     }
-
   }
 
   protected override async Task OnParametersSetAsync()
@@ -350,6 +427,8 @@
 
   #region Bộ lọc và lấy dữ liệu
 
+  private string filterPlan = null;
+  private int filterDeadline = 0;
   private int filterPriority = 0;
   private int filterDate = 0;
   private string filterKey = string.Empty;
@@ -360,16 +439,29 @@
     List<WorkPlanModel.Task> taskList = new();
     foreach (var plan in planList)
     {
+      // Lọc theo kế hoạch
+      if(filterPlan != null && filterPlan != plan.id)
+        continue;
       var tasks = await DbWorkTask.GetListJoin(Layout.Company.id, plan.id, Layout.User.id);
       taskList.AddRange(tasks);
     }
     
-    // Bộ lọc tìm kiếm
-    if(filterPriority != 0) // Lọc theo độ ưu tiên
+    // Lọc theo thời hạn
+    if(filterDeadline == 1) // Sắp hết hạn
+      taskList = taskList.Where(x => WorkService.CheckDeadline(x) == 1).ToList();
+    else if(filterDeadline == 2) // Trễ hạn
+      taskList = taskList.Where(x => WorkService.CheckDeadline(x) == 2).ToList();
+
+    // Lọc theo độ ưu tiên
+    if(filterPriority != 0)
       taskList = taskList.Where(x => x.priority == filterPriority).ToList();
-    if(!string.IsNullOrEmpty(filterKey)) // Lọc theo tiêu đề công việc
+    
+    // Lọc theo tiêu đề công việc
+    if(!string.IsNullOrEmpty(filterKey))
       taskList = taskList.Where(x => Shared.SearchKeyword(filterKey, x.name)).ToList();
-    if(filterDate != 0) // Lọc theo ngày kết thúc
+    
+    // Lọc theo ngày kết thúc
+    if(filterDate != 0)
     {
       Shared.GetTimeSpan(filterDate, out DateTime start, out DateTime end);
       taskList = taskList.Where(x => start.Ticks <= x.date_end && x.date_end < end.AddDays(1).Ticks).ToList();
@@ -407,6 +499,18 @@
       int today = DateTime.Today.Subtract(dayStart).Days;
       await JSRuntime.InvokeVoidAsync("scrollGantt", today * 40 - 160);
     }
+  }
+
+  private async Task FilterPlan(string value)
+  {
+    filterPlan = value;
+    await GetTaskList();
+  }
+
+  private async Task FilterDeadline(int value)
+  {
+    filterDeadline= value;
+    await GetTaskList();
   }
 
   private async Task FilterPriority(int value)

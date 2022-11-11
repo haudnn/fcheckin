@@ -81,20 +81,6 @@
 
 @if(toggle)
 {
-  if(showPlan && plan != null)
-  {
-    <ul class="task_gantt is_plan columns is-gapless is-size-7">
-      <li class="column is-narrow" style="box-shadow: inset 4px 0px 0px 0px @priority.color;">
-        <a class="icon-text has-text-link" href="/work/@plan.id/task">
-          <span class="icon is-small mr-2">
-            <i class="material-icons-outlined is-size-6">link</i>
-          </span>
-          <span>Kế hoạch: @plan.name</span>
-        </a>
-      </li>
-      @((MarkupString)dayHtml)
-    </ul>
-  }
   foreach (var child in subTasks)
   {
     <_TaskGanttChild model="child" parent="model" members="members" isEdit="editRole"

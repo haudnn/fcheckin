@@ -127,6 +127,11 @@ function dropdownClose() {
   dropdown.forEach((x) => x.classList.remove("is-active"));
 }
 
+function clickBtn(id) {
+  const btn = this.document.getElementById(id);
+  if (btn != null) btn.click();
+}
+
 function newTab(link) {
   window.open(link);
 }

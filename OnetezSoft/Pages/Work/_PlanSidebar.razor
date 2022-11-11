@@ -107,12 +107,13 @@
         }
         if(list.Count == 0)
         {
-          <div class="sidebar_plan_item has-text-grey is-italic">Không có kế hoạch</div>
+          <div class="sidebar_plan_item has-text-grey is-size-7">Không có kế hoạch</div>
         }
       }
     }
   </div>
   <div class="px-3">
+    <a id="sidebar_plan_refresh" class="is-hidden" @onclick="GetList">Làm mới</a>
     <a class="button is-info is-fullwidth" @onclick="CreatePlan">
       <span class="icon">
         <i class="material-icons-round is-size-5">add</i>
@@ -159,7 +160,7 @@
       if(type.id == 0)
       {
         list = data.Where(x => Layout.User.plans_pin.Contains(x.id)).ToList();
-        data.RemoveAll(x => Layout.User.plans_pin.Contains(x.id));
+        //data.RemoveAll(x => Layout.User.plans_pin.Contains(x.id));
       }
       else if(type.id == 3)
       {

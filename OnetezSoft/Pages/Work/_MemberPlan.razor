@@ -1,7 +1,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<div class="dropdown @(isRight ? "is-right" : "") @(toggle ? "is-active" : "")">
+<div class="dropdown @(toggle ? "is-active" : "")">
   <div class="dropdown-trigger">
     <div class="avatar_list">
       @foreach (var item in ShortList())
@@ -19,7 +19,8 @@
       }
       @if(isEdit)
       {
-        <a class="icon has-background-white has-text-grey is-bordered is-rounded @(members.Count == 0 ? "" : "ml-3")" @onclick="Toggle">
+        <a class="icon has-background-white has-text-grey is-bordered is-rounded @(members.Count == 0 ? "" : "ml-3")"
+          @onclick="Toggle">
           <i class="material-icons-outlined is-size-6">add</i>
         </a>
       }
@@ -33,22 +34,39 @@
   </div>
   @if(toggle)
   {
-    <div class="dropdown-menu" style="width: 300px; @(isRight ? "" : "left: -150px;")">
+    <div class="dropdown-menu" style="width: 350px;">
       <div class="dropdown-content px-3 has-text-left" style="max-height: none;">
         @if(isEdit)
         {
-          <div class="font_14 mb-3">Cập nhật thành viên</div>
-          <div class="control has-icons-right mb-3">
-            <input id="search_member" class="input is-small is-rounded" type="text" autocomplete="off"
-              @bind="Search" @bind:event="oninput" placeholder="Tìm thành viên..." >
-            <span class="icon is-right">
-              <i class="material-icons-outlined is-size-6">search</i>
-            </span>
-          </div>
-            <div class="scrolly py-1" style="max-height: 250px;">
+          <ul class="columns is-vcentered is-multiline is-variable is-1 mb-3">
+            <li class="column is-half font_14">
+              Cập nhật thành viên
+            </li>
+            <li class="column is-half">
+              <div class="select is-small">
+                <select @onchange="ChangeDepartment">
+                  <option value="">Tất cả phòng ban</option>
+                  @foreach (var item in departments)
+                  {
+                    <option value="@item.id">@item.name</option>
+                  }
+                </select>
+              </div>
+            </li>
+            <li class="column is-full">
+              <div class="control has-icons-right">
+                <input id="search_member" class="input is-small is-rounded" type="text" autocomplete="off"
+                  @bind="Search" @bind:event="oninput" placeholder="Tìm thành viên..." >
+                <span class="icon is-right">
+                  <i class="material-icons-outlined is-size-6">search</i>
+                </span>
+              </div>
+            </li>
+          </ul>
+          <div class="scrolly py-1" style="max-height: 250px;">
             @foreach (var member in members)
             {
-              var item = UserService.GetUser(Layout.UserList, member.id);
+              var item = UserService.GetUser(sources, member.id);
               <ul class="columns is-vcentered is-variable is-1">
                 <li class="column is-narrow">
                   <a class="icon is-small has-text-danger" @onclick="() => RemoveItem(member.id)">
@@ -63,29 +81,26 @@
                     <span class="ml-2" style="flex-grow: 1;">@item.FullName</span>
                   </div>
                 </li>
-                @if(!isSubTask)
-                {
-                  <li class="column is-narrow">
-                    <div class="dropdown is-hoverable is-right">
-                      <div class="dropdown-trigger">
-                        <a class="icon-text">
-                          <span>@RoleName(member.role)</span>
-                          <span class="icon is-small">
-                            <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
-                          </span>
-                        </a>
-                      </div>
-                      <div class="dropdown-menu py-0">
-                        <div class="dropdown-content py-0">
-                          @foreach (var role in WorkService.RoleTask())
-                          {
-                            <a class="dropdown-item py-1" @onclick="() => member.role = role.id">@role.name</a>
-                          }
-                        </div>
+                <li class="column is-narrow">
+                  <div class="dropdown is-hoverable is-right">
+                    <div class="dropdown-trigger">
+                      <a class="icon-text">
+                        <span>@RoleName(member.role)</span>
+                        <span class="icon is-small">
+                          <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+                        </span>
+                      </a>
+                    </div>
+                    <div class="dropdown-menu py-0">
+                      <div class="dropdown-content py-0">
+                        @foreach (var role in WorkService.RolePlan())
+                        {
+                          <a class="dropdown-item py-1" @onclick="() => member.role = role.id">@role.name</a>
+                        }
                       </div>
                     </div>
-                  </li>
-                }
+                  </div>
+                </li>
               </ul>
             }
             <hr class="my-2" />
@@ -144,7 +159,7 @@
           <div class="scrolly py-1" style="max-height: 250px;">
             @foreach (var member in members)
             {
-              var item = UserService.GetUser(Layout.UserList, member.id);
+              var item = UserService.GetUser(sources, member.id);
               <ul class="columns is-vcentered is-variable is-1">
                 <li class="column has-text-weight-medium">
                   <div class="icon-text">
@@ -174,26 +189,30 @@
   [Parameter]
   public List<UserModel> sources { get; set; }
   [Parameter]
-  public bool isRight { get; set; }
-  [Parameter]
   public bool isEdit { get; set; }
-  [Parameter]
-  public bool isTask { get; set; }
-  [Parameter]
-  public bool isSubTask { get; set; }
   [Parameter]
   public EventCallback OnUpdate { get; set; }
 
   private bool toggle = false;
   private bool checkAll = false;
   private string keyword = string.Empty;
+  private string department = string.Empty;
   private List<MemberModel> suggests = new();
+  private List<DepartmentModel.SelectList> departments = new();
+
+  protected override void OnAfterRender(bool firstRender)
+  {
+    if(firstRender)
+    {
+      departments = DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+    }
+  }
 
   protected override void OnParametersSet()
   {
     toggle = false;
-    suggests = new();
-    keyword = string.Empty;
+    keyword = null;
+    department = null;
     checkAll = false;
   }
 
@@ -211,6 +230,7 @@
   {
     toggle = false;
     keyword = null;
+    department = null;
     if(checkAll)
     {
       foreach (var item in suggests)
@@ -234,10 +254,23 @@
   private async Task RemoveItem(string id)
   {
     members.RemoveAll(x => x.id == id);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa thành viên ra khỏi công việc!");
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa thành viên ra khỏi kế hoạch!");
     var item = UserService.GetUser(sources, id);
     if(!string.IsNullOrEmpty(item.id))
       suggests.Add(UserService.ConvertToMember(item));
+  }
+  
+  private void ChangeDepartment(ChangeEventArgs e)
+  {
+    department = e.Value.ToString();
+    keyword = string.Empty;
+    suggests = new();
+    foreach (var item in sources)
+    {
+      if(members.Where(x => x.id == item.id).Count() == 0)
+        if (string.IsNullOrEmpty(department) || item.departments_id.Contains(department))
+          suggests.Add(UserService.ConvertToMember(item));
+    }
   }
 
   private string Search
@@ -251,8 +284,15 @@
         suggests = new();
         foreach (var item in sources)
         {
-          if (Shared.SearchKeyword(value, item.id + item.FullName + item.email) 
-            && members.Where(x => x.id == item.id).Count() == 0)
+          bool check = true;
+          if(!string.IsNullOrEmpty(department) && !item.departments_id.Contains(department))
+            check = false;
+          if (!Shared.SearchKeyword(value, item.id + item.FullName + item.email))
+            check = false;
+          if (members.Where(x => x.id == item.id).Count() > 0)
+            check = false;
+
+          if(check)
             suggests.Add(UserService.ConvertToMember(item));
         }
       }
@@ -265,6 +305,7 @@
   {
     await JSRuntime.InvokeVoidAsync("dropdownClose");
     keyword = null;
+    department = null;
     checkAll = false;
     toggle = !toggle;
     if (toggle)
@@ -281,7 +322,7 @@
     var results = new List<MemberModel>();
     for (int i = 0; i < members.Count; i++)
     {
-      var item = UserService.GetUser(Layout.UserList, members[i].id);
+      var item = UserService.GetUser(sources, members[i].id);
       if(item != null)
       {
         results.Add(UserService.ConvertToMember(item));
@@ -298,6 +339,6 @@
 
   private string RoleName(int id)
   {
-    return WorkService.RoleTask(id).name;
+    return WorkService.RolePlan(id).name;
   }
 }
