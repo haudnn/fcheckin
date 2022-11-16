@@ -12,8 +12,8 @@ namespace OnetezSoft.Services
 {
   public class EmailService
   {
-    private static string MailSend = "noreply.onetez@gmail.com";
-    private static string MailPass = "iktlfiwuejuylfat";
+    private static string MailSend = "noreply.fastdo@gmail.com";
+    private static string MailPass = "sbhilhztyiawgzzu";
     private static string MailServer = "smtp.gmail.com";
     private static int MailPort = 587;
 

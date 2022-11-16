@@ -12,115 +12,14 @@
   <div class="column" style="padding-bottom: 0px !important;">
     @if(model != null && string.IsNullOrEmpty(model.id))
     {
-      <div class="card p-3 p-4-mobile">
-        <ul class="columns is-variable is-2">
-          <li class="column is-narrow">
-            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/detail">
-              TỔNG QUAN
-            </a>
-          </li>
-          <li class="column is-narrow">
-            <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/task">
-              CÔNG VIỆC
-            </a>
-          </li>
-          <li class="column is-narrow">
-            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/chart">
-              THỐNG KÊ
-            </a>
-          </li>
-        </ul>
-      </div>
-      <div class="card p-5 p-4-mobile">
-        <div class="has-text-black has-text-weight-medium is-size-6 py-2">@model.name</div>
-        <div class="py-6">@model.detail</div>
-      </div>
+      <_PlanHeader model="model" />
     }
     else if(model != null)
     {
-      <div class="card p-3 p-4-mobile">
-        <ul class="columns is-variable is-2">
-          <li class="column is-narrow">
-            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/detail">
-              TỔNG QUAN
-            </a>
-          </li>
-          <li class="column is-narrow">
-            <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/task">
-              CÔNG VIỆC
-            </a>
-          </li>
-          <li class="column is-narrow">
-            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/chart">
-              THỐNG KÊ
-            </a>
-          </li>
-        </ul>
-      </div>
+      <_PlanHeader model="model" />
 
       <div class="card px-5 pt-5 pb-3 p-4-mobile mt-4">
         <ul class="columns is-vcentered is-variable is-2 mb-3">
-          <li class="column">
-            <h1 class="title is-5 has-text-info is-uppercase">Danh sách công việc</h1>
-          </li>
-          <li class="column is-narrow">
-            <a class="has-text-@(TypeView == "list" ? "link" : "grey")" href="/work/@PlanId/task/list">
-              Chế độ danh sách
-            </a>
-          </li>
-          <li class="column is-narrow">
-            <a class="has-text-@(TypeView == "board" ? "link" : "grey") "href="/work/@PlanId/task/board">
-              Chế độ Board
-            </a>
-          </li>
-          <li class="column is-narrow">
-            <a class="has-text-@(TypeView == "gantt" ? "link" : "grey") "href="/work/@PlanId/task/gantt">
-              Chế độ Gantt
-            </a>
-          </li>
-        </ul>
-
-        <ul class="columns is-vcentered is-variable is-2 mb-3">
-          <li class="column">
-            @if(roleManager)
-            {
-              <div class="field has-addons">
-                <div class="control">
-                  <a class="button is-link is-small" @onclick="() => AddTask(null, null)">
-                    <span class="icon">
-                      <i class="material-icons-outlined is-size-6">add</i>
-                    </span>
-                    <span>Tạo công việc</span>
-                  </a>
-                </div>
-                <div class="control">
-                  <div class="dropdown is-hoverable is-right">
-                    <div class="dropdown-trigger">
-                      <a class="button is-link is-small is-outlined">
-                        <span class="icon">
-                          <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                        </span>
-                      </a>
-                    </div>
-                    <div class="dropdown-menu is-size-7">
-                      <div class="dropdown-content">
-                        <a class="dropdown-item" @onclick="() => EditSection(null)">Tạo nhóm công việc</a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
-            else if(roleMember)
-            {
-              <a class="button is-link is-small" @onclick="() => AddTask(null, null)">
-                <span class="icon">
-                  <i class="material-icons-outlined is-size-6">add</i>
-                </span>
-                <span>Tạo công việc</span>
-              </a>
-            }
-          </li>
           <li class="column is-narrow">
             <div class="dropdown is-hoverable is-size-7">
               <div class="dropdown-trigger">
@@ -147,6 +46,31 @@
                       </div>
                     </a>
                   }
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-narrow">
+            <div class="dropdown is-hoverable is-size-7">
+              <div class="dropdown-trigger">
+                <a class="icon-text">
+                  <span>Thời hạn</span>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                  </span>
+                </a>
+              </div>
+              <div class="dropdown-menu">
+                <div class="dropdown-content">
+                  <a class="dropdown-item @(filterDeadline == 0 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(0)">
+                    Tất cả
+                  </a>
+                  <a class="dropdown-item @(filterDeadline == 1 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(1)">
+                    Sắp hết hạn
+                  </a>
+                  <a class="dropdown-item @(filterDeadline == 2 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(2)">
+                    Trễ hạn 
+                  </a>
                 </div>
               </div>
             </div>
@@ -220,7 +144,29 @@
               </div>
             </div>
           </li>
-          <li class="column is-one-fifth">
+          <li class="column is-narrow" style="width: 110px;">
+            <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE" OnRangeSelect="FilterDate"
+              Opens="SideType.Right">
+              <PickerTemplate>
+                <a id="@context.Id" @onclick="context.Toggle" class="icon-text is-size-7">
+                  <span class="icon is-small mr-1">
+                    <i class="material-icons-outlined">calendar_today</i>
+                  </span>
+                  @if (context.TStartDate != null && context.TEndDate != null)
+                  {
+                    <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+                    <span class="px-1">-</span>
+                    <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+                  }
+                  else
+                  {
+                    <span>Thời gian</span>
+                  }
+                </a>
+              </PickerTemplate>
+            </DateRangePicker>
+          </li>
+          <li class="column">
             <div class="control has-icons-right">
               <input class="input is-small is-rounded" type="text" 
                 placeholder="Tiêu đề công việc..." @onchange="FilterKeyword">
@@ -228,6 +174,37 @@
                 <i class="material-icons-outlined is-size-5">search</i>
               </span>
             </div>
+            @if(roleManager || roleMember)
+            {
+              <div id="plan_bubble">
+                <a class="is-toggle" @onclick="() => toggleAdd = !toggleAdd">
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-4">add</i>
+                  </span>
+                </a>
+                @if(toggleAdd)
+                {  
+                  <div class="buttons">
+                    <a class="button is-small is-rounded is-success" @onclick="() => AddTask(null, null)">
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-6">add_task</i>
+                      </span>
+                      <span>Tạo công việc mới</span>
+                    </a>
+                    @if(roleManager)
+                    {
+                      <a class="button is-small is-rounded is-info" style="background-color: #5b9dd2;" 
+                        @onclick="() => EditSection(null)">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-6">folder</i>
+                        </span>
+                        <span>Tạo nhóm công việc</span>
+                      </a>
+                    }
+                  </div>
+                }
+              </div>
+            }
           </li>
         </ul>
 
@@ -266,7 +243,7 @@
                     <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleSection(item.id)">
                       <i class="material-icons-outlined is-size-5">@(hidden ? "arrow_right" : "arrow_drop_down")</i>
                     </a>
-                    <span class="has-text-weight-semibold font_14">
+                    <span class="has-text-weight-semibold font_14" title="@item.name">
                       @item.name @(count > 0 ? $"({count})" : "")
                     </span>
                     @if(roleMember)
@@ -374,7 +351,7 @@
                   else
                   {
                     <div class="icon-text py-2 pl-2">
-                      <span class="has-text-weight-semibold font_14">
+                      <span class="has-text-weight-semibold font_14" title="@item.name">
                         @item.name @(count > 0 ? $"({count})" : "")
                       </span>
                       @if(roleMember)
@@ -511,7 +488,7 @@
                   @if(editSectionId == item.id)
                   {
                     <div class="control has-icons-left" style="width: 100%;">
-                      <input @bind="item.name" id="section_@item.id"  type="text" 
+                      <input @bind="item.name" id="section_@item.id" type="text" 
                         class="input is-small has-text-weight-semibold font_14 is_bg" placeholder="Nhập tiêu đề nhóm công việc...">
                       <a class="icon is-left has-text-success" title="Cập nhật" @onclick="UpdateSection">
                         <i class="material-icons-outlined is-size-5">done</i>
@@ -524,7 +501,7 @@
                       <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleSection(item.id)">
                         <i class="material-icons-outlined is-size-5">@(hidden ? "arrow_right" : "arrow_drop_down")</i>
                       </a>
-                      <span class="has-text-weight-semibold font_14">
+                      <span class="has-text-weight-semibold font_14" title="@item.name">
                         @item.name @(count > 0 ? $"({count})" : "")
                       </span>
                       @if(roleMember)
@@ -657,6 +634,7 @@
   private List<UserModel> members = new();
   private bool roleManager = false;
   private bool roleMember = false;
+  private bool toggleAdd = false;
   private int dayTotal = 0;
   private DateTime dayStart = DateTime.Today;
   private DateTime dayEnd = DateTime.Today;
@@ -759,10 +737,13 @@
   
   private int filterStatus = 0;
   private int filterPriority = 0;
-  private string filterMember = string.Empty;
+  private int filterDeadline = 0;
+  private string filterMember = null;
   private string filterMemberName = "Thành viên";
-  private string filterLabel = string.Empty;
-  private string filterKey = string.Empty;
+  private string filterLabel = null;
+  private string filterKey = null;
+  private DateTimeOffset? filterDateS = null;
+  private DateTimeOffset? filterDateE = null;
 
   private async Task GetTaskList()
   {
@@ -791,14 +772,41 @@
 
   private void FilterTaskList()
   {
+    // Lọc theo thời hạn
+    if(filterDeadline == 1) // Sắp hết hạn
+      taskList = taskList.Where(x => WorkService.CheckDeadline(x) == 1).ToList();
+    else if(filterDeadline == 2) // Trễ hạn
+      taskList = taskList.Where(x => WorkService.CheckDeadline(x) == 2).ToList();
+
+    // Lọc theo thời gian thực hiện công việc
+    if(filterDateS != null && filterDateE != null)
+    {
+      var start = filterDateS.Value.Ticks;
+      var end = filterDateE.Value.Ticks;
+      taskList = (from x in taskList
+                  where (x.date_start >= start && x.date_end <= end)
+                  || (x.date_start <= start && x.date_end >= start)
+                  || (x.date_end >= end && x.date_start <= end)
+                  select x).ToList();
+    }
+
+    // Lọc theo trạng thái
     if(filterStatus != 0)
       taskList = taskList.Where(x => x.status == filterStatus).ToList();
+
+    // Lọc theo độ ưu tiên
     if(filterPriority != 0)
       taskList = taskList.Where(x => x.priority == filterPriority).ToList();
+
+    // Lọc theo nhãn dán
     if(!string.IsNullOrEmpty(filterLabel))
       taskList = taskList.Where(x => x.labels.Contains(filterLabel)).ToList();
+
+    // Lọc theo từ khóa
     if(!string.IsNullOrEmpty(filterKey))
       taskList = taskList.Where(x => Shared.SearchKeyword(filterKey, x.name)).ToList();
+
+    // Lọc theo thành viên
     if(!string.IsNullOrEmpty(filterMember))
       taskList = taskList.Where(x => x.members.Where(x => x.id == filterMember).Count() > 0).ToList();
   }
@@ -814,6 +822,12 @@
         tasks = new() { new() { name = "Chưa có công việc", section_id = group.id }};
       taskGroups.Add(group.id, tasks);
     }
+  }
+  
+  private async Task FilterDeadline(int value)
+  {
+    filterDeadline= value;
+    await GetTaskList();
   }
 
   private async Task FilterStatus(int value)
@@ -849,6 +863,11 @@
     await GetTaskList();
   }
 
+  private async Task FilterDate(DateRange range)
+  {
+    await GetTaskList();
+  }
+
   private async Task FilterKeyword(ChangeEventArgs e)
   {
     filterKey = e.Value.ToString();
@@ -872,6 +891,7 @@
 
   private async Task EditSection(WorkPlanModel.Section item)
   {
+    toggleAdd = false;
     if(string.IsNullOrEmpty(editSectionId))
     {
       if(item == null)
@@ -986,6 +1006,7 @@
 
   private async Task AddTask(WorkPlanModel.Task item, string sectionId)
   {
+    toggleAdd = false;
     editTab = 1;
     editTask = new()
     {

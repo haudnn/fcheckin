@@ -3,7 +3,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<PageTitle>@_title</PageTitle>
+<PageTitle>Tổng quan kế hoạch</PageTitle>
 
 <section class="columns is-gapless has_menu_left">
   <div class="column is-narrow">
@@ -12,101 +12,90 @@
   <div class="column">
     @if(model != null && string.IsNullOrEmpty(model.id))
     {
-      <div class="card p-3 p-4-mobile">
-        <ul class="columns is-variable is-2">
-          <li class="column is-narrow">
-            <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/detail">
-              TỔNG QUAN
-            </a>
-          </li>
-          <li class="column is-narrow">
-            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/task">
-              CÔNG VIỆC
-            </a>
-          </li>
-          <li class="column is-narrow">
-            <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/chart">
-              THỐNG KÊ
-            </a>
-          </li>
-        </ul>
-      </div>
-      <div class="card p-5 p-4-mobile">
-        <div class="has-text-black has-text-weight-medium is-size-6 py-2">@model.name</div>
-        <div class="py-6">@model.detail</div>
-      </div>
+      <_PlanHeader model="model" />
     }
     else if(model != null)
     {
-      <ul class="columns is-multiline is-variable is-2">
-        <li class="column is-full">
-          <div class="card p-3 p-4-mobile">
-            <ul class="columns is-variable is-2">
-              <li class="column is-narrow">
-                <a class="button p-5 has-text-link is-size-5 has-text-weight-semibold is_bg" href="/work/@PlanId/detail">
-                  TỔNG QUAN
-                </a>
-              </li>
-              <li class="column is-narrow">
-                <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/task">
-                  CÔNG VIỆC
-                </a>
-              </li>
-              <li class="column is-narrow">
-                <a class="button p-5 has-text-dark is-size-5 is-white" href="/work/@PlanId/chart">
-                  THỐNG KÊ
-                </a>
-              </li>
-            </ul>
-          </div>
-        </li>
+      var status = WorkService.StatusPlan(model.status);
 
+      <_PlanHeader model="model" />
+      <ul class="columns is-multiline is-variable is-2 mt-2">
         <li class="column is-three-quarters">
           <div class="scrolly_p-3" style="_height: calc(100vh - 120px);">
             <div class="card p-5 p-4-mobile">
-              <ul class="columns is-vcentered is-variable is-2 mb-0">
+              <ul class="columns is-multiline is-variable is-1 is-size-7">
                 @if(editMode)
                 {
-                  <li class="column">
+                  <li class="column is-full">
                     <div class="control has-icons-left">
-                      <input @bind="model.name" id="plan_name" class="input is-size-6 is_bg" type="text" 
-                        placeholder="Nhập tiêu đề kế hoạch"> 
-                      <span class="icon is-left has-text-dark">
+                      <input @bind="model.name" id="plan_name" type="text"
+                        class="input has-text-weight-medium is_bg" placeholder="Nhập tiêu đề kế hoạch"> 
+                      <span class="icon is-left has-text-dark ml-1">
                         <i class="material-icons-outlined is-size-5">edit</i>
                       </span>
+                    </div>
+                  </li>
+                  <li class="column is-one-fifth">
+                    <span class="has-text-grey">Mô tả</span>
+                  </li>
+                  <li class="column is-four-fifths">
+                    <textarea @bind="model.detail" id="plan_detail" class="textarea is-small is_bg" 
+                      placeholder="Nhập mô tả kế hoạch..." rows="5" />
+                    <div class="buttons mt-3">
+                      <a class="button is-link is-small" @onclick="UpdateContent">
+                        <span class="icon">
+                          <i class="material-icons-round is-size-6">done</i>
+                        </span>
+                        <span>Cập nhật</span>
+                      </a>
+                      <a class="button has-text-danger is-small" @onclick="ToggleEdit">
+                        <span class="icon">
+                          <i class="material-icons-round is-size-6">close</i>
+                        </span>
+                        <span>Hủy</span>
+                      </a>
                     </div>
                   </li>
                 }
                 else
                 {
-                  <li class="column">
-                    <div class="has-text-black has-text-weight-medium is-size-6 py-2">@model.name</div>
+                  <li class="column is-four-fifths">
+                    <div class="has-text-black has-text-weight-medium is-size-6">THÔNG TIN CHUNG</div>
                   </li>
-                  @if(editRole)
-                  {
-                    <li class="column is-narrow">
+                  <li class="column is-one-fifth has-text-right">
+                    @if(editRole)
+                    {
                       <a class="icon-text has-text-link" @onclick="ToggleEdit">
                         <span class="icon">
                           <i class="material-icons-outlined is-size-6">edit</i>
                         </span>
                         <span>Chỉnh sửa</span>
                       </a>
-                    </li>
-                  }
+                    }
+                  </li>
+                  <li class="column is-one-fifth">
+                    <span class="has-text-grey">Mô tả</span>
+                  </li>
+                  <li class="column is-four-fifths">
+                    <div class="content has-text-justified">
+                      @((MarkupString)Shared.TextToHtml(model.detail))
+                    </div>
+                  </li>
                 }
-                <li class="column is-narrow has-text-right" style="width: 140px;">
-                  @if(editRole)
-                  {
+                @if(editRole)
+                {
+                  <li class="column is-one-fifth">
+                    <span class="has-text-grey">Chế độ bảo mật</span>
+                  </li>
+                  <li class="column is-four-fifths">
                     <div class="dropdown is-hoverable">
                       <div class="dropdown-trigger">
                         <a class="icon-text">
-                          <span class="icon">
-                            <i class="material-icons-outlined is-size-6">
-                              @(model.is_private ? "lock" : "public")
-                            </i>
+                          <span class="icon is-small mr-2">
+                            <i class="material-icons-outlined is-size-6">@(model.is_private ? "lock" : "public")</i>
                           </span>
                           <span>@(model.is_private ? "Riêng tư" : "Công khai")</span>
-                          <span class="icon">
+                          <span class="icon has-text-grey">
                             <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
                           </span>
                         </a>
@@ -118,27 +107,19 @@
                         </div>
                       </div>
                     </div>
-                  }
-                  else
-                  {
-                    <span class="icon-text">
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-6">
-                          @(model.is_private ? "lock" : "public")
-                        </i>
-                      </span>
-                      <span>@(model.is_private ? "Riêng tư" : "Công khai")</span>
-                    </span>
-                  }
-                </li>
-                <li class="column is-narrow has-text-right" style="width: 140px;">
-                  @if(editRole)
-                  {
+                  </li>
+                  <li class="column is-one-fifth">
+                    <span class="has-text-grey">Trạng thái</span>
+                  </li>
+                  <li class="column is-four-fifths">
                     <div class="dropdown is-hoverable">
                       <div class="dropdown-trigger">
                         <a class="icon-text">
-                          <span>@WorkService.StatusPlan(model.status).name</span>
-                          <span class="icon">
+                          <span class="icon is-small mr-2">
+                            <i class="material-icons-outlined is-size-6">@status.icon</i>
+                          </span>
+                          <span>@status.name</span>
+                          <span class="icon has-text-grey">
                             <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
                           </span>
                         </a>
@@ -147,56 +128,25 @@
                         <div class="dropdown-content">
                           @foreach (var item in WorkService.StatusPlan())
                           {
-                            <a class="dropdown-item" @onclick="() => UpdateStatus(item.id)">@item.name</a> 
+                            <a class="dropdown-item icon-text" @onclick="() => UpdateStatus(item.id)">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-6">@item.icon</i>
+                              </span>
+                              <span>@item.name</span>
+                            </a> 
                           }
                         </div>
                       </div>
                     </div>
-                  }
-                  else
-                  {
-                    <span>@WorkService.StatusPlan(model.status).name</span>
-                  }
-                </li>
-              </ul>
-              @if(editMode)
-              {
-                <div class="has-text-grey is-size-7 mb-2">Mô tả</div>
-                <textarea @bind="model.detail" id="plan_detail" class="textarea is_bg mb-3" 
-                  placeholder="Nhập mô tả kế hoạch..." rows="5" />
-                <div class="buttons">
-                  <a class="button is-link is-small" @onclick="UpdateContent">
-                    <span class="icon">
-                      <i class="material-icons-round is-size-6">done</i>
-                    </span>
-                    <span>Hoàn tất</span>
-                  </a>
-                  <a class="button has-text-danger is-small" @onclick="ToggleEdit">
-                    <span class="icon">
-                      <i class="material-icons-round is-size-6">close</i>
-                    </span>
-                    <span>Hủy</span>
-                  </a>
-                </div>
-              }
-              else if(!string.IsNullOrEmpty(model.detail))
-              {
-                <div class="has-text-grey is-size-7 mb-2">Mô tả</div>
-                <div class="is-size-7 content mb-3">
-                  @((MarkupString)Shared.TextToHtml(model.detail))
-                </div>
-              }
-              <div class="field is-grouped is-size-7">
-                <div class="control has-text-grey" style="width: 110px;">
-                  Ngày kết thúc:
-                </div>
-                <div class="control is-expanded">
-                  @if(editRole)
-                  {
+                  </li>
+                  <li class="column is-one-fifth">
+                    <span class="has-text-grey">Ngày kết thúc</span>
+                  </li>
+                  <li class="column is-four-fifths">
                     <DateRangePicker @bind-StartDate="dateE" SingleDatePicker="true" OnRangeSelect="UpdateDateEnd">
                       <PickerTemplate>
                         <a id="@context.Id" @onclick="context.Toggle" class="icon-text" title="Thay đổi ngày kết thúc">
-                          <span class="icon is-small mr-1">
+                          <span class="icon is-small mr-2">
                             <i class="material-icons-outlined is-size-6">calendar_today</i>
                           </span>
                           @if (context.TStartDate != null)
@@ -210,33 +160,60 @@
                         </a>
                       </PickerTemplate>
                     </DateRangePicker>
-                  }
-                  else
-                  {
-                   <span class="icon-text">
-                      <span class="icon is-small mr-1">
-                        <i class="material-icons-outlined is-size-6">calendar_today</i>
+                  </li>
+                  <li class="column is-one-fifth">
+                    <span class="has-text-grey">Người tham gia</span>
+                  </li>
+                  <li class="column is-four-fifths">
+                    <_MemberPlan members="model.members" sources="Layout.UserList" isEdit="editRole" OnUpdate="UpdateMembers" />
+                  </li>
+                }
+                else
+                {
+                  <li class="column is-one-fifth">
+                    <span class="has-text-grey">Chế độ bảo mật</span>
+                  </li>
+                  <li class="column is-four-fifths">
+                    <span class="icon-text">
+                      <span class="icon is-small mr-2">
+                        <i class="material-icons-outlined is-size-6">@(model.is_private ? "lock" : "public")</i>
                       </span>
-                      @if (dateE != null)
-                      {
+                      <span>@(model.is_private ? "Riêng tư" : "Công khai")</span>
+                    </span>
+                  </li>
+                  <li class="column is-one-fifth">
+                    <span class="has-text-grey">Trạng thái</span>
+                  </li>
+                  <li class="column is-four-fifths">
+                    <a class="icon-text">
+                      <span class="icon is-small mr-2">
+                        <i class="material-icons-outlined is-size-6">@status.icon</i>
+                      </span>
+                      <span>@status.name</span>
+                    </a>
+                  </li>
+                  <li class="column is-one-fifth">
+                    <span class="has-text-grey">Ngày kết thúc</span>
+                  </li>
+                  <li class="column is-four-fifths">
+                    @if(dateE != null)
+                    {
+                      <span class="icon-text">
+                        <span class="icon is-small mr-2">
+                          <i class="material-icons-outlined is-size-6">calendar_today</i>
+                        </span>
                         <span>@dateE.Value.DateTime.ToString("dd/MM/yyyy")</span>
-                      }
-                      else
-                      {
-                        <span>dd/mm/yyyy</span>
-                      }
-                    </span> 
-                  }
-                </div>
-              </div>
-              <div class="field is-grouped is-size-7">
-                <div class="control has-text-grey" style="width: 110px;">
-                  Người tham gia:
-                </div>
-                <div class="control is-expanded">
-                  <_MemberPlan members="model.members" sources="Layout.UserList" isEdit="editRole" OnUpdate="UpdateMembers" />
-                </div>
-              </div>
+                      </span>
+                    } 
+                  </li>
+                  <li class="column is-one-fifth">
+                    <span class="has-text-grey">Người tham gia</span>
+                  </li>
+                  <li class="column is-four-fifths">
+                    <_MemberPlan members="model.members" sources="Layout.UserList" /> 
+                  </li>
+                }
+              </ul>
             </div>
 
             <div class="card p-5 p-4-mobile">
@@ -298,10 +275,10 @@
 
         <li class="column is-one-quarter">
           <div class="card py-5 py-4-mobile">
-            <div class="has-text-black has-text-weight-medium is-size-6 mb-4 px-5">
+            <div class="has-text-black has-text-weight-medium is-size-6 mb-3 px-5">
               Lịch sử cập nhật
             </div>
-            <div class="scrolly px-5" style="height: calc(100vh - 220px);">
+            <div class="scrolly px-5" style="height: calc(100vh - 190px);">
               <_PlanLogs logs="logs" />
             </div>
           </div>
@@ -323,7 +300,6 @@
   [Parameter]
   public string PlanId { get; set; }
   
-  private string _title = "Tổng quan kế hoạch";
   private WorkPlanModel model = new();
   private DateTimeOffset? dateE = null;
   private List<WorkLogModel> logs = new();

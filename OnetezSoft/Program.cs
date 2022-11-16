@@ -25,7 +25,24 @@ builder.Services.AddDateRangePicker(config =>
   config.ApplyButtonClasses = "is-link";
 });
 
+// https://learn.microsoft.com/vi-vn/aspnet/core/security/cors
+const string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+builder.Services.AddCors(options =>
+{
+  options.AddPolicy(name: MyAllowSpecificOrigins,
+                    builder =>
+                    {
+                        builder.WithOrigins("*");
+                    });
+});
+
 var app = builder.Build();
+app.UseCors(MyAllowSpecificOrigins);
+
+// Minimal APIs
+app.MapGet("/hello", () => "Hello, Minimal APIs!");
+app.MapGet("/hello/{name}", (string name) => $"Hello, {name}");
+//app.MapGet("/banner", async () => await OnetezSoft.Data.DbMainBanner.GetList());
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

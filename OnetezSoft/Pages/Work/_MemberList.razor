@@ -290,8 +290,11 @@
       }
     }
     
-    if(members.Count > 2)
-      results.Add(new () { name = $"+{members.Count - 2}" });
+    if(members.Count > 2) 
+    {
+      int count = members.Count - 2 >= 100 ? 99 : members.Count - 2;
+      results.Add(new () { name = $"+{count}" });
+    }
     
     return results;
   }

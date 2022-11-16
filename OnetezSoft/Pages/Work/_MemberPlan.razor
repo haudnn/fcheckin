@@ -43,7 +43,7 @@
               Cập nhật thành viên
             </li>
             <li class="column is-half">
-              <div class="select is-small">
+              <div class="select is-small is-fullwidth">
                 <select @onchange="ChangeDepartment">
                   <option value="">Tất cả phòng ban</option>
                   @foreach (var item in departments)
@@ -332,7 +332,10 @@
     }
     
     if(members.Count > 2)
-      results.Add(new () { name = $"+{members.Count - 2}" });
+    {
+      int count = members.Count - 2 >= 100 ? 99 : members.Count - 2;
+      results.Add(new () { name = $"+{count}" });
+    }
     
     return results;
   }

@@ -585,6 +585,13 @@
   private async Task UpdateDateStart(DateRange range)
   {
     task.date_start = range.Start.Ticks;
+
+    if(task.date_end == 0)
+    {
+      var dateEnd = range.Start.DateTime.ToString("yyyy-MM-dd, 23:55:00");
+      task.date_end = Convert.ToDateTime(dateEnd).AddDays(7).Ticks;
+    }
+
     if(task.date_start < task.date_end)
     {
       await UpdateDB(); 

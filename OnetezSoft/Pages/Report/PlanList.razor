@@ -11,29 +11,6 @@
       </h1>
     </li>
     <li class="column is-narrow">
-      <div class="dropdown is-hoverable">
-        <div class="dropdown-trigger">
-          <a class="icon-text">
-            <span class="has-text-link">
-              @(filterStatus != 0 ? WorkService.StatusPlan(filterStatus).name : "Trạng thái")      
-            </span>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-            </span>
-          </a>
-        </div>
-        <div class="dropdown-menu">
-          <div class="dropdown-content">
-            <a class="dropdown-item" @onclick="() => FilterStatus(0)">Tất cả</a>
-            @foreach (var item in WorkService.StatusPlan())
-            {
-              <a class="dropdown-item" @onclick="() => FilterStatus(item.id)">@item.name</a>
-            }
-          </div>
-        </div>
-      </div>
-    </li>
-    <li class="column is-narrow">
       <div class="dropdown is-right @(toggleDepartment ? "is-active" : "")">
         <div class="dropdown-trigger">
           <a class="icon-text" @onclick="() => toggleDepartment = !toggleDepartment">
@@ -75,45 +52,65 @@
     <thead>
       <tr class="is-size-7">
         <th>Kế hoạch</th>
-        <th align="center" width="140px">Trạng thái kế hoạch</th>
+        <th width="110px">Chế độ</th>
         <th align="center" width="150px">Công việc hoàn thành</th>
         <th align="center" width="150px">Công việc trễ hạn</th>
       </tr>
     </thead>
     <tbody>
-      @foreach (var plan in planList)
+      @foreach (var item in planList)
       {
-        var status = WorkService.StatusPlan(plan.status);
-        var report = DbWorkReport.Get(Layout.Company.id, plan.id);
-        var done = Shared.Progress(report.done, report.total);
-        var late = Shared.Progress(report.late, report.total);
+        var show = toggleStatus.Contains(item.Key);
+        var status = WorkService.StatusPlan(item.Key);
         <tr>
-          <td>
+          <td colspan="4">
             <div class="icon-text">
-              <span class="icon is-small" title="@(plan.is_private ? "Riêng tư" : "Công khai")">
-                <i class="material-icons-outlined is-size-6">
-                  @(plan.is_private ? "lock" : "public")
-                </i>
-              </span>
-              <a class="has-text-link has-text-weight-medium" href="/work/@plan.id/detail">
-                @plan.name
+              <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
+                <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
               </a>
+              <span class="has-text-weight-semibold font_14 is-uppercase">
+                Kế hoạch @status.name (@item.Value.Count)
+              </span>
             </div>
           </td>
-          <td align="center">
-            @status.name
-          </td>
-          <td align="center">
-            <span>@string.Format("{0}/{1}", report.done, report.total)</span>
-            <span class="px-1">•</span>
-            <span>@Shared.ConvertNumber(done)%</span>
-          </td>
-          <td align="center">
-            <span>@string.Format("{0}/{1}", report.late, report.total)</span>
-            <span class="px-1">•</span>
-            <span>@Shared.ConvertNumber(late)%</span>
-          </td>
         </tr>
+
+        @if(show)
+        {
+          foreach (var plan in item.Value)
+          {
+            var report = DbWorkReport.Get(Layout.Company.id, plan.id);
+            var done = Shared.Progress(report.done, report.total);
+            var late = Shared.Progress(report.late, report.total);
+            <tr>
+              <td class="pl-5">
+                <a class="has-text-link has-text-weight-medium" href="/work/@plan.id/detail">
+                  @plan.name
+                </a>
+              </td>
+              <td>
+                <span class="icon-text">
+                  <span class="icon is-small">
+                    <i class="material-icons-outlined is-size-6">
+                      @(plan.is_private ? "lock" : "public")
+                    </i>
+                  </span>
+                  <span>@(plan.is_private ? "Riêng tư" : "Công khai")</span>
+                </span>
+              </td>
+              <td align="center">
+                <span>@string.Format("{0}/{1}", report.done, report.total)</span>
+                <span class="px-1">•</span>
+                <span>@Shared.ConvertNumber(done)%</span>
+              </td>
+              <td align="center">
+                <span>@string.Format("{0}/{1}", report.late, report.total)</span>
+                <span class="px-1">•</span>
+                <span>@Shared.ConvertNumber(late)%</span>
+              </td>
+            </tr>
+          }
+        }
       }
     </tbody>
   </table>
@@ -127,11 +124,11 @@
   [Parameter]
   public List<DepartmentModel.SelectList> departments { get; set; }
 
-  private List<WorkPlanModel> planList = new();
+  private Dictionary<int, List<WorkPlanModel>> planList = new();
+  private List<int> toggleStatus = new() { 1 };
   private DepartmentModel department = new() { name = "Tất cả phòng ban" };
   private bool toggleDepartment = false;
   private string filterKey = string.Empty;
-  private int filterStatus = 0;
 
   protected override async Task OnInitializedAsync()
   {
@@ -153,12 +150,6 @@
     await GetDataList();
   }
   
-  private async Task FilterStatus(int value)
-  {
-    filterStatus = value;
-    await GetDataList();
-  }
-  
   private async Task FilterKey(KeyboardEventArgs args)
   {
     if (args.Key == "Enter")
@@ -171,6 +162,14 @@
       await GetDataList();
     }
   }
+  
+  private void ToggleStatus(int id)
+  {
+    if(toggleStatus.Contains(id))
+      toggleStatus.Remove(id);
+    else
+      toggleStatus.Add(id);
+  }
 
   private async Task GetDataList()
   {
@@ -180,22 +179,26 @@
     // Tìm kiếm theo tiêu đề kế hoạch
     if(!string.IsNullOrEmpty(filterKey))
       data = data.Where(x => Shared.SearchKeyword(filterKey, x.name)).ToList();
-      
-    // Tìm kiếm theo trạng thái kế hoạch
-    if(filterStatus != 0)
-      data = data.Where(x => x.status == filterStatus).ToList();
 
-    planList = new List<WorkPlanModel>();
+    // Lọc dự án theo phòng ban
+    var views = new List<WorkPlanModel>();
     foreach (var item in data)
     {
       if(department.members_id == null)
-        planList.Add(item);
+        views.Add(item);
       else if(item.members != null)
       {
         var check = item.members.Where(x => department.members_id.Contains(x.id)).Count();
         if(check > 0)
-          planList.Add(item);
+          views.Add(item);
       }
+    }
+
+    planList.Clear();
+    foreach (var status in WorkService.StatusPlan())
+    {
+      var list = views.Where(x => x.status == status.id).ToList();
+      planList.Add(status.id, list);
     }
   }
 }

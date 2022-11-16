@@ -9,7 +9,7 @@
     </div>
   </div>
   <hr class="my-3">
-  <div class="scrolly px-3" style="height: calc(100vh - 116px);">
+  <div class="scrolly px-3 pb-5" style="height: calc(100vh - 116px);">
     <div class="control has-icons-right">
       <input @bind="keyword" @bind:event="oninput" class="input is-rounded" type="text" placeholder="Tiêu đề kế hoạch">
       <span class="icon is-right">
@@ -34,6 +34,7 @@
         </div>
       </div>
     </div>
+    <a id="sidebar_plan_refresh" class="is-hidden" @onclick="GetList">Làm mới</a>
     @foreach (var type in typeList.OrderBy(x => x.id))
     {
       var hidden = toggle.Contains(type.id);
@@ -56,7 +57,7 @@
           var show = string.IsNullOrEmpty(keyword) || Shared.SearchKeyword(keyword, plan.name);
           var active = url.StartsWith(link) ? "active" : "";
           <div class="sidebar_plan_item @active @(show ? "icon-text " : "is-hidden")">
-            <a class="has-text-info" href="@link" style="flex-grow: 1;" >
+            <a class="has-text-info" href="@link" style="flex-grow: 1;" title="@plan.name">
               @plan.name
             </a>
             <div class="dropdown is-hoverable is-right icon is-small is_hover">
@@ -113,7 +114,6 @@
     }
   </div>
   <div class="px-3">
-    <a id="sidebar_plan_refresh" class="is-hidden" @onclick="GetList">Làm mới</a>
     <a class="button is-info is-fullwidth" @onclick="CreatePlan">
       <span class="icon">
         <i class="material-icons-round is-size-5">add</i>

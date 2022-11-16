@@ -17,24 +17,32 @@
           <h1 class="title is-5 has-text-info is-uppercase">Công việc của tôi</h1>
         </li>
         <li class="column is-narrow">
-          <a class="has-text-@(TypeView == "list" ? "link" : "grey")" href="/work/my-task/list">
-            Chế độ danh sách
+          <a class="icon-text has-text-@(TypeView == "list" ? "link" : "grey")" href="/work/my-task/list">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">list</i>
+            </span>
+            <span>Chế độ danh sách</span>
           </a>
         </li>
         <li class="column is-narrow">
-          <a class="has-text-@(TypeView == "board" ? "link" : "grey") "href="/work/my-task/board">
-            Chế độ Board
+          <a class="icon-text has-text-@(TypeView == "board" ? "link" : "grey") "href="/work/my-task/board">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">dashboard</i>
+            </span>
+            <span>Chế độ Board</span>
           </a>
         </li>
         <li class="column is-narrow">
-          <a class="has-text-@(TypeView == "gantt" ? "link" : "grey") "href="/work/my-task/gantt">
-            Chế độ Gantt
+          <a class="icon-text has-text-@(TypeView == "gantt" ? "link" : "grey") "href="/work/my-task/gantt">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">clear_all</i>
+            </span>
+            <span>Chế độ Gantt</span>
           </a>
         </li>
       </ul>
 
       <ul class="columns is-vcentered is-variable is-2 mb-3">
-        <li class="column"></li>
         <li class="column is-narrow">
           <div class="dropdown is-hoverable is-size-7">
             <div class="dropdown-trigger">
@@ -112,7 +120,7 @@
           <div class="dropdown is-hoverable is-size-7">
             <div class="dropdown-trigger">
               <a class="icon-text">
-                <span>Theo ngày kết thúc</span>
+                <span>Ngày kết thúc</span>
                 <span class="icon">
                   <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
                 </span>
@@ -120,23 +128,45 @@
             </div>
             <div class="dropdown-menu">
               <div class="dropdown-content">
-                <a class="dropdown-item @(filterDate == 0 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDate(0)">
+                <a class="dropdown-item @(filterEnd == 0 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(0)">
                   Tất cả
                 </a>
-                <a class="dropdown-item @(filterDate == 1 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDate(1)">
+                <a class="dropdown-item @(filterEnd == 1 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(1)">
                   Tuần này
                 </a>
-                <a class="dropdown-item @(filterDate == 2 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDate(2)">
+                <a class="dropdown-item @(filterEnd == 2 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(2)">
                   Tháng này
                 </a>
-                <a class="dropdown-item @(filterDate == 3 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDate(3)">
+                <a class="dropdown-item @(filterEnd == 3 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(3)">
                   Quý này
                 </a>
               </div>
             </div>
           </div>
         </li>
-        <li class="column is-one-fifth">
+        <li class="column is-narrow" style="width: 110px;">
+          <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE" OnRangeSelect="FilterDate"
+            Opens="SideType.Right">
+            <PickerTemplate>
+              <a id="@context.Id" @onclick="context.Toggle" class="icon-text is-size-7">
+                <span class="icon is-small mr-1">
+                  <i class="material-icons-outlined">calendar_today</i>
+                </span>
+                @if (context.TStartDate != null && context.TEndDate != null)
+                {
+                  <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+                  <span class="px-1">-</span>
+                  <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+                }
+                else
+                {
+                  <span>Thời gian</span>
+                }
+              </a>
+            </PickerTemplate>
+          </DateRangePicker>
+        </li>
+        <li class="column">
           <div class="control has-icons-right">
             <input class="input is-small is-rounded" type="text" 
                 placeholder="Tiêu đề công việc..." @onchange="FilterKeyword">
@@ -428,15 +458,17 @@
   #region Bộ lọc và lấy dữ liệu
 
   private string filterPlan = null;
+  private string filterKey = null;
   private int filterDeadline = 0;
   private int filterPriority = 0;
-  private int filterDate = 0;
-  private string filterKey = string.Empty;
+  private int filterEnd = 0;
+  private DateTimeOffset? filterDateS = null;
+  private DateTimeOffset? filterDateE = null;
 
   private async Task GetTaskList()
   {
     // Lấy danh sách công việc đang tham gia
-    List<WorkPlanModel.Task> taskList = new();
+    var taskList = new List<WorkPlanModel.Task>();
     foreach (var plan in planList)
     {
       // Lọc theo kế hoạch
@@ -445,29 +477,67 @@
       var tasks = await DbWorkTask.GetListJoin(Layout.Company.id, plan.id, Layout.User.id);
       taskList.AddRange(tasks);
     }
+
+    // Bộ lọc tìm kiếm
+    taskList = FilterTaskList(taskList);
     
+    // Chia nhóm công việc
+    SplitTaskList(taskList);
+
+    // Lấy ngày thấp nhỏ nhất
+    if(taskList.Count > 0 && TypeView == "gantt")
+    {
+      long minDay = taskList.OrderBy(x => x.date_start).Select(x => x.date_start).FirstOrDefault();
+      long maxDay = taskList.OrderByDescending(x => x.date_end).Select(x => x.date_end).FirstOrDefault();
+      dayStart = Shared.DateToDay(new DateTime(minDay)).AddDays(-4);
+      dayEnd = Shared.DateToDay(new DateTime(maxDay)).AddDays(4);
+      dayTotal = dayEnd.Subtract(dayStart).Days;
+      // Tự scroll đến ngày hôm nay
+      int today = DateTime.Today.Subtract(dayStart).Days;
+      await JSRuntime.InvokeVoidAsync("scrollGantt", today * 40 - 160);
+    }
+  }
+  
+  private List<WorkPlanModel.Task> FilterTaskList(List<WorkPlanModel.Task> taskList)
+  {
     // Lọc theo thời hạn
     if(filterDeadline == 1) // Sắp hết hạn
       taskList = taskList.Where(x => WorkService.CheckDeadline(x) == 1).ToList();
     else if(filterDeadline == 2) // Trễ hạn
       taskList = taskList.Where(x => WorkService.CheckDeadline(x) == 2).ToList();
 
-    // Lọc theo độ ưu tiên
+    // Lọc theo thời gian thực hiện công việc
+    if(filterDateS != null && filterDateE != null)
+    {
+      var start = filterDateS.Value.Ticks;
+      var end = filterDateE.Value.Ticks;
+      taskList = (from x in taskList
+                  where (x.date_start >= start && x.date_end <= end)
+                  || (x.date_start <= start && x.date_end >= start)
+                  || (x.date_end >= end && x.date_start <= end)
+                  select x).ToList();
+    }
+    
+    // Lọc theo ngày kết thúc công việc
+    if(filterEnd != 0)
+    {
+      Shared.GetTimeSpan(filterEnd, out DateTime start, out DateTime end);
+      taskList = taskList.Where(x => start.Ticks <= x.date_end && x.date_end < end.AddDays(1).Ticks).ToList();
+    }
+
+    // Lọc theo độ ưu tiên công việc
     if(filterPriority != 0)
       taskList = taskList.Where(x => x.priority == filterPriority).ToList();
     
     // Lọc theo tiêu đề công việc
     if(!string.IsNullOrEmpty(filterKey))
       taskList = taskList.Where(x => Shared.SearchKeyword(filterKey, x.name)).ToList();
-    
-    // Lọc theo ngày kết thúc
-    if(filterDate != 0)
-    {
-      Shared.GetTimeSpan(filterDate, out DateTime start, out DateTime end);
-      taskList = taskList.Where(x => start.Ticks <= x.date_end && x.date_end < end.AddDays(1).Ticks).ToList();
-    }
-    
-    // Chia nhóm công việc
+
+    return taskList;
+  }
+
+  private void SplitTaskList(List<WorkPlanModel.Task> taskList)
+  {
     taskGroups.Clear();
     foreach (var status in statusList)
     {
@@ -485,19 +555,6 @@
       if(tasks.Count == 0)
         tasks = new() { new() { name = "Chưa có công việc", status = status.id }};
       taskGroups.Add(status.id, tasks);
-    }
-
-    // Lấy ngày thấp nhỏ nhất
-    if(taskList.Count > 0 && TypeView == "gantt")
-    {
-      long minDay = taskList.OrderBy(x => x.date_start).Select(x => x.date_start).FirstOrDefault();
-      long maxDay = taskList.OrderByDescending(x => x.date_end).Select(x => x.date_end).FirstOrDefault();
-      dayStart = Shared.DateToDay(new DateTime(minDay)).AddDays(-4);
-      dayEnd = Shared.DateToDay(new DateTime(maxDay)).AddDays(4);
-      dayTotal = dayEnd.Subtract(dayStart).Days;
-      // Tự scroll đến ngày hôm nay
-      int today = DateTime.Today.Subtract(dayStart).Days;
-      await JSRuntime.InvokeVoidAsync("scrollGantt", today * 40 - 160);
     }
   }
 
@@ -519,9 +576,14 @@
     await GetTaskList();
   }
 
-  private async Task FilterDate(int value)
+  private async Task FilterEnd(int value)
   {
-    filterDate = value;
+    filterEnd = value;
+    await GetTaskList();
+  }
+
+  private async Task FilterDate(DateRange range)
+  {
     await GetTaskList();
   }
 

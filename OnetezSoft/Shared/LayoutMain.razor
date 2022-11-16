@@ -65,12 +65,18 @@
 
   public long MaxFileSize = 10 * 1024000;
 
+  public bool IsMobile = false;
+
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
     try
     {
       if (firstRender)
       {
+        var userAgent = await JSRuntime.InvokeAsync<string>("getUserAgent");
+        IsMobile = Shared.DeviceMobile(userAgent);
+        await JSRuntime.InvokeVoidAsync("console.log", "Device detection: " + (IsMobile ? "Mobile" : "Desktop"));
+
         var userStorage = await storage.GetAsync<string>("user");
         if (!userStorage.Success || string.IsNullOrEmpty(userStorage.Value))
         {

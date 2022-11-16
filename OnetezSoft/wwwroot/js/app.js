@@ -65,6 +65,10 @@ window.SetFocusToElement = (element) => {
   element.focus();
 };
 
+window.getUserAgent = () => {
+  return navigator.userAgent;
+};
+
 function setFocus(id) {
   setTimeout(function () {
     const element = document.getElementById(id);

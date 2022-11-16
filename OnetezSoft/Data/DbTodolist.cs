@@ -134,7 +134,7 @@ namespace OnetezSoft.Data
 
       var result = await collection.Find(filtered).FirstOrDefaultAsync();
 
-      // FIXME: Chuẩn hóa dữ liệu cũ và mới
+      // Chuẩn hóa dữ liệu cũ và mới
       if(result != null && result.todos != null && result.todos.Count > 0)
       {
         foreach (var item in result.todos)

@@ -45,7 +45,7 @@
     </div>
   </li>
   <li class="column is-narrow" style="width: 130px;">
-    <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE"
+    <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" Drops="DropsType.Down"
       TimePicker="true" TimePicker24Hour="true" OnRangeSelect="UpdateDate">
       <PickerTemplate>
         <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
@@ -265,6 +265,8 @@
   {
     toggleStatus = false;
     var message = await WorkService.ChangeTaskStatus(Layout.Company.id, Layout.User, model, statusId);
+    if(statusId == 4)
+      subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.plan_id, model.id);
     await JSRuntime.InvokeVoidAsync("tagline", true, message);
     await OnUpdate.InvokeAsync(model);
   }

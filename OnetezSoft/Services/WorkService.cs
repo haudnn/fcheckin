@@ -145,6 +145,14 @@ namespace OnetezSoft.Services
           // Thông báo cho thành viên
           foreach (var member in task.members)
             await DbNotify.ForPlan(companyId, 710, task.plan_id, task.id, member.id, user.id);
+          // Chuyển trạng thái done cho công việc phụ
+          var subTasks = await DbWorkTask.GetListInTask(companyId, task.plan_id, task.id);
+          foreach (var sub in subTasks)
+          {
+            sub.status = 4;
+            await DbWorkTask.Update(companyId, sub);
+          }
+
           return "Đã chuyển trạng thái công việc.";
         }
         // Người thực hiện chuyển trạng thái
@@ -158,6 +166,7 @@ namespace OnetezSoft.Services
           // Thông báo cho người nhận xét
           foreach (var memberId in reviews)
             await DbNotify.ForPlan(companyId, 711, task.plan_id, task.id, memberId, user.id);
+            
           return "Chờ người nhận xét review công việc.";
         }
       }
@@ -334,8 +343,8 @@ namespace OnetezSoft.Services
     {
       var list = new List<StaticModel>();
 
-      list.Add(new() { id = 1, name = "Đang diễn ra" });
-      list.Add(new() { id = 2, name = "Đã hoàn thành" });
+      list.Add(new() { id = 1, name = "Đang diễn ra", icon = "show_chart" });
+      list.Add(new() { id = 2, name = "Đã hoàn thành", icon = "done_all" });
 
       return list;
     }

@@ -33,7 +33,7 @@
                 <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
               </a>
               <span class="has-text-weight-semibold font_14 is-uppercase">
-                Kế hoạch @status.name
+                Kế hoạch @status.name (@item.Value.Count)
               </span>
             </div>
           </td>
@@ -72,7 +72,10 @@
                 <OnetezSoft.Pages.Work._MemberList members="members" sources="Layout.UserList" isRight="true" />
               </td>
               <td>
-                @string.Format("{0:dd/MM/yyyy}", new DateTime(plan.date_end))
+                @if(plan.date_end > 0)
+                {
+                  <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(plan.date_end))</span>
+                }
               </td>
             </tr>
           }
