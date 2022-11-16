@@ -150,6 +150,7 @@ namespace OnetezSoft.Services
           foreach (var sub in subTasks)
           {
             sub.status = 4;
+            sub.date_done = DateTime.Now.Ticks;
             await DbWorkTask.Update(companyId, sub);
           }
 

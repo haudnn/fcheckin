@@ -6,8 +6,10 @@
   var status = WorkService.Status(model.status);
   var priority = WorkService.Priority(model.priority);
   var deadline = WorkService.TaskDeadline(model);
-  var dateS = Shared.DateToDay(new DateTime(model.date_start));
-  var dateE = Shared.DateToDay(new DateTime(model.date_end));
+  var start = Shared.DateToDay(new DateTime(model.date_start));
+  var end = Shared.DateToDay(new DateTime(model.date_end));
+  DateTimeOffset? dateS = new DateTime(model.date_start);
+  DateTimeOffset? dateE = new DateTime(model.date_end);
 }
 
 <ul id="task_@model.id" class="task_gantt is_item columns is-gapless is-size-7">
@@ -36,9 +38,9 @@
           @deadline.name
         </span>
       }
-      @if(editRole)
-      {
-        <div class="dropdown is-hoverable is-right icon is_hover">
+      <div class="dropdown is-hoverable is-right icon is_hover">
+        @if(editRole)
+        {
           <div class="dropdown-trigger">
             <span class="icon">
               <i class="material-icons-outlined is-size-6">more_horiz</i>
@@ -51,8 +53,8 @@
               <a class="dropdown-item has-text-danger" @onclick="Delete">Xóa công việc này</a>
             </div>
           </div>
-        </div>
-      }
+        }
+      </div>
     </div>
   </li>
   
@@ -61,14 +63,26 @@
     var day = dayStart.AddDays(d);
     var today = day == DateTime.Today ? "is_today" : "";
     var sunday = day.DayOfWeek == DayOfWeek.Sunday ? "is_sun" : "";
-    var column = dateE.Subtract(dateS).Days + 1;
+    var column = end.Subtract(start).Days + 1;
     <li class="column is-narrow item_day @today @sunday">
-      @if(dateS == day)
+      @if(start == day)
       {
-        var time = string.Format("Từ ngày {0:dd/MM/yyyy, HH:mm} đến ngày {1:dd/MM/yyyy, HH:mm}", 
-          new DateTime(model.date_start), new DateTime(model.date_end));
         <div class="is_timeline" style="width: @(column * 40)px">
-          <a class="item_task @status.color" @onclick="Edit" title="@time"></a>
+          <div class="item_task @status.color">
+            <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" Drops="DropsType.Down" Opens="SideType.Left"
+              TimePicker="true" TimePicker24Hour="true" OnRangeSelect="UpdateDate">
+              <PickerTemplate>
+                <a id="@context.Id" @onclick="context.Toggle" class="pl-2 font_14" style="color: inherit;">
+                  @if (context.TStartDate != null && context.TEndDate != null)
+                  {
+                    <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+                    <span class="px-1">-</span>
+                    <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+                  }
+                </a>
+              </PickerTemplate>
+            </DateRangePicker>
+          </div>
           <div class="item_members">
             <_MemberList members="model.members" sources="members" isEdit="editRole" isTask="true"
               OnUpdate="UpdateMembers" />
@@ -173,6 +187,16 @@
     await DbWorkTask.Delete(Layout.Company.id, model.id);
     await WorkService.CreateLog(Layout.Company.id, "Xóa công việc", model.name, model.plan_id, null, Layout.User);
     await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
+    await OnUpdate.InvokeAsync(model);
+  }
+
+  private async Task UpdateDate(DateRange range)
+  {
+    model.date_start = range.Start.Ticks;
+    model.date_end = range.End.Ticks;
+    await DbWorkTask.Update(Layout.Company.id, model);
+    await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện", 
+      string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(model.date_start), new DateTime(model.date_end)), model.plan_id, model.id, Layout.User);
     await OnUpdate.InvokeAsync(model);
   }
 

@@ -138,6 +138,7 @@
   {
     toggleStatus = false;
     model.status = id;
+    model.date_done = model.status == 4 ? DateTime.Now.Ticks : 0;
     await DbWorkTask.Update(Layout.Company.id, model);
     await OnUpdate.InvokeAsync(model);
   }

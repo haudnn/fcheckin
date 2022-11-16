@@ -262,6 +262,7 @@
   private async Task ChangeStatus(WorkPlanModel.Task item, int id)
   {
     item.status = id;
+    item.date_done = item.status == 4 ? DateTime.Now.Ticks : 0;
     await DbWorkTask.Update(Layout.Company.id, item);
   }
 

@@ -210,123 +210,123 @@
 
         @if(TypeView == "list")
         {
-          <ul class="task_list columns is-gapless is-size-7 has-text-grey">
-            <li class="column" style="width: calc(100% - 630px);">Công việc</li>
-            <li class="column is-narrow" style="width: 130px;">Thời hạn</li>
-            <li class="column is-narrow" style="width: 130px;">Mức độ ưu tiên</li>
-            <li class="column is-narrow" style="width: 110px;">Thành viên</li>
-            <li class="column is-narrow" style="width: 80px;">Trạng thái</li>
-            <li class="column is-narrow" style="width: 30px;"></li>
-          </ul>
-
-          @foreach (var item in model.sections)
-          {
-            var hidden = hideSections.Contains(item.id);
-            var tasks = taskGroups.ContainsKey(item.id) ? taskGroups[item.id] : new();
-            var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
-
-            <ul class="task_list columns is-gapless is-size-7">
-              <li class="column is-full">
-                @if(editSectionId == item.id)
-                {
-                  <div class="control has-icons-left" style="width: 300px;">
-                    <input @bind="item.name" id="section_@item.id" type="text" 
-                      class="input has-text-weight-semibold font_14 is_bg" placeholder="Nhập tiêu đề nhóm công việc...">
-                    <a class="icon is-left has-text-success" title="Cập nhật" @onclick="UpdateSection">
-                      <i class="material-icons-outlined is-size-5">done</i>
-                    </a>
-                  </div>
-                }
-                else
-                {
-                  <div class="icon-text">
-                    <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleSection(item.id)">
-                      <i class="material-icons-outlined is-size-5">@(hidden ? "arrow_right" : "arrow_drop_down")</i>
-                    </a>
-                    <span class="has-text-weight-semibold font_14" title="@item.name">
-                      @item.name @(count > 0 ? $"({count})" : "")
-                    </span>
-                    @if(roleMember)
-                    {
-                      <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => AddTask(null, item.id)">
-                        <i class="material-icons-round is-size-6">add</i>
+          <div class="scrolly" style="height: calc(100vh - 185px); padding-bottom: 300px;">
+            <ul class="task_list columns is-gapless is-size-7 has-text-grey"
+                style="position: sticky;top: 0px;background: #fff;z-index: 3;">
+              <li class="column" style="width: calc(100% - 630px);">Công việc</li>
+              <li class="column is-narrow" style="width: 130px;">Thời hạn</li>
+              <li class="column is-narrow" style="width: 130px;">Mức độ ưu tiên</li>
+              <li class="column is-narrow" style="width: 110px;">Thành viên</li>
+              <li class="column is-narrow" style="width: 80px;">Trạng thái</li>
+              <li class="column is-narrow" style="width: 30px;"></li>
+            </ul>
+            @foreach (var item in model.sections)
+            {
+              var hidden = hideSections.Contains(item.id);
+              var tasks = taskGroups.ContainsKey(item.id) ? taskGroups[item.id] : new();
+              var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
+              <ul class="task_list columns is-gapless is-size-7">
+                <li class="column is-full">
+                  @if(editSectionId == item.id)
+                  {
+                    <div class="control has-icons-left" style="width: 300px;">
+                      <input @bind="item.name" id="section_@item.id" type="text" 
+                        class="input has-text-weight-semibold font_14 is_bg" placeholder="Nhập tiêu đề nhóm công việc...">
+                      <a class="icon is-left has-text-success" title="Cập nhật" @onclick="UpdateSection">
+                        <i class="material-icons-outlined is-size-5">done</i>
                       </a>
-                    }
-                    @if(roleManager)
-                    {
-                      <div class="dropdown is-hoverable is-right icon is_hover">
-                        <div class="dropdown-trigger">
-                          <a class="icon has-text-dark">
-                            <i class="material-icons-outlined is-size-6">more_horiz</i>
-                          </a>
-                        </div>
-                        <div class="dropdown-menu">
-                          <div class="dropdown-content">
-                            <a class="dropdown-item icon-text" @onclick="() => MoveSection(item, true)">
-                              <span class="icon">
-                                <i class="material-icons-outlined is-size-6">arrow_upward</i>
-                              </span>
-                              <span>Lên trên</span>
-                            </a>
-                            <a class="dropdown-item icon-text" @onclick="() => MoveSection(item, false)">
-                              <span class="icon">
-                                <i class="material-icons-outlined is-size-6">arrow_downward</i>
-                              </span>
-                              <span>Xuống dưới</span>
-                            </a>
-                            <a class="dropdown-item icon-text" @onclick="() => EditSection(item)">
-                              <span class="icon">
-                                <i class="material-icons-outlined is-size-6">edit</i>
-                              </span>
-                              <span>Chỉnh sửa</span>
-                            </a>
-                            <a class="dropdown-item icon-text has-text-danger" @onclick="() => DeleteSection(item)">
-                              <span class="icon">
-                                <i class="material-icons-outlined is-size-6">delete</i>
-                              </span>
-                              <span>Xóa</span>
+                    </div>
+                  }
+                  else
+                  {
+                    <div class="icon-text">
+                      <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleSection(item.id)">
+                        <i class="material-icons-outlined is-size-5">@(hidden ? "arrow_right" : "arrow_drop_down")</i>
+                      </a>
+                      <span class="has-text-weight-semibold font_14" title="@item.name">
+                        @item.name @(count > 0 ? $"({count})" : "")
+                      </span>
+                      @if(roleMember)
+                      {
+                        <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => AddTask(null, item.id)">
+                          <i class="material-icons-round is-size-6">add</i>
+                        </a>
+                      }
+                      @if(roleManager)
+                      {
+                        <div class="dropdown is-hoverable is-right icon is_hover">
+                          <div class="dropdown-trigger">
+                            <a class="icon has-text-dark">
+                              <i class="material-icons-outlined is-size-6">more_horiz</i>
                             </a>
                           </div>
+                          <div class="dropdown-menu">
+                            <div class="dropdown-content">
+                              <a class="dropdown-item icon-text" @onclick="() => MoveSection(item, true)">
+                                <span class="icon">
+                                  <i class="material-icons-outlined is-size-6">arrow_upward</i>
+                                </span>
+                                <span>Lên trên</span>
+                              </a>
+                              <a class="dropdown-item icon-text" @onclick="() => MoveSection(item, false)">
+                                <span class="icon">
+                                  <i class="material-icons-outlined is-size-6">arrow_downward</i>
+                                </span>
+                                <span>Xuống dưới</span>
+                              </a>
+                              <a class="dropdown-item icon-text" @onclick="() => EditSection(item)">
+                                <span class="icon">
+                                  <i class="material-icons-outlined is-size-6">edit</i>
+                                </span>
+                                <span>Chỉnh sửa</span>
+                              </a>
+                              <a class="dropdown-item icon-text has-text-danger" @onclick="() => DeleteSection(item)">
+                                <span class="icon">
+                                  <i class="material-icons-outlined is-size-6">delete</i>
+                                </span>
+                                <span>Xóa</span>
+                              </a>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    }
-                  </div>
-                }
-              </li>
-            </ul>
-            
-            @if(!hidden)
-            {
-              <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_list" 
-                AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)" InstantReplace="true">
-                @if(context.id == null)
-                {
-                  <div class="pl-4 py-1">
-                    @if(roleMember)
-                    {
-                      <a class="icon-text has-text-link" @onclick="() => AddTask(null, item.id)">
-                        <span class="icon">
-                          <i class="material-icons-outlined is-size-6">add</i>
-                        </span>
-                        <span class="is-size-7">Thêm công việc</span>
-                      </a>
-                    }
-                    else 
-                    {
-                      <span class="is-size-7">Không có công việc</span>
-                    }
-                  </div>
-                }
-                else
-                {
-                  var editTask = WorkService.RoleEditTask(model, context, Layout.User.id);
-                  <_TaskListItem model="context" plan="model" editRole="editTask"
-                    members="members" toggleList="toggleList" OnToggle="OnToggle"
-                    OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnSubTasks" OnTodolist="OnTodolist" />
-                }
-              </Dropzone>
+                      }
+                    </div>
+                  }
+                </li>
+              </ul>
+              @if(!hidden)
+              {
+                <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_list" 
+                  AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)" InstantReplace="true">
+                  @if(context.id == null)
+                  {
+                    <div class="pl-4 py-1">
+                      @if(roleMember)
+                      {
+                        <a class="icon-text has-text-link" @onclick="() => AddTask(null, item.id)">
+                          <span class="icon">
+                            <i class="material-icons-outlined is-size-6">add</i>
+                          </span>
+                          <span class="is-size-7">Thêm công việc</span>
+                        </a>
+                      }
+                      else 
+                      {
+                        <span class="is-size-7">Không có công việc</span>
+                      }
+                    </div>
+                  }
+                  else
+                  {
+                    var editTask = WorkService.RoleEditTask(model, context, Layout.User.id);
+                    <_TaskListItem model="context" plan="model" editRole="editTask"
+                      members="members" toggleList="toggleList" OnToggle="OnToggle"
+                      OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnSubTasks" OnTodolist="OnTodolist" />
+                  }
+                </Dropzone>
+              }
             }
-          }
+          </div>
         }
         else if(TypeView == "board")
         {
@@ -340,7 +340,7 @@
                 <li class="column is-narrow mr-3" style="width: 350px;">
                   @if(editSectionId == item.id)
                   {
-                    <div class="control has-icons-left ">
+                    <div class="control has-icons-left">
                       <input @bind="item.name" id="section_@item.id"  type="text" 
                         class="input has-text-weight-semibold font_14 is_bg" placeholder="Nhập tiêu đề nhóm công việc...">
                       <a class="icon is-left has-text-success" title="Cập nhật" @onclick="UpdateSection">
@@ -400,7 +400,7 @@
                       }
                     </div>
                   }
-                  <div class="scrolly p-2" style="height: calc(100vh - 310px); background: #fbfbfb; border-radius: 5px;">
+                  <div class="scrolly p-2" style="height: calc(100vh - 240px); background: #fbfbfb; border-radius: 5px;">
                     <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_board"
                       AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)" InstantReplace="true">
                       @if(context.id == null)

@@ -179,68 +179,69 @@
       
       @if(TypeView == "list")
       {
-        <ul class="task_list columns is-gapless is-size-7 has-text-grey">
-          <li class="column" style="width: calc(100% - 630px);">Công việc</li>
-          <li class="column is-narrow" style="width: 130px;">Thời hạn</li>
-          <li class="column is-narrow" style="width: 130px;">Mức độ ưu tiên</li>
-          <li class="column is-narrow" style="width: 110px;">Thành viên</li>
-          <li class="column is-narrow" style="width: 80px;">Trạng thái</li>
-          <li class="column is-narrow" style="width: 30px;"></li>
-        </ul>
-
-        @foreach (var status in statusList)
-        {
-          var show = toggleStatus.Contains(status.id);
-          var tasks = taskGroups.ContainsKey(status.id) ? taskGroups[status.id] : new();
-          var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
-
-          <ul class="task_list columns is-gapless is-size-7">
-            <li class="column is-full">
-              <div class="icon-text">
-                <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
-                  <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
-                </a>
-                <span class="has-text-weight-semibold font_14">
-                  @status.name @(count > 0 ? $"({count})" : "")
-                </span>
-              </div>
-            </li>
+        <div class="scrolly" style="height: calc(100vh - 160px); padding-bottom: 300px;">
+          <ul class="task_list columns is-gapless is-size-7 has-text-grey"
+              style="position: sticky;top: 0px;background: #fff;z-index: 3;">
+            <li class="column" style="width: calc(100% - 630px);">Công việc</li>
+            <li class="column is-narrow" style="width: 130px;">Thời hạn</li>
+            <li class="column is-narrow" style="width: 130px;">Mức độ ưu tiên</li>
+            <li class="column is-narrow" style="width: 110px;">Thành viên</li>
+            <li class="column is-narrow" style="width: 80px;">Trạng thái</li>
+            <li class="column is-narrow" style="width: 30px;"></li>
           </ul>
-
-          @if(show)
+          @foreach (var status in statusList)
           {
-            <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_list" 
-              AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
-              @if(context.id == null)
-              {
-                if(context.plan_id == null)
+            var show = toggleStatus.Contains(status.id);
+            var tasks = taskGroups.ContainsKey(status.id) ? taskGroups[status.id] : new();
+            var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
+
+            <ul class="task_list columns is-gapless is-size-7">
+              <li class="column is-full">
+                <div class="icon-text">
+                  <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
+                    <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
+                  </a>
+                  <span class="has-text-weight-semibold font_14">
+                    @status.name @(count > 0 ? $"({count})" : "")
+                  </span>
+                </div>
+              </li>
+            </ul>
+            @if(show)
+            {
+              <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_list" 
+                AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
+                @if(context.id == null)
                 {
-                  <div class="pl-4 py-1 is-size-7">
-                    @context.name
-                  </div>
+                  if(context.plan_id == null)
+                  {
+                    <div class="pl-4 py-1 is-size-7">
+                      @context.name
+                    </div>
+                  }
+                  else
+                  {
+                    <div class="is-size-7 pb-1">
+                      <a class="icon-text has-text-link" href="/work/@context.plan_id/task">
+                        <span class="icon is-small mr-2">
+                          <i class="material-icons-outlined is-size-6">link</i>
+                        </span>
+                        <span>@context.name</span>
+                      </a>
+                    </div>
+                  }
                 }
                 else
                 {
-                  <div class="is-size-7 pb-1">
-                    <a class="icon-text has-text-link" href="/work/@context.plan_id/task">
-                      <span class="icon is-small mr-2">
-                        <i class="material-icons-outlined is-size-6">link</i>
-                      </span>
-                      <span>@context.name</span>
-                    </a>
-                  </div>
+                  var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
+                  <_TaskListItem model="context" plan="plan" showPlan="true" editRole="true"
+                    members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle" 
+                    OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
                 }
-              }
-              else
-              {
-                var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
-                <_TaskListItem model="context" plan="plan" showPlan="true" editRole="true"
-                  members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle" 
-                  OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
-              }
-            </Dropzone>
+              </Dropzone>
+            }
           }
-        }
+        </div>
       }
       else if(TypeView == "board")
       {
@@ -257,7 +258,7 @@
                     @status.name @(count > 0 ? $"({count})" : "")
                   </span>
                 </div>
-                <div class="scrolly p-2" style="height: calc(100vh - 220px); background: #fbfbfb; border-radius: 5px;">
+                <div class="scrolly p-2" style="height: calc(100vh - 215px); background: #fbfbfb; border-radius: 5px;">
                   <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_board"
                     AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
                     @if(context.id == null)
@@ -297,7 +298,7 @@
       else
       {
         var dayHtml = string.Empty;
-        <div class="list_task_gantt is-size-7" style="height: calc(100vh - 165px);">
+        <div class="list_task_gantt is-size-7" style="height: calc(100vh - 160px);">
           <ul class="task_gantt is_month columns is-gapless is-vcentered">
             <li class="column is-narrow"></li>
             @for (int d = 0; d < dayTotal; d++)

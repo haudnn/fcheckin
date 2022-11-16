@@ -10,18 +10,14 @@
 }
 
 <div class="task_board card px-3 py-2 is-size-7">
-  <ul class="columns is-multiline is-vcentered is-variable is-0">
-    @if(deadline != null)
-    {
-      <li class="column is-full">
+  <ul class="columns is-multiline is-vcentered is-variable is-1">
+    <li class="column is-10">
+      @if(deadline != null)
+      {
         <span class="tag" style="background: @(deadline.color + "30"); color: #555;">
           @deadline.name
         </span>
-      </li>
-    }
-    <li class="column is-10">
-      <a class="text_1_line has-text-@(model.status == 4 ? "success is-line-through " : "black")"
-        @onclick="View">@model.name</a>
+      }
     </li>
     <li class="column is-2 has-text-right">
       @if(isEdit)
@@ -39,6 +35,10 @@
           </div>
         </div>
       }
+    </li>
+    <li class="column is-full">
+      <a class="has-text-@(model.status == 4 ? "success is-line-through " : "black")"
+        @onclick="View">@model.name</a>
     </li>
     <li class="column is-half">
       <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" OnRangeSelect="UpdateDate">
@@ -61,6 +61,29 @@
       <_MemberList members="model.members" sources="members" isRight="true" isEdit="isEdit" 
         isTask="true" isSubTask="true" OnUpdate="UpdateMembers" />
     </li>
+    <li class="column is-narrow">
+      <div class="dropdown @(toggleStatus ? "is-active" : "")">
+        <div class="dropdown-trigger">
+          <a class="icon-text" @onclick="ToggleStatus">
+            <span class="tag @status.color" style="width: 58px;">@status.name</span>
+            <span class="icon is-small">
+              <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        @if(isEdit)
+        {
+          <div class="dropdown-menu">
+            <div class="dropdown-content">
+              @foreach (var item in WorkService.StatusSub())
+              {
+                <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </li>
   </ul>
 </div>
 
@@ -79,6 +102,14 @@
   public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
   [Parameter]
   public EventCallback OnView { get; set; }
+
+  private bool toggleStatus = false;
+
+  private async Task ToggleStatus()
+  {
+    await JSRuntime.InvokeVoidAsync("dropdownClose");
+    toggleStatus = !toggleStatus;
+  }
 
   private async Task View()
   {
@@ -104,7 +135,9 @@
 
   private async Task ChangeStatus(int id)
   {
+    toggleStatus = false;
     model.status = id;
+    model.date_done = model.status == 4 ? DateTime.Now.Ticks : 0;
     await DbWorkTask.Update(Layout.Company.id, model);
     await OnUpdate.InvokeAsync(model);
   }
