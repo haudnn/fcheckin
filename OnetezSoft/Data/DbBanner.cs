@@ -70,7 +70,7 @@ namespace OnetezSoft.Data
     }
 
 
-    public static async Task<List<BannerModel>> GetList(string companyId)
+    public static List<BannerModel> GetList(string companyId)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
@@ -78,7 +78,9 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<BannerModel>.Sort.Descending("date");
 
-      return await collection.Find(new BsonDocument()).Sort(sorted).ToListAsync();
+      var results = collection.Find(new BsonDocument()).Sort(sorted).ToList();
+
+      return (from x in results orderby x.pin descending, x.date descending select x).ToList();
     }
   }
 }

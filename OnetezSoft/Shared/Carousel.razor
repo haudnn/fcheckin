@@ -1,43 +1,70 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-@if (dataList.Count > 0)
-{
-  <section class="py-4 px-4">
-    <div class="card banner">
-      <ul class="slideshow-container">
-        @foreach (var item in dataList)
-        {
-          <li class="mySlides animated fadeInRight">
+<section class="@(count > 0 ? "py-4 px-4" : "")">
+  <div class="card banner_main">
+    <div class="carousel">
+      <BlazorSlickCarousel @ref="banner" Configurations="configurations">
+        <BlazorSlickCarouselContent>
+          @foreach (var item in dataList)
+          {
             <a class="image" href="@item.link" target="_blank" title="@item.name">
               <img src="@item.image" alt="img" />
             </a>
-          </li>
-        }
-      </ul>
-      <div class="slideshow-dots">
-        @for (int i = 1; i <= dataList.Count; i++)
-        {
-          <a class="dot" onclick="currentSlide(@i)"></a>
-        }
-      </div>
+          }
+        </BlazorSlickCarouselContent>
+      </BlazorSlickCarousel>
+      <div class="dots"></div>
+      <div class="arrows"></div>
     </div>
-  </section>
-}
+  </div>
+</section>
 
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
 
+  public BlazorSlickCarousel banner;
+  public WMBSCInitialSettings configurations;
+  private List<BannerModel> database = new();
   private List<BannerModel> dataList = new();
+  private int count = 0;
+
+
+  protected override void OnInitialized()
+  {
+    database = DbBanner.GetList(Layout.Company.id);
+    ConfigSlide();
+    SlideFirst();
+  }
+
+  private void ConfigSlide()
+  {
+    configurations = new WMBSCInitialSettings
+      {
+        arrows = true,
+        dots = true,
+        autoplay = true,
+        infinite = true,
+        slidesToShow = 1,
+        slidesToScroll = 1,
+        appendDots = ".dots",
+        appendArrows = ".arrows",
+        prevArrow = "<a class='material-icons-round'>chevron_left</a>",
+        nextArrow = "<span class='material-icons-round'>chevron_right</span>"
+      };
+  }
 
   protected override async Task OnParametersSetAsync()
   {
-    dataList.Clear();
+    await SlideChange();
+  }
+
+  private void SlideFirst()
+  {
     var url = navigation.Uri.Replace(navigation.BaseUri, "/");
     if (!url.StartsWith("/config/"))
     {
-      var database = await DbBanner.GetList(Layout.Company.id);
       foreach (var item in database)
       {
         if (Layout.User.departments_id.Contains(item.department))
@@ -52,15 +79,46 @@
           }
         }
       }
-      dataList = (from x in dataList orderby x.pin descending, x.date select x).ToList();
     }
+    count = dataList.Count;
   }
 
-  protected override async Task OnAfterRenderAsync(bool firstRender)
+  private async Task SlideChange()
   {
-    if (dataList.Count > 0)
+    if(banner != null)
     {
-      await JSRuntime.InvokeAsync<string>("showSlides", 0);
+      var url = navigation.Uri.Replace(navigation.BaseUri, "/");
+      if(count > 0)
+        for (int i = 0; i < count; i++)
+          await banner.Remove(0, false);
+
+      var list = new List<BannerModel>();
+      if (!url.StartsWith("/config/"))
+      {
+        foreach (var item in database)
+        {
+          if (Layout.User.departments_id.Contains(item.department))
+          {
+            foreach (var page in item.pages)
+            {
+              if (url.Contains(page.Key))
+              {
+                list.Add(item);
+                break;
+              }
+            }
+          }
+        }
+
+        foreach (var item in list)
+        {
+          var html = $"<a class=\"image\" href=\"{item.link}\" target=\"_blank\" title=\"{item.name}\">";
+          html += $"<img src=\"{item.image}\" alt=\"img\" />";
+          html += "</a>";
+          await banner.Add(html);
+        }
+        count = list.Count;
+      }
     }
   }
 }

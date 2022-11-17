@@ -273,39 +273,6 @@ function chartDoughnut(chartId, labels, datas, colors) {
   }, 500);
 }
 
-var slideIndex = 0;
-function showSlides(n) {
-  slideIndex = n;
-  var dots = document.getElementsByClassName("dot");
-  var slides = document.getElementsByClassName("mySlides");
-  for (let i = 0; i < slides.length; i++) {
-    slides[i].style.display = "none";
-    dots[i].className = dots[i].className.replace(" active", "");
-  }
-  slideIndex++;
-  if (slideIndex > slides.length) {
-    slideIndex = 1;
-  }
-  slides[slideIndex - 1].style.display = "block";
-  dots[slideIndex - 1].className += " active";
-  //setTimeout(showSlides, 10000);
-}
-
-function currentSlide(n) {
-  var dots = document.getElementsByClassName("dot");
-  var slides = document.getElementsByClassName("mySlides");
-  for (let i = 0; i < slides.length; i++) {
-    slides[i].style.display = "none";
-    dots[i].className = dots[i].className.replace(" active", "");
-  }
-  slideIndex++;
-  if (n > slides.length) {
-    n = 1;
-  }
-  slides[n - 1].style.display = "block";
-  dots[n - 1].className += " active";
-}
-
 //tagline(true, 'Đây là đoạn nội dung mẫu để kiểm tra giao diện');
 function tagline(success, message) {
   taglineHide();

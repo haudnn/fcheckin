@@ -326,7 +326,7 @@ else
     departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
     pageList = PageList();
 
-    await Search();
+    Search();
 
     _loaded = true;
   }
@@ -336,9 +336,9 @@ else
     _message = string.Empty;
   }
 
-  private async Task Search()
+  private void Search()
   {
-    dataList = await DbBanner.GetList(Layout.Company.id);
+    dataList = DbBanner.GetList(Layout.Company.id);
     if (!string.IsNullOrEmpty(filterDepartment))
       dataList = dataList.Where(x => x.department == filterDepartment).ToList();
     if (!string.IsNullOrEmpty(filterPage))
@@ -346,16 +346,16 @@ else
     dataList = (from x in dataList orderby x.pin descending, x.date select x).ToList();
   }
 
-  private async Task ChangePage(ChangeEventArgs e)
+  private void ChangePage(ChangeEventArgs e)
   {
     filterPage = e.Value.ToString();
-    await Search();
+    Search();
   }
 
-  private async Task ChangeDepartment(ChangeEventArgs e)
+  private void ChangeDepartment(ChangeEventArgs e)
   {
     filterDepartment = e.Value.ToString();
-    await Search();
+    Search();
   }
 
   private async Task DeleteItem(BannerModel item)
