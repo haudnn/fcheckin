@@ -5,11 +5,11 @@
 
 <PageTitle>Tổng quan kế hoạch</PageTitle>
 
-<section class="columns is-gapless has_menu_left">
-  <div class="column is-narrow">
+<section id="page_fwork" class="columns is-gapless has_menu_left @(url == "/work" ? "is_nav" : "is_data")">
+  <div class="column is-narrow is_nav">
     <_PlanSidebar />
   </div>
-  <div class="column">
+  <div class="column is_data">
     @if(model != null && string.IsNullOrEmpty(model.id))
     {
       <_PlanHeader model="model" />
@@ -19,11 +19,12 @@
       var status = WorkService.StatusPlan(model.status);
 
       <_PlanHeader model="model" />
-      <ul class="columns is-multiline is-variable is-2 mt-2">
+
+      <ul class="columns is-multiline is-variable is-2 @(Layout.IsMobile ? "" : "mt-2")">
         <li class="column is-three-quarters">
           <div class="scrolly_p-3" style="_height: calc(100vh - 120px);">
             <div class="card p-5 p-4-mobile">
-              <ul class="columns is-multiline is-variable is-1 is-size-7">
+              <ul class="columns is-multiline is-variable is-1 is-size-7 is-mobile">
                 @if(editMode)
                 {
                   <li class="column is-full">
@@ -35,10 +36,10 @@
                       </span>
                     </div>
                   </li>
-                  <li class="column is-one-fifth">
+                  <li class="column is-one-fifth-tablet is-full-mobile">
                     <span class="has-text-grey">Mô tả</span>
                   </li>
-                  <li class="column is-four-fifths">
+                  <li class="column is-four-fifths-tablet is-full-mobile">
                     <textarea @bind="model.detail" id="plan_detail" class="textarea is-small is_bg" 
                       placeholder="Nhập mô tả kế hoạch..." rows="5" />
                     <div class="buttons mt-3">
@@ -59,10 +60,10 @@
                 }
                 else
                 {
-                  <li class="column is-four-fifths">
+                  <li class="column is-four-fifths-table">
                     <div class="has-text-black has-text-weight-medium is-size-6">THÔNG TIN CHUNG</div>
                   </li>
-                  <li class="column is-one-fifth has-text-right">
+                  <li class="column is-one-fifth-tablet is-narrow-mobile has-text-right">
                     @if(editRole)
                     {
                       <a class="icon-text has-text-link" @onclick="ToggleEdit">
@@ -73,10 +74,10 @@
                       </a>
                     }
                   </li>
-                  <li class="column is-one-fifth">
+                  <li class="column is-one-fifth-tablet is-full-mobile">
                     <span class="has-text-grey">Mô tả</span>
                   </li>
-                  <li class="column is-four-fifths">
+                  <li class="column is-four-fifths-tablet is-full-mobile">
                     <div class="content has-text-justified">
                       @((MarkupString)Shared.TextToHtml(model.detail))
                     </div>
@@ -84,10 +85,10 @@
                 }
                 @if(editRole)
                 {
-                  <li class="column is-one-fifth">
+                  <li class="column is-one-fifth-tablet is-half-mobile">
                     <span class="has-text-grey">Chế độ bảo mật</span>
                   </li>
-                  <li class="column is-four-fifths">
+                  <li class="column is-four-fifths-tablet is-half-mobile">
                     <div class="dropdown is-hoverable">
                       <div class="dropdown-trigger">
                         <a class="icon-text">
@@ -108,10 +109,10 @@
                       </div>
                     </div>
                   </li>
-                  <li class="column is-one-fifth">
+                  <li class="column is-one-fifth-tablet is-half-mobile">
                     <span class="has-text-grey">Trạng thái</span>
                   </li>
-                  <li class="column is-four-fifths">
+                  <li class="column is-four-fifths-tablet is-half-mobile">
                     <div class="dropdown is-hoverable">
                       <div class="dropdown-trigger">
                         <a class="icon-text">
@@ -139,10 +140,10 @@
                       </div>
                     </div>
                   </li>
-                  <li class="column is-one-fifth">
+                  <li class="column is-one-fifth-tablet is-half-mobile">
                     <span class="has-text-grey">Ngày kết thúc</span>
                   </li>
-                  <li class="column is-four-fifths">
+                  <li class="column is-four-fifths-tablet is-half-mobile">
                     <DateRangePicker @bind-StartDate="dateE" SingleDatePicker="true" OnRangeSelect="UpdateDateEnd">
                       <PickerTemplate>
                         <a id="@context.Id" @onclick="context.Toggle" class="icon-text" title="Thay đổi ngày kết thúc">
@@ -161,11 +162,12 @@
                       </PickerTemplate>
                     </DateRangePicker>
                   </li>
-                  <li class="column is-one-fifth">
+                  <li class="column is-one-fifth-tablet is-half-mobile">
                     <span class="has-text-grey">Người tham gia</span>
                   </li>
-                  <li class="column is-four-fifths">
-                    <_MemberPlan members="model.members" sources="Layout.UserList" isEdit="editRole" OnUpdate="UpdateMembers" />
+                  <li class="column is-four-fifths-tablet is-half-mobile">
+                    <_MemberPlan members="model.members" sources="Layout.UserList" isEdit="editRole"
+                      OnUpdate="UpdateMembers" />
                   </li>
                 }
                 else
@@ -223,7 +225,7 @@
               @if(editRole)
               {
                 <div class="field is-grouped">
-                  <div class="control" style="width: 50%;">
+                  <div class="control @(Layout.IsMobile ? "is-expanded" : "")" style="@(Layout.IsMobile ? "" : "width: 50%;")">
                       <input @bind="label.name" class="input is_bg" type="text" placeholder="Nhập tiêu đề nhãn">
                   </div>
                   <div class="control">
@@ -299,7 +301,8 @@
   public LayoutMain Layout { get; set; }
   [Parameter]
   public string PlanId { get; set; }
-  
+
+  private string url = string.Empty;
   private WorkPlanModel model = new();
   private DateTimeOffset? dateE = null;
   private List<WorkLogModel> logs = new();
@@ -309,6 +312,8 @@
   
   protected override async Task OnParametersSetAsync()
   {
+    url = navigation.Uri.Replace(navigation.BaseUri, "/");
+
     model = await DbWorkPlan.Get(Layout.Company.id, PlanId);
     if(model != null)
     {
@@ -328,6 +333,14 @@
         model.id = string.Empty;
         model.detail = "Bạn không có quyền xem chi tiết kế hoạch này!";
       }
+    }
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender && Layout.IsMobile)
+    {
+      await JSRuntime.InvokeVoidAsync("stickyHeaderMobile");
     }
   }
 

@@ -72,7 +72,10 @@ window.getUserAgent = () => {
 function setFocus(id) {
   setTimeout(function () {
     const element = document.getElementById(id);
-    if (element != null) element.focus();
+    if (element != null) {
+      element.click();
+      element.focus();
+    }
   }, 100);
 }
 
@@ -310,6 +313,21 @@ function notification(title, content, link) {
       }
     });
   }
+}
+
+function stickyHeaderMobile() {
+  const stickyNav = function () {
+    const header = document.querySelector(".header-sticky");
+    if (window.scrollY > 52) {
+      header.classList.add("sticked");
+    } else {
+      header.classList.remove("sticked");
+    }
+  };
+  stickyNav();
+  document.addEventListener("scroll", (e) => {
+    stickyNav();
+  });
 }
 
 document.addEventListener("DOMContentLoaded", () => {

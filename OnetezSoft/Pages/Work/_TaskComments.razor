@@ -1,6 +1,15 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
+@if(editRole && Layout.IsMobile)
+{
+  <div class="control has-icons-right mt-2">
+    <textarea @bind="comment" id="task_comment" class="textarea is-small" placeholder="Nhập nội dung..." rows="1" />
+    <a class="icon is-small is-right has-text-link" @onclick="Comment">
+      <i class="material-icons-outlined is-size-6">send</i>
+    </a>
+  </div>
+}
 <div class="scrolly py-1" style="height: calc(100vh - 270px);">
   <ul>
     @foreach (var item in comments)
@@ -27,7 +36,7 @@
     }
   </ul>
 </div>
-@if(editRole)
+@if(editRole && !Layout.IsMobile)
 {
   <div class="is-flex" style="min-height: 82px; align-items: flex-end;">
     <div class="control has-icons-right" style="width: 100%;">

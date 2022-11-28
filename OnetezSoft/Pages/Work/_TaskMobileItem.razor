@@ -1,0 +1,271 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+@{
+  var status = WorkService.Status(model.status);
+  var priority = WorkService.Priority(model.priority);
+  var toggle = toggleList.Contains(model.id);
+  var deadline = WorkService.TaskDeadline(model);
+  var dateS = new DateTime(model.date_start);
+  var dateE = new DateTime(model.date_end);
+}
+
+<div id="task_@model.id" class="task_board card p-4 mb-3 is-size-7">
+  <ul class="columns is-multiline is-vcentered is-variable is-1 is-mobile">
+    @if(deadline != null)
+    {
+      <li class="column is-narrow">
+        <span class="tag" style="background: @(deadline.color + "30"); color: #555;">
+          @deadline.name
+        </span>
+      </li>
+    }
+    @if(priority.id != 0)
+    {
+      <li class="column is-narrow">
+        @if(editRole)
+        {
+          <div class="dropdown @(togglePriority ? "is-active" : "")">
+            <div class="dropdown-trigger">
+              <a class="icon-text" @onclick="TogglePriority">
+                <span class="tag" style="background: @(priority.color + "30"); color: @priority.color;">@priority.name</span>
+                <span class="icon is-small">
+                  <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+                </span>
+              </a>
+            </div>
+            <div class="dropdown-menu">
+              <div class="dropdown-content">
+                @foreach (var item in WorkService.Priority())
+                {
+                  <a class="dropdown-item" style="color: @item.color;" @onclick="() => ChangePriorty(item.id)">@item.name</a>
+                }
+              </div>
+            </div>
+          </div>
+        }
+        else
+        {
+          <span class="tag mr-3" style="background: @(priority.color + "30"); color: @priority.color;">@priority.name</span>
+        }
+      </li>
+    }
+    <li class="column is-narrow">
+      <div class="dropdown @(toggleStatus ? "is-active" : "")">
+        <div class="dropdown-trigger">
+          <a class="icon-text" @onclick="ToggleStatus">
+            <span class="tag @status.color">@status.name</span>
+            <span class="icon is-small">
+              <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        @if(editRole)
+        {
+          <div class="dropdown-menu">
+            <div class="dropdown-content">
+              @foreach (var item in WorkService.Status())
+              {
+                <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </li>
+    <li class="column is-full has-text-weight-semibold font_14">
+      <a class="has-text-@(model.status == 4 ? "success is-line-through " : "black")"
+        @onclick="Edit">@model.name
+      </a>
+    </li>
+    <li class="column is-half">
+      <_MemberList members="model.members" sources="members" isEdit="editRole" isTask="true" 
+        OnUpdate="UpdateMembers" />
+    </li>
+    <li class="column is-half">
+      <div class="input-date icon-text">
+        <span class="icon" onclick="setFocus('dateE_@model.id')">
+          <i class="material-icons-outlined is-size-6">calendar_today</i>
+        </span>
+        <span onclick="setFocus('dates_@model.id')">@dateS.ToString("dd/MM")</span>
+        <input @bind="dateS" id="dateS_@model.id" type="datetime-local" @oninput="(e) => ChangeDateStart(e)">
+      </div>
+      <div class="input-date icon-text">
+        <span class="icon is-small" onclick="setFocus('dateE_@model.id')">
+          <i class="material-icons-outlined font_14">east</i>
+        </span>
+        <span onclick="setFocus('dateE_@model.id')">@dateE.ToString("dd/MM")</span>
+        <input @bind="dateE" id="dateE_@model.id" type="datetime-local" @oninput="(e) => ChangeDateEnd(e)">
+      </div>
+    </li>
+    @if(model.sub_task > 0)
+    {
+      <li class="column is-full">
+        <a class="icon-text" @onclick="Toggle">
+          <span>Công việc phụ</span>
+          <span class="icon-text">
+            <i class="material-icons-outlined is-size-6">@(toggle ? "arrow_drop_down" : "arrow_right")</i>
+          </span>
+        </a>
+      </li>
+      @if(toggle)
+      {
+        <li class="column is-full">
+          @foreach (var child in subTasks)
+          {
+            <_TaskMobileChild model="child" parent="model" members="members" isEdit="editRole"
+              OnUpdate="UpdateSubTasks" OnView="AddSub" />
+          }
+        </li>
+      }
+    }
+  </ul>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public WorkPlanModel.Task model { get; set; }
+  [Parameter]
+  public WorkPlanModel plan { get; set; }
+  [Parameter]
+  public List<UserModel> members { get; set; }
+  [Parameter]
+  public bool editRole { get; set; }
+  [Parameter]
+  public bool showPlan { get; set; }
+  [Parameter]
+  public List<string> toggleList { get; set; }
+  [Parameter]
+  public EventCallback<string> OnToggle { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnEdit { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnAddSub { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnTodolist { get; set; }
+
+  private bool togglePriority = false;
+  private bool toggleStatus = false;
+  private List<WorkPlanModel.Task> subTasks = new();
+
+  private async Task Toggle()
+  {
+    if(toggleList.Contains(model.id))
+      subTasks = new();
+    else
+      subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.plan_id, model.id);
+    await OnToggle.InvokeAsync(model.id);
+  }
+  
+  private async Task TogglePriority()
+  {
+    await JSRuntime.InvokeVoidAsync("dropdownClose");
+    togglePriority = !togglePriority;
+  }
+  
+  private async Task ToggleStatus()
+  {
+    await JSRuntime.InvokeVoidAsync("dropdownClose");
+    toggleStatus = !toggleStatus;
+  }
+
+  private async Task Edit()
+  {
+    await OnEdit.InvokeAsync(model);
+  }
+
+  private async Task AddSub()
+  {
+    await OnAddSub.InvokeAsync(model);
+  }
+
+  private async Task AddTodo()
+  {
+    await OnTodolist.InvokeAsync(model);
+  }
+
+  private async Task Delete()
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa \"{model.name}\". Việc này sẽ khiến dữ liệu công việc phụ bị mất.\nBạn có chắc chắn muốn thực hiện?"))
+      return;
+    // Thông báo chuông
+    foreach (var user in plan.members)
+      await DbNotify.ForPlan(Layout.Company.id, 717, plan.id, model.id, user.id, Layout.User.id);
+    // Xóa công việc
+    await DbWorkTask.Delete(Layout.Company.id, model.id);
+    await WorkService.CreateLog(Layout.Company.id, "Xóa công việc", model.name, model.plan_id, null, Layout.User);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
+    await OnUpdate.InvokeAsync(model);
+  }
+
+  private async Task ChangeDateStart(ChangeEventArgs e)
+  {
+    if(e.Value != null)
+    {
+      model.date_start = Convert.ToDateTime(e.Value).Ticks;
+      if(model.date_start < model.date_end)
+      {
+        await DbWorkTask.Update(Layout.Company.id, model);
+        await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện", 
+          string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(model.date_start), new DateTime(model.date_end)), model.plan_id, model.id, Layout.User);
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày bắt đầu đang lớn hơn ngày kết thúc!");
+    }
+  }
+
+  private async Task ChangeDateEnd(ChangeEventArgs e)
+  {
+    if(e.Value != null)
+    {
+      model.date_end = Convert.ToDateTime(e.Value).Ticks;
+      if(model.date_start < model.date_end)
+      {
+        await DbWorkTask.Update(Layout.Company.id, model);
+        await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện", 
+          string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(model.date_start), new DateTime(model.date_end)), model.plan_id, model.id, Layout.User);
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc đang nhỏ hơn ngày bắt đầu!");
+    }
+  }
+  
+  private async Task ChangePriorty(int id)
+  {
+    togglePriority = false;
+    model.priority = id;
+    await DbWorkTask.Update(Layout.Company.id, model);
+    await WorkService.CreateLog(Layout.Company.id, "Cập nhật mức độ ưu tiên", 
+      WorkService.Priority(model.priority).name, model.plan_id, model.id, Layout.User);
+    await OnUpdate.InvokeAsync(model);
+  }
+
+  private async Task ChangeStatus(int statusId)
+  {
+    toggleStatus = false;
+    var message = await WorkService.ChangeTaskStatus(Layout.Company.id, Layout.User, model, statusId);
+    if(statusId == 4)
+      subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.plan_id, model.id);
+    await JSRuntime.InvokeVoidAsync("tagline", true, message);
+    await OnUpdate.InvokeAsync(model);
+  }
+
+  private async Task UpdateMembers()
+  {
+    var old = await DbWorkTask.Get(Layout.Company.id, model.id);
+    await DbWorkTask.Update(Layout.Company.id, model);
+    await WorkService.LogTaskMembers(Layout.Company.id, old, model, Layout.User, Layout.UserList);
+    await OnUpdate.InvokeAsync(model);
+  }
+
+  private async Task UpdateSubTasks(WorkPlanModel.Task item)
+  {
+    subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.plan_id, model.id);
+    // Cập nhật số lượng công việc phụ
+    await WorkService.UpdateSubTaskCount(Layout.Company.id, model.id, subTasks.Count);
+  }
+}

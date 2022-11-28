@@ -72,9 +72,9 @@ namespace OnetezSoft.Services
     /// <param name="staff">Số người nâng cấp thêm</param>
     /// <param name="price">Giá bán theo người/tháng</param>
     /// <param name="month">Số tháng gia hạn</param>
-    public static int CalculateRenew(int staff, int price, int month)
+    public static long CalculateRenew(int staff, long price, int month)
     {
-      int money = 0;
+      long money = 0;
 
       if(staff > 0 && month > 0) 
       {
@@ -90,9 +90,9 @@ namespace OnetezSoft.Services
     /// <param name="staff">Số người nâng cấp thêm</param>
     /// <param name="price">Giá bán theo người/tháng</param>
     /// <param name="end">Thời gian hết hạn của gói hiện tại</param>
-    public static int CalculateUpgrade(int staff, int price, long end)
+    public static long CalculateUpgrade(int staff, long price, long end)
     {
-      int money = 0;
+      long money = 0;
 
       if(staff > 0 && end > DateTime.Today.Ticks)
       {
@@ -101,7 +101,7 @@ namespace OnetezSoft.Services
         // Đơn giá theo ngày
         double priceDay = (double)price/30;
         // Tính chi phí
-        money = Convert.ToInt32(staff * totalDay * priceDay);
+        money = Convert.ToInt64(staff * totalDay * priceDay);
       }
 
       return money;

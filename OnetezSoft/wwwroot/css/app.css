@@ -5,7 +5,7 @@
   --form-full: calc(100vw - 40px);
   --color-main: #355caa;
   --color-extra: #585c7d;
-  --color-bg: #f1f7f7;
+  --color-bg: #ecf0ff;
 }
 
 #blazor-error-ui {
@@ -112,6 +112,16 @@ body {
   padding-right: 0.5rem;
   padding-left: 0.5rem;
   max-height: calc(100vh - 120px);
+  scrollbar-color: #3d4160 #2e3250;
+}
+#sidebar .scrolly::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+#sidebar .scrolly::-webkit-scrollbar-thumb {
+  background: #3d4160;
+}
+#sidebar .scrolly::-webkit-scrollbar-thumb:hover {
+  background: #2e3250;
 }
 
 .sidebar_toggle {
@@ -173,16 +183,8 @@ body {
   color: #fff;
 }
 
-#sidebar.is_less .button.is-white {
-  padding-left: 12px;
-}
-
 #sidebar .is_user {
   padding: 0px 6px;
-}
-
-#sidebar.is_less .is_user .icon-text > span:not(.image) {
-  display: none;
 }
 
 #sidebar .button.is-white:hover,
@@ -208,96 +210,12 @@ body {
   margin-top: 0.5rem;
 }
 
-#sidebar.is_less {
-  width: 60px;
-}
-
-#sidebar.is_less .scrolly {
-  overflow: visible;
-}
-
-#sidebar.is_less .hide_less {
-  display: none;
-}
-
-#sidebar.is_less .sidebar_toggle {
-  width: 42px;
-}
-
-#sidebar.is_less .sidebar_toggle span {
-  width: 100%;
-}
-
-#sidebar.is_less nav > ul > li > .button span:not(.icon),
-#sidebar.is_less nav > ul > li > .button .icon:last-child:not(:first-child) {
-  display: none;
-}
-
-#sidebar.is_less .button .icon:first-child:not(:last-child) {
-  margin: 0px;
-}
-
-#sidebar.is_less nav > ul > li {
-  position: relative;
-}
-
-#sidebar.is_less nav > ul > li > ul {
-  position: absolute;
-  left: 100%;
-  top: -5px;
-  z-index: 10;
-  margin: 0px;
-  border-radius: 0px 7px 7px 0px;
-  background: #585c7d;
-  padding: 45px 10px 10px 8px;
-  display: none;
-}
-
-#sidebar.is_less nav > ul > li:hover > ul {
-  display: block;
-  width: 190px;
-}
-
-#sidebar.is_less nav > ul > li > ul::after {
-  content: "";
-  display: block;
-  position: absolute;
-  height: 100%;
-  width: 1px;
-  left: 8px;
-  top: 0px;
-  background: #4e5170;
-}
-
-#sidebar.is_less nav > ul > li > ul > li {
-  margin-left: 10px;
-}
-
-#sidebar.is_less nav > ul > li > .button:hover span:not(.icon),
-#sidebar.is_less nav > ul > li:hover > .button span:not(.icon) {
-  position: absolute;
-  left: 61px;
-  top: 2px;
-  display: block;
-  background: #355caa;
-  color: #fff;
-  border-radius: 4px;
-  padding: 5px 16px;
-  z-index: 20;
-  font-weight: 600;
-  letter-spacing: 1px;
-}
-
 #sidebar .btn_logout {
   width: calc(100% - 1rem);
   justify-content: flex-start;
   position: absolute;
   bottom: 0.5rem;
   left: 0.5rem;
-}
-
-#sidebar.is_less .btn_logout span:not(.icon) {
-  display: none;
 }
 
 .navbar-link.is-active,
@@ -472,16 +390,16 @@ select {
 .input.is_bg,
 .select.is_bg select,
 .textarea.is_bg {
-  background: #f1f7f7;
-  box-shadow: none;
+  background: var(--color-bg);
   color: var(--color-extra);
+  box-shadow: none;
 }
 
 .button.is_bg,
 .input.is_bg:not(.is-danger),
 .select.is_bg:not(.is-danger) select,
 .textarea.is_bg:not(.is-danger) {
-  border-color: #f1f7f7;
+  border-color: var(--color-bg);
 }
 
 .select.is_line {
@@ -538,6 +456,20 @@ select {
 .checkbox input,
 .radio input {
   margin-right: 0.5rem;
+}
+
+.input-date {
+  position: relative;
+  display: inline-flex !important;
+}
+.input-date input {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  opacity: 0;
 }
 
 .has_bg {
@@ -1839,6 +1771,15 @@ button.dropdown-item {
 
 .avatar_list .image {
   margin-right: -7px;
+  border: 1px solid #fff;
+  box-shadow: 0px 0px 3px 0px rgb(0 0 0 / 40%);
+  justify-content: center;
+  align-items: center;
+}
+
+.avatar_list .image .is-text {
+  color: #fff;
+  font-size: 11px;
 }
 
 .category_item {
@@ -2255,6 +2196,10 @@ button.dropdown-item {
 
 .banner_main .WMBSC-loading {
   display: none;
+}
+
+.banner_main .carousel .WMBSC-content {
+  margin-bottom: 0px !important;
 }
 
 .banner_main .carousel .slick-list {
@@ -3082,12 +3027,11 @@ button.dropdown-item {
 }
 
 .task_board {
-  box-shadow: none !important;
-  border: 1px solid #ecf0ff;
+  box-shadow: 0px 0px 0px 1px #ddd !important;
 }
 
 .task_board .task_board:not(:first-child) {
-  margin-top: 6px !important;
+  margin-top: 12px !important;
 }
 
 .list_task_gantt {

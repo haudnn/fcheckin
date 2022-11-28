@@ -115,8 +115,8 @@
                     <div class="control has-icons-left">
                       <div class="dropdown is-fullwidth @(toggleStaff ? "is-active" : "")">
                         <div class="dropdown-trigger" @onclick="() => toggleStaff = !toggleStaff">
-                          <input value="@staff" @onchange="ChangeStaff" type="number" 
-                              class="input is_line font_14" min="5" step="1" />
+                          <input @bind="staffQuantity" @bind:event="oninput" type="number" 
+                              class="input is_line font_14" min="5" max="1000" step="1" />
                           <span class="icon is-left has-text-black">
                             <i class="material-icons-round is-size-6">person_add</i>
                           </span>
@@ -157,8 +157,8 @@
                     <div class="control has-icons-left">
                       <div class="dropdown is-fullwidth @(toggleMonth ? "is-active" : "")">
                         <div class="dropdown-trigger" @onclick="() => toggleMonth = !toggleMonth">
-                          <input value="@month" @onchange="ChangeMonth" type="number" 
-                              class="input is_line font_14" min="3" step="1" />
+                          <input @bind="monthQuantity" @bind:event="oninput" type="number" 
+                              class="input is_line font_14" min="3" max="120" step="1" />
                           <span class="icon is-left has-text-black">
                             <i class="material-icons-round is-size-6">event</i>
                           </span>
@@ -349,6 +349,11 @@
         await JSRuntime.InvokeVoidAsync("tagline", false, "Số tháng sử dụng tối thiểu là 3 tháng.");
         step = 1;
       }
+      else if(money > Int32.MaxValue)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Số tiền giao dịch vượt quá giới hạn cho phép.");
+        step = 1;
+      }
     }
   }
 
@@ -440,21 +445,9 @@
     }
   }
 
-  private void ChangeStaff(ChangeEventArgs e)
-  {
-    staff = Shared.ConvertToInt(e.Value.ToString());
-    ChangeQuantity();
-  }
-
   private void PromotionStaff(int item)
   {
     staff = item;
-    ChangeQuantity();
-  }
-
-  private void ChangeMonth(ChangeEventArgs e)
-  {
-    month = Shared.ConvertToInt(e.Value.ToString());
     ChangeQuantity();
   }
 
@@ -462,6 +455,26 @@
   {
     month = item;
     ChangeQuantity();
+  }
+
+  private int staffQuantity
+  {
+    get => staff;
+    set
+    {
+      staff = value > 1000 ? 1000 : value;
+      ChangeQuantity();
+    }
+  }
+
+  private int monthQuantity
+  {
+    get => month;
+    set
+    {
+      month = value > 120 ? 120 : value;
+      ChangeQuantity();
+    }
   }
 
   private void ChangeQuantity()

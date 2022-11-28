@@ -3,13 +3,13 @@
 
 <div class="card teams_left py-3">
   <div class="px-3">
-    <div class="user_item p-1 @(url.StartsWith("/work/my-task") || url == "/work" ? "has_bg" : "")">
+    <div class="user_item p-1 @(url.StartsWith("/work/my-task") ? "has_bg" : "")">
       <img class="image is-24x24 mr-2" src="@Layout.User.avatar" alt="IMG">
-      <a href="/work">Công việc của tôi</a>
+      <a href="/work/my-task">Công việc của tôi</a>
     </div>
   </div>
-  <hr class="my-3">
-  <div class="px-3">
+  <hr class="my-3 is-hidden-mobile">
+  <div class="px-3 is_filter">
     <div class="control has-icons-right mb-3">
       <input @bind="keyword" @bind:event="oninput" type="text"
         class="input is-small is-rounded" placeholder="Tiêu đề kế hoạch">

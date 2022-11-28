@@ -2,9 +2,18 @@
 @inject NavigationManager navigation
 
 <div class="field is-grouped mb-2">
-  <div class="control has-text-grey">
-    Todolist liên kết
-  </div>
+  @if(Layout.IsMobile)
+  {
+    <div class="control is-expanded is-size-6 has-text-weight-medium">
+      TODOLIST LIÊN KẾT
+    </div>
+  }
+  else
+  {
+    <div class="control has-text-grey">
+      Todolist liên kết
+    </div>
+  }
   @if(editRole)
   {
     <div class="control">
@@ -18,61 +27,116 @@
 <div class="scrolly py-1" style="height: calc(100vh - 194px);">
   @if(todo != null)
   {
-    <ul class="columns is-multiline is-vcentered is-variable is-1 has-text-centered">
-      <li class="column has-text-left">
-        <input @bind="todo.name" id="task_todo" class="input is-small" type="text" placeholder="Nhập tiêu đề Todolist">
+    <ul class="columns is-multiline is-vcentered is-variable is-1 is-mobile">
+      <li class="column is-full-mobile">
+        <input @bind="todo.name" id="task_todo" class="input is-small is_bg" type="text" 
+          placeholder="Nhập tiêu đề Todolist">
       </li>
-      <li class="column is-narrow" style="width: 130px;">
-        <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" Opens="SideType.Left"
-          MinDate="DateTime.Today">
-          <PickerTemplate>
-            <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
-              <span class="icon is-small mr-1">
-                <i class="material-icons-outlined is-size-6">calendar_today</i>
-              </span>
-              @if (context.TStartDate != null && context.TEndDate != null)
+      @if(Layout.IsMobile)
+      {
+        <li class="column is-one-third pl-3">
+          <div class="has-text-grey">Thời hạn:</div>
+        </li>
+        <li class="column is-two-thirds">
+          <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" Opens="SideType.Center"
+            MinDate="DateTime.Today">
+            <PickerTemplate>
+              <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
+                <span class="icon is-small mr-1">
+                  <i class="material-icons-outlined is-size-6">calendar_today</i>
+                </span>
+                @if (context.TStartDate != null && context.TEndDate != null)
+                {
+                  <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+                  <span class="px-1">-</span>
+                  <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+                }
+                else
+                {
+                  <span>Chọn ngày</span>
+                }
+              </a>
+            </PickerTemplate>
+          </DateRangePicker>
+        </li>
+        <li class="column is-one-third pl-3">
+          <div class="has-text-grey">Thời gian:</div>
+        </li>
+        <li class="column is-one-third">
+          <div class="select is-small is-fullwidth">
+            <select @bind="todo.start">
+              @foreach (var sl in Shared.TimeList())
               {
-                <span>@context.TStartDate.Value.ToString("dd/MM")</span>
-                <span class="px-1">-</span>
-                <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+                <option value="@sl.name">@sl.name</option>
               }
-              else
+            </select>
+          </div>
+        </li>
+        <li class="column is-one-third">
+          <div class="select is-small is-fullwidth">
+            <select @bind="todo.end">
+              @foreach (var sl in Shared.TimeList())
               {
-                <span>Chọn ngày</span>
+                <option value="@sl.name">@sl.name</option>
               }
-            </a>
-          </PickerTemplate>
-        </DateRangePicker>
-      </li>
-      <li class="column is-narrow" style="width: 90px;">
-        <div class="select is-small is-fullwidth">
-          <select @bind="todo.start">
-            @foreach (var sl in Shared.TimeList())
-            {
-              <option value="@sl.name">@sl.name</option>
-            }
-          </select>
-        </div>
-      </li>
-      <li class="column is-narrow" style="width: 90px;">
-        <div class="select is-small is-fullwidth">
-          <select @bind="todo.end">
-            @foreach (var sl in Shared.TimeList())
-            {
-              <option value="@sl.name">@sl.name</option>
-            }
-          </select>
-        </div>
-      </li>
+            </select>
+          </div>
+        </li>
+      }
+      else
+      {
+        <li class="column is-narrow" style="width: 130px;">
+          <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" Opens="SideType.Left"
+            MinDate="DateTime.Today">
+            <PickerTemplate>
+              <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
+                <span class="icon is-small mr-1">
+                  <i class="material-icons-outlined is-size-6">calendar_today</i>
+                </span>
+                @if (context.TStartDate != null && context.TEndDate != null)
+                {
+                  <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+                  <span class="px-1">-</span>
+                  <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+                }
+                else
+                {
+                  <span>Chọn ngày</span>
+                }
+              </a>
+            </PickerTemplate>
+          </DateRangePicker>
+        </li>
+        <li class="column is-narrow" style="width: 90px;">
+          <div class="select is-small is-fullwidth">
+            <select @bind="todo.start">
+              @foreach (var sl in Shared.TimeList())
+              {
+                <option value="@sl.name">@sl.name</option>
+              }
+            </select>
+          </div>
+        </li>
+        <li class="column is-narrow" style="width: 90px;">
+          <div class="select is-small is-fullwidth">
+            <select @bind="todo.end">
+              @foreach (var sl in Shared.TimeList())
+              {
+                <option value="@sl.name">@sl.name</option>
+              }
+            </select>
+          </div>
+        </li>
+      }
       <li class="column is-full">
-        <div class="buttons is-right">
-          <a class="button is-small is-white has-text-link" @onclick="Update">
+        <div class="has-text-right pb-3">
+          <a class="icon-text has-text-link mr-3" @onclick="Update">
             <span class="icon">
               <i class="material-icons-round is-size-6">done</i>
             </span>
             <span>Cập nhật</span>
           </a>
-          <a class="button is-small is-white has-text-danger" @onclick="() => todo = null">
+          <a class="icon-text has-text-danger" @onclick="() => todo = null">
             <span class="icon">
               <i class="material-icons-round is-size-6">close</i>
             </span>
@@ -99,29 +163,60 @@
         </span>
       </div>
     }
-    <ul class="columns is-vcentered is-variable is-1 has-text-centered mb-2">
-      <li class="column has-text-left pl-4">
-        <div class="text_inline" title="@item.name">
-          • @item.name
-        </div>
-      </li>
-      <li class="column is-narrow" style="width: 80px;">
-        @item.start
-      </li>
-      <li class="column is-narrow" style="width: 80px;">
-        @item.end
-      </li>
-      <li class="column is-narrow" style="width: 80px;">
-        @status.name
-      </li>
-      <li class="column is-narrow" style="width: 40px;">
-        @if(!item.confirm)
-        {
-          <a class="icon is-small has-text-danger" @onclick="() => DeleteItem(item)">
-            <i class="material-icons-outlined is-size-6">delete</i>
-          </a>
-        }
-      </li>
+    <ul class="columns is-multiline is-mobile is-vcentered is-variable is-1 mb-2">
+      @if(Layout.IsMobile)
+      {
+        <li class="column is-11">
+          <span class="font_14 has-text-weight-medium">• @item.name</span>
+        </li>
+        <li class="column is-1">
+          @if(!item.confirm)
+          {
+            <a class="icon is-small has-text-danger" @onclick="() => DeleteItem(item)">
+              <i class="material-icons-outlined is-size-6">delete</i>
+            </a>
+          }
+        </li>
+        <li class="column is-one-third pl-3">
+          <div class="has-text-grey">Thời hạn:</div>
+        </li>
+        <li class="column is-two-thirds">
+          @item.start - @item.end
+        </li>
+        <li class="column is-one-third pl-3">
+          <div class="has-text-grey">Trạng thái:</div>
+        </li>
+        <li class="column is-two-thirds">
+          <span class="tag is-small @status.color">
+            @status.name
+          </span>
+        </li>
+      }
+      else
+      {
+        <li class="column pl-4 has-text-weight-medium">
+          <div class="text_inline" title="@item.name">• @item.name</div>
+        </li>
+        <li class="column is-narrow has-text-centered" style="width: 80px;">
+          @item.start
+        </li>
+        <li class="column is-narrow has-text-centered" style="width: 80px;">
+          @item.end
+        </li>
+        <li class="column is-narrow has-text-centered" style="width: 80px;">
+          <span class="tag is-small px-2 @status.color">
+            @status.name
+          </span>
+        </li>
+        <li class="column is-narrow has-text-centered" style="width: 40px;">
+          @if(!item.confirm)
+          {
+            <a class="icon is-small has-text-danger" @onclick="() => DeleteItem(item)">
+              <i class="material-icons-outlined is-size-6">delete</i>
+            </a>
+          }
+        </li>
+      }
     </ul> 
   }
 </div>

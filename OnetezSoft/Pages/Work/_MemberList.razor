@@ -1,7 +1,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<div class="dropdown @(isRight ? "is-right" : "") @(toggle ? "is-active" : "")">
+<div class="dropdown is_members @(isRight ? "is-right" : "") @(toggle ? "is-active" : "") ">
   <div class="dropdown-trigger">
     <div class="avatar_list">
       @foreach (var item in ShortList())
@@ -9,7 +9,7 @@
         <span class="image is-rounded is-24x24 has-background-grey" title="@item.name">
           @if(string.IsNullOrEmpty(item.id))
           {
-            <span class="icon has-text-white is-size-7">@item.name</span>
+            <span class="is-text">@item.name</span>
           }
           else
           {
@@ -33,7 +33,7 @@
   </div>
   @if(toggle)
   {
-    <div class="dropdown-menu" style="width: 300px; @(isRight ? "" : "left: -150px;")">
+    <div class="dropdown-menu" style="width: 300px;">
       <div class="dropdown-content px-3 has-text-left" style="max-height: none;">
         @if(isEdit)
         {
@@ -49,7 +49,7 @@
             @foreach (var member in members)
             {
               var item = UserService.GetUser(Layout.UserList, member.id);
-              <ul class="columns is-vcentered is-variable is-1">
+              <ul class="columns is-vcentered is-variable is-1 is-mobile">
                 <li class="column is-narrow">
                   <a class="icon is-small has-text-danger" @onclick="() => RemoveItem(member.id)">
                     <i class="material-icons-outlined is-size-6">remove_circle_outline</i>
@@ -106,7 +106,7 @@
             }
             @foreach (var item in suggests)
             {
-              <ul class="columns is-vcentered is-variable is-1">
+              <ul class="columns is-vcentered is-variable is-1 is-mobile">
                 <li class="column is-narrow">
                   <a class="icon is-small has-text-info" @onclick="() => AddItem(item.id)">
                     <i class="material-icons-outlined is-size-6">add_circle_outline</i>
@@ -145,7 +145,7 @@
             @foreach (var member in members)
             {
               var item = UserService.GetUser(Layout.UserList, member.id);
-              <ul class="columns is-vcentered is-variable is-1">
+              <ul class="columns is-vcentered is-variable is-1 is-mobile">
                 <li class="column has-text-weight-medium">
                   <div class="icon-text">
                     <span class="image is-rounded is-24x24">

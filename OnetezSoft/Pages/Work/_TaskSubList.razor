@@ -2,139 +2,275 @@
 @inject NavigationManager navigation
 
 <div class="scrolly py-1" style="height: calc(100vh - 162px);">
-  <ul class="columns is-vcentered is-gapless is-size-7 mb-0 has-text-grey">
-    <li class="column">Công việc phụ</li>
-    <li class="column is-narrow" style="width: 130px;">Thời gian</li>
-    <li class="column is-narrow" style="width: 110px;">Thành viên</li>
-    <li class="column is-narrow" style="width: 80px;">Trạng thái</li>
-    <li class="column is-narrow" style="width: 30px;"></li>
-  </ul>
+  @if(Layout.IsMobile)
+  {
+    <div class="field is-grouped mb-2">
+      <div class="control is-expanded is-size-6 has-text-weight-medium">
+        CÔNG VIỆC PHỤ
+      </div>
+      @if(editRole)
+      {
+        <div class="control">
+          <a class="icon has-text-link" @onclick="AddItem">
+            <i class="material-icons-round is-size-4">add_box</i>
+          </a>
+        </div>
+      }
+    </div>
+  }
+  else
+  {
+    <ul class="columns is-vcentered is-gapless is-size-7 mb-0 has-text-grey">
+      <li class="column">Công việc phụ</li>
+      <li class="column is-narrow" style="width: 130px;">Thời gian</li>
+      <li class="column is-narrow" style="width: 110px;">Thành viên</li>
+      <li class="column is-narrow" style="width: 80px;">Trạng thái</li>
+      <li class="column is-narrow" style="width: 30px;"></li>
+    </ul>
+  }
   @foreach (var task in tasks)
   {
     var toggle = toggleList.Contains(task.id);
     var isEdit = editList.Contains(task.id);
     var status = WorkService.Status(task.status);
-    var priority = WorkService.Priority(task.priority);
     DateTimeOffset? dateS = task.date_start > 0 ? new DateTime(task.date_start) : null;
     DateTimeOffset? dateE = task.date_end > 0 ? new DateTime(task.date_end) : null;
 
-    <ul class="sub_task columns is-vcentered is-multiline is-gapless is-size-7 mb-0">
-      <li class="column" style="width: calc(100% - 350px);">
-        <div class="icon-text mr-2">
-          <a class="icon is-small" @onclick="() => ToggleItem(task.id)">
-            <i class="material-icons-outlined is-size-6">@(toggle ? "arrow_drop_down" : "arrow_right")</i>
-          </a>
+    <ul class="sub_task columns is-vcentered is-multiline is-variable is-size-7 mb-0 is-mobile @(Layout.IsMobile ? "is-1" : "is-0")">
+      @if(Layout.IsMobile)
+      {
+        <li class="column is-11">
           @if(isEdit)
           {
-            <input @bind="task.name" class="input is-small is_bg" type="text" placeholder="Nhập tiêu đề công việc">
+            <input @bind="task.name" type="text" class="input has-text-weight-medium is_bg" placeholder="Nhập tiêu đề công việc">
           }
           else 
           {
-            <span class="item_name has-text-@(task.status == 4 ? "success is-line-through " : "info")" title="@task.name">
-              @task.name
+            <span class="item_name font_14 has-text-@(task.status == 4 ? "success is-line-through " : "info")" title="@task.name">
+              • @task.name
             </span>
           }
-        </div>
-      </li>
-      <li class="column is-narrow" style="width: 130px;">
-        <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE"
-          OnRangeSelect="(x) => UpdateDate(task, x)" Opens="SideType.Left">
-          <PickerTemplate>
-            <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
-              <span class="icon is-small mr-1">
-                <i class="material-icons-outlined is-size-6">calendar_today</i>
-              </span>
-              @if (context.TStartDate != null && context.TEndDate != null)
-              {
-                <span>@context.TStartDate.Value.ToString("dd/MM")</span>
-                <span class="px-1">-</span>
-                <span>@context.TEndDate.Value.ToString("dd/MM")</span>
-              }
-              else
-              {
-                <span>Chọn ngày</span>
-              }
-            </a>
-          </PickerTemplate>
-        </DateRangePicker>
-      </li>
-      <li class="column is-narrow" style="width: 110px;">
-        <_MemberList members="task.members" sources="members" isEdit="editRole" isTask="true" isSubTask="true"
-          OnUpdate="() => UpdateMembers(task)" />
-      </li>
-      <li class="column is-narrow" style="width: 80px;">
-        <div class="dropdown is-hoverable">
-          <div class="dropdown-trigger">
-            <a class="icon-text">
-              <span class="tag @status.color" style="width: 52px;">@status.name</span>
-              <span class="icon is-small">
-                <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
-              </span>
-            </a>
-          </div>
-          @if(editRole)
+        </li>
+        <li class="column is-1">
+          @if(editRole && !isEdit)
           {
-            <div class="dropdown-menu">
-              <div class="dropdown-content">
-                @foreach (var item in WorkService.StatusSub())
-                {
-                  <a class="dropdown-item" @onclick="() => ChangeStatus(task, item.id)">@item.name</a>
-                }
+            <div class="dropdown is-hoverable is-right">
+              <div class="dropdown-trigger">
+                <span class="icon is-small">
+                  <i class="material-icons-outlined is-size-6">more_horiz</i>
+                </span>
+              </div>
+              <div class="dropdown-menu">
+                <div class="dropdown-content">
+                  <a class="dropdown-item has-text-link" @onclick="() => ToggleEdit(task)">Chỉnh sửa</a>
+                  <a class="dropdown-item has-text-danger" @onclick="() => DeleteItem(task)">Xóa</a>
+                </div>
               </div>
             </div>
           }
-        </div>
-      </li>
-      <li class="column is-narrow" style="width: 30px;">
-        @if(editRole && !isEdit)
-        {
-          <div class="dropdown is-hoverable is-right">
+        </li>
+        <li class="column is-one-third pl-3">
+          <div class="has-text-grey">Thời hạn:</div>
+        </li>
+        <li class="column is-two-thirds">
+          <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE"
+            OnRangeSelect="(x) => UpdateDate(task, x)" Opens="SideType.Center">
+            <PickerTemplate>
+              <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
+                <span class="icon is-small mr-1">
+                  <i class="material-icons-outlined is-size-6">calendar_today</i>
+                </span>
+                @if (context.TStartDate != null && context.TEndDate != null)
+                {
+                  <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+                  <span class="px-1">-</span>
+                  <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+                }
+                else
+                {
+                  <span>Chọn ngày</span>
+                }
+              </a>
+            </PickerTemplate>
+          </DateRangePicker>
+        </li>
+        <li class="column is-one-third pl-3">
+          <div class="has-text-grey">Thành viên:</div>
+        </li>
+        <li class="column is-two-thirds">
+          <_MemberList members="task.members" sources="members" isEdit="editRole" isTask="true"
+            isSubTask="true" isRight="true" OnUpdate="() => UpdateMembers(task)" />
+        </li>
+        <li class="column is-one-third pl-3">
+          <div class="has-text-grey">Trạng thái:</div>
+        </li>
+        <li class="column is-two-thirds">
+          <div class="dropdown is-hoverable">
             <div class="dropdown-trigger">
-              <span class="icon">
-                <i class="material-icons-outlined is-size-6">more_horiz</i>
-              </span>
+              <a class="icon-text">
+                <span class="tag @status.color">@status.name</span>
+                <span class="icon is-small">
+                  <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+                </span>
+              </a>
             </div>
-            <div class="dropdown-menu">
-              <div class="dropdown-content">
-                <a class="dropdown-item has-text-link" @onclick="() => ToggleEdit(task)">Chỉnh sửa</a>
-                <a class="dropdown-item has-text-danger" @onclick="() => DeleteItem(task)">Xóa</a>
+            @if(editRole)
+            {
+              <div class="dropdown-menu">
+                <div class="dropdown-content">
+                  @foreach (var item in WorkService.StatusSub())
+                  {
+                    <a class="dropdown-item" @onclick="() => ChangeStatus(task, item.id)">@item.name</a>
+                  }
+                </div>
               </div>
-            </div>
+            }
           </div>
-        }
-      </li>
-      @if(toggle)
-      {
-        <li class="column is-full">
+        </li>
+        <li class="column is-full pl-3">
           @if(isEdit)
           {
-            <div class="pl-4 py-2">
-              <textarea @bind="task.detail" class="textarea is-small is_bg" placeholder="Nhập mô tả công việc phụ" rows="2" />
-              <div class="buttons is-right mt-2">
-                <a class="button is-small is-white has-text-link" @onclick="() => UpdateItem(task)">
-                  <span class="icon">
-                    <i class="material-icons-round is-size-6">done</i>
-                  </span>
-                  <span>Cập nhật</span>
-                </a>
-                <a class="button is-small is-white has-text-danger" @onclick="() => ToggleEdit(task)">
-                  <span class="icon">
-                    <i class="material-icons-round is-size-6">close</i>
-                  </span>
-                  <span>Hủy</span>
-                </a>
-              </div>
+            <textarea @bind="task.detail" class="textarea is-small is_bg" placeholder="Nhập mô tả công việc phụ" rows="3" />
+            <div class="has-text-right pt-2">
+              <a class="button is-small is-white has-text-link" @onclick="() => UpdateItem(task)">
+                <span class="icon">
+                  <i class="material-icons-round is-size-6">done</i>
+                </span>
+                <span>Cập nhật</span>
+              </a>
+              <a class="button is-small is-white has-text-danger" @onclick="() => ToggleEdit(task)">
+                <span class="icon">
+                  <i class="material-icons-round is-size-6">close</i>
+                </span>
+                <span>Hủy</span>
+              </a>
             </div>
           }
           else
           {
-            <div class="has-text-grey pl-4 py-2">@task.detail</div>
+            <div class="has-text-grey">@task.detail</div>
           }
         </li>
       }
+      else
+      {
+        <li class="column" style="width: calc(100% - 350px);">
+          <div class="icon-text mr-2">
+            <a class="icon is-small" @onclick="() => ToggleItem(task.id)">
+              <i class="material-icons-outlined is-size-6">@(toggle ? "arrow_drop_down" : "arrow_right")</i>
+            </a>
+            @if(isEdit)
+            {
+              <input @bind="task.name" class="input is-small is_bg" type="text" placeholder="Nhập tiêu đề công việc">
+            }
+            else 
+            {
+              <span class="item_name has-text-@(task.status == 4 ? "success is-line-through " : "info")" title="@task.name">
+                @task.name
+              </span>
+            }
+          </div>
+        </li>
+        <li class="column is-narrow" style="width: 130px;">
+          <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE"
+            OnRangeSelect="(x) => UpdateDate(task, x)" Opens="SideType.Left">
+            <PickerTemplate>
+              <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
+                <span class="icon is-small mr-1">
+                  <i class="material-icons-outlined is-size-6">calendar_today</i>
+                </span>
+                @if (context.TStartDate != null && context.TEndDate != null)
+                {
+                  <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+                  <span class="px-1">-</span>
+                  <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+                }
+                else
+                {
+                  <span>Chọn ngày</span>
+                }
+              </a>
+            </PickerTemplate>
+          </DateRangePicker>
+        </li>
+        <li class="column is-narrow" style="width: 110px;">
+          <_MemberList members="task.members" sources="members" isEdit="editRole" isTask="true" isSubTask="true"
+            isRight="true" OnUpdate="() => UpdateMembers(task)" />
+        </li>
+        <li class="column is-narrow" style="width: 80px;">
+          <div class="dropdown is-hoverable">
+            <div class="dropdown-trigger">
+              <a class="icon-text">
+                <span class="tag @status.color" style="width: 52px;">@status.name</span>
+                <span class="icon is-small">
+                  <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+                </span>
+              </a>
+            </div>
+            @if(editRole)
+            {
+              <div class="dropdown-menu">
+                <div class="dropdown-content">
+                  @foreach (var item in WorkService.StatusSub())
+                  {
+                    <a class="dropdown-item" @onclick="() => ChangeStatus(task, item.id)">@item.name</a>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </li>
+        <li class="column is-narrow" style="width: 30px;">
+          @if(editRole && !isEdit)
+          {
+            <div class="dropdown is-hoverable is-right">
+              <div class="dropdown-trigger">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">more_horiz</i>
+                </span>
+              </div>
+              <div class="dropdown-menu">
+                <div class="dropdown-content">
+                  <a class="dropdown-item has-text-link" @onclick="() => ToggleEdit(task)">Chỉnh sửa</a>
+                  <a class="dropdown-item has-text-danger" @onclick="() => DeleteItem(task)">Xóa</a>
+                </div>
+              </div>
+            </div>
+          }
+        </li>
+        @if(toggle)
+        {
+          <li class="column is-full">
+            @if(isEdit)
+            {
+              <div class="pl-4 py-2">
+                <textarea @bind="task.detail" class="textarea is-small is_bg" placeholder="Nhập mô tả công việc phụ" rows="2" />
+                <div class="buttons is-right mt-2">
+                  <a class="button is-small is-white has-text-link" @onclick="() => UpdateItem(task)">
+                    <span class="icon">
+                      <i class="material-icons-round is-size-6">done</i>
+                    </span>
+                    <span>Cập nhật</span>
+                  </a>
+                  <a class="button is-small is-white has-text-danger" @onclick="() => ToggleEdit(task)">
+                    <span class="icon">
+                      <i class="material-icons-round is-size-6">close</i>
+                    </span>
+                    <span>Hủy</span>
+                  </a>
+                </div>
+              </div>
+            }
+            else
+            {
+              <div class="has-text-grey pl-4 py-2">@task.detail</div>
+            }
+          </li>
+        }
+      }
     </ul>
   }
-  @if(editRole)
+  @if(editRole && !Layout.IsMobile)
   {
     <div class="py-2">
       <a class="icon-text has-text-link" @onclick="AddItem">

@@ -1,81 +1,119 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<div class="card px-5 py-3">
-  <ul class="columns is-vcentered is-variable is-2">
-    <li class="column">
-      <div class="has-text-weight-bold has-text-dark is-size-5 text_inline">
-        @(!string.IsNullOrEmpty(model.name) ? model.name : "Kế hoạch")
-      </div>
-    </li>
-    <li class="column is-narrow">
-      <a class="has-text-@(tab == "detail" ? "link" : "grey")" href="/work/@model.id/detail">
-        Tổng quan
+@if(Layout.IsMobile)
+{
+  <div class="header-sticky">
+    <div class="header-title icon-text">
+      <a class="icon has-text-link" href="/work">
+        <i class="material-icons-outlined is-size-5">arrow_back</i>
       </a>
-    </li>
-    <li class="column is-narrow">
-      <a class="has-text-@(tab == "task" ? "link" : "grey")" href="/work/@model.id/task">
-        Công việc
-      </a>
-    </li>
-    <li class="column is-narrow">
-      <a class="has-text-@(tab == "chart" ? "link" : "grey")" href="/work/@model.id/chart">
-        Thống kê
-      </a>
-    </li>
-    <li class="column is-narrow">
-      <div style="width: 1px;height: 24px;background: #D9D9D9;"></div>
-    </li>
-    <li class="column is-narrow">
-      <div class="dropdown is-hoverable is-right">
-        <div class="dropdown-trigger">
-          <a class="icon-text has-text-grey">
-            <span class="icon">
-              @if(view == "gantt")
-              {
-                <i class="material-icons-outlined is-size-5">clear_all</i>
-              }
-              else if(view == "board")
-              {
-                <i class="material-icons-outlined is-size-6">dashboard</i>
-              }
-              else
-              {
-                <i class="material-icons-outlined is-size-5">list</i>
-              }
-            </span>
-            <span>Chế độ xem</span>
-            <span class="icon has-text-grey">
-              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-            </span>
+      <h1 class="is-size-6 has-text-dark has-text-weight-semibold">
+        @(!string.IsNullOrEmpty(model.name) ? model.name : "Chi tiết Kế hoạch")
+      </h1>
+    </div>
+    <div class="header-tabs">
+      <ul class="columns is-mobile is-variable is-1">
+        <li class="column is-one-third">
+          <a class="button is-small is-fullwidth @(tab == "detail" ? "has_bg has-text-link" : "is-white")"
+            href="/work/@model.id/detail">
+            Tổng quan
           </a>
+        </li>
+        <li class="column is-one-third">
+          <a class="button is-small is-fullwidth @(tab == "task" ? "has_bg has-text-link" : "is-white")"
+            href="/work/@model.id/task">
+            Công việc
+          </a> 
+        </li>
+        <li class="column is-one-third">
+          <a class="button is-small is-fullwidth @(tab == "chart" ? "has_bg has-text-link" : "is-white")"
+            href="/work/@model.id/chart">
+            Thống kê
+          </a> 
+        </li>
+      </ul>
+    </div>
+  </div>
+}
+else
+{
+  <div class="card px-5 py-3">
+    <ul class="columns is-vcentered is-variable is-2">
+      <li class="column">
+        <div class="has-text-weight-bold has-text-dark is-size-5 text_inline">
+          @(!string.IsNullOrEmpty(model.name) ? model.name : "Chi tiết Kế hoạch")
         </div>
-        <div class="dropdown-menu">
-          <div class="dropdown-content is-size-7">
-            <a class="dropdown-item px-1 icon-text has-text-@(view == "list" ? "link" : "grey")" href="/work/@model.id/task/list">
+      </li>
+      <li class="column is-narrow">
+        <a class="has-text-@(tab == "detail" ? "link" : "grey")" href="/work/@model.id/detail">
+          Tổng quan
+        </a>
+      </li>
+      <li class="column is-narrow">
+        <a class="has-text-@(tab == "task" ? "link" : "grey")" href="/work/@model.id/task">
+          Công việc
+        </a>
+      </li>
+      <li class="column is-narrow">
+        <a class="has-text-@(tab == "chart" ? "link" : "grey")" href="/work/@model.id/chart">
+          Thống kê
+        </a>
+      </li>
+      <li class="column is-narrow">
+        <div style="width: 1px;height: 24px;background: #D9D9D9;"></div>
+      </li>
+      <li class="column is-narrow">
+        <div class="dropdown is-hoverable is-right">
+          <div class="dropdown-trigger">
+            <a class="icon-text has-text-grey">
               <span class="icon">
-                <i class="material-icons-outlined is-size-5">list</i>
+                @if(view == "gantt")
+                {
+                  <i class="material-icons-outlined is-size-5">clear_all</i>
+                }
+                else if(view == "board")
+                {
+                  <i class="material-icons-outlined is-size-6">dashboard</i>
+                }
+                else
+                {
+                  <i class="material-icons-outlined is-size-5">list</i>
+                }
               </span>
-              <span>Chế độ danh sách</span>
-            </a>
-            <a class="dropdown-item px-1 icon-text has-text-@(view == "board" ? "link" : "grey") "href="/work/@model.id/task/board">
-              <span class="icon">
-                <i class="material-icons-outlined is-size-6">dashboard</i>
+              <span>Chế độ xem</span>
+              <span class="icon has-text-grey">
+                <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
               </span>
-              <span>Chế độ Board</span>
-            </a>
-            <a class="dropdown-item px-1 icon-text has-text-@(view == "gantt" ? "link" : "grey") "href="/work/@model.id/task/gantt">
-              <span class="icon">
-                <i class="material-icons-outlined is-size-5">clear_all</i>
-              </span>
-              <span>Chế độ Gantt</span>
             </a>
           </div>
+          <div class="dropdown-menu">
+            <div class="dropdown-content is-size-7">
+              <a class="dropdown-item px-1 icon-text has-text-@(view == "list" ? "link" : "grey")" href="/work/@model.id/task/list">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">list</i>
+                </span>
+                <span>Chế độ danh sách</span>
+              </a>
+              <a class="dropdown-item px-1 icon-text has-text-@(view == "board" ? "link" : "grey") "href="/work/@model.id/task/board">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">dashboard</i>
+                </span>
+                <span>Chế độ Board</span>
+              </a>
+              <a class="dropdown-item px-1 icon-text has-text-@(view == "gantt" ? "link" : "grey") "href="/work/@model.id/task/gantt">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">clear_all</i>
+                </span>
+                <span>Chế độ Gantt</span>
+              </a>
+            </div>
+          </div>
         </div>
-      </div>
-    </li>
-  </ul>
-</div>
+      </li>
+    </ul>
+  </div>
+}
 
 @code {
   [CascadingParameter]

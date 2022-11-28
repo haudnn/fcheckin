@@ -6,178 +6,299 @@
 
 <PageTitle>Công việc của tôi</PageTitle>
 
-<section class="columns is-gapless has_menu_left">
-  <div class="column is-narrow">
+<section id="page_fwork" class="columns is-gapless has_menu_left @(url == "/work" ? "is_nav" : "is_data")">
+  <div class="column is-narrow is_nav">
     <_PlanSidebar />
   </div>
-  <div class="column">
-    <div class="card pt-5 pb-2 px-5 p-4-mobile">
-      <ul class="columns is-vcentered is-variable is-2 mb-3">
-        <li class="column">
-          <h1 class="title is-5 has-text-info is-uppercase">Công việc của tôi</h1>
-        </li>
-        <li class="column is-narrow">
-          <a class="icon-text has-text-@(TypeView == "list" ? "link" : "grey")" href="/work/my-task/list">
-            <span class="icon">
-              <i class="material-icons-outlined is-size-5">list</i>
-            </span>
-            <span>Chế độ danh sách</span>
+  <div class="column is_data">
+    @if(Layout.IsMobile)
+    {
+      <div class="header-sticky">
+        <div class="header-title icon-text">
+          <a class="icon has-text-link" href="/work">
+            <i class="material-icons-outlined is-size-5">arrow_back</i>
           </a>
-        </li>
-        <li class="column is-narrow">
-          <a class="icon-text has-text-@(TypeView == "board" ? "link" : "grey") "href="/work/my-task/board">
-            <span class="icon">
-              <i class="material-icons-outlined is-size-6">dashboard</i>
-            </span>
-            <span>Chế độ Board</span>
-          </a>
-        </li>
-        <li class="column is-narrow">
-          <a class="icon-text has-text-@(TypeView == "gantt" ? "link" : "grey") "href="/work/my-task/gantt">
-            <span class="icon">
-              <i class="material-icons-outlined is-size-5">clear_all</i>
-            </span>
-            <span>Chế độ Gantt</span>
-          </a>
-        </li>
-      </ul>
+          <h1 class="is-size-6 has-text-dark has-text-weight-semibold">Công việc của tôi</h1>
+        </div>
+      </div>
+    }
+    <div class="@(Layout.IsMobile ? "" : "card pt-5 pb-2 px-5")">
+      @if(!Layout.IsMobile)
+      {
+        <ul class="columns is-vcentered is-variable is-2 mb-3">
+          <li class="column">
+            <h1 class="title is-5 has-text-info is-uppercase">Công việc của tôi</h1>
+          </li>
+          <li class="column is-narrow">
+            <a class="icon-text has-text-@(TypeView == "list" ? "link" : "grey")" href="/work/my-task/list">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-5">list</i>
+              </span>
+              <span>Chế độ danh sách</span>
+            </a>
+          </li>
+          <li class="column is-narrow">
+            <a class="icon-text has-text-@(TypeView == "board" ? "link" : "grey") "href="/work/my-task/board">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">dashboard</i>
+              </span>
+              <span>Chế độ Board</span>
+            </a>
+          </li>
+          <li class="column is-narrow">
+            <a class="icon-text has-text-@(TypeView == "gantt" ? "link" : "grey") "href="/work/my-task/gantt">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-5">clear_all</i>
+              </span>
+              <span>Chế độ Gantt</span>
+            </a>
+          </li>
+        </ul>
+      }
 
-      <ul class="columns is-vcentered is-variable is-2 mb-3">
-        <li class="column is-narrow">
-          <div class="dropdown is-hoverable is-size-7">
-            <div class="dropdown-trigger">
-              <a class="icon-text">
-                <span>Thời hạn</span>
-                <span class="icon">
-                  <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                </span>
-              </a>
+      @if(Layout.IsMobile)
+      {
+        <div class="control has-icons-right mb-3">
+          <input class="input is-small is-rounded" type="text" 
+              placeholder="Tiêu đề công việc..." @onchange="FilterKeyword">
+          <span class="icon is-right is-small">
+            <i class="material-icons-outlined is-size-5">search</i>
+          </span>
+        </div>
+        <ul class="columns is-vcentered is-variable is-1 mb-3 is-mobile scrollx-mobile">
+          <li class="column is-narrow" style="width: 126px;">
+            <div class="select is-small is-fullwidth">
+              <select @onchange="(e) => FilterDeadline(Convert.ToInt32(e.Value))">
+                <option value="0">Thời hạn</option>
+                <option value="1">Sắp hết hạn</option>
+                <option value="2">Trễ hạn</option>
+              </select>
             </div>
-            <div class="dropdown-menu">
-              <div class="dropdown-content">
-                <a class="dropdown-item @(filterDeadline == 0 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(0)">
-                  Tất cả
-                </a>
-                <a class="dropdown-item @(filterDeadline == 1 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(1)">
-                  Sắp hết hạn
-                </a>
-                <a class="dropdown-item @(filterDeadline == 2 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(2)">
-                  Trễ hạn 
-                </a>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li class="column is-narrow">
-          <div class="dropdown is-hoverable is-size-7">
-            <div class="dropdown-trigger">
-              <a class="icon-text">
-                <span>Kế hoạch</span>
-                <span class="icon">
-                  <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                </span>
-              </a>
-            </div>
-            <div class="dropdown-menu">
-              <div class="dropdown-content">
-                <a class="dropdown-item @(filterPlan == null ? "has-text-weight-semibold" : "")"
-                  @onclick="() => FilterPlan(null)">Tất cả</a>
+          </li>
+          <li class="column is-narrow" style="width: 126px;">
+            <div class="select is-small is-fullwidth">
+              <select @onchange="(e) => FilterPlan(e.Value.ToString())">
+                <option>Kế hoạch</option>
                 @foreach (var item in planList)
                 {
-                  <a class="dropdown-item @(filterPlan == item.id ? "has-text-weight-semibold" : "")"
-                    @onclick="() => FilterPlan(item.id)">@item.name</a>
+                  <option value="@item.id">@item.name</option>
                 }
-              </div>
+              </select>
             </div>
-          </div>
-        </li>
-        <li class="column is-narrow" style="width: 110px;">
-          <div class="dropdown is-hoverable is-size-7">
-            <div class="dropdown-trigger">
-              <a class="icon-text">
-                <span>
-                  @(filterPriority != 0 ? WorkService.Priority(filterPriority).name : "Độ ưu tiên")      
-                </span>
-                <span class="icon">
-                  <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                </span>
-              </a>
-            </div>
-            <div class="dropdown-menu">
-              <div class="dropdown-content">
-                <a class="dropdown-item @(filterPriority == 0 ? "has-text-weight-semibold" : "")"
-                  @onclick="() => FilterPriority(0)">Tất cả</a>
+          </li>
+          <li class="column is-narrow" style="width: 126px;">
+            <div class="select is-small is-fullwidth">
+              <select @onchange="(e) => FilterPriority(Convert.ToInt32(e.Value))">
+                <option value="0">Độ ưu tiên</option>
                 @foreach (var item in WorkService.Priority())
                 {
-                  <a class="dropdown-item @(filterPriority == item.id ? "has-text-weight-semibold" : "")" style="color: @item.color;" 
-                    @onclick="() => FilterPriority(item.id)">@item.name</a>
+                  <option value="@item.id">@item.name</option>
                 }
+              </select>
+            </div>
+          </li>
+          <li class="column is-narrow" style="width: 126px;">
+            <div class="select is-small is-fullwidth">
+              <select @onchange="(e) => FilterEnd(Convert.ToInt32(e.Value))">
+                <option value="0">Ngày kết thúc</option>
+                <option value="1">Tuần này</option>
+                <option value="2">Tháng này</option>
+                <option value="3">Quý này</option>
+              </select>
+            </div>
+          </li>
+        </ul>
+      }
+      else
+      {
+        <ul class="columns is-vcentered is-variable is-2 mb-3">
+          <li class="column is-narrow">
+            <div class="dropdown is-hoverable is-size-7">
+              <div class="dropdown-trigger">
+                <a class="icon-text">
+                  <span>Thời hạn</span>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                  </span>
+                </a>
+              </div>
+              <div class="dropdown-menu">
+                <div class="dropdown-content">
+                  <a class="dropdown-item @(filterDeadline == 0 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(0)">
+                    Tất cả
+                  </a>
+                  <a class="dropdown-item @(filterDeadline == 1 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(1)">
+                    Sắp hết hạn
+                  </a>
+                  <a class="dropdown-item @(filterDeadline == 2 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(2)">
+                    Trễ hạn 
+                  </a>
+                </div>
               </div>
             </div>
-          </div>
-        </li>
-        <li class="column is-narrow">
-          <div class="dropdown is-hoverable is-size-7">
-            <div class="dropdown-trigger">
-              <a class="icon-text">
-                <span>Ngày kết thúc</span>
-                <span class="icon">
-                  <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                </span>
-              </a>
-            </div>
-            <div class="dropdown-menu">
-              <div class="dropdown-content">
-                <a class="dropdown-item @(filterEnd == 0 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(0)">
-                  Tất cả
-                </a>
-                <a class="dropdown-item @(filterEnd == 1 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(1)">
-                  Tuần này
-                </a>
-                <a class="dropdown-item @(filterEnd == 2 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(2)">
-                  Tháng này
-                </a>
-                <a class="dropdown-item @(filterEnd == 3 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(3)">
-                  Quý này
+          </li>
+          <li class="column is-narrow">
+            <div class="dropdown is-hoverable is-size-7">
+              <div class="dropdown-trigger">
+                <a class="icon-text">
+                  <span>Kế hoạch</span>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                  </span>
                 </a>
               </div>
+              <div class="dropdown-menu">
+                <div class="dropdown-content">
+                  <a class="dropdown-item @(filterPlan == null ? "has-text-weight-semibold" : "")"
+                    @onclick="() => FilterPlan(null)">Tất cả</a>
+                  @foreach (var item in planList)
+                  {
+                    <a class="dropdown-item @(filterPlan == item.id ? "has-text-weight-semibold" : "")"
+                      @onclick="() => FilterPlan(item.id)">@item.name</a>
+                  }
+                </div>
+              </div>
             </div>
+          </li>
+          <li class="column is-narrow" style="width: 110px;">
+            <div class="dropdown is-hoverable is-size-7">
+              <div class="dropdown-trigger">
+                <a class="icon-text">
+                  <span>
+                    @(filterPriority != 0 ? WorkService.Priority(filterPriority).name : "Độ ưu tiên")      
+                  </span>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                  </span>
+                </a>
+              </div>
+              <div class="dropdown-menu">
+                <div class="dropdown-content">
+                  <a class="dropdown-item @(filterPriority == 0 ? "has-text-weight-semibold" : "")"
+                    @onclick="() => FilterPriority(0)">Tất cả</a>
+                  @foreach (var item in WorkService.Priority())
+                  {
+                    <a class="dropdown-item @(filterPriority == item.id ? "has-text-weight-semibold" : "")" style="color: @item.color;" 
+                      @onclick="() => FilterPriority(item.id)">@item.name</a>
+                  }
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-narrow">
+            <div class="dropdown is-hoverable is-size-7">
+              <div class="dropdown-trigger">
+                <a class="icon-text">
+                  <span>Ngày kết thúc</span>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                  </span>
+                </a>
+              </div>
+              <div class="dropdown-menu">
+                <div class="dropdown-content">
+                  <a class="dropdown-item @(filterEnd == 0 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(0)">
+                    Tất cả
+                  </a>
+                  <a class="dropdown-item @(filterEnd == 1 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(1)">
+                    Tuần này
+                  </a>
+                  <a class="dropdown-item @(filterEnd == 2 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(2)">
+                    Tháng này
+                  </a>
+                  <a class="dropdown-item @(filterEnd == 3 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(3)">
+                    Quý này
+                  </a>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-narrow" style="width: 110px;">
+            <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE" OnRangeSelect="FilterDate"
+              Opens="SideType.Right">
+              <PickerTemplate>
+                <a id="@context.Id" @onclick="context.Toggle" class="icon-text is-size-7">
+                  <span class="icon is-small mr-1">
+                    <i class="material-icons-outlined">calendar_today</i>
+                  </span>
+                  @if (context.TStartDate != null && context.TEndDate != null)
+                  {
+                    <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+                    <span class="px-1">-</span>
+                    <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+                  }
+                  else
+                  {
+                    <span>Thời gian</span>
+                  }
+                </a>
+              </PickerTemplate>
+            </DateRangePicker>
+          </li>
+          <li class="column">
+            <div class="control has-icons-right">
+              <input class="input is-small is-rounded" type="text" 
+                  placeholder="Tiêu đề công việc..." @onchange="FilterKeyword">
+              <span class="icon is-right is-small">
+                <i class="material-icons-outlined is-size-5">search</i>
+              </span>
+            </div>
+          </li>
+        </ul>
+      }
+      
+      @if(Layout.IsMobile)
+      {
+        foreach (var status in statusList)
+        {
+          var show = toggleStatus.Contains(status.id);
+          var tasks = taskGroups.ContainsKey(status.id) ? taskGroups[status.id] : new();
+          var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
+
+          <div class="icon-text py-1">
+            <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
+              <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
+            </a>
+            <span class="has-text-weight-semibold font_14">
+              @status.name @(count > 0 ? $"({count})" : "")
+            </span>
           </div>
-        </li>
-        <li class="column is-narrow" style="width: 110px;">
-          <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE" OnRangeSelect="FilterDate"
-            Opens="SideType.Right">
-            <PickerTemplate>
-              <a id="@context.Id" @onclick="context.Toggle" class="icon-text is-size-7">
-                <span class="icon is-small mr-1">
-                  <i class="material-icons-outlined">calendar_today</i>
-                </span>
-                @if (context.TStartDate != null && context.TEndDate != null)
+          @if(show)
+          {
+            foreach (var context in tasks)
+            {
+              if(context.id == null)
+              {
+                if(context.plan_id == null)
                 {
-                  <span>@context.TStartDate.Value.ToString("dd/MM")</span>
-                  <span class="px-1">-</span>
-                  <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+                  <div class="has-text-centered p-3">
+                    <span class="is-size-7">@context.name</span>
+                  </div>
                 }
                 else
                 {
-                  <span>Thời gian</span>
+                  <div class="py-1">
+                    <a class="icon-text has-text-link" href="/work/@context.plan_id/task">
+                      <span class="icon is-small mr-2">
+                        <i class="material-icons-outlined is-size-6">link</i>
+                      </span>
+                      <span>@context.name</span>
+                    </a>
+                  </div>
                 }
-              </a>
-            </PickerTemplate>
-          </DateRangePicker>
-        </li>
-        <li class="column">
-          <div class="control has-icons-right">
-            <input class="input is-small is-rounded" type="text" 
-                placeholder="Tiêu đề công việc..." @onchange="FilterKeyword">
-            <span class="icon is-right is-small">
-              <i class="material-icons-outlined is-size-5">search</i>
-            </span>
-          </div>
-        </li>
-      </ul>
-      
-      @if(TypeView == "list")
+              }
+              else
+              {
+                var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
+                <_TaskMobileItem model="context" plan="plan" showPlan="true" editRole="true"
+                  members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle"
+                  OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
+              }
+            }
+          }
+        }
+      }
+      else if(TypeView == "list")
       {
         <div class="scrolly" style="height: calc(100vh - 160px); padding-bottom: 300px;">
           <ul class="task_list columns is-gapless is-size-7 has-text-grey"
@@ -226,7 +347,7 @@
                         <span class="icon is-small mr-2">
                           <i class="material-icons-outlined is-size-6">link</i>
                         </span>
-                        <span>@context.name</span>
+                        <span class="has-text-weight-semibold">@context.name</span>
                       </a>
                     </div>
                   }
@@ -422,6 +543,7 @@
   [Parameter]
   public string TypeView { get; set; }
 
+  private string url = string.Empty;
   private List<StaticModel> statusList = new();
   private List<WorkPlanModel> planList = new();
   private Dictionary<string, List<UserModel>> memberList = new();
@@ -448,12 +570,22 @@
 
   protected override async Task OnParametersSetAsync()
   {
+    url = navigation.Uri.Replace(navigation.BaseUri, "/");
+
     if(string.IsNullOrEmpty(TypeView))
       TypeView = "list";
     statusList = WorkService.Status();
     await GetTaskList();
     // Đóng tất cả công việc
     toggleList.Clear();
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender && Layout.IsMobile)
+    {
+      await JSRuntime.InvokeVoidAsync("stickyHeaderMobile");
+    }
   }
 
   #region Bộ lọc và lấy dữ liệu

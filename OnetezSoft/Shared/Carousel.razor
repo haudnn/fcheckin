@@ -2,7 +2,7 @@
 @inject NavigationManager navigation
 
 <section class="@(count > 0 ? "py-4 px-4" : "")">
-  <div class="card banner_main">
+  <div class="banner_main @(count > 0 ? "card" : "")">
     <div class="carousel">
       <BlazorSlickCarousel @ref="banner" Configurations="configurations">
         <BlazorSlickCarouselContent>
@@ -46,6 +46,7 @@
         dots = true,
         autoplay = true,
         infinite = true,
+        useCSS = false,
         slidesToShow = 1,
         slidesToScroll = 1,
         appendDots = ".dots",

@@ -4,11 +4,11 @@
 
 <PageTitle>Thống kê kế hoạch</PageTitle>
 
-<section class="columns is-gapless has_menu_left">
-  <div class="column is-narrow">
+<section id="page_fwork" class="columns is-gapless has_menu_left @(url == "/work" ? "is_nav" : "is_data")">
+  <div class="column is-narrow is_nav">
     <_PlanSidebar />
   </div>
-  <div class="column">
+  <div class="column is_data">
     @if(model != null && string.IsNullOrEmpty(model.id))
     {
       <_PlanHeader model="model" />
@@ -18,15 +18,15 @@
       <_PlanHeader model="model" />
 
       <div class="card p-5 p-4-mobile mt-4">
-        <h1 class="title is-5 has-text-info is-uppercase">THỐNG KÊ CÔNG VIỆC</h1>
+        <h1 class="title is-5 is-size-6-mobile has-text-info is-uppercase">THỐNG KÊ CÔNG VIỆC</h1>
         <ul class="columns is-variable is-2">
-          <li class="column is-half pl-6">
+          <li class="column is-half @(Layout.IsMobile ? "" : "pl-6")">
             <div style="height: 150px;">
               <canvas id="chartPlan_date" height="150"></canvas>
             </div>
             <div class="has-text-info pt-2 pl-6">Tỉ lệ đúng hạn</div>
           </li>
-          <li class="column is-half pl-6">
+          <li class="column is-half @(Layout.IsMobile ? "" : "pl-6")">
             <div style="height: 150px;">
               <canvas id="chartPlan_done" height="150"></canvas>
             </div>
@@ -36,54 +36,91 @@
       </div>
 
       <div class="card p-5 p-4-mobile">
-        <h1 class="title is-5 has-text-info is-uppercase">THỐNG KÊ NHÓM CÔNG VIỆC</h1>
-        <ul class="columns is-multiline is-vcentered is-variable is-1 mb-0 has-text-grey is-size-7">
-          <li class="column is-5">
-            Nhóm công việc
-          </li>
-          <li class="column is-2 has-text-centered">
-            Công việc đúng hạn
-          </li>
-          <li class="column is-2 has-text-centered">
-            Công việc trễ hạn
-          </li>
-          <li class="column is-3">
-            Tỉ lệ hoàn thành
-          </li>
-        </ul>
-        <ul class="columns is-multiline is-vcentered is-variable is-1">
-          @foreach (var item in model.sections)
+        <h1 class="title is-5 is-size-6-mobile has-text-info is-uppercase">THỐNG KÊ NHÓM CÔNG VIỆC</h1>
+        @if(Layout.IsMobile)
+        {
+          foreach (var item in model.sections)
           {
             var tasks = taskList.Where(x => x.section_id == item.id).ToList();
             var report = WorkService.ReportTasks(tasks);
             var value = Shared.Progress(report.done, report.total);
-            var color = Shared.ProgressColor(value);
-            <li class="column is-full">
-              <hr class="m-0">
-            </li>
+            
+            <div class="py-2 is-size-7">
+              <div class="has-text-weight-semibold font_14">@item.name</div>
+              <div class="icon-text mt-1">
+                <span class="icon is-small has-text-success">
+                  <i class="material-icons-outlined is-size-6">done</i>
+                </span>
+                <span class="has-text-grey">Công việc đúng hạn:</span>
+                <span class="has-text-weight-medium">@report.ontime</span>
+              </div>
+              <div class="icon-text mt-1">
+                <span class="icon is-small has-text-danger">
+                  <i class="material-icons-outlined is-size-6">error_outline</i>
+                </span>
+                <span class="has-text-grey">Công việc trễ hạn:</span>
+                <span class="has-text-weight-medium">@report.late</span>
+              </div>
+              <div class="icon-text mt-1">
+                <span class="icon is-small has-text-success">
+                  <i class="material-icons-outlined is-size-6">done_all</i>
+                </span>
+                <span class="has-text-grey">Tỉ lệ hoàn thành:</span>
+                <span class="has-text-weight-medium">@Shared.ConvertNumber(value)</span>
+              </div>
+            </div>
+          }
+        }
+        else
+        {
+          <ul class="columns is-multiline is-vcentered is-variable is-1 mb-0 has-text-grey is-size-7">
             <li class="column is-5">
-              @item.name
+              Nhóm công việc
             </li>
             <li class="column is-2 has-text-centered">
-              @report.ontime
+              Công việc đúng hạn
             </li>
             <li class="column is-2 has-text-centered">
-              @report.late
+              Công việc trễ hạn
             </li>
             <li class="column is-3">
-              <div class="progress_has_value">
-                <progress class="progress is-small @color" value="@value" max="100"></progress>
-                <span class="has-text-link">@Shared.ConvertNumber(value)%</span>
-              </div>
+              Tỉ lệ hoàn thành
             </li>
-          }
-        </ul>
+          </ul>
+          <ul class="columns is-multiline is-vcentered is-variable is-1">
+            @foreach (var item in model.sections)
+            {
+              var tasks = taskList.Where(x => x.section_id == item.id).ToList();
+              var report = WorkService.ReportTasks(tasks);
+              var value = Shared.Progress(report.done, report.total);
+              var color = Shared.ProgressColor(value);
+              <li class="column is-full">
+                <hr class="m-0">
+              </li>
+              <li class="column is-5">
+                @item.name
+              </li>
+              <li class="column is-2 has-text-centered">
+                @report.ontime
+              </li>
+              <li class="column is-2 has-text-centered">
+                @report.late
+              </li>
+              <li class="column is-3">
+                <div class="progress_has_value">
+                  <progress class="progress is-small @color" value="@value" max="100"></progress>
+                  <span class="has-text-link">@Shared.ConvertNumber(value)%</span>
+                </div>
+              </li>
+            }
+          </ul>
+        }
       </div>
 
       <div class="card p-5 p-4-mobile">
         <ul class="columns is-vcentered">
           <li class="column">
-            <h1 class="title is-5 has-text-info is-uppercase">THỐNG KÊ THEO THÀNH VIÊN</h1>
+            <h1 class="title is-5 is-size-6-mobile has-text-info is-uppercase">THỐNG KÊ THEO THÀNH VIÊN</h1>
           </li>
           <li class="column is-one-quarter">
             <div class="control has-icons-right">
@@ -95,7 +132,7 @@
             </div>
           </li>
         </ul>
-        <ul class="columns is-multiline is-vcentered is-variable is-1 mb-0 has-text-grey is-size-7">
+        <ul class="columns is-multiline is-vcentered is-variable is-1 mb-0 has-text-grey is-size-7 is-hidden-mobile">
           <li class="column is-5">
             Thành viên
           </li>
@@ -126,13 +163,13 @@
               var ontime = Shared.Progress(report.ontime, report.total);
 
               <li class="column is-full">
-                <hr class="m-0">
+                <hr class="m-0 is-hidden-mobile">
               </li>
               <li class="column is-5">
                 <div class="user_item">
                   <img class="image is-36x36 mr-2" src="@item.avatar" alt="IMG">
                   <div>
-                    <p class="has-text-weight-semibold has-text-info is-size-6">
+                    <p class="has-text-weight-semibold has-text-info font_14">
                       @item.FullName
                     </p>
                     <p class="text_1_line has-text-grey is-size-7">
@@ -141,21 +178,53 @@
                   </div>
                 </div>
               </li>
-              <li class="column is-1 has-text-centered">
-                @report.total
-              </li>
-              <li class="column is-1 has-text-centered">
-                @report.done
-              </li>
-              <li class="column is-2 has-text-centered">
-                @Shared.ConvertNumber(done)%
-              </li>
-              <li class="column is-1 has-text-centered">
-                @report.ontime
-              </li>
-              <li class="column is-2 has-text-centered">
-                @Shared.ConvertNumber(ontime)%
-              </li>
+              @if(Layout.IsMobile)
+              {
+                <li class="column is-size-7">
+                  <div class="icon-text">
+                    <span class="icon has-text-success">
+                      <i class="material-icons-outlined is-size-6">done_all</i>
+                    </span>
+                    <span class="has-text-grey" style="flex-grow: 1;">Công việc hoàn thành:</span>
+                    <span class="has-text-centered" style="width: 50px;">
+                      @report.done/@report.total
+                    </span>
+                    <span class="has-text-centered" style="width: 50px;">
+                      @Shared.ConvertNumber(done)%
+                    </span>
+                  </div>
+                  <div class="icon-text mt-1">
+                    <span class="icon has-text-success">
+                      <i class="material-icons-outlined is-size-6">done</i>
+                    </span>
+                    <span class="has-text-grey" style="flex-grow: 1;">Công việc hoàn thành:</span>
+                    <span class="has-text-centered" style="width: 50px;">
+                      @report.ontime/@report.total
+                    </span>
+                    <span class="has-text-centered" style="width: 50px;">
+                      @Shared.ConvertNumber(ontime)%
+                    </span>
+                  </div>
+                </li>
+              }
+              else
+              {
+                <li class="column is-1 has-text-centered">
+                  @report.total
+                </li>
+                <li class="column is-1 has-text-centered">
+                  @report.done
+                </li>
+                <li class="column is-2 has-text-centered">
+                  @Shared.ConvertNumber(done)%
+                </li>
+                <li class="column is-1 has-text-centered">
+                  @report.ontime
+                </li>
+                <li class="column is-2 has-text-centered">
+                  @Shared.ConvertNumber(ontime)%
+                </li>
+              }
             }
           }
         </ul>
@@ -176,6 +245,7 @@
   [Parameter]
   public string PlanId { get; set; }
 
+  private string url = string.Empty;
   private WorkPlanModel model = new();
   private List<WorkPlanModel.Task> taskList = new();
   private List<UserModel> members = new();
@@ -183,6 +253,8 @@
   
   protected override async Task OnParametersSetAsync()
   {
+    url = navigation.Uri.Replace(navigation.BaseUri, "/");
+
     model = await DbWorkPlan.Get(Layout.Company.id, PlanId);
     if(model != null)
     {
