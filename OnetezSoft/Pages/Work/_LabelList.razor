@@ -3,10 +3,10 @@
 
 <div class="dropdown @(isRight ? "is-right" : "") @(toggle ? "is-active" : "")">
   <div class="dropdown-trigger">
-    <div class="tags" style="flex-wrap: nowrap;">
+    <div class="tags" style="@(Layout.IsMobile ? "" : "flex-wrap: nowrap;")">
       @foreach (var item in ShortList())
       {
-        <span class="tag is_short" title="@item.name" 
+        <span class="tag @(Layout.IsMobile ? "" : "is_short")" title="@item.name" 
           style="background: @(item.color + "30"); color: @item.color;">@item.name</span>
       }
       @if(isEdit)
@@ -87,6 +87,8 @@
 </div>
 
 @code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
   [Parameter]
   public List<string> labels { get; set; }
   [Parameter]

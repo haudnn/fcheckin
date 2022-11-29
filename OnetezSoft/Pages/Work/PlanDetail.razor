@@ -60,10 +60,10 @@
                 }
                 else
                 {
-                  <li class="column is-four-fifths-table">
+                  <li class="column is-four-fifths-tablet is-two-thirds-mobile">
                     <div class="has-text-black has-text-weight-medium is-size-6">THÔNG TIN CHUNG</div>
                   </li>
-                  <li class="column is-one-fifth-tablet is-narrow-mobile has-text-right">
+                  <li class="column is-one-fifth-tablet is-one-third-mobile has-text-right">
                     @if(editRole)
                     {
                       <a class="icon-text has-text-link" @onclick="ToggleEdit">
@@ -74,14 +74,17 @@
                       </a>
                     }
                   </li>
-                  <li class="column is-one-fifth-tablet is-full-mobile">
-                    <span class="has-text-grey">Mô tả</span>
-                  </li>
-                  <li class="column is-four-fifths-tablet is-full-mobile">
-                    <div class="content has-text-justified">
-                      @((MarkupString)Shared.TextToHtml(model.detail))
-                    </div>
-                  </li>
+                  @if(!string.IsNullOrEmpty(model.detail))
+                  {
+                    <li class="column is-one-fifth-tablet is-full-mobile">
+                      <span class="has-text-grey">Mô tả</span>
+                    </li>
+                    <li class="column is-four-fifths-tablet is-full-mobile">
+                      <div class="content has-text-justified">
+                        @((MarkupString)Shared.TextToHtml(model.detail))
+                      </div>
+                    </li>
+                  }
                 }
                 @if(editRole)
                 {
@@ -144,7 +147,8 @@
                     <span class="has-text-grey">Ngày kết thúc</span>
                   </li>
                   <li class="column is-four-fifths-tablet is-half-mobile">
-                    <DateRangePicker @bind-StartDate="dateE" SingleDatePicker="true" OnRangeSelect="UpdateDateEnd">
+                    <DateRangePicker @bind-StartDate="dateE" SingleDatePicker="true"
+                      OnRangeSelect="UpdateDateEnd" Opens="SideType.Center">
                       <PickerTemplate>
                         <a id="@context.Id" @onclick="context.Toggle" class="icon-text" title="Thay đổi ngày kết thúc">
                           <span class="icon is-small mr-2">

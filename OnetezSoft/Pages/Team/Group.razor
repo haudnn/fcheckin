@@ -7,7 +7,7 @@
       <div class="card p-5 p-4-mobile">
         <ul class="columns is-vcentered is-variable is-3 is-mobile is-multiline">
           <li class="column is-narrow">
-            <div class="card p-2" style="background: #355CAA; border-radius: 10px; ">
+            <div class="card p-2" style="background: #355CAA; border-radius: 10px;">
               <i class="material-icons-outlined is-size-1 has-text-white">group</i>
             </div>
           </li>
@@ -54,7 +54,7 @@
       </div>
     </li>
     <li class="column is-full">
-      <div class="card p-5">
+      <div class="card p-5 p-4-mobile">
         <ul class="columns is-vcentered is-variable is-2 mb-3">
           <li class="column">
             <h1 class="title is-5 has-text-info">
@@ -214,7 +214,7 @@
     @if(CheckAccess("okrs"))
     {
       <li class="column is-half">
-        <div class="card p-5">
+        <div class="card p-5 p-4-mobile">
           <ul class="columns is-vcentered is-variable is-2 mb-3">
             <li class="column">
               <h1 class="title is-5 has-text-info">
@@ -223,23 +223,23 @@
             </li>
           </ul>
           <div class="scrolly pr-2" style="height: 175px">
-            <ul class="columns is-vcentered is-multiline is-mobile is-variable is-2">
+            <ul class="columns is-vcentered is-multiline is-mobile is-variable @(Layout.IsMobile ? "is-0" : "is-2")">
               @foreach (var item in okrProgress)
               {
                 var progressColor = Shared.ProgressColor(item.value);
-                <li class="column is-6">
+                <li class="column is-6-tablet is-full-mobile">
                   <a class="user_item" href="/teams/personal/@item.id">
                     <img class="image is-32x32 mr-3" src="@item.avatar" alt="IMG">
                     <span class="has-text-weight-semibold text_1_line">@item.name</span>
                   </a>
                 </li>
-                <li class="column is-5">
+                <li class="column is-5-tablet is-10-mobile">
                   <div class="progress_has_value">
                     <progress class="progress is-small @progressColor" value="@item.value" max="100"></progress>
                     <span>@Shared.ConvertNumber(item.value)%</span>
                   </div>
                 </li>
-                <li class="column is-1">
+                <li class="column is-1-tablet is-2-mobile has-text-right">
                   <a class="icon has-text-link" href="/teams/personal/@item.id">
                     <i class="material-icons-outlined is-size-5">
                       arrow_circle_right
@@ -252,7 +252,7 @@
         </div>
       </li>
       <li class="column is-half">
-        <div class="card p-5">
+        <div class="card p-5 p-4-mobile">
           <ul class="columns is-vcentered is-variable is-2 mb-3">
             <li class="column">
               <h1 class="title is-5 has-text-info">
@@ -370,7 +370,7 @@
     @if(CheckAccess("todolist"))
     { 
       <li class="column is-half">
-        <div class="card p-5">
+        <div class="card p-5 p-4-mobile">
           <ul class="columns is-vcentered is-variable is-2 mb-3">
             <li class="column">
               <h1 class="title is-5 has-text-info">
@@ -429,19 +429,19 @@
             </li>
           </ul>
           <div class="scrolly pr-2" style="height: 175px">
-            <ul class="columns is-vcentered is-multiline is-mobile is-variable is-2">
+            <ul class="columns is-vcentered is-multiline is-mobile is-variable @(Layout.IsMobile ? "is-1" : "is-2")">
               @foreach (var item in todoProgress)
               {
-                <li class="column is-6">
+                <li class="column is-6-tablet is-full-mobile">
                   <a class="user_item" href="/teams/personal/@item.id?tab=2">
                     <img class="image is-32x32 mr-3" src="@item.avatar" alt="IMG">
                     <span class="has-text-weight-semibold text_1_line">@item.name</span>
                   </a>
                 </li>
-                <li class="column is-4">
+                <li class="column is-4-tablet is-10-mobile">
                   @item.desc
                 </li>
-                <li class="column is-2 has-text-right has-text-weight-semibold">
+                <li class="column is-2-tablet is-2-mobile has-text-right has-text-weight-semibold">
                   @Shared.ConvertNumber(item.value)%
                 </li>
               }
@@ -454,7 +454,7 @@
     @if(CheckAccess("kaizen"))
     { 
       <li class="column is-half">
-        <div class="card p-5">
+        <div class="card p-5 p-4-mobile">
           <ul class="columns is-vcentered is-variable is-2 mb-3">
             <li class="column">
               <h1 class="title is-5 has-text-info">
@@ -516,14 +516,14 @@
     @if(CheckAccess("okrs"))
     {
       <li class="column is-full">
-        <div class="card p-5">
+        <div class="card p-5 p-4-mobile">
           <ul class="columns is-multiline is-mobile is-vcentered is-variable is-2">
             <li class="column is-full-mobile">
               <h1 class="title is-5 has-text-info">
                 GHI NHẬN - TẶNG SAO
               </h1>
             </li>
-            <li class="column is-narrow">
+            <li class="column is-narrow-tablet is-half-mobile">
               <div class="dropdown is-hoverable is-right">
                 <div class="dropdown-trigger">
                   <a class="icon-text">
@@ -552,7 +552,7 @@
                 </div>
               </div>
             </li>
-            <li class="column is-narrow">
+            <li class="column is-narrow-tablet is-half-mobile">
               <div class="dropdown is-hoverable is-right">
                 <div class="dropdown-trigger">
                   <a class="icon-text">
@@ -602,7 +602,7 @@
                 </div>
               </div>
             </li>
-            <li class="column is-one-quarter-tablet">
+            <li class="column is-one-quarter-tablet is-full-mobile">
               <div class="control has-icons-right has_suggest">
                 <input class="input is-rounded" type="text" placeholder="Nhập tên nhân viên..."
                        autocomplete="off" @bind="CFRsUserSearch" @bind:event="oninput" />
@@ -717,7 +717,7 @@
     @if(CheckAccess("train"))
     { 
       <li class="column is-full">
-        <div class="card p-5">
+        <div class="card p-5 p-4-mobile">
           <ul class="columns is-vcentered is-variable is-2 mb-3">
             <li class="column">
               <h1 class="title is-5 has-text-info">

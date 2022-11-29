@@ -2,19 +2,9 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<PageTitle>@_title</PageTitle>
+<PageTitle>Thống kê Kaizen</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+<section class="columns is-gapless has_menu_left">
   <div class="column is-narrow">
     <_MenuLeft Company="Layout.Company" User="Layout.User" />
   </div>
@@ -28,11 +18,6 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
 
-  private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
-  private string _title = "Thống kê Kaizen";
-
   private List<DepartmentModel> departmentAll = new();
   private List<DepartmentModel.SelectList> departments = new();
 
@@ -40,7 +25,5 @@
   {
     departmentAll = DbDepartment.GetAll(Layout.Company.id);
     departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
-
-    _loaded = true;
   }
 }

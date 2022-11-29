@@ -48,7 +48,7 @@
       {
         <div class="has-text-danger has-text-centered is-italic mb-3">@message</div>
       }
-      <button class="button is-link is-fullwidth mb-3" @onclick="SignIn">
+      <button class="button is-link is-fullwidth mb-3 @(loading ? "is-loading" : "")" @onclick="SignIn">
         <span class="is-size-7">Đăng nhập</span>
       </button>
       <a class="button is-white is-fullwidth" href="/password">
@@ -153,12 +153,13 @@
   private string username = string.Empty;
   private string password = string.Empty;
   private UserModel user = null;
+  private bool loading = false;
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
-    try
+    if (firstRender)
     {
-      if (firstRender)
+      try
       {
         var userStorage = await storage.GetAsync<string>("user");
         if (userStorage.Success && !string.IsNullOrEmpty(userStorage.Value))
@@ -181,17 +182,18 @@
         _loaded = true;
         StateHasChanged();
       }
-    }
-    catch (Exception ex)
-    {
-      await JSRuntime.InvokeVoidAsync("localStorage.clear");
-      await JSRuntime.InvokeAsync<string>("console.log", "ERROR STORAGE: " + ex.Message);
-      //navigation.NavigateTo("/", true);
+      catch (Exception ex)
+      {
+        await JSRuntime.InvokeVoidAsync("localStorage.clear");
+        await JSRuntime.InvokeAsync<string>("console.log", "ERROR STORAGE: " + ex.Message);
+        navigation.NavigateTo("/", true);
+      }
     }
   }
 
   private async Task SignIn()
   {
+    loading = true;
     user = await DbMainUser.Login(username, password);
     if (user != null && user.active)
     {
@@ -216,6 +218,7 @@
       else
         message = "Tài khoản này đã bị khóa !";
     }
+    loading = false;
   }
 
   private async Task GoCompany(string companyId)

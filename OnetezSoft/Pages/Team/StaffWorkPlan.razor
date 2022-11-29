@@ -1,7 +1,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<div class="card p-5">
+<div class="card p-5 p-4-mobile">
   <ul class="columns is-vcentered is-variable is-2 mb-3">
     <li class="column">
       <h1 class="title is-5 has-text-info">
@@ -10,79 +10,152 @@
     </li>
   </ul>
   
-  <table class="table is-fullwidth is-vcentered is-noborder is-responsive mt-3">
-    <thead>
-      <tr>
-        <th>Kế hoạch</th>
-        <th width="110px">Chế độ</th>
-        <th width="110px">Công việc</th>
-        <th width="120px">Quản lý</th>
-        <th width="150px">Thành viên</th>
-        <th width="90px">Kết thúc</th>
-      </tr>
-    </thead>
-    <tbody>
-      @foreach (var item in planList)
+  @if(Layout.IsMobile)
+  {
+    foreach (var item in planList)
+    {
+      var show = toggleStatus.Contains(item.Key);
+      var status = WorkService.StatusPlan(item.Key);
+      <div class="icon-text">
+        <span class="icon is-small mr-2">
+          <i class="material-icons-outlined is-size-6">@status.icon</i>
+        </span>
+        <a class="has-text-dark has-text-weight-semibold font_14 is-uppercase" @onclick="() => ToggleStatus(status.id)">
+          Kế hoạch @status.name (@item.Value.Count)
+        </a>
+        <a class="icon is-small has-text-dark" @onclick="() => ToggleStatus(status.id)">
+          <i class="material-icons-outlined is-size-6">@(show ? "arrow_drop_down" : "arrow_right")</i>
+        </a>
+      </div>
+      @if(show)
       {
-        var show = toggleStatus.Contains(item.Key);
-        var status = WorkService.StatusPlan(item.Key);
-        <tr>
-          <td colspan="6">
-            <div class="icon-text">
-              <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
-                <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
-              </a>
-              <span class="has-text-weight-semibold font_14 is-uppercase">
-                Kế hoạch @status.name (@item.Value.Count)
-              </span>
-            </div>
-          </td>
-        </tr>
-
-        @if(show)
+        foreach (var plan in item.Value)
         {
-          foreach (var plan in item.Value)
-          {
-            var report = DbWorkReport.Get(Layout.Company.id, plan.id);
-            var manages = plan.members.Where(x => x.role == 1).ToList();
-            var members = plan.members.Where(x => x.role == 2).ToList();
-            <tr>
-              <td class="pl-5">
-                <a class="has-text-link has-text-weight-medium" href="/work/@plan.id/detail">
+          var report = DbWorkReport.Get(Layout.Company.id, plan.id);
+          var manages = plan.members.Where(x => x.role == 1).ToList();
+          var members = plan.members.Where(x => x.role == 2).ToList();
+
+          <ul class="columns is-multiline is-variable is-vcentered is-1 is-mobile my-2 is-size-7">
+            <li class="column is-full">
+              <div class="icon-text">
+                <span class="icon is-small">
+                  <i class="material-icons-outlined is-size-6">
+                    @(plan.is_private ? "lock" : "public")
+                  </i>
+                </span>
+                <a class="has-text-link has-text-weight-medium font_14" href="/work/@plan.id/detail">
                   @plan.name
                 </a>
-              </td>
-              <td>
-                <span class="icon-text">
-                  <span class="icon is-small">
-                    <i class="material-icons-outlined is-size-6">
-                      @(plan.is_private ? "lock" : "public")
-                    </i>
-                  </span>
-                  <span>@(plan.is_private ? "Riêng tư" : "Công khai")</span>
-                </span>
-              </td>
-              <td>
-                <span class="has-text-weight-semibold">@report.total</span>
-              </td>
-              <td>
-                <OnetezSoft.Pages.Work._MemberList members="manages" sources="Layout.UserList" isRight="true" />
-              </td>
-              <td>
-                <OnetezSoft.Pages.Work._MemberList members="members" sources="Layout.UserList" isRight="true" />
-              </td>
-              <td>
-                @if(plan.date_end > 0)
-                {
-                  <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(plan.date_end))</span>
-                }
-              </td>
-            </tr>
-          }
+              </div>
+            </li>
+            <li class="column is-one-third pl-4">
+              <span class="has-text-grey">Công việc:</span>
+            </li>
+            <li class="column is-two-thirds">
+              @report.total
+            </li>
+            <li class="column is-one-third pl-4">
+              <span class="has-text-grey">Kết thúc</span>
+            </li>
+            <li class="column is-two-thirds">
+              @if(plan.date_end > 0)
+              {
+                <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(plan.date_end))</span>
+              }
+            </li>
+            <li class="column is-one-third pl-4">
+              <span class="has-text-grey">Quản lý:</span>
+            </li>
+            <li class="column is-two-thirds">
+              <OnetezSoft.Pages.Work._MemberList members="manages" sources="Layout.UserList" isRight="true" />
+            </li>
+            <li class="column is-one-third pl-4">
+              <span class="has-text-grey">Thành viên:</span>
+            </li>
+            <li class="column is-two-thirds">
+              <OnetezSoft.Pages.Work._MemberList members="members" sources="Layout.UserList" isRight="true" />
+            </li>
+          </ul>
         }
       }
-    </tbody>
-  </table>
+    }
+  }
+  else
+  {
+    <table class="table is-fullwidth is-vcentered is-noborder is-responsive mt-3">
+      <thead>
+        <tr>
+          <th>Kế hoạch</th>
+          <th width="110px">Chế độ</th>
+          <th width="110px">Công việc</th>
+          <th width="120px">Quản lý</th>
+          <th width="150px">Thành viên</th>
+          <th width="90px">Kết thúc</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in planList)
+        {
+          var show = toggleStatus.Contains(item.Key);
+          var status = WorkService.StatusPlan(item.Key);
+          <tr>
+            <td colspan="6">
+              <div class="icon-text">
+                <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
+                  <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
+                </a>
+                <a class="has-text-dark has-text-weight-semibold font_14 is-uppercase" @onclick="() => ToggleStatus(status.id)">
+                  Kế hoạch @status.name (@item.Value.Count)
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          @if(show)
+          {
+            foreach (var plan in item.Value)
+            {
+              var report = DbWorkReport.Get(Layout.Company.id, plan.id);
+              var manages = plan.members.Where(x => x.role == 1).ToList();
+              var members = plan.members.Where(x => x.role == 2).ToList();
+              <tr>
+                <td class="pl-5">
+                  <a class="has-text-link has-text-weight-medium" href="/work/@plan.id/detail">
+                    @plan.name
+                  </a>
+                </td>
+                <td>
+                  <span class="icon-text">
+                    <span class="icon is-small">
+                      <i class="material-icons-outlined is-size-6">
+                        @(plan.is_private ? "lock" : "public")
+                      </i>
+                    </span>
+                    <span>@(plan.is_private ? "Riêng tư" : "Công khai")</span>
+                  </span>
+                </td>
+                <td>
+                  <span class="has-text-weight-semibold">@report.total</span>
+                </td>
+                <td>
+                  <OnetezSoft.Pages.Work._MemberList members="manages" sources="Layout.UserList" isRight="true" />
+                </td>
+                <td>
+                  <OnetezSoft.Pages.Work._MemberList members="members" sources="Layout.UserList" isRight="true" />
+                </td>
+                <td>
+                  @if(plan.date_end > 0)
+                  {
+                    <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(plan.date_end))</span>
+                  }
+                </td>
+              </tr>
+            }
+          }
+        }
+      </tbody>
+    </table>
+  }
 </div>
 
 @code {

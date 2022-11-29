@@ -4,19 +4,9 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<PageTitle>@_title</PageTitle>
+<PageTitle>Đội mhóm</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<section class="columns is-gapless has_menu_left">
+<section id="page_teams" class="columns is-gapless has_menu_left">
   @if (staff != null)
   {
     <div class="column is-narrow">
@@ -64,7 +54,7 @@
                   {
                     <li class="column is-full pl-4">
                       <a class="user_item p-1 @(staff.id == user.id && department == null ? "has_bg" : "")"
-               href="/teams/personal/@user.id">
+                        href="/teams/personal/@user.id">
                         <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG">
                         <span class="text_1_line">@user.FullName</span>
                       </a>
@@ -145,10 +135,6 @@
   public string StaffId { get; set; }
   [Parameter]
   public string DepartmentId { get; set; }
-
-  private bool _success = false;
-  private string _message = string.Empty;
-  private string _title = "Đội nhóm";
 
   private UserModel User = new();
   private UserModel staff = null;

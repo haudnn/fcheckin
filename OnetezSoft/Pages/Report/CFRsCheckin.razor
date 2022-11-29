@@ -1,12 +1,10 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<div class="card p-5 @(_loaded ? "" : "is-loading")">
+<div class="card p-5 p-4-mobile @(_loaded ? "" : "is-loading")">
   <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3">
     <li class="column is-full">
-      <h1 class="title is-5 has-text-info">
-        TỔNG QUAN
-      </h1>
+      <div class="title is-5 is-size-6-mobile has-text-info">TỔNG QUAN</div>
     </li>
     <li class="column">
       <div class="field has-addons">
@@ -89,7 +87,7 @@
         var item = chartList[i];
         <li class="column @(i == 0 ? "is-full" : "is-half") pt-5">
           <h2 class="title is-6 has-text-info mb-3">@item.name</h2>
-          <div class="pl-6">
+          <div class="@(Layout.IsMobile ? "" : "pl-6")">
             <div style="height: 150px;">
               <canvas id="chart_@item.id" height="150"></canvas>
             </div>

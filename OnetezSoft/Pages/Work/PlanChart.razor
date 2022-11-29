@@ -277,6 +277,14 @@
     }
   }
 
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender && Layout.IsMobile)
+    {
+      await JSRuntime.InvokeVoidAsync("stickyHeaderMobile");
+    }
+  }
+
   private bool RoleView()
   {
     // Kiểm tra quyền xem kế hoạch

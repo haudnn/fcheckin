@@ -9,20 +9,51 @@
   var dateE = new DateTime(model.date_end);
 }
 
-<div class="task_board card px-3 py-2 is-size-7">
+<div class="task_board card p-3 is-size-7">
   <ul class="columns is-multiline is-vcentered is-variable is-1 is-mobile">
-    <li class="column is-full has-text-weight-medium">
-      <a class="has-text-@(model.status == 4 ? "success is-line-through " : "black")"
-        @onclick="View">@model.name</a>
-    </li>
     @if(deadline != null)
     {
-      <li class="column is-half">
+      <li class="column is-narrow">
         <span class="tag" style="background: @(deadline.color + "30"); color: #555;">
           @deadline.name
         </span>
       </li>
     }
+    <li class="column is-narrow">
+      @if(isEdit)
+      {
+        <div class="dropdown @(toggleStatus ? "is-active" : "")">
+          <div class="dropdown-trigger">
+            <a class="icon-text" @onclick="ToggleStatus">
+              <span class="tag @status.color">@status.name</span>
+              <span class="icon is-small">
+                <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+              </span>
+            </a>
+          </div>
+          <div class="dropdown-menu">
+            <div class="dropdown-content">
+              @foreach (var item in WorkService.StatusSub())
+              {
+                <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
+              }
+            </div>
+          </div>
+        </div>
+      }
+      else
+      {
+        <span class="tag @status.color">@status.name</span>
+      }
+    </li>
+    <li class="column is-full has-text-weight-medium">
+      <a class="has-text-@(model.status == 4 ? "success is-line-through " : "black")"
+        @onclick="View">@model.name</a>
+    </li>
+    <li class="column is-half">
+      <_MemberList members="model.members" sources="members" isEdit="isEdit" 
+        isTask="true" isSubTask="true" OnUpdate="UpdateMembers" />
+    </li>
     <li class="column @(deadline != null ? "is-half" : "is-full")">
       <div class="input-date icon-text">
         <span class="icon is-small" onclick="setFocus('dateE_@model.id')">
@@ -37,33 +68,6 @@
         </span>
         <span onclick="setFocus('dateE_@model.id')">@dateE.ToString("dd/MM")</span>
         <input @bind="dateE" id="dateE_@model.id" type="datetime-local" @oninput="(e) => ChangeDateEnd(e)">
-      </div>
-    </li>
-    <li class="column is-half">
-      <_MemberList members="model.members" sources="members" isEdit="isEdit" 
-        isTask="true" isSubTask="true" OnUpdate="UpdateMembers" />
-    </li>
-    <li class="column is-half">
-      <div class="dropdown @(toggleStatus ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="icon-text" @onclick="ToggleStatus">
-            <span class="tag @status.color" style="width: 58px;">@status.name</span>
-            <span class="icon is-small">
-              <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
-            </span>
-          </a>
-        </div>
-        @if(isEdit)
-        {
-          <div class="dropdown-menu">
-            <div class="dropdown-content">
-              @foreach (var item in WorkService.StatusSub())
-              {
-                <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
-              }
-            </div>
-          </div>
-        }
       </div>
     </li>
   </ul>

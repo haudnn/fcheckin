@@ -3,7 +3,7 @@
 
 <PageTitle>Thống kê Kế hoạch</PageTitle>
 
-<div class="card p-5">
+<div class="card p-5 p-4-mobile">
   <ul class="columns is-vcentered is-variable is-2 mb-3">
     <li class="column">
       <h1 class="title is-5 has-text-info">
@@ -11,7 +11,7 @@
       </h1>
     </li>
     <li class="column is-narrow">
-      <div class="dropdown is-right @(toggleDepartment ? "is-active" : "")">
+      <div class="dropdown @(toggleDepartment ? "is-active" : "")">
         <div class="dropdown-trigger">
           <a class="icon-text" @onclick="() => toggleDepartment = !toggleDepartment">
             <span class="has-text-link">
@@ -48,72 +48,136 @@
     </li>
   </ul>
 
-  <table class="table is-fullwidth is-vcentered is-noborder is-responsive mt-3">
-    <thead>
-      <tr class="is-size-7">
-        <th>Kế hoạch</th>
-        <th width="110px">Chế độ</th>
-        <th align="center" width="150px">Công việc hoàn thành</th>
-        <th align="center" width="150px">Công việc trễ hạn</th>
-      </tr>
-    </thead>
-    <tbody>
-      @foreach (var item in planList)
+  @if(Layout.IsMobile)
+  {
+    foreach (var item in planList)
+    {
+      var show = toggleStatus.Contains(item.Key);
+      var status = WorkService.StatusPlan(item.Key);
+      <div class="icon-text">
+        <span class="icon is-small mr-2">
+          <i class="material-icons-outlined is-size-6">@status.icon</i>
+        </span>
+        <a class="has-text-dark has-text-weight-semibold font_14 is-uppercase" @onclick="() => ToggleStatus(status.id)">
+          Kế hoạch @status.name (@item.Value.Count)
+        </a>
+        <a class="icon is-small has-text-dark" @onclick="() => ToggleStatus(status.id)">
+          <i class="material-icons-outlined is-size-6">@(show ? "arrow_drop_down" : "arrow_right")</i>
+        </a>
+      </div>
+      @if(show)
       {
-        var show = toggleStatus.Contains(item.Key);
-        var status = WorkService.StatusPlan(item.Key);
-        <tr>
-          <td colspan="4">
-            <div class="icon-text">
-              <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
-                <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
-              </a>
-              <span class="has-text-weight-semibold font_14 is-uppercase">
-                Kế hoạch @status.name (@item.Value.Count)
-              </span>
-            </div>
-          </td>
-        </tr>
-
-        @if(show)
+        foreach (var plan in item.Value)
         {
-          foreach (var plan in item.Value)
-          {
-            var report = DbWorkReport.Get(Layout.Company.id, plan.id);
-            var done = Shared.Progress(report.done, report.total);
-            var late = Shared.Progress(report.late, report.total);
-            <tr>
-              <td class="pl-5">
-                <a class="has-text-link has-text-weight-medium" href="/work/@plan.id/detail">
-                  @plan.name
-                </a>
-              </td>
-              <td>
-                <span class="icon-text">
-                  <span class="icon is-small">
-                    <i class="material-icons-outlined is-size-6">
-                      @(plan.is_private ? "lock" : "public")
-                    </i>
-                  </span>
-                  <span>@(plan.is_private ? "Riêng tư" : "Công khai")</span>
+          var report = DbWorkReport.Get(Layout.Company.id, plan.id);
+          var done = Shared.Progress(report.done, report.total);
+          var late = Shared.Progress(report.late, report.total); 
+          <ul class="columns is-multiline is-variable is-1 is-mobile my-2 is-size-7">
+            <li class="column is-full">
+              <a class="has-text-link has-text-weight-medium font_14" href="/work/@plan.id/detail">
+                @plan.name
+              </a>
+            </li>
+            <li class="column is-two-thirds">
+              <div class="icon-text">
+                <span class="icon is-small mr-2 has-text-success">
+                  <i class="material-icons-outlined is-size-6">done_all</i>
                 </span>
-              </td>
-              <td align="center">
-                <span>@string.Format("{0}/{1}", report.done, report.total)</span>
-                <span class="px-1">•</span>
-                <span>@Shared.ConvertNumber(done)%</span>
-              </td>
-              <td align="center">
-                <span>@string.Format("{0}/{1}", report.late, report.total)</span>
-                <span class="px-1">•</span>
-                <span>@Shared.ConvertNumber(late)%</span>
-              </td>
-            </tr>
-          }
+                <span class="has-text-grey">Công việc hoàn thành:</span>
+              </div>
+            </li>
+            <li class="column is-one-third">
+              <span>@string.Format("{0}/{1}", report.done, report.total)</span>
+              <span class="px-1">•</span>
+              <span>@Shared.ConvertNumber(done)%</span>
+            </li>
+            <li class="column is-two-thirds">
+              <div class="icon-text">
+                <span class="icon is-small mr-2 has-text-danger">
+                  <i class="material-icons-outlined is-size-6">error_outline</i>
+                </span>
+                <span class="has-text-grey">Công việc trễ hạn:</span>
+              </div>
+            </li>
+            <li class="column is-one-third">
+              <span>@string.Format("{0}/{1}", report.late, report.total)</span>
+              <span class="px-1">•</span>
+              <span>@Shared.ConvertNumber(late)%</span>
+            </li>
+          </ul>
         }
       }
-    </tbody>
-  </table>
+    }
+  }
+  else
+  {
+    <table class="table is-fullwidth is-vcentered is-noborder is-responsive mt-3">
+      <thead>
+        <tr class="is-size-7">
+          <th>Kế hoạch</th>
+          <th width="110px">Chế độ</th>
+          <th align="center" width="150px">Công việc hoàn thành</th>
+          <th align="center" width="150px">Công việc trễ hạn</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in planList)
+        {
+          var show = toggleStatus.Contains(item.Key);
+          var status = WorkService.StatusPlan(item.Key);
+          <tr>
+            <td colspan="4">
+              <div class="icon-text">
+                <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
+                  <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
+                </a>
+                <a class="has-text-dark has-text-weight-semibold font_14 is-uppercase" @onclick="() => ToggleStatus(status.id)">
+                  Kế hoạch @status.name (@item.Value.Count)
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          @if(show)
+          {
+            foreach (var plan in item.Value)
+            {
+              var report = DbWorkReport.Get(Layout.Company.id, plan.id);
+              var done = Shared.Progress(report.done, report.total);
+              var late = Shared.Progress(report.late, report.total);
+              <tr>
+                <td class="pl-5">
+                  <a class="has-text-link has-text-weight-medium" href="/work/@plan.id/detail">
+                    @plan.name
+                  </a>
+                </td>
+                <td>
+                  <span class="icon-text">
+                    <span class="icon is-small">
+                      <i class="material-icons-outlined is-size-6">
+                        @(plan.is_private ? "lock" : "public")
+                      </i>
+                    </span>
+                    <span>@(plan.is_private ? "Riêng tư" : "Công khai")</span>
+                  </span>
+                </td>
+                <td align="center">
+                  <span>@string.Format("{0}/{1}", report.done, report.total)</span>
+                  <span class="px-1">•</span>
+                  <span>@Shared.ConvertNumber(done)%</span>
+                </td>
+                <td align="center">
+                  <span>@string.Format("{0}/{1}", report.late, report.total)</span>
+                  <span class="px-1">•</span>
+                  <span>@Shared.ConvertNumber(late)%</span>
+                </td>
+              </tr>
+            }
+          }
+        }
+      </tbody>
+    </table>
+  }
 </div>
 
 @code {

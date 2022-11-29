@@ -1,43 +1,96 @@
-﻿@inject NavigationManager navigation
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
 
-<div class="card p-3 menu_left">
-  @if(CheckAccess("okrs"))
-  {
-    <a class="@(navigation.Uri.Contains("reports/okrs") ? "is-active" : "")" href="/reports/okrs">
-      OKRs
+@if(Layout.IsMobile)
+{
+  <div class="header-sticky">
+    <div class="tabs font_14">
+      <ul>
+        @if(CheckAccess("okrs"))
+        {
+          <li class="@(navigation.Uri.Contains("reports/okrs") ? "is-active" : "")">
+            <a href="/reports/okrs">OKRs</a>
+          </li>
+          <li class="@(navigation.Uri.Contains("reports/cfrs") ? "is-active" : "")">
+            <a href="/reports/cfrs">CFRs</a>
+          </li>
+        }
+        @if(CheckAccess("work"))
+        {
+          <li class="@(navigation.Uri.Contains("reports/work") ? "is-active" : "")">
+            <a href="/reports/work">Kế hoạch</a>
+          </li>
+        }
+        @if(CheckAccess("todolist"))
+        {
+          <li class="@(navigation.Uri.Contains("reports/todolist") ? "is-active" : "")">
+            <a href="/reports/todolist">Todolist</a>
+          </li>
+        }
+        @if(CheckAccess("kaizen"))
+        {
+          <li class="@(navigation.Uri.Contains("reports/kaizen") ? "is-active" : "")">
+            <a href="/reports/kaizen">Kaizen</a>
+          </li>
+        }
+        <li class="@(navigation.Uri.Contains("reports/achievement") ? "is-active" : "")">
+          <a href="/reports/achievement">Thành tựu</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+}
+else
+{
+  <div class="card p-3 menu_left">
+    @if(CheckAccess("okrs"))
+    {
+      <a class="@(navigation.Uri.Contains("reports/okrs") ? "is-active" : "")" href="/reports/okrs">
+        OKRs
+      </a>
+      <a class="@(navigation.Uri.Contains("reports/cfrs") ? "is-active" : "")" href="/reports/cfrs">
+        CFRs
+      </a>
+    }
+    @if(CheckAccess("work"))
+    {
+      <a class="@(navigation.Uri.Contains("reports/work") ? "is-active" : "")" href="/reports/work">
+        Kế hoạch
+      </a>
+    }
+    @if(CheckAccess("todolist"))
+    {
+      <a class="@(navigation.Uri.Contains("reports/todolist") ? "is-active" : "")" href="/reports/todolist">
+        Todolist
+      </a>
+    }
+    @if(CheckAccess("kaizen"))
+    {
+      <a class="@(navigation.Uri.Contains("reports/kaizen") ? "is-active" : "")" href="/reports/kaizen">
+        Kaizen
+      </a>
+    }
+    <a class="@(navigation.Uri.Contains("reports/achievement") ? "is-active" : "")" href="/reports/achievement">
+      Thành tựu
     </a>
-    <a class="@(navigation.Uri.Contains("reports/cfrs") ? "is-active" : "")" href="/reports/cfrs">
-      CFRs
-    </a>
-  }
-  @if(CheckAccess("work"))
-  {
-    <a class="@(navigation.Uri.Contains("reports/work") ? "is-active" : "")" href="/reports/work">
-      Kế hoạch
-    </a>
-  }
-  @if(CheckAccess("todolist"))
-  {
-    <a class="@(navigation.Uri.Contains("reports/todolist") ? "is-active" : "")" href="/reports/todolist">
-      Todolist
-    </a>
-  }
-  @if(CheckAccess("kaizen"))
-  {
-    <a class="@(navigation.Uri.Contains("reports/kaizen") ? "is-active" : "")" href="/reports/kaizen">
-      Kaizen
-    </a>
-  }
-  <a class="@(navigation.Uri.Contains("reports/achievement") ? "is-active" : "")" href="/reports/achievement">
-    Thành tựu
-  </a>
-</div>
+  </div>
+}
 
 @code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
   [Parameter]
   public UserModel User { get; set; }
   [Parameter]
   public CompanyModel Company { get; set; }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender && Layout.IsMobile)
+    {
+      await JSRuntime.InvokeVoidAsync("stickyHeaderMobile");
+    }
+  }
 
   private bool CheckAccess(string productId)
   {
