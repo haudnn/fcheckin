@@ -2,17 +2,29 @@
 @inject NavigationManager navigation
 
 <div class="card teams_left py-3">
-  <div class="px-3">
-    <div class="user_item p-1 @(url.StartsWith("/work/my-task") ? "has_bg" : "")">
-      <img class="image is-24x24 mr-2" src="@Layout.User.avatar" alt="IMG">
-      <a href="/work/my-task">Công việc của tôi</a>
+  @if(Layout.IsMobile)
+  {
+    <div class="px-3 mb-4 has-text-weight-semibold">
+      <div class="user_item p-1 @(url.StartsWith("/work/my-task") ? "has_bg" : "")">
+        <img class="image is-24x24 mr-2" src="@Layout.User.avatar" alt="IMG">
+        <a href="/work/my-task">Công việc của tôi</a>
+      </div>
     </div>
-  </div>
-  <hr class="my-3 is-hidden-mobile">
+  }
+  else
+  {
+    <div class="px-3">
+      <div class="user_item p-1 @(url.StartsWith("/work/my-task") ? "has_bg" : "")">
+        <img class="image is-24x24 mr-2" src="@Layout.User.avatar" alt="IMG">
+        <a href="/work/my-task">Công việc của tôi</a>
+      </div>
+    </div>
+    <hr class="my-3">
+  }
   <div class="px-3 is_filter">
     <div class="control has-icons-right mb-3">
       <input @bind="keyword" @bind:event="oninput" type="text"
-        class="input is-small is-rounded" placeholder="Tiêu đề kế hoạch">
+        class="input is-small is-rounded is_bg" placeholder="Tiêu đề kế hoạch">
       <span class="icon is-right">
         <i class="material-icons-round is-size-6">search</i>
       </span>
@@ -86,7 +98,7 @@
             <a class="has-text-info" href="@link" style="flex-grow: 1;" title="@plan.name">
               @plan.name
             </a>
-            <div class="dropdown is-hoverable is-right icon is-small is_hover">
+            <div class="icon is-small dropdown is-hoverable is-right is_hover">
               <div class="dropdown-trigger">
                 <span class="icon is-small">
                   <i class="material-icons-outlined is-size-6">more_horiz</i>
@@ -134,7 +146,7 @@
         }
         if(list.Count == 0)
         {
-          <div class="sidebar_plan_item has-text-grey is-size-7">Không có kế hoạch</div>
+          <div class="sidebar_plan_item has-text-grey">Không có kế hoạch</div>
         }
       }
     }
@@ -189,9 +201,9 @@
     else if(orderBy == 2)
       data = data.OrderByDescending(x => x.name).ToList();
     else if(orderBy == 3)
-      data = data.OrderBy(x => x.date_start).ToList();
-    else if(orderBy == 4)
       data = data.OrderByDescending(x => x.date_start).ToList();
+    else if(orderBy == 4)
+      data = data.OrderBy(x => x.date_start).ToList();
 
     // Phân nhóm
     planList.Clear();

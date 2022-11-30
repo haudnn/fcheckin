@@ -8,9 +8,35 @@
       <a class="icon has-text-link" href="/work">
         <i class="material-icons-outlined is-size-5">arrow_back</i>
       </a>
-      <h1 class="is-size-6 has-text-dark has-text-weight-semibold">
+      <div class="is-size-6 has-text-dark has-text-weight-semibold" style="flex-grow: 1;">
         @(!string.IsNullOrEmpty(model.name) ? model.name : "Chi tiết Kế hoạch")
-      </h1>
+      </div>
+      <div class="icon is-small dropdown is-hoverable is-right is_hover">
+        <div class="dropdown-trigger">
+          <span class="icon is-small">
+            <i class="material-icons-outlined is-size-6">more_horiz</i>
+          </span>
+        </div>
+        <div class="dropdown-menu is-size-7" style="min-width: 0;">
+          <div class="dropdown-content">
+            <a class="dropdown-item is-hidden">
+              Ghim kế hoạch
+            </a>
+            <a class="dropdown-item" @onclick="PinPlan">
+              @(Layout.User.plans_pin.Contains(model.id) ? "Hủy ghim" : "Ghim") kế hoạch
+            </a>
+            <a class="dropdown-item" @onclick="HidePlan">
+              @(Layout.User.plans_hide.Contains(model.id) ? "Hủy" : "Thêm vào") lưu trữ
+            </a>
+            <a class="dropdown-item has-text-danger" @onclick="LeavePlan">
+              Rời khỏi kế hoạch
+            </a>
+            <a class="dropdown-item has-text-danger" @onclick="DeletePlan">
+              Xóa kế hoạch
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="header-tabs">
       <ul class="columns is-mobile is-variable is-1">
@@ -123,6 +149,7 @@ else
 
   private string tab = "detail";
   private string view = "";
+  private bool toggleMenu = false;
 
   protected override void OnParametersSet()
   {
@@ -141,7 +168,80 @@ else
         else
           view = "list";
       }
-      
     }
+    toggleMenu = false;
+  }
+
+  private async Task PinPlan()
+  {
+    toggleMenu = false;
+    if(Layout.User.plans_pin.Contains(model.id))
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy ghim kế hoạch: {model.name}?"))
+        return;
+      Layout.User.plans_pin.Remove(model.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hủy ghim kế hoạch " + model.name);
+    }
+    else
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn ghim kế hoạch: {model.name}?"))
+        return;
+      Layout.User.plans_pin.Add(model.id);
+      Layout.User.plans_hide.Remove(model.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã ghim kế hoạch " + model.name);
+    }
+    await DbUser.Update(Layout.Company.id, Layout.User);
+  }
+
+  private async Task HidePlan()
+  {
+    toggleMenu = false;
+    if(Layout.User.plans_hide.Contains(model.id))
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy lưu trữ kế hoạch: {model.name}?"))
+        return;
+      Layout.User.plans_hide.Remove(model.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hủy lưu trữ kế hoạch " + model.name);
+    }
+    else
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn lưu trữ kế hoạch: {model.name}?"))
+        return;
+      Layout.User.plans_hide.Add(model.id);
+      Layout.User.plans_pin.Remove(model.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã lưu trữ kế hoạch " + model.name);
+    }
+    await DbUser.Update(Layout.Company.id, Layout.User);
+  }
+
+  private async Task DeletePlan()
+  {
+    toggleMenu = false;
+    if(WorkService.RoleInPlan(model, Layout.User.id) == 1)
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa kế hoạch {model.name}. Việc này sẽ khiến dữ liệu công việc trong kế hoạch bị mất.\nBạn có chắc chắn muốn thực hiện?"))
+        return;
+      // Thông báo chuông
+      foreach (var user in model.members)
+         await DbNotify.ForPlan(Layout.Company.id, 705, model.id, null, user.id, Layout.User.id);
+      await WorkService.DeletePlan(Layout.Company.id, model.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa kế hoạch thành công!");
+      navigation.NavigateTo("/work");
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có quyền xóa kế hoạch này!");
+  }
+
+  private async Task LeavePlan()
+  {
+    toggleMenu = false;
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc chắn muốn rời khỏi kế hoạch này?"))
+        return;
+    if(await WorkService.RemoveMemberInPlan(Layout.Company.id, model.id, Layout.User.id))
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã rời khỏi kế hoạch thành công!");
+    else if(WorkService.CheckPlanSingleManager(model, Layout.User.id))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang là quản lý duy nhất của kế hoạch, vui lòng thêm quản lý khác trước khi rời khỏi kế hoạch!");
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Không thành công, vui lòng thử lại!");
   }
 }

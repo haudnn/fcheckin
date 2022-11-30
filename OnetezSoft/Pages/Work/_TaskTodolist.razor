@@ -38,26 +38,20 @@
           <div class="has-text-grey">Thời hạn:</div>
         </li>
         <li class="column is-two-thirds">
-          <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" Opens="SideType.Center"
-            MinDate="DateTime.Today">
-            <PickerTemplate>
-              <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
-                <span class="icon is-small mr-1">
-                  <i class="material-icons-outlined is-size-6">calendar_today</i>
-                </span>
-                @if (context.TStartDate != null && context.TEndDate != null)
-                {
-                  <span>@context.TStartDate.Value.ToString("dd/MM")</span>
-                  <span class="px-1">-</span>
-                  <span>@context.TEndDate.Value.ToString("dd/MM")</span>
-                }
-                else
-                {
-                  <span>Chọn ngày</span>
-                }
-              </a>
-            </PickerTemplate>
-          </DateRangePicker>
+          <div class="input-date icon-text">
+            <span class="icon is-small" onclick="setFocus('dateS_todolist')">
+              <i class="material-icons-outlined is-size-6">calendar_today</i>
+            </span>
+            <span onclick="setFocus('dateS_todolist')">@(dateS != null ? dateS.Value.DateTime.ToString("dd/MM") : "dd/mm")</span>
+            <input id="dateS_todolist" type="datetime-local" @oninput="(e) => ChangeDateStart(e)">
+          </div>
+          <div class="input-date icon-text">
+            <span class="icon is-small" onclick="setFocus('dateE_todolist')">
+              <i class="material-icons-outlined font_14">east</i>
+            </span>
+            <span onclick="setFocus('dateE_todolist')">@(dateE != null ? dateE.Value.DateTime.ToString("dd/MM") : "dd/mm")</span>
+            <input id="dateE_todolist" type="datetime-local" @oninput="(e) => ChangeDateEnd(e)">
+          </div>
         </li>
         <li class="column is-one-third pl-3">
           <div class="has-text-grey">Thời gian:</div>
@@ -246,18 +240,32 @@
     await JSRuntime.InvokeVoidAsync("setFocus", "task_todo");
   }
 
+  private void ChangeDateStart(ChangeEventArgs e)
+  {
+    if(e.Value != null)
+      dateS = Convert.ToDateTime(e.Value);
+  }
+
+  private void ChangeDateEnd(ChangeEventArgs e)
+  {
+    if(e.Value != null)
+      dateE = Convert.ToDateTime(e.Value);
+  }
+
   private async Task Update()
   {
     if(string.IsNullOrEmpty(todo.name) || string.IsNullOrEmpty(todo.name.Trim()))
       await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập tiêu đề của Todolist");
     else if(dateS == null || dateE == null)
       await JSRuntime.InvokeVoidAsync("tagline", false, "Chọn ngày tạo Todolist");
+    else if(dateS.Value.Ticks < DateTime.Today.Ticks)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Vui lòng chọn lại ngày bắt đầu");
+    else if(dateS.Value.Ticks > dateE.Value.Ticks)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Vui lòng chọn lại thời gian phù hợp");
     else
     {
       for (DateTime day = dateS.Value.DateTime; day <= dateE.Value.DateTime; day = day.AddDays(1))
-      {
         await AddTodo(day);
-      }
       await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã tạo Todolist liên kết với công việc");
       todos = DbTodoItem.GetList(Layout.Company.id, task.id, Layout.User.id);
       todo = null;
@@ -266,6 +274,7 @@
 
   private async Task AddTodo(DateTime date)
   {
+    date = Convert.ToDateTime(date.ToShortDateString());
     var todolist = await DbTodolist.GetbyDay(Layout.Company.id, Layout.User.id, date);
     if (todolist == null)
     {

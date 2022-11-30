@@ -88,18 +88,24 @@
     </li>
     <li class="column is-half">
       <div class="input-date icon-text">
-        <span class="icon" onclick="setFocus('dateE_@model.id')">
+        <span class="icon" onclick="setFocus('dateS_@model.id')">
           <i class="material-icons-outlined is-size-6">calendar_today</i>
         </span>
         <span onclick="setFocus('dates_@model.id')">@dateS.ToString("dd/MM")</span>
-        <input @bind="dateS" id="dateS_@model.id" type="datetime-local" @oninput="(e) => ChangeDateStart(e)">
+        @if(editRole)
+        {
+          <input @bind="dateS" id="dateS_@model.id" type="datetime-local" @oninput="(e) => ChangeDateStart(e)">
+        }
       </div>
       <div class="input-date icon-text">
         <span class="icon is-small" onclick="setFocus('dateE_@model.id')">
           <i class="material-icons-outlined font_14">east</i>
         </span>
         <span onclick="setFocus('dateE_@model.id')">@dateE.ToString("dd/MM")</span>
-        <input @bind="dateE" id="dateE_@model.id" type="datetime-local" @oninput="(e) => ChangeDateEnd(e)">
+        @if(editRole)
+        {
+          <input @bind="dateE" id="dateE_@model.id" type="datetime-local" @oninput="(e) => ChangeDateEnd(e)">
+        }
       </div>
     </li>
     @if(model.sub_task > 0)

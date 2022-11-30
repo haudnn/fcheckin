@@ -54,20 +54,26 @@
       <_MemberList members="model.members" sources="members" isEdit="isEdit" 
         isTask="true" isSubTask="true" OnUpdate="UpdateMembers" />
     </li>
-    <li class="column @(deadline != null ? "is-half" : "is-full")">
+    <li class="column is-half">
       <div class="input-date icon-text">
-        <span class="icon is-small" onclick="setFocus('dateE_@model.id')">
+        <span class="icon is-small" onclick="setFocus('dateS_@model.id')">
           <i class="material-icons-outlined is-size-6">calendar_today</i>
         </span>
-        <span onclick="setFocus('dates_@model.id')">@dateS.ToString("dd/MM")</span>
-        <input @bind="dateS" id="dateS_@model.id" type="datetime-local" @oninput="(e) => ChangeDateStart(e)">
+        <span onclick="setFocus('dateS_@model.id')">@dateS.ToString("dd/MM")</span>
+        @if(isEdit)
+        {
+          <input @bind="dateS" id="dateS_@model.id" type="datetime-local" @oninput="(e) => ChangeDateStart(e)">
+        }
       </div>
       <div class="input-date icon-text">
         <span class="icon is-small" onclick="setFocus('dateE_@model.id')">
           <i class="material-icons-outlined font_14">east</i>
         </span>
         <span onclick="setFocus('dateE_@model.id')">@dateE.ToString("dd/MM")</span>
-        <input @bind="dateE" id="dateE_@model.id" type="datetime-local" @oninput="(e) => ChangeDateEnd(e)">
+        @if(isEdit)
+        {
+          <input @bind="dateE" id="dateE_@model.id" type="datetime-local" @oninput="(e) => ChangeDateEnd(e)">
+        }
       </div>
     </li>
   </ul>
@@ -100,16 +106,6 @@
   private async Task View()
   {
     await OnView.InvokeAsync();
-  }
-
-  private async Task Delete()
-  {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa \"{model.name}\".\nBạn có chắc chắn muốn thực hiện?"))
-      return;
-    await DbWorkTask.Delete(Layout.Company.id, model.id);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
-    await WorkService.CreateLog(Layout.Company.id, "Xóa công việc phụ", model.name, parent.plan_id, parent.id, Layout.User);
-    await OnUpdate.InvokeAsync(model);
   }
 
   private async Task ChangeDateStart(ChangeEventArgs e)

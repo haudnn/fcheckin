@@ -7,14 +7,15 @@
   var priority = WorkService.Priority(task.priority);
   var sections = plan.sections.SingleOrDefault(x => x.id == task.section_id);
   var editTask = WorkService.RoleEditTask(plan, task, Layout.User.id);
-  DateTimeOffset? dateS = task.date_start > 0 ? new DateTime(task.date_start) : null;
-  DateTimeOffset? dateE = task.date_end > 0 ? new DateTime(task.date_end) : null;
   
   <section class="modal is-active">
     <div class="modal-background"></div>
     <section id="plan_popup" class="modal-card is-medium">
       @if(Layout.IsMobile)
       {
+        DateTime dateS = task.date_start > 0 ? new DateTime(task.date_start) : DateTime.Today;
+        DateTime dateE = task.date_end > 0 ? new DateTime(task.date_end) : DateTime.Today.AddDays(7);
+
         <section class="modal-card-head">
           <div class="modal-card-title">
             <div class="icon-text">
@@ -136,32 +137,17 @@
                 <div class="control is-expanded">
                   @if(editTask)
                   {
-                    <DateRangePicker @bind-StartDate="dateS" TimePicker="true" TimePicker24Hour="true"
-                      SingleDatePicker="true" OnRangeSelect="UpdateDateStart" Opens="SideType.Left">
-                      <PickerTemplate>
-                        <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
-                          <span class="icon is-small mr-1">
-                            <i class="material-icons-outlined is-size-6">calendar_today</i>
-                          </span>
-                          @if (context.TStartDate != null)
-                          {
-                            <span>@context.TStartDate.Value.ToString("dd/MM/yyyy")</span>
-                            <span class="icon is-small ml-3 mr-1">
-                              <i class="material-icons-outlined is-size-6">schedule</i>
-                            </span>
-                            <span>@context.TStartDate.Value.ToString("HH:mm")</span>
-                          }
-                          else
-                          {
-                            <span>dd/mm/yyyy</span>
-                            <span class="icon is-small ml-3 mr-1">
-                              <i class="material-icons-outlined is-size-6">schedule</i>
-                            </span>
-                            <span>hh:mm</span>
-                          }
-                        </a>
-                      </PickerTemplate>
-                    </DateRangePicker>
+                    <div class="input-date icon-text">
+                      <span class="icon is-small mr-1" onclick="setFocus('popup_dateS')">
+                        <i class="material-icons-outlined is-size-6">calendar_today</i>
+                      </span>
+                      <span onclick="setFocus('popup_dateS')">@dateS.ToString("dd/MM/yyyy")</span>
+                      <span class="icon is-small ml-3 mr-1" onclick="setFocus('popup_dateS')">
+                        <i class="material-icons-outlined is-size-6">schedule</i>
+                      </span>
+                      <span onclick="setFocus('popup_dateS')">@dateS.ToString("HH:mm")</span>
+                      <input @bind="dateS" id="popup_dateS" type="datetime-local" @oninput="(e) => ChangeDateStart(e)">
+                    </div>
                   }
                   else
                   {
@@ -169,11 +155,11 @@
                       <span class="icon is-small mr-1">
                         <i class="material-icons-outlined is-size-6">calendar_today</i>
                       </span>
-                      <span>@string.Format("{0:dd/MM/yyyy}}", new DateTime(task.date_start))</span>
+                      <span>@dateS.ToString("dd/MM/yyyy")</span>
                       <span class="icon is-small ml-3 mr-1">
                         <i class="material-icons-outlined is-size-6">schedule</i>
                       </span>
-                      <span>@string.Format("{0:HH:mm}}", new DateTime(task.date_start))</span>
+                      <span>@dateS.ToString("HH:mm")</span>
                     </div> 
                   }
                 </div>
@@ -185,32 +171,17 @@
                 <div class="control is-expanded">
                   @if(editTask)
                   {
-                    <DateRangePicker @bind-StartDate="dateE" TimePicker="true" TimePicker24Hour="true"
-                      SingleDatePicker="true" OnRangeSelect="UpdateDateEnd" Opens="SideType.Left">
-                      <PickerTemplate>
-                        <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
-                          <span class="icon is-small mr-1">
-                            <i class="material-icons-outlined is-size-6">calendar_today</i>
-                          </span>
-                          @if (context.TStartDate != null)
-                          {
-                            <span>@context.TStartDate.Value.ToString("dd/MM/yyyy")</span>
-                            <span class="icon is-small ml-3 mr-1">
-                              <i class="material-icons-outlined is-size-6">schedule</i>
-                            </span>
-                            <span>@context.TStartDate.Value.ToString("HH:mm")</span>
-                          }
-                          else
-                          {
-                            <span>dd/mm/yyyy</span>
-                            <span class="icon is-small ml-3 mr-1">
-                              <i class="material-icons-outlined is-size-6">schedule</i>
-                            </span>
-                            <span>hh:mm</span>
-                          }
-                        </a>
-                      </PickerTemplate>
-                    </DateRangePicker>
+                    <div class="input-date icon-text">
+                      <span class="icon is-small mr-1" onclick="setFocus('popup_dateE')">
+                        <i class="material-icons-outlined is-size-6">calendar_today</i>
+                      </span>
+                      <span onclick="setFocus('popup_dateE')">@dateE.ToString("dd/MM/yyyy")</span>
+                      <span class="icon is-small ml-3 mr-1" onclick="setFocus('popup_dateE')">
+                        <i class="material-icons-outlined is-size-6">schedule</i>
+                      </span>
+                      <span onclick="setFocus('popup_dateE')">@dateE.ToString("HH:mm")</span>
+                      <input @bind="dateS" id="popup_dateE" type="datetime-local" @oninput="(e) => ChangeDateEnd(e)">
+                    </div>
                   }
                   else
                   {
@@ -218,11 +189,11 @@
                       <span class="icon is-small mr-1">
                         <i class="material-icons-outlined is-size-6">calendar_today</i>
                       </span>
-                      <span>@string.Format("{0:dd/MM/yyyy}}", new DateTime(task.date_end))</span>
+                      <span>@dateE.ToString("dd/MM/yyyy")</span>
                       <span class="icon is-small ml-3 mr-1">
                         <i class="material-icons-outlined is-size-6">schedule</i>
                       </span>
-                      <span>@string.Format("{0:HH:mm}}", new DateTime(task.date_end))</span>
+                      <span>@dateE.ToString("HH:mm")</span>
                     </div> 
                   }
                 </div>
@@ -275,7 +246,7 @@
                             <div class="p-2">
                               <div class="field has-addons">
                                 <div class="control is-expanded">
-                                  <input @bind="sectionNew" class="input is-small" type="text" placeholder="Thêm nhóm công việc">
+                                  <input @bind="sectionNew" class="input is-small" type="text" placeholder="Thêm nhóm mới">
                                 </div>
                                 <div class="control">
                                   <a class="button is-small is-link" @onclick="AddSection">
@@ -289,7 +260,8 @@
                           }
                           @foreach (var item in plan.sections)
                           {
-                            <a class="dropdown-item" @onclick="() => UpdateSection(item.id)">@item.name</a>
+                            <a class="dropdown-item" style="white-space: normal;"
+                              @onclick="() => UpdateSection(item.id)">@item.name</a>
                           }
                         </div>
                       </div>
@@ -414,6 +386,9 @@
       }
       else
       {
+        DateTimeOffset? dateS = task.date_start > 0 ? new DateTime(task.date_start) : null;
+        DateTimeOffset? dateE = task.date_end > 0 ? new DateTime(task.date_end) : null;
+
         <section class="modal-card-head">
           <div class="modal-card-title">
             <div class="control has-icons-left">
@@ -564,11 +539,11 @@
                         <span class="icon is-small mr-1">
                           <i class="material-icons-outlined is-size-6">calendar_today</i>
                         </span>
-                        <span>@string.Format("{0:dd/MM/yyyy}}", new DateTime(task.date_start))</span>
+                        <span>@dateS.Value.DateTime.ToString("dd/MM/yyyy")</span>
                         <span class="icon is-small ml-3 mr-1">
                           <i class="material-icons-outlined is-size-6">schedule</i>
                         </span>
-                        <span>@string.Format("{0:HH:mm}}", new DateTime(task.date_start))</span>
+                        <span>@dateS.Value.DateTime.ToString("HH:mm")</span>
                       </div> 
                     }
                   </div>
@@ -613,11 +588,11 @@
                         <span class="icon is-small mr-1">
                           <i class="material-icons-outlined is-size-6">calendar_today</i>
                         </span>
-                        <span>@string.Format("{0:dd/MM/yyyy}}", new DateTime(task.date_end))</span>
+                        <span>@dateE.Value.DateTime.ToString("dd/MM/yyyy")</span>
                         <span class="icon is-small ml-3 mr-1">
                           <i class="material-icons-outlined is-size-6">schedule</i>
                         </span>
-                        <span>@string.Format("{0:HH:mm}}", new DateTime(task.date_end))</span>
+                        <span>@dateE.Value.DateTime.ToString("HH:mm")</span>
                       </div> 
                     }
                   </div>
@@ -983,6 +958,24 @@
     else
       task.status = statusId;
   }
+
+  private async Task ChangeDateStart(ChangeEventArgs e)
+  {
+    if(e.Value != null)
+    {
+      task.date_start = Convert.ToDateTime(e.Value).Ticks;
+      await UpdateDate();
+    }
+  }
+
+  private async Task ChangeDateEnd(ChangeEventArgs e)
+  {
+    if(e.Value != null)
+    {
+      task.date_end = Convert.ToDateTime(e.Value).Ticks;
+      await UpdateDate();
+    }
+  }
   
   private async Task UpdateDateStart(DateRange range)
   {
@@ -992,7 +985,17 @@
       var dateEnd = range.Start.DateTime.ToString("yyyy-MM-dd, 23:55:00");
       task.date_end = Convert.ToDateTime(dateEnd).AddDays(7).Ticks;
     }
-
+    await UpdateDate();
+  }
+  
+  private async Task UpdateDateEnd(DateRange range)
+  {
+    task.date_end = range.Start.Ticks;
+    await UpdateDate();
+  }
+  
+  private async Task UpdateDate()
+  {
     if(task.date_start < task.date_end)
     {
       await UpdateDB(); 
@@ -1002,20 +1005,6 @@
     }
     else
       await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày bắt đầu đang lớn hơn ngày kết thúc!");
-  }
-  
-  private async Task UpdateDateEnd(DateRange range)
-  {
-    task.date_end = range.Start.Ticks;
-    if(task.date_start < task.date_end)
-    {
-      await UpdateDB(); 
-      if(!string.IsNullOrEmpty(task.id))
-        await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện", 
-          string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(task.date_start), new DateTime(task.date_end)), task.plan_id, task.id, Layout.User);
-    }
-    else
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc đang nhỏ hơn ngày bắt đầu!");
   }
 
   private string sectionNew = string.Empty;

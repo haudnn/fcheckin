@@ -7,7 +7,7 @@
       @foreach (var item in ShortList())
       {
         <span class="image is-rounded is-24x24 has-background-grey" title="@item.name">
-          @if(string.IsNullOrEmpty(item.id))
+          @if(string.IsNullOrEmpty(item.avatar))
           {
             <span class="is-text">@item.name</span>
           }
@@ -282,10 +282,10 @@
     for (int i = 0; i < members.Count; i++)
     {
       var item = UserService.GetUser(Layout.UserList, members[i].id);
-      if(item != null)
+      if(item != null && !string.IsNullOrEmpty(item.id))
       {
         results.Add(UserService.ConvertToMember(item));
-        if(i == 1)
+        if(results.Count == 2)
           break;
       }
     }

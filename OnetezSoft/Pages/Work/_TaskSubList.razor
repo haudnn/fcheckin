@@ -1,24 +1,25 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<div class="scrolly py-1" style="height: calc(100vh - 162px);">
-  @if(Layout.IsMobile)
-  {
-    <div class="field is-grouped mb-2">
-      <div class="control is-expanded is-size-6 has-text-weight-medium">
-        CÔNG VIỆC PHỤ
-      </div>
-      @if(editRole)
-      {
-        <div class="control">
-          <a class="icon has-text-link" @onclick="AddItem">
-            <i class="material-icons-round is-size-4">add_box</i>
-          </a>
-        </div>
-      }
+@if(Layout.IsMobile)
+{
+  <div class="field is-grouped mb-2">
+    <div class="control is-expanded is-size-6 has-text-weight-medium">
+      CÔNG VIỆC PHỤ
     </div>
-  }
-  else
+    @if(editRole)
+    {
+      <div class="control">
+        <a class="icon has-text-link" @onclick="AddItem">
+          <i class="material-icons-round is-size-4">add_box</i>
+        </a>
+      </div>
+    }
+  </div>
+}
+
+<div class="scrolly py-1" style="height: calc(100vh - 162px);">
+  @if(!Layout.IsMobile)
   {
     <ul class="columns is-vcentered is-gapless is-size-7 mb-0 has-text-grey">
       <li class="column">Công việc phụ</li>
@@ -33,66 +34,63 @@
     var toggle = toggleList.Contains(task.id);
     var isEdit = editList.Contains(task.id);
     var status = WorkService.Status(task.status);
-    DateTimeOffset? dateS = task.date_start > 0 ? new DateTime(task.date_start) : null;
-    DateTimeOffset? dateE = task.date_end > 0 ? new DateTime(task.date_end) : null;
 
     <ul class="sub_task columns is-vcentered is-multiline is-variable is-size-7 mb-0 is-mobile @(Layout.IsMobile ? "is-1" : "is-0")">
       @if(Layout.IsMobile)
       {
-        <li class="column is-11">
-          @if(isEdit)
-          {
-            <input @bind="task.name" type="text" class="input has-text-weight-medium is_bg" placeholder="Nhập tiêu đề công việc">
-          }
-          else 
-          {
-            <span class="item_name font_14 has-text-@(task.status == 4 ? "success is-line-through " : "info")" title="@task.name">
-              • @task.name
+        DateTime dateS = task.date_start > 0 ? new DateTime(task.date_start) : DateTime.Today;
+        DateTime dateE = task.date_end > 0 ? new DateTime(task.date_end) : DateTime.Today.AddDays(7);
+
+        @if(isEdit)
+        {
+          <li class="column is-full">
+            <input @bind="task.name" type="text" class="input is-small has-text-weight-semibold is_bg" placeholder="Nhập tiêu đề công việc">
+          </li>
+        }
+        else
+        {
+          <li class="column is-11">
+            <span class="item_name has-text-weight-semibold has-text-@(task.status == 4 ? "success is-line-through " : "info")">
+              @task.name
             </span>
-          }
-        </li>
-        <li class="column is-1">
-          @if(editRole && !isEdit)
-          {
-            <div class="dropdown is-hoverable is-right">
-              <div class="dropdown-trigger">
-                <span class="icon is-small">
-                  <i class="material-icons-outlined is-size-6">more_horiz</i>
-                </span>
-              </div>
-              <div class="dropdown-menu">
-                <div class="dropdown-content">
-                  <a class="dropdown-item has-text-link" @onclick="() => ToggleEdit(task)">Chỉnh sửa</a>
-                  <a class="dropdown-item has-text-danger" @onclick="() => DeleteItem(task)">Xóa</a>
+          </li>
+          <li class="column is-1">
+            @if(editRole)
+            {
+              <div class="dropdown is-hoverable is-right">
+                <div class="dropdown-trigger">
+                  <span class="icon is-small">
+                    <i class="material-icons-outlined is-size-6">more_horiz</i>
+                  </span>
+                </div>
+                <div class="dropdown-menu">
+                  <div class="dropdown-content">
+                    <a class="dropdown-item has-text-link" @onclick="() => ToggleEdit(task)">Chỉnh sửa</a>
+                    <a class="dropdown-item has-text-danger" @onclick="() => DeleteItem(task)">Xóa</a>
+                  </div>
                 </div>
               </div>
-            </div>
-          }
-        </li>
+            }
+          </li>
+        }
         <li class="column is-one-third pl-3">
           <div class="has-text-grey">Thời hạn:</div>
         </li>
         <li class="column is-two-thirds">
-          <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE"
-            OnRangeSelect="(x) => UpdateDate(task, x)" Opens="SideType.Center">
-            <PickerTemplate>
-              <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
-                <span class="icon is-small mr-1">
-                  <i class="material-icons-outlined is-size-6">calendar_today</i>
-                </span>
-                @if (context.TStartDate != null && context.TEndDate != null)
-                {
-                  <span>@context.TStartDate.Value.ToString("dd/MM")</span>
-                  <span class="px-1">-</span>
-                  <span>@context.TEndDate.Value.ToString("dd/MM")</span>
-                }
-                else
-                {
-                  <span>Chọn ngày</span>
-                }
-              </a>
-            </PickerTemplate>
-          </DateRangePicker>
+          <div class="input-date icon-text">
+            <span class="icon is-small" onclick="setFocus('dateS_sub_@task.id')">
+              <i class="material-icons-outlined is-size-6">calendar_today</i>
+            </span>
+            <span onclick="setFocus('dateS_sub_@task.id')">@dateS.ToString("dd/MM")</span>
+            <input @bind="dateS" id="dateS_sub_@task.id" type="datetime-local" @oninput="(e) => ChangeDateStart(task, e)">
+          </div>
+          <div class="input-date icon-text">
+            <span class="icon is-small" onclick="setFocus('dateE_sub_@task.id')">
+              <i class="material-icons-outlined font_14">east</i>
+            </span>
+            <span onclick="setFocus('dateE_sub_@task.id')">@dateE.ToString("dd/MM")</span>
+            <input @bind="dateE" id="dateE_sub_@task.id" type="datetime-local" @oninput="(e) => ChangeDateEnd(task, e)">
+          </div>
         </li>
         <li class="column is-one-third pl-3">
           <div class="has-text-grey">Thành viên:</div>
@@ -154,6 +152,9 @@
       }
       else
       {
+        DateTimeOffset? dateS = task.date_start > 0 ? new DateTime(task.date_start) : null;
+        DateTimeOffset? dateE = task.date_end > 0 ? new DateTime(task.date_end) : null;
+
         <li class="column" style="width: calc(100% - 350px);">
           <div class="icon-text mr-2">
             <a class="icon is-small" @onclick="() => ToggleItem(task.id)">
@@ -314,7 +315,10 @@
       plan_id = parent.plan_id,
       members = new(),
     };
-    tasks.Add(item);
+    if(Layout.IsMobile)
+      tasks.Insert(0, item);
+    else
+      tasks.Add(item);
     toggleList.Add(item.id);
     editList.Add(item.id);
   }
@@ -386,6 +390,30 @@
     tasks.Remove(item);
     // Cập nhật số lượng công việc phụ
     await WorkService.UpdateSubTaskCount(Layout.Company.id, parent.id, tasks.Count);
+  }
+
+  private async Task ChangeDateStart(WorkPlanModel.Task item, ChangeEventArgs e)
+  {
+    if(e.Value != null)
+    {
+      item.date_start = Convert.ToDateTime(e.Value).Ticks;
+      if(item.date_start < item.date_end)
+        await DbWorkTask.Update(Layout.Company.id, item);
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày bắt đầu đang lớn hơn ngày kết thúc!");
+    }
+  }
+
+  private async Task ChangeDateEnd(WorkPlanModel.Task item, ChangeEventArgs e)
+  {
+    if(e.Value != null)
+    {
+      item.date_end = Convert.ToDateTime(e.Value).Ticks;
+      if(item.date_start < item.date_end)
+        await DbWorkTask.Update(Layout.Company.id, item);
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc đang nhỏ hơn ngày bắt đầu!");
+    }
   }
 
   private async Task UpdateDate(WorkPlanModel.Task item, DateRange range)
