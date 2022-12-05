@@ -9,17 +9,43 @@
   var dateE = new DateTime(model.date_end);
 }
 
-<div class="task_board card p-3 is-size-7">
+<div class="task_mobile">
   <ul class="columns is-multiline is-vcentered is-variable is-1 is-mobile">
+    <li class="column is-full has-text-weight-medium">
+      <a class="text_inline font_14 has-text-@(model.status == 4 ? "success is-line-through " : "black")"
+        @onclick="View">@model.name</a>
+    </li>
+    <li class="column @(deadline != null ? "is-half" : "is-full")">
+      <div class="input-date icon-text">
+        <span class="icon is-small" onclick="setFocus('dateS_@model.id')">
+          <i class="material-icons-outlined is-size-6">calendar_today</i>
+        </span>
+        <span onclick="setFocus('dateS_@model.id')">@dateS.ToString("dd/MM")</span>
+        @if(isEdit)
+        {
+          <input @bind="dateS" id="dateS_@model.id" type="datetime-local" @oninput="(e) => ChangeDateStart(e)">
+        }
+      </div>
+      <div class="input-date icon-text">
+        <span class="icon is-small" onclick="setFocus('dateE_@model.id')">
+          <i class="material-icons-outlined font_14">east</i>
+        </span>
+        <span onclick="setFocus('dateE_@model.id')">@dateE.ToString("dd/MM")</span>
+        @if(isEdit)
+        {
+          <input @bind="dateE" id="dateE_@model.id" type="datetime-local" @oninput="(e) => ChangeDateEnd(e)">
+        }
+      </div>
+    </li>
     @if(deadline != null)
     {
-      <li class="column is-narrow">
+      <li class="column is-half">
         <span class="tag" style="background: @(deadline.color + "30"); color: #555;">
           @deadline.name
         </span>
       </li>
     }
-    <li class="column is-narrow">
+    <li class="column is-half">
       @if(isEdit)
       {
         <div class="dropdown @(toggleStatus ? "is-active" : "")">
@@ -46,35 +72,9 @@
         <span class="tag @status.color">@status.name</span>
       }
     </li>
-    <li class="column is-full has-text-weight-medium">
-      <a class="has-text-@(model.status == 4 ? "success is-line-through " : "black")"
-        @onclick="View">@model.name</a>
-    </li>
-    <li class="column is-half">
-      <_MemberList members="model.members" sources="members" isEdit="isEdit" 
-        isTask="true" isSubTask="true" OnUpdate="UpdateMembers" />
-    </li>
-    <li class="column is-half">
-      <div class="input-date icon-text">
-        <span class="icon is-small" onclick="setFocus('dateS_@model.id')">
-          <i class="material-icons-outlined is-size-6">calendar_today</i>
-        </span>
-        <span onclick="setFocus('dateS_@model.id')">@dateS.ToString("dd/MM")</span>
-        @if(isEdit)
-        {
-          <input @bind="dateS" id="dateS_@model.id" type="datetime-local" @oninput="(e) => ChangeDateStart(e)">
-        }
-      </div>
-      <div class="input-date icon-text">
-        <span class="icon is-small" onclick="setFocus('dateE_@model.id')">
-          <i class="material-icons-outlined font_14">east</i>
-        </span>
-        <span onclick="setFocus('dateE_@model.id')">@dateE.ToString("dd/MM")</span>
-        @if(isEdit)
-        {
-          <input @bind="dateE" id="dateE_@model.id" type="datetime-local" @oninput="(e) => ChangeDateEnd(e)">
-        }
-      </div>
+    <li class="column is-half has-text-right">
+      <_MemberList members="model.members" sources="members" isSubTask="true"
+        isEdit="isEdit" isTask="true" isRight="true" OnUpdate="UpdateMembers" />
     </li>
   </ul>
 </div>

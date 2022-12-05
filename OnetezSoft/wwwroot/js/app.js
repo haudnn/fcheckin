@@ -69,6 +69,21 @@ window.getUserAgent = () => {
   return navigator.userAgent;
 };
 
+function setCookie(key, value) {
+  let expires = new Date();
+  expires.setTime(expires.getTime() + 1 * 24 * 60 * 60 * 1000);
+  document.cookie = key + "=" + value + ";expires=" + expires.toUTCString() + ";path=/";
+}
+
+function getCookie(key) {
+  var keyValue = document.cookie.match("(^|;) ?" + key + "=([^;]*)(;|$)");
+  return keyValue ? keyValue[2] : null;
+}
+
+function deleteCookie(key) {
+  document.cookie = key + "=;expires=Thu, 01 Jan 1970 00:00:00;path=/";
+}
+
 function setFocus(id) {
   setTimeout(function () {
     const element = document.getElementById(id);

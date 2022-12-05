@@ -10,47 +10,63 @@
   var dateE = new DateTime(model.date_end);
 }
 
-<div id="task_@model.id" class="task_board card p-4 mb-3 is-size-7">
-  <ul class="columns is-multiline is-vcentered is-variable is-1 is-mobile">
+<div id="task_@model.id" class="task_mobile is-size-7">
+  <ul class="columns is-multiline is-vcentered is-variable is-1 is-mobile" style="border-color: @priority.color;">
+    <li class="column is-11 has-text-weight-semibolb">
+      <a class="text_inline font_14 has-text-@(model.status == 4 ? "success is-line-through " : "black")"
+        @onclick="Edit">@model.name
+      </a>
+    </li>
+    <li class="column is-1 has-text-centered">
+      @if(editRole)
+      {
+        <div class="dropdown is-hoverable is-right">
+          <div class="dropdown-trigger">
+            <span class="icon is-small">
+              <i class="material-icons-outlined is-size-6">more_horiz</i>
+            </span>
+          </div>
+          <div class="dropdown-menu">
+            <div class="dropdown-content">
+              <a class="dropdown-item" @onclick="AddSub">Tạo công việc phụ</a>
+              <a class="dropdown-item" @onclick="AddTodo">Tạo Todolist liên kết</a>
+              <a class="dropdown-item has-text-danger" @onclick="Delete">Xóa công việc này</a>
+            </div>
+          </div>
+        </div>
+      }
+    </li>
+    <li class="column @(deadline != null ? "is-half" : "is-full")">
+      <div class="input-date icon-text">
+        <span class="icon" onclick="setFocus('dateS_@model.id')">
+          <i class="material-icons-outlined is-size-6">calendar_today</i>
+        </span>
+        <span onclick="setFocus('dates_@model.id')">@dateS.ToString("dd/MM")</span>
+        @if(editRole)
+        {
+          <input @bind="dateS" id="dateS_@model.id" type="datetime-local" @oninput="(e) => ChangeDateStart(e)">
+        }
+      </div>
+      <div class="input-date icon-text">
+        <span class="icon is-small" onclick="setFocus('dateE_@model.id')">
+          <i class="material-icons-outlined font_14">east</i>
+        </span>
+        <span onclick="setFocus('dateE_@model.id')">@dateE.ToString("dd/MM")</span>
+        @if(editRole)
+        {
+          <input @bind="dateE" id="dateE_@model.id" type="datetime-local" @oninput="(e) => ChangeDateEnd(e)">
+        }
+      </div>
+    </li>
     @if(deadline != null)
     {
-      <li class="column is-narrow">
+      <li class="column is-half">
         <span class="tag" style="background: @(deadline.color + "30"); color: #555;">
           @deadline.name
         </span>
       </li>
     }
-    @if(priority.id != 0)
-    {
-      <li class="column is-narrow">
-        @if(editRole)
-        {
-          <div class="dropdown @(togglePriority ? "is-active" : "")">
-            <div class="dropdown-trigger">
-              <a class="icon-text" @onclick="TogglePriority">
-                <span class="tag" style="background: @(priority.color + "30"); color: @priority.color;">@priority.name</span>
-                <span class="icon is-small">
-                  <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
-                </span>
-              </a>
-            </div>
-            <div class="dropdown-menu">
-              <div class="dropdown-content">
-                @foreach (var item in WorkService.Priority())
-                {
-                  <a class="dropdown-item" style="color: @item.color;" @onclick="() => ChangePriorty(item.id)">@item.name</a>
-                }
-              </div>
-            </div>
-          </div>
-        }
-        else
-        {
-          <span class="tag mr-3" style="background: @(priority.color + "30"); color: @priority.color;">@priority.name</span>
-        }
-      </li>
-    }
-    <li class="column is-narrow">
+    <li class="column is-half">
       @if(editRole)
       {
         <div class="dropdown @(toggleStatus ? "is-active" : "")">
@@ -77,42 +93,15 @@
         <span class="tag @status.color">@status.name</span>
       }
     </li>
-    <li class="column is-full has-text-weight-semibold font_14">
-      <a class="has-text-@(model.status == 4 ? "success is-line-through " : "black")"
-        @onclick="Edit">@model.name
-      </a>
-    </li>
-    <li class="column is-half">
-      <_MemberList members="model.members" sources="members" isEdit="editRole" isTask="true" 
-        OnUpdate="UpdateMembers" />
-    </li>
-    <li class="column is-half">
-      <div class="input-date icon-text">
-        <span class="icon" onclick="setFocus('dateS_@model.id')">
-          <i class="material-icons-outlined is-size-6">calendar_today</i>
-        </span>
-        <span onclick="setFocus('dates_@model.id')">@dateS.ToString("dd/MM")</span>
-        @if(editRole)
-        {
-          <input @bind="dateS" id="dateS_@model.id" type="datetime-local" @oninput="(e) => ChangeDateStart(e)">
-        }
-      </div>
-      <div class="input-date icon-text">
-        <span class="icon is-small" onclick="setFocus('dateE_@model.id')">
-          <i class="material-icons-outlined font_14">east</i>
-        </span>
-        <span onclick="setFocus('dateE_@model.id')">@dateE.ToString("dd/MM")</span>
-        @if(editRole)
-        {
-          <input @bind="dateE" id="dateE_@model.id" type="datetime-local" @oninput="(e) => ChangeDateEnd(e)">
-        }
-      </div>
+    <li class="column is-half has-text-right">
+      <_MemberList members="model.members" sources="members" 
+        isEdit="editRole" isTask="true" isRight="true" OnUpdate="UpdateMembers" />
     </li>
     @if(model.sub_task > 0)
     {
       <li class="column is-full">
         <a class="icon-text" @onclick="Toggle">
-          <span>Công việc phụ</span>
+          <span class="font_14">Công việc phụ</span>
           <span class="icon-text">
             <i class="material-icons-outlined is-size-6">@(toggle ? "arrow_drop_down" : "arrow_right")</i>
           </span>

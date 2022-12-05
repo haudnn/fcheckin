@@ -2,6 +2,7 @@
 @page "/work/{PlanId}/task/{TypeView}"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject ProtectedLocalStorage storage
 
 <PageTitle>Danh sách công việc</PageTitle>
 
@@ -22,7 +23,7 @@
         @if(roleManager || roleMember)
         {
           <div id="plan_bubble">
-            <a class="is-toggle" @onclick="() => toggleAdd = !toggleAdd">
+            <a class="is-toggle" @onclick="ToogleAdd">
               <span class="icon">
                 <i class="material-icons-outlined is-size-4">add</i>
               </span>
@@ -287,7 +288,7 @@
 
             @if(editSectionId == item.id)
             {
-              <div class="control has-icons-left mb-3">
+              <div class="control has-icons-left mt-3 mb-2">
                 <input @bind="item.name" id="section_@item.id" type="text" 
                   class="input has-text-weight-semibold font_14 is_bg" placeholder="Nhập tiêu đề nhóm công việc...">
                 <a class="icon is-left has-text-success" title="Cập nhật" @onclick="UpdateSection">
@@ -297,58 +298,66 @@
             }
             else
             {
-              <div class="icon-text py-1">
-                <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleSection(item.id)">
-                  <i class="material-icons-outlined is-size-5">@(hidden ? "arrow_right" : "arrow_drop_down")</i>
-                </a>
-                <span class="has-text-weight-semibold font_14" style="flex-grow: 1; white-space: normal;">
-                  @item.name @(count > 0 ? $"({count})" : "")
-                </span>
-                @if(roleMember)
-                {
-                  <a class="icon has-text-dark" title="Thêm công việc" @onclick="() => AddTask(null, item.id)">
-                    <i class="material-icons-round is-size-6">add</i>
+              <ul class="columns is-vcentered is-variable is-1 is-mobile has-text-centered mt-3">
+                <li class="column is-1">
+                  <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleSection(item.id)">
+                    <i class="material-icons-outlined is-size-5">@(hidden ? "arrow_right" : "arrow_drop_down")</i>
                   </a>
-                }
-                @if(roleManager)
-                {
-                  <div class="dropdown is-hoverable is-right icon">
-                    <div class="dropdown-trigger">
-                      <a class="icon has-text-dark">
-                        <i class="material-icons-outlined is-size-6">more_horiz</i>
-                      </a>
-                    </div>
-                    <div class="dropdown-menu is-size-7">
-                      <div class="dropdown-content">
-                        <a class="dropdown-item icon-text" @onclick="() => MoveSection(item, true)">
-                          <span class="icon is-small">
-                            <i class="material-icons-outlined is-size-6">arrow_upward</i>
-                          </span>
-                          <span>Lên trên</span>
-                        </a>
-                        <a class="dropdown-item icon-text" @onclick="() => MoveSection(item, false)">
-                          <span class="icon is-small">
-                            <i class="material-icons-outlined is-size-6">arrow_downward</i>
-                          </span>
-                          <span>Xuống dưới</span>
-                        </a>
-                        <a class="dropdown-item icon-text" @onclick="() => EditSection(item)">
-                          <span class="icon is-small">
-                            <i class="material-icons-outlined is-size-6">edit</i>
-                          </span>
-                          <span>Chỉnh sửa</span>
-                        </a>
-                        <a class="dropdown-item icon-text has-text-danger" @onclick="() => DeleteSection(item)">
-                          <span class="icon is-small">
-                            <i class="material-icons-outlined is-size-6">delete</i>
-                          </span>
-                          <span>Xóa</span>
+                </li>
+                <li class="column is-9 has-text-left">
+                  <span class="has-text-weight-semibold font_14">
+                    @item.name @(count > 0 ? $"({count})" : "")
+                  </span>
+                </li>
+                <li class="column is-1">
+                  @if(roleMember)
+                  {
+                    <a class="icon is-small has-text-dark" title="Thêm công việc" @onclick="() => AddTask(null, item.id)">
+                      <i class="material-icons-round is-size-6">add</i>
+                    </a>
+                  }
+                </li>
+                <li class="column is-1">
+                  @if(roleManager)
+                  {
+                    <div class="dropdown is-hoverable is-right">
+                      <div class="dropdown-trigger">
+                        <a class="icon is-small has-text-dark">
+                          <i class="material-icons-outlined is-size-6">more_horiz</i>
                         </a>
                       </div>
+                      <div class="dropdown-menu is-size-7">
+                        <div class="dropdown-content">
+                          <a class="dropdown-item icon-text" @onclick="() => MoveSection(item, true)">
+                            <span class="icon is-small">
+                              <i class="material-icons-outlined is-size-6">arrow_upward</i>
+                            </span>
+                            <span>Lên trên</span>
+                          </a>
+                          <a class="dropdown-item icon-text" @onclick="() => MoveSection(item, false)">
+                            <span class="icon is-small">
+                              <i class="material-icons-outlined is-size-6">arrow_downward</i>
+                            </span>
+                            <span>Xuống dưới</span>
+                          </a>
+                          <a class="dropdown-item icon-text" @onclick="() => EditSection(item)">
+                            <span class="icon is-small">
+                              <i class="material-icons-outlined is-size-6">edit</i>
+                            </span>
+                            <span>Chỉnh sửa</span>
+                          </a>
+                          <a class="dropdown-item icon-text has-text-danger" @onclick="() => DeleteSection(item)">
+                            <span class="icon is-small">
+                              <i class="material-icons-outlined is-size-6">delete</i>
+                            </span>
+                            <span>Xóa</span>
+                          </a>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                }
-              </div>
+                  } 
+                </li>
+              </ul>
             }
             @if(!hidden)
             {
@@ -429,9 +438,9 @@
                       }
                       @if(roleManager)
                       {
-                        <div class="dropdown is-hoverable is-right icon is_hover">
+                        <div class="dropdown is-right icon is_hover @(item.id == moreSectionId ? "is-active" : "")">
                           <div class="dropdown-trigger">
-                            <a class="icon has-text-dark">
+                            <a class="icon has-text-dark" @onclick="() => MoreSection(item.id)">
                               <i class="material-icons-outlined is-size-6">more_horiz</i>
                             </a>
                           </div>
@@ -537,9 +546,9 @@
                       }
                       @if(roleManager)
                       {
-                        <div class="dropdown is-hoverable is-right icon is_hover">
+                        <div class="dropdown is-right icon is_hover @(item.id == moreSectionId ? "is-active" : "")">
                           <div class="dropdown-trigger">
-                            <a class="icon has-text-dark">
+                            <a class="icon has-text-dark" @onclick="() => MoreSection(item.id)">
                               <i class="material-icons-outlined is-size-6">more_horiz</i>
                             </a>
                           </div>
@@ -687,9 +696,9 @@
                       }
                       @if(roleManager)
                       {
-                        <div class="dropdown is-hoverable is-right icon is_hover">
+                        <div class="dropdown is-right icon is_hover @(item.id == moreSectionId ? "is-active" : "")">
                           <div class="dropdown-trigger">
-                            <a class="icon has-text-dark">
+                            <a class="icon has-text-dark" @onclick="() => MoreSection(item.id)">
                               <i class="material-icons-outlined is-size-6">more_horiz</i>
                             </a>
                           </div>
@@ -811,7 +820,7 @@
   private List<UserModel> members = new();
   private bool roleManager = false;
   private bool roleMember = false;
-  private bool toggleAdd = false;
+  private bool toggleAdd = true;
   private int dayTotal = 0;
   private DateTime dayStart = DateTime.Today;
   private DateTime dayEnd = DateTime.Today;
@@ -874,10 +883,19 @@
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
-    if (firstRender && Layout.IsMobile)
+    if (firstRender)
     {
-      await JSRuntime.InvokeVoidAsync("stickyHeaderMobile");
+      var toogleAddStorage = await storage.GetAsync<string>("fworkToogleAdd");
+      if (toogleAddStorage.Success && !string.IsNullOrEmpty(toogleAddStorage.Value))
+        toggleAdd = Convert.ToBoolean(toogleAddStorage.Value);
+      StateHasChanged();
     }
+  }
+
+  private async Task ToogleAdd()
+  {
+    toggleAdd = !toggleAdd;
+    await storage.SetAsync("fworkToogleAdd", toggleAdd.ToString());
   }
 
   private async Task OpenTaskPopup()
@@ -1056,6 +1074,7 @@
   #region Nhóm công việc
 
   private string editSectionId = string.Empty;
+  private string moreSectionId = string.Empty;
   private List<string> hideSections = new();
  
   private void ToggleSection(string id)
@@ -1066,9 +1085,17 @@
       hideSections.Add(id);
   }
 
+  private void MoreSection(string id)
+  {
+    if(moreSectionId == id)
+      moreSectionId = string.Empty;
+    else
+      moreSectionId = id;
+  }
+
   private async Task EditSection(WorkPlanModel.Section item)
   {
-    toggleAdd = false;
+    moreSectionId = string.Empty;
     if(string.IsNullOrEmpty(editSectionId))
     {
       if(item == null)
@@ -1087,6 +1114,7 @@
 
   private async Task DeleteSection(WorkPlanModel.Section item)
   {
+    moreSectionId = string.Empty;
     if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa nhóm công việc {item.name}. Việc này sẽ khiến dữ liệu công việc trong nhóm bị mất.\nBạn có chắc chắn muốn thực hiện?"))
       return;
     // Thông báo chuông
@@ -1142,6 +1170,7 @@
   
   private async Task MoveSection(WorkPlanModel.Section item, bool isUp)
   {
+    moreSectionId = string.Empty;
     if(isUp)
     {
       var move = model.sections.Where(x => x.pos > item.pos).OrderBy(x => x.pos).FirstOrDefault();
@@ -1150,10 +1179,10 @@
         item.pos++;
         move.pos--;
         await DbWorkPlan.Update(Layout.Company.id, model);
-        await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã duy chuyển vị trí nhóm {item.name}!");
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã di chuyển vị trí nhóm {item.name}!");
       }
       else
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể duy chuyển vị trí nhóm!");
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể di chuyển vị trí nhóm!");
     }
     else
     {
@@ -1163,10 +1192,10 @@
         item.pos--;
         move.pos++;
         await DbWorkPlan.Update(Layout.Company.id, model);
-        await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã duy chuyển vị trí nhóm {item.name}!");
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã di chuyển vị trí nhóm {item.name}!");
       }
       else
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể duy chuyển vị trí nhóm!");
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể di chuyển vị trí nhóm!");
     }
   }
   
@@ -1194,21 +1223,29 @@
       members = new() { new() { id = Layout.User.id, role = 2 }}
     };
     await JSRuntime.InvokeVoidAsync("setFocus", "task_name");
+    await JSRuntime.InvokeVoidAsync("textAutoSize", "task_name");
   }
 
   private async Task EditTask(string taskId)
   {
-    if(editTab == 2)
+    editTask = await DbWorkTask.Get(Layout.Company.id, taskId);
+    var editRole = WorkService.RoleEditTask(model, editTask, Layout.User.id);
+
+    if(editTab == 1 && editRole)
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "task_name");
+    else if(editTab == 2)
       subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.id, taskId);
     else if(editTab == 3)
       todoItems = DbTodoItem.GetList(Layout.Company.id, taskId, Layout.User.id);
     else if(editTab == 4)
     {
       comments = await DbWorkComment.GetList(Layout.Company.id, model.id, taskId);
-      await JSRuntime.InvokeVoidAsync("setFocus", "task_comment");
-      await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
+      if(editRole)
+      {
+        await JSRuntime.InvokeVoidAsync("setFocus", "task_comment");
+        await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
+      }
     }
-    editTask = await DbWorkTask.Get(Layout.Company.id, taskId);
   }
 
   private async Task OnEditList(WorkPlanModel.Task item)

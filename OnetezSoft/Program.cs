@@ -14,6 +14,7 @@ builder.Services.AddBlazorDragDrop();
 builder.Services.AddWMBSC(); // Don't using Jquery
 builder.Services.AddDateRangePicker(config =>
 {
+  //config.Culture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
   config.Culture = System.Globalization.CultureInfo.GetCultureInfo("vi-VN");
   config.DateFormat = "dd/MM/yyyy";
   config.TimePicker24Hour = true;
