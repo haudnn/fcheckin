@@ -14,6 +14,14 @@ namespace OnetezSoft.Handled
   {
     #region Các hàm liên quan đến String
 
+    public static bool IsEmpty(string value)
+    {
+      if (string.IsNullOrEmpty(value))
+        return true;
+      if (string.IsNullOrEmpty(value.Trim()))
+        return true;
+      return false;
+    }
 
     /// <summary>
     /// String to MD5
@@ -42,13 +50,13 @@ namespace OnetezSoft.Handled
     /// </summary>
     public static string ConvertCurrency(double money)
     {
-      if(money == 0)
+      if (money == 0)
         return "0";
       if (money >= 1000 || money <= -1000)
         return money.ToString("0,0");
-      else if(money % 1 == 0)
+      else if (money % 1 == 0)
         return money.ToString();
-      else if(money != 0)
+      else if (money != 0)
         return money.ToString();
 
       return "0";
@@ -84,7 +92,7 @@ namespace OnetezSoft.Handled
           str = str.Replace(" 0", "");
           str += "K";
         }
-        else if(number % 1 == 0)
+        else if (number % 1 == 0)
         {
           str = number.ToString();
         }
@@ -241,10 +249,10 @@ namespace OnetezSoft.Handled
     public static string ColorRandom(int index)
     {
       var list = ColorList();
-      
+
       if (index > 0 && index >= list.Count)
         index = index % list.Count;
-        
+
       index = RandomInt(0, list.Count - 1);
       return list[index];
     }
@@ -286,7 +294,7 @@ namespace OnetezSoft.Handled
     public static string ProgressColor(double progress)
     {
       string color = "is-dark";
-      if(progress == 0)
+      if (progress == 0)
         color = "is-dark";
       else if (progress < 25)
         color = "is-danger";
@@ -329,13 +337,13 @@ namespace OnetezSoft.Handled
 
     public static int ConvertToInt(string value)
     {
-      if(string.IsNullOrEmpty(value))
+      if (string.IsNullOrEmpty(value))
         return 0;
       value = value.Replace(",", "").Replace(".", "").Trim();
       if (Int32.TryParse(value, out int parse))
         return parse;
       else
-        return 0; 
+        return 0;
     }
 
 
@@ -343,7 +351,7 @@ namespace OnetezSoft.Handled
 
 
     #region Các hàm liên quan tới thời gian
-    
+
 
     /// <summary>
     /// Chuyển mốc thời gian trong ngày về đầu ngày
@@ -352,7 +360,7 @@ namespace OnetezSoft.Handled
     {
       return Convert.ToDateTime(date.ToString("yyyy-MM-dd"));
     }
-    
+
 
     /// <summary>
     /// Chuyển mốc thời gian trong ngày về đầu tháng
@@ -499,7 +507,7 @@ namespace OnetezSoft.Handled
           start = date.AddDays(-6);
         end = start.AddDays(6);
       }
-      else if(type == 11)
+      else if (type == 11)
       {
         GetTimeSpan(1, out start, out end);
         start = start.AddDays(-7);
@@ -595,7 +603,7 @@ namespace OnetezSoft.Handled
 
     #region Các hàm khác
 
-    
+
     public static bool DeviceMobile(string userAgent)
     {
       //Kiểm tra xem trình duyệt hiện tại là mobile hay ko?

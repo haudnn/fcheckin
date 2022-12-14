@@ -748,7 +748,9 @@
 
   private async Task EditTask(WorkPlanModel.Task item, int status)
   {
-    if(editTab == 2)
+    if(editTab == 1)
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "task_name");
+    else if(editTab == 2)
       subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, item.plan_id, item.id);
     else if(editTab == 3)
       todoItems = DbTodoItem.GetList(Layout.Company.id, item.id, Layout.User.id);

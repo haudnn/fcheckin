@@ -347,7 +347,7 @@
 
   private async Task<bool> Validation()
   {
-    if(string.IsNullOrEmpty(model.name))
+    if(Shared.IsEmpty(model.name))
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề kế hoạch.");
     else if(model.members.Count == 0)
       await JSRuntime.InvokeVoidAsync("tagline", false, "Kế hoạch chưa có thành viên.");
@@ -358,12 +358,12 @@
 
   private async Task UpdateLabel()
   {
-    if(string.IsNullOrEmpty(label.name))
+    if(Shared.IsEmpty(label.name))
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề nhãn.");
-    else if(string.IsNullOrEmpty(label.color))
+    else if(Shared.IsEmpty(label.color))
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn màu cho nhãn.");
     else {
-      if(string.IsNullOrEmpty(label.id))
+      if(Shared.IsEmpty(label.id))
       {
         label.id = Mongo.RandomId();
         model.labels.Add(label);

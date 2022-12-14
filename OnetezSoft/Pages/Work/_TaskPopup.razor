@@ -1,323 +1,322 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-@if(task != null)
+@if (task != null)
 {
   var status = WorkService.Status(task.status);
   var priority = WorkService.Priority(task.priority);
   var deadline = WorkService.TaskDeadline(task);
   var sections = plan.sections.SingleOrDefault(x => x.id == task.section_id);
   var editTask = WorkService.RoleEditTask(plan, task, Layout.User.id);
-  
-  <section class="modal is-active">
-    <div class="modal-background"></div>
-    <section id="plan_popup" class="modal-card is-medium">
-      @if(Layout.IsMobile)
-      {
-        if(task.date_start == 0)
-          task.date_start = DateTime.Today.Ticks;
-        if(task.date_end == 0)
-          task.date_end = DateTime.Today.AddDays(7).Ticks;
-        DateTime dateS = new DateTime(task.date_start);
-        DateTime dateE = new DateTime(task.date_end);
 
-        <section class="modal-card-head">
-          <div class="modal-card-title">
-            <div class="icon-text">
-              <a class="icon has-text-link" @onclick="Cancel">
-                <i class="material-icons-outlined is-size-5">arrow_back</i>
-              </a>
-              <h1 class="is-size-6 has-text-dark has-text-weight-semibold">Chi tiết công việc</h1>
-            </div>
+  <section class="modal is-active">
+  <div class="modal-background"></div>
+  <section id="plan_popup" class="modal-card is-medium">
+    @if (Layout.IsMobile)
+    {
+      if (task.date_start == 0)
+        task.date_start = DateTime.Today.Ticks;
+      if (task.date_end == 0)
+        task.date_end = DateTime.Today.AddDays(7).Ticks;
+      DateTime dateS = new DateTime(task.date_start);
+      DateTime dateE = new DateTime(task.date_end);
+
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          <div class="icon-text">
+            <a class="icon has-text-link" @onclick="Cancel">
+              <i class="material-icons-outlined is-size-5">arrow_back</i>
+            </a>
+            <h1 class="is-size-6 has-text-dark has-text-weight-semibold">Chi tiết công việc</h1>
           </div>
-        </section>
-        <section class="modal-card-tabs">
-          <ul class="columns is-mobile is-variable is-0">
+        </div>
+      </section>
+      <section class="modal-card-tabs">
+        <ul class="columns is-mobile is-variable is-0">
+          <li class="column is-narrow">
+            <a class="button is-small @(tab == 1 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(1)">
+              Thông tin chung
+            </a>
+          </li>
+          @if (!string.IsNullOrEmpty(task.id))
+          {
             <li class="column is-narrow">
-              <a class="button is-small @(tab == 1 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(1)">
-                Thông tin chung
+              <a class="button is-small @(tab == 2 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(2)">
+                Công việc phụ
               </a>
             </li>
-            @if(!string.IsNullOrEmpty(task.id))
+            <li class="column is-narrow">
+              <a class="button is-small @(tab == 3 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(3)">
+                Todolist liên kết
+              </a>
+            </li>
+            <li class="column is-narrow">
+              <a class="button is-small @(tab == 4 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(4)">
+                Bình luận
+              </a>
+            </li>
+            <li class="column is-narrow">
+              <a class="button is-small @(tab == 5 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(5)">
+                Lịch sử cập nhật
+              </a>
+            </li>
+            @if (editTask)
             {
               <li class="column is-narrow">
-                <a class="button is-small @(tab == 2 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(2)">
-                  Công việc phụ
+                <a class="button is-small @(tab == 6 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(6)">
+                  Xóa và rời khỏi
                 </a>
               </li>
-              <li class="column is-narrow">
-                <a class="button is-small @(tab == 3 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(3)">
-                  Todolist liên kết
-                </a>
-              </li>
-              <li class="column is-narrow">
-                <a class="button is-small @(tab == 4 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(4)">
-                  Bình luận
-                </a>
-              </li>
-              <li class="column is-narrow">
-                <a class="button is-small @(tab == 5 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(5)">
-                  Lịch sử cập nhật
-                </a>
-              </li>
-              @if(editTask)
-              {
-                <li class="column is-narrow">
-                  <a class="button is-small @(tab == 6 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(6)">
-                    Xóa và rời khỏi
-                  </a>
-                </li>
-              }
             }
-          </ul>
-        </section>
-        <section class="modal-card-body is-size-7">
-          @if(tab == 1)
+          }
+        </ul>
+      </section>
+      <section class="modal-card-body is-size-7">
+      @if (tab == 1)
+        {
+          <div class="field">
+            @if (editTask)
+            {
+              <div class="control">
+                <textarea @bind="task.name" id="task_name" class="textarea has-text-weight-semibold is_bg"
+                  rows="1" placeholder="Nhập tiêu đề công việc" />
+              </div>
+            }
+            else
+            {
+              <div class="font_14 has-text-weight-semibold">@task.name</div>
+            }
+          </div>
+          @if (deadline != null)
           {
             <div class="field">
-              @if(editTask)
-              {
-                <div class="control">
-                  <textarea @bind="task.name" id="task_name" class="textarea has-text-weight-semibold is_bg"
-                    rows="1" placeholder="Nhập tiêu đề công việc" />
+              <span class="tag" style="background: @(deadline.color + "30"); color: #555;">
+                @deadline.name
+              </span>
+            </div>
+          }
+          <div class="field is-grouped">
+            <div class="control has-text-grey" style="width: 120px;">
+              Người tham gia:
+            </div>
+            <div class="control is-expanded">
+              <_MemberList members="task.members" sources="members" isEdit="editTask" 
+                isTask="true" isRight="true" OnUpdate="UpdateMembers" />
+            </div>
+          </div>
+          <div class="field is-grouped">
+            <div class="control has-text-grey" style="width: 120px;">
+              Trạng thái:
+            </div>
+            <div class="control is-expanded">
+              <div class="dropdown is-hoverable">
+                <div class="dropdown-trigger">
+                  <a class="icon-text">
+                    <span class="tag @status.color">@status.name</span>
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                    </span>
+                  </a>
                 </div>
-              }
-              else 
-              {
-                <div class="font_14 has-text-weight-semibold">@task.name</div>
-              }
-            </div>
-            @if(deadline != null)
-            {
-              <div class="field">
-                <span class="tag" style="background: @(deadline.color + "30"); color: #555;">
-                  @deadline.name
-                </span>
-              </div>
-            }
-            <div class="field is-grouped">
-              <div class="control has-text-grey" style="width: 120px;">
-                Người tham gia:
-              </div>
-              <div class="control is-expanded">
-                <_MemberList members="task.members" sources="members" isEdit="editTask" isTask="true" 
-                  isRight="true" OnUpdate="UpdateMembers" />
-              </div>
-            </div>
-            <div class="field is-grouped">
-              <div class="control has-text-grey" style="width: 120px;">
-                Trạng thái:
-              </div>
-              <div class="control is-expanded">
-                <div class="dropdown is-hoverable">
-                  <div class="dropdown-trigger">
-                    <a class="icon-text">
-                      <span class="tag @status.color">@status.name</span>
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                      </span>
-                    </a>
-                  </div>
-                  @if(editTask)
-                  {
-                    <div class="dropdown-menu">
-                      <div class="dropdown-content">
-                        @foreach (var item in WorkService.Status())
+                @if (editTask)
+                {
+                  <div class="dropdown-menu">
+                    <div class="dropdown-content">
+                      @foreach (var item in WorkService.Status())
+                      {
+                        if (string.IsNullOrEmpty(task.id) && item.id < 4)
                         {
-                          if(string.IsNullOrEmpty(task.id) && item.id < 4)
-                          {
-                            <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
-                          }
-                          else if(!string.IsNullOrEmpty(task.id))
-                          {
-                            <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
-                          }
+                          <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
                         }
-                      </div>
-                    </div>
-                  }
-                </div>
-              </div>
-            </div>
-            <div class="field is-grouped">
-              <div class="control has-text-grey" style="width: 120px;">
-                Ngày bắt đầu
-              </div>
-              <div class="control is-expanded">
-                @if(editTask)
-                {
-                  <div class="input-date icon-text">
-                    <span class="icon is-small mr-1" onclick="setFocus('popup_dateS')">
-                      <i class="material-icons-outlined is-size-6">calendar_today</i>
-                    </span>
-                    <span onclick="setFocus('popup_dateS')">@dateS.ToString("dd/MM/yyyy")</span>
-                    <span class="icon is-small ml-3 mr-1" onclick="setFocus('popup_dateS')">
-                      <i class="material-icons-outlined is-size-6">schedule</i>
-                    </span>
-                    <span onclick="setFocus('popup_dateS')">@dateS.ToString("HH:mm")</span>
-                    <input @bind="dateS" id="popup_dateS" type="datetime-local" @oninput="(e) => ChangeDateStart(e)">
-                  </div>
-                }
-                else
-                {
-                  <div class="icon-text">
-                    <span class="icon is-small mr-1">
-                      <i class="material-icons-outlined is-size-6">calendar_today</i>
-                    </span>
-                    <span>@dateS.ToString("dd/MM/yyyy")</span>
-                    <span class="icon is-small ml-3 mr-1">
-                      <i class="material-icons-outlined is-size-6">schedule</i>
-                    </span>
-                    <span>@dateS.ToString("HH:mm")</span>
-                  </div> 
-                }
-              </div>
-            </div>
-            <div class="field is-grouped">
-              <div class="control has-text-grey" style="width: 120px;">
-                Ngày kết thúc
-              </div>
-              <div class="control is-expanded">
-                @if(editTask)
-                {
-                  <div class="input-date icon-text">
-                    <span class="icon is-small mr-1" onclick="setFocus('popup_dateE')">
-                      <i class="material-icons-outlined is-size-6">calendar_today</i>
-                    </span>
-                    <span onclick="setFocus('popup_dateE')">@dateE.ToString("dd/MM/yyyy")</span>
-                    <span class="icon is-small ml-3 mr-1" onclick="setFocus('popup_dateE')">
-                      <i class="material-icons-outlined is-size-6">schedule</i>
-                    </span>
-                    <span onclick="setFocus('popup_dateE')">@dateE.ToString("HH:mm")</span>
-                    <input @bind="dateS" id="popup_dateE" type="datetime-local" @oninput="(e) => ChangeDateEnd(e)">
-                  </div>
-                }
-                else
-                {
-                  <div class="icon-text">
-                    <span class="icon is-small mr-1">
-                      <i class="material-icons-outlined is-size-6">calendar_today</i>
-                    </span>
-                    <span>@dateE.ToString("dd/MM/yyyy")</span>
-                    <span class="icon is-small ml-3 mr-1">
-                      <i class="material-icons-outlined is-size-6">schedule</i>
-                    </span>
-                    <span>@dateE.ToString("HH:mm")</span>
-                  </div> 
-                }
-              </div>
-            </div>
-            <div class="field is-grouped">
-              <div class="control has-text-grey" style="width: 120px;">
-                Kế hoạch:
-              </div>
-              <div class="control is-expanded">
-                <div class="dropdown is-hoverable is-fullwidth">
-                  <div class="dropdown-trigger">
-                    <a class="icon-text">
-                      <span>@plan.name</span>
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                      </span>
-                    </a>
-                  </div>
-                  @if(editTask)
-                  {
-                    <div class="dropdown-menu">
-                      <div class="dropdown-content">
-                        <a class="dropdown-item">@plan.name</a>
-                      </div>
-                    </div>
-                  }
-                </div>
-              </div>
-            </div>
-            <div class="field is-grouped">
-              <div class="control has-text-grey" style="width: 120px;">
-                Nhóm công việc:
-              </div>
-              <div class="control is-expanded">
-                <div class="dropdown is-hoverable is-fullwidth">
-                  <div class="dropdown-trigger">
-                    <a class="icon-text">
-                      <span>@(sections != null ? sections.name : "Chọn nhóm công việc")</span>
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                      </span>
-                    </a>
-                  </div>
-                  @if(editTask)
-                  {
-                    <div class="dropdown-menu">
-                      <div class="dropdown-content">
-                        @if(WorkService.RoleInPlan(plan, Layout.User.id) == 1)
+                        else if (!string.IsNullOrEmpty(task.id))
                         {
-                          <div class="p-2">
-                            <div class="field has-addons">
-                              <div class="control is-expanded">
-                                <input @bind="sectionNew" class="input is-small" type="text" placeholder="Thêm nhóm mới">
-                              </div>
-                              <div class="control">
-                                <a class="button is-small is-link" @onclick="AddSection">
-                                  <span class="icon">
-                                    <i class="material-icons-outlined is-size-5">add</i>
-                                  </span>
-                                </a>
-                              </div>
+                          <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
+                        }
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+          <div class="field is-grouped">
+            <div class="control has-text-grey" style="width: 120px;">
+              Ngày bắt đầu
+            </div>
+            <div class="control is-expanded">
+              @if (editTask)
+              {
+                <div class="input-date icon-text">
+                  <span class="icon is-small mr-1" onclick="setFocus('popup_dateS')">
+                    <i class="material-icons-outlined is-size-6">calendar_today</i>
+                  </span>
+                  <span onclick="setFocus('popup_dateS')">@dateS.ToString("dd/MM/yyyy")</span>
+                  <span class="icon is-small ml-3 mr-1" onclick="setFocus('popup_dateS')">
+                    <i class="material-icons-outlined is-size-6">schedule</i>
+                  </span>
+                  <span onclick="setFocus('popup_dateS')">@dateS.ToString("HH:mm")</span>
+                  <input @bind="dateS" id="popup_dateS" type="datetime-local" @oninput="(e) => ChangeDateStart(e)">
+                </div>
+              }
+              else
+              {
+                <div class="icon-text">
+                  <span class="icon is-small mr-1">
+                    <i class="material-icons-outlined is-size-6">calendar_today</i>
+                  </span>
+                  <span>@dateS.ToString("dd/MM/yyyy")</span>
+                  <span class="icon is-small ml-3 mr-1">
+                    <i class="material-icons-outlined is-size-6">schedule</i>
+                  </span>
+                  <span>@dateS.ToString("HH:mm")</span>
+                </div>
+              }
+              </div>
+            </div>
+          <div class="field is-grouped">
+            <div class="control has-text-grey" style="width: 120px;">
+              Ngày kết thúc
+            </div>
+            <div class="control is-expanded">
+              @if (editTask)
+              {
+                <div class="input-date icon-text">
+                  <span class="icon is-small mr-1" onclick="setFocus('popup_dateE')">
+                    <i class="material-icons-outlined is-size-6">calendar_today</i>
+                  </span>
+                  <span onclick="setFocus('popup_dateE')">@dateE.ToString("dd/MM/yyyy")</span>
+                  <span class="icon is-small ml-3 mr-1" onclick="setFocus('popup_dateE')">
+                    <i class="material-icons-outlined is-size-6">schedule</i>
+                  </span>
+                  <span onclick="setFocus('popup_dateE')">@dateE.ToString("HH:mm")</span>
+                  <input @bind="dateS" id="popup_dateE" type="datetime-local" @oninput="(e) => ChangeDateEnd(e)">
+                </div>
+              }
+              else
+              {
+                <div class="icon-text">
+                  <span class="icon is-small mr-1">
+                    <i class="material-icons-outlined is-size-6">calendar_today</i>
+                  </span>
+                  <span>@dateE.ToString("dd/MM/yyyy")</span>
+                  <span class="icon is-small ml-3 mr-1">
+                    <i class="material-icons-outlined is-size-6">schedule</i>
+                  </span>
+                  <span>@dateE.ToString("HH:mm")</span>
+                </div>
+              }
+            </div>
+          </div>
+          <div class="field is-grouped">
+          <div class="control has-text-grey" style="width: 120px;">
+            Kế hoạch:
+          </div>
+          <div class="control is-expanded">
+            <div class="dropdown is-hoverable is-fullwidth">
+              <div class="dropdown-trigger">
+                <a class="icon-text">
+                  <span>@plan.name</span>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                  </span>
+                </a>
+              </div>
+              @if (editTask)
+              {
+                <div class="dropdown-menu">
+                  <div class="dropdown-content">
+                    <a class="dropdown-item">@plan.name</a>
+                  </div>
+                </div>
+              }
+              </div>
+            </div>
+          </div>
+          <div class="field is-grouped">
+            <div class="control has-text-grey" style="width: 120px;">
+              Nhóm công việc:
+            </div>
+            <div class="control is-expanded" style="width: calc(100% - 132px)">
+              <div class="dropdown is-hoverable is-fullwidth">
+                <div class="dropdown-trigger">
+                  <a class="icon-text">
+                    <span>@(sections != null ? sections.name : "Chọn nhóm công việc")</span>
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                    </span>
+                  </a>
+                </div>
+                @if (editTask)
+                {
+                  <div class="dropdown-menu">
+                    <div class="dropdown-content">
+                      @if (WorkService.RoleInPlan(plan, Layout.User.id) == 1)
+                      {
+                        <div class="p-2">
+                          <div class="field has-addons">
+                            <div class="control is-expanded">
+                              <input @bind="sectionNew" class="input is-small" type="text" placeholder="Thêm nhóm mới">
+                            </div>
+                            <div class="control">
+                              <a class="button is-small is-link" @onclick="AddSection">
+                                <span class="icon">
+                                  <i class="material-icons-outlined is-size-5">add</i>
+                                </span>
+                              </a>
                             </div>
                           </div>
-                        }
-                        @foreach (var item in plan.sections)
-                        {
-                          <a class="dropdown-item" style="white-space: normal;"
-                            @onclick="() => UpdateSection(item.id)">@item.name</a>
-                        }
-                      </div>
+                        </div>
+                      }
+                      @foreach (var item in plan.sections)
+                      {
+                        <a class="dropdown-item" style="white-space: normal;" @onclick="() => UpdateSection(item.id)">@item.name</a>
+                      }
                     </div>
-                  }
-                </div>
-              </div>
-            </div>
-            <div class="field is-grouped">
-              <div class="control has-text-grey" style="width: 120px;">
-                Mức độ ưu tiên:
-              </div>
-              <div class="control is-expanded">
-                <div class="dropdown is-hoverable">
-                  <div class="dropdown-trigger">
-                    <a class="icon-text">
-                      <span style="color: @priority.color;">@(task.priority != 0 ? priority.name : "Chọn mức độ")</span>
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                      </span>
-                    </a>
                   </div>
-                  @if(editTask)
-                  {
-                    <div class="dropdown-menu">
-                      <div class="dropdown-content">
-                        <a class="dropdown-item is-hidden" @onclick="() => UpdatePriorty(0)">Trống</a>
-                        @foreach (var item in WorkService.Priority())
-                        {
-                          <a class="dropdown-item" style="color: @item.color;" @onclick="() => UpdatePriorty(item.id)">@item.name</a>
-                        }
-                      </div>
-                    </div>
-                  }
+                }
+              </div>
+            </div>
+          </div>
+          <div class="field is-grouped">
+            <div class="control has-text-grey" style="width: 120px;">
+              Mức độ ưu tiên:
+            </div>
+            <div class="control is-expanded">
+              <div class="dropdown is-hoverable">
+                <div class="dropdown-trigger">
+                  <a class="icon-text">
+                    <span style="color: @priority.color;">@(task.priority != 0 ? priority.name : "Chọn mức độ")</span>
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                    </span>
+                  </a>
                 </div>
+                @if (editTask)
+                {
+                  <div class="dropdown-menu">
+                    <div class="dropdown-content">
+                      <a class="dropdown-item is-hidden" @onclick="() => UpdatePriorty(0)">Trống</a>
+                      @foreach (var item in WorkService.Priority())
+                      {
+                        <a class="dropdown-item" style="color: @item.color;" @onclick="() => UpdatePriorty(item.id)">@item.name</a>
+                      }
+                    </div>
+                  </div>
+                }
               </div>
             </div>
-            <div class="field is-grouped">
-              <div class="control has-text-grey" style="width: 120px;">
-                Nhãn công việc:
-              </div>
-              <div class="control is-expanded">
-                <_LabelList labels="task.labels" sources="plan.labels" isEdit="editTask" OnUpdate="UpdateLabels" />
-              </div>
+          </div>
+          <div class="field is-grouped" style="align-items: flex-start;">
+            <div class="control has-text-grey pt-1" style="width: 120px;">
+              Nhãn công việc:
             </div>
-            <div class="field">
-              <div class="control has-text-grey mb-2">Mô tả công việc:</div>
-              @if(editTask)
+            <div class="control is-expanded" style="width: calc(100% - 132px)">
+              <_LabelList labels="task.labels" sources="plan.labels" isEdit="editTask" OnUpdate="UpdateLabels" />
+            </div>
+          </div>
+          <div class="field">
+            <div class="control has-text-grey mb-2">Mô tả công việc:</div>
+              @if (editTask)
               {
                 <div class="control">
                   <textarea @bind="task.detail" class="textarea is_bg" rows="7" placeholder="Nhập mô tả công việc..." />
@@ -329,481 +328,476 @@
                   @((MarkupString)Shared.TextToHtml(task.detail))
                 </div>
               }
-            </div>
-            @if(editTask)
-            {
-              <div class="has-text-right">
-                <a class="button is-link is-small mr-2" @onclick="Update">
-                  <span class="icon">
-                    <i class="material-icons-round is-size-6">done</i>
-                  </span>
-                  <span>Hoàn tất</span>
-                </a>
-                <a class="button has-text-danger is-small" @onclick="Cancel">
-                  <span class="icon">
-                    <i class="material-icons-round is-size-6">close</i>
-                  </span>
-                  <span>Hủy</span>
-                </a>
-              </div>
-            }
-          }
-          else if(tab == 2)
-          {
-            <_TaskSubList parent="task" tasks="subTasks" editRole="editTask" members="members" />
-          }
-          else if(tab == 3)
-          {
-            <_TaskTodolist task="task" todos="todoItems" editRole="editTask" />
-          }
-          else if(tab == 4)
-          {
-            <div class="is-size-6 has-text-weight-medium">BÌNH LUẬN</div>
-            <_TaskComments task="task" comments="comments" editRole="editTask" />
-          }
-          else if(tab == 5)
-          {
-            <_PlanLogs logs="logs" />
-          }
-          else if(tab == 6)
-          {
-            <div class="has-text-grey mb-1">Xóa công việc</div>
-            <div class="font_14 mb-2">
-              Toàn bộ dữ liệu của công việc như file đính kèm, công việc phụ, 
-              bình luận của bạn và các thành viên sẽ bị xóa và không thể khôi phục.
-            </div>
-            <a class="button is-danger" @onclick="Delete">
-              <span class="icon">
-                <i class="material-icons-outlined is-size-5">delete</i>
-              </span>
-              <span>Xóa công việc</span>
-            </a>
-
-            <div class="has-text-grey mb-1 mt-6">Rời khỏi công việc</div>
-            <div class="font_14 mb-2">
-              Bạn sẽ rời khỏi công việc và không nhận thông báo mới. Dữ liệu của công việc không bị ảnh hưởng.
-            </div>
-            <a class="button is-info" @onclick="OutTask">
-              <span class="icon">
-                <i class="material-icons-outlined is-size-5">remove</i>
-              </span>
-              <span>Rời khỏi</span>
-            </a>
-          }
-        </section>
-      }
-      else
-      {
-        DateTimeOffset? dateS = task.date_start > 0 ? new DateTime(task.date_start) : null;
-        DateTimeOffset? dateE = task.date_end > 0 ? new DateTime(task.date_end) : null;
-
-        <section class="modal-card-head">
-          <div class="modal-card-title">
-            <div class="control has-icons-left">
-              @if(editTask && tab == 1)
-              {
-                <input @bind="task.name" id="task_name" class="input is-size-6 has-text-weight-medium is_bg" 
-                  type="text" placeholder="Nhập tiêu đề công việc"> 
-              }
-              else 
-              {
-                <input value="@task.name" id="task_name" class="input is-size-6 has-text-weight-medium is-white" 
-                  type="text" readonly> 
-              }
-              <span class="icon is-left has-text-dark">
-                <i class="material-icons-outlined is-size-5">edit</i>
-              </span>
-            </div>
           </div>
-          <a class="delete is-medium" @onclick="Cancel"></a>
-        </section>
-        <section class="modal-card-body p-0">
-          <ul class="columns is-variable is-0">
-            <li class="column is-2 p-4" style="background-color: #FBFBFB; height: calc(100vh - 130px);">
-              <ul style="height: 100%; position: relative;">
+          @if (editTask)
+          {
+            <div class="has-text-right">
+              <a class="button is-link is-small mr-2" @onclick="Update">
+                <span class="icon">
+                  <i class="material-icons-round is-size-6">done</i>
+                </span>
+                <span>Hoàn tất</span>
+              </a>
+              <a class="button has-text-danger is-small" @onclick="Cancel">
+                <span class="icon">
+                  <i class="material-icons-round is-size-6">close</i>
+                </span>
+                <span>Hủy</span>
+              </a>
+            </div>
+          }
+        }
+        else if (tab == 2)
+        {
+          <_TaskSubList parent="task" tasks="subTasks" editRole="editTask" members="members" />
+        }
+        else if (tab == 3)
+        {
+          <_TaskTodolist task="task" todos="todoItems" editRole="editTask" />
+        }
+        else if (tab == 4)
+        {
+          <div class="is-size-6 has-text-weight-medium">BÌNH LUẬN</div>
+          <_TaskComments task="task" comments="comments" editRole="editTask" />
+        }
+        else if (tab == 5)
+        {
+          <_PlanLogs logs="logs" />
+        }
+        else if (tab == 6)
+        {
+          <div class="has-text-grey mb-1">Xóa công việc</div>
+          <div class="font_14 mb-2">
+            Toàn bộ dữ liệu của công việc như file đính kèm, công việc phụ,
+            bình luận của bạn và các thành viên sẽ bị xóa và không thể khôi phục.
+          </div>
+          <a class="button is-danger" @onclick="Delete">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">delete</i>
+            </span>
+            <span>Xóa công việc</span>
+          </a>
+
+          <div class="has-text-grey mb-1 mt-6">Rời khỏi công việc</div>
+          <div class="font_14 mb-2">
+            Bạn sẽ rời khỏi công việc và không nhận thông báo mới. Dữ liệu của công việc không bị ảnh hưởng.
+          </div>
+          <a class="button is-info" @onclick="OutTask">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">remove</i>
+            </span>
+            <span>Rời khỏi</span>
+          </a>
+        }
+      </section>
+    }
+    else
+    {
+      DateTimeOffset? dateS = task.date_start > 0 ? new DateTime(task.date_start) : null;
+      DateTimeOffset? dateE = task.date_end > 0 ? new DateTime(task.date_end) : null;
+
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          <div class="control has-icons-left">
+            @if (editTask && tab == 1)
+            {
+              <input @bind="task.name" id="task_name" type="text" placeholder="Nhập tiêu đề công việc"
+                class="input is-size-6 has-text-weight-medium is_bg">
+            }
+            else
+            {
+              <input value="@task.name" id="task_name" type="text" readonly
+                class="input is-size-6 has-text-weight-medium is-white">
+            }
+            <span class="icon is-left has-text-dark">
+              <i class="material-icons-outlined is-size-5">edit</i>
+            </span>
+          </div>
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body p-0">
+        <ul class="columns is-variable is-0">
+          <li class="column is-2 p-4" style="background-color: #FBFBFB; height: calc(100vh - 130px);">
+            <ul style="height: 100%; position: relative;">
+              <li class="mb-4">
+                <a class="has-text-@(tab == 1 ? "black" : "info")" @onclick="() => ChangeTab(1)">
+                  Thông tin chung
+                </a>
+              </li>
+              @if (!string.IsNullOrEmpty(task.id))
+              {
                 <li class="mb-4">
-                  <a class="has-text-@(tab == 1 ? "black" : "info")" @onclick="() => ChangeTab(1)">
-                    Thông tin chung
+                  <a class="has-text-@(tab == 2 ? "black" : "info")" @onclick="() => ChangeTab(2)">
+                    Công việc phụ
                   </a>
                 </li>
-                @if(!string.IsNullOrEmpty(task.id))
+                <li class="mb-4">
+                  <a class="has-text-@(tab == 3 ? "black" : "info")" @onclick="() => ChangeTab(3)">
+                    Todolist liên kết
+                  </a>
+                </li>
+                <li class="mb-4">
+                  <a class="has-text-@(tab == 4 ? "black" : "info")" @onclick="() => ChangeTab(4)" title="@(task.comment > 0 ? $"Có {task.comment} bình luận" : "Chưa có bình luận")">
+                    Bình luận
+                  </a>
+                </li>
+                <li class="mb-4">
+                  <a class="has-text-@(tab == 5 ? "black" : "info")" @onclick="() => ChangeTab(5)">
+                    Lịch sử cập nhật
+                  </a>
+                </li>
+                @if (editTask)
                 {
-                  <li class="mb-4">
-                    <a class="has-text-@(tab == 2 ? "black" : "info")" @onclick="() => ChangeTab(2)">
-                      Công việc phụ
+                  <li style="position: absolute; left: 0px; bottom: 0px;">
+                    <a class="has-text-@(tab == 6 ? "black" : "info")" @onclick="() => ChangeTab(6)">
+                      Xóa và rời khỏi
                     </a>
                   </li>
-                  <li class="mb-4">
-                    <a class="has-text-@(tab == 3 ? "black" : "info")" @onclick="() => ChangeTab(3)">
-                      Todolist liên kết
-                    </a>
-                  </li>
-                  <li class="mb-4">
-                    <a class="has-text-@(tab == 4 ? "black" : "info")" @onclick="() => ChangeTab(4)"
-                      title="@(task.comment > 0 ? $"Có {task.comment} bình luận" : "Chưa có bình luận")">
-                      Bình luận
-                    </a>
-                  </li>
-                  <li class="mb-4">
-                    <a class="has-text-@(tab == 5 ? "black" : "info")" @onclick="() => ChangeTab(5)">
-                      Lịch sử cập nhật
-                    </a>
-                  </li>
-                  @if(editTask)
-                  {
-                    <li style="position: absolute; left: 0px; bottom: 0px;">
-                      <a class="has-text-@(tab == 6 ? "black" : "info")" @onclick="() => ChangeTab(6)">
-                        Xóa và rời khỏi
-                      </a>
-                    </li>
-                  }
                 }
-              </ul>
-            </li>
-            @if(tab == 1)
-            {
-              <li class="column is-10 is-size-7 p-4">
-                <div class="field is-grouped">
-                  <div class="control has-text-grey" style="width: 120px;">
-                    Người tham gia:
-                  </div>
-                  <div class="control is-expanded">
-                    <_MemberList members="task.members" sources="members" isEdit="editTask" isTask="true" 
-                      OnUpdate="UpdateMembers" />
-                  </div>
+              }
+            </ul>
+          </li>
+          @if (tab == 1)
+          {
+            <li class="column is-10 is-size-7 p-4">
+              <div class="field is-grouped">
+                <div class="control has-text-grey" style="width: 120px;">
+                  Người tham gia:
                 </div>
-                <div class="field is-grouped">
-                  <div class="control has-text-grey" style="width: 120px;">
-                    Trạng thái:
-                  </div>
-                  <div class="control is-expanded">
-                    <div class="dropdown is-hoverable">
-                      <div class="dropdown-trigger">
-                        <a class="icon-text">
-                          <span class="tag @status.color">@status.name</span>
-                          <span class="icon">
-                            <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                          </span>
-                        </a>
-                      </div>
-                      @if(editTask)
-                      {
-                        <div class="dropdown-menu">
-                          <div class="dropdown-content">
-                            @foreach (var item in WorkService.Status())
-                            {
-                              if(string.IsNullOrEmpty(task.id) && item.id < 4)
-                              {
-                                <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
-                              }
-                              else if(!string.IsNullOrEmpty(task.id))
-                              {
-                                <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
-                              }
-                            }
-                          </div>
-                        </div>
-                      }
+                <div class="control is-expanded">
+                  <_MemberList members="task.members" sources="members" isEdit="editTask" isTask="true" OnUpdate="UpdateMembers" />
+                </div>
+              </div>
+              <div class="field is-grouped">
+                <div class="control has-text-grey" style="width: 120px;">
+                  Trạng thái:
+                </div>
+                <div class="control is-expanded">
+                  <div class="dropdown is-hoverable">
+                    <div class="dropdown-trigger">
+                      <a class="icon-text">
+                        <span class="tag @status.color">@status.name</span>
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                        </span>
+                      </a>
                     </div>
-                  </div>
-                </div>
-                <div class="field is-grouped">
-                  <div class="control has-text-grey" style="width: 120px;">
-                    Ngày bắt đầu
-                  </div>
-                  <div class="control is-expanded">
-                    @if(editTask)
+                    @if (editTask)
                     {
-                      <DateRangePicker @bind-StartDate="dateS" TimePicker="true" TimePicker24Hour="true"
-                        SingleDatePicker="true" OnRangeSelect="UpdateDateStart">
-                        <PickerTemplate>
-                          <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
-                            <span class="icon is-small mr-1">
-                              <i class="material-icons-outlined is-size-6">calendar_today</i>
-                            </span>
-                            @if (context.TStartDate != null)
+                      <div class="dropdown-menu">
+                        <div class="dropdown-content">
+                          @foreach (var item in WorkService.Status())
+                          {
+                            if (string.IsNullOrEmpty(task.id) && item.id < 4)
                             {
-                              <span>@context.TStartDate.Value.ToString("dd/MM/yyyy")</span>
-                              <span class="icon is-small ml-3 mr-1">
-                                <i class="material-icons-outlined is-size-6">schedule</i>
-                              </span>
-                              <span>@context.TStartDate.Value.ToString("HH:mm")</span>
+                              <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
                             }
-                            else
+                            else if (!string.IsNullOrEmpty(task.id))
                             {
-                              <span>dd/mm/yyyy</span>
-                              <span class="icon is-small ml-3 mr-1">
-                                <i class="material-icons-outlined is-size-6">schedule</i>
-                              </span>
-                              <span>hh:mm</span>
+                              <a class="dropdown-item" @onclick="() => ChangeStatus(item.id)">@item.name</a>
                             }
-                          </a>
-                        </PickerTemplate>
-                      </DateRangePicker>
-                    }
-                    else
-                    {
-                      <div class="icon-text">
-                        <span class="icon is-small mr-1">
-                          <i class="material-icons-outlined is-size-6">calendar_today</i>
-                        </span>
-                        <span>@dateS.Value.DateTime.ToString("dd/MM/yyyy")</span>
-                        <span class="icon is-small ml-3 mr-1">
-                          <i class="material-icons-outlined is-size-6">schedule</i>
-                        </span>
-                        <span>@dateS.Value.DateTime.ToString("HH:mm")</span>
-                      </div> 
+                          }
+                        </div>
+                      </div>
                     }
                   </div>
                 </div>
-                <div class="field is-grouped">
-                  <div class="control has-text-grey" style="width: 120px;">
-                    Ngày kết thúc
-                  </div>
-                  <div class="control is-expanded">
-                    @if(editTask)
-                    {
-                      <DateRangePicker @bind-StartDate="dateE" TimePicker="true" TimePicker24Hour="true"
-                        SingleDatePicker="true" OnRangeSelect="UpdateDateEnd">
-                        <PickerTemplate>
-                          <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
-                            <span class="icon is-small mr-1">
-                              <i class="material-icons-outlined is-size-6">calendar_today</i>
-                            </span>
-                            @if (context.TStartDate != null)
-                            {
-                              <span>@context.TStartDate.Value.ToString("dd/MM/yyyy")</span>
-                              <span class="icon is-small ml-3 mr-1">
-                                <i class="material-icons-outlined is-size-6">schedule</i>
-                              </span>
-                              <span>@context.TStartDate.Value.ToString("HH:mm")</span>
-                            }
-                            else
-                            {
-                              <span>dd/mm/yyyy</span>
-                              <span class="icon is-small ml-3 mr-1">
-                                <i class="material-icons-outlined is-size-6">schedule</i>
-                              </span>
-                              <span>hh:mm</span>
-                            }
-                          </a>
-                        </PickerTemplate>
-                      </DateRangePicker>
-                    }
-                    else
-                    {
-                      <div class="icon-text">
-                        <span class="icon is-small mr-1">
-                          <i class="material-icons-outlined is-size-6">calendar_today</i>
-                        </span>
-                        <span>@dateE.Value.DateTime.ToString("dd/MM/yyyy")</span>
-                        <span class="icon is-small ml-3 mr-1">
-                          <i class="material-icons-outlined is-size-6">schedule</i>
-                        </span>
-                        <span>@dateE.Value.DateTime.ToString("HH:mm")</span>
-                      </div> 
-                    }
-                  </div>
+              </div>
+              <div class="field is-grouped">
+                <div class="control has-text-grey" style="width: 120px;">
+                  Ngày bắt đầu
                 </div>
-                <div class="field is-grouped">
-                  <div class="control has-text-grey" style="width: 120px;">
-                    Kế hoạch:
-                  </div>
-                  <div class="control is-expanded">
-                    <div class="dropdown is-hoverable">
-                      <div class="dropdown-trigger">
-                        <a class="icon-text">
-                          <span>@plan.name</span>
-                          <span class="icon">
-                            <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                          </span>
-                        </a>
-                      </div>
-                      @if(editTask)
-                      {
-                        <div class="dropdown-menu">
-                          <div class="dropdown-content">
-                            <a class="dropdown-item">@plan.name</a>
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  </div>
-                </div>
-                <div class="field is-grouped">
-                  <div class="control has-text-grey" style="width: 120px;">
-                    Nhóm công việc:
-                  </div>
-                  <div class="control is-expanded">
-                    <div class="dropdown is-hoverable">
-                      <div class="dropdown-trigger">
-                        <a class="icon-text">
-                          <span>@(sections != null ? sections.name : "Chọn nhóm công việc")</span>
-                          <span class="icon">
-                            <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                          </span>
-                        </a>
-                      </div>
-                      @if(editTask)
-                      {
-                        <div class="dropdown-menu" style="width: 300px;">
-                          <div class="dropdown-content">
-                            @if(WorkService.RoleInPlan(plan, Layout.User.id) == 1)
-                            {
-                              <div class="p-2">
-                                <div class="field has-addons">
-                                  <div class="control is-expanded">
-                                    <input @bind="sectionNew" class="input is-small" type="text" placeholder="Thêm nhóm công việc">
-                                  </div>
-                                  <div class="control">
-                                    <a class="button is-small is-link" @onclick="AddSection">
-                                      <span class="icon">
-                                        <i class="material-icons-outlined is-size-5">add</i>
-                                      </span>
-                                    </a>
-                                  </div>
-                                </div>
-                              </div>
-                            }
-                            @foreach (var item in plan.sections)
-                            {
-                              <a class="dropdown-item" @onclick="() => UpdateSection(item.id)">@item.name</a>
-                            }
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  </div>
-                </div>
-                <div class="field is-grouped">
-                  <div class="control has-text-grey" style="width: 120px;">
-                    Mức độ ưu tiên:
-                  </div>
-                  <div class="control is-expanded">
-                    <div class="dropdown is-hoverable">
-                      <div class="dropdown-trigger">
-                        <a class="icon-text">
-                          <span style="color: @priority.color;">@(task.priority != 0 ? priority.name : "Chọn mức độ")</span>
-                          <span class="icon">
-                            <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                          </span>
-                        </a>
-                      </div>
-                      @if(editTask)
-                      {
-                        <div class="dropdown-menu">
-                          <div class="dropdown-content">
-                            <a class="dropdown-item is-hidden" @onclick="() => UpdatePriorty(0)">Trống</a>
-                            @foreach (var item in WorkService.Priority())
-                            {
-                              <a class="dropdown-item" style="color: @item.color;" @onclick="() => UpdatePriorty(item.id)">@item.name</a>
-                            }
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  </div>
-                </div>
-                <div class="field is-grouped">
-                  <div class="control has-text-grey" style="width: 120px;">
-                    Nhãn công việc:
-                  </div>
-                  <div class="control is-expanded">
-                    <_LabelList labels="task.labels" sources="plan.labels" isEdit="editTask" OnUpdate="UpdateLabels" />
-                  </div>
-                </div>
-                <div class="field">
-                  <div class="control has-text-grey mb-2">Mô tả công việc:</div>
-                  @if(editTask)
+                <div class="control is-expanded">
+                  @if (editTask)
                   {
-                    <div class="control">
-                      <textarea @bind="task.detail" class="textarea is-small is_bg" rows="5"
-                        placeholder="Nhập mô tả công việc..." style="height: calc(100vh - 518px);" />
-                    </div>
+                    <DateRangePicker @bind-StartDate="dateS" TimePicker="true" TimePicker24Hour="true" SingleDatePicker="true" OnRangeSelect="UpdateDateStart">
+                      <PickerTemplate>
+                        <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
+                          <span class="icon is-small mr-1">
+                            <i class="material-icons-outlined is-size-6">calendar_today</i>
+                          </span>
+                          @if (context.TStartDate != null)
+                          {
+                            <span>@context.TStartDate.Value.ToString("dd/MM/yyyy")</span>
+                            <span class="icon is-small ml-3 mr-1">
+                              <i class="material-icons-outlined is-size-6">schedule</i>
+                            </span>
+                            <span>@context.TStartDate.Value.ToString("HH:mm")</span>
+                          }
+                          else
+                          {
+                            <span>dd/mm/yyyy</span>
+                            <span class="icon is-small ml-3 mr-1">
+                              <i class="material-icons-outlined is-size-6">schedule</i>
+                            </span>
+                            <span>hh:mm</span>
+                          }
+                        </a>
+                      </PickerTemplate>
+                    </DateRangePicker>
                   }
                   else
                   {
-                    <div class="content is-size-7">
-                      @((MarkupString)Shared.TextToHtml(task.detail))
+                    <div class="icon-text">
+                      <span class="icon is-small mr-1">
+                        <i class="material-icons-outlined is-size-6">calendar_today</i>
+                      </span>
+                      <span>@dateS.Value.DateTime.ToString("dd/MM/yyyy")</span>
+                      <span class="icon is-small ml-3 mr-1">
+                        <i class="material-icons-outlined is-size-6">schedule</i>
+                      </span>
+                      <span>@dateS.Value.DateTime.ToString("HH:mm")</span>
                     </div>
                   }
                 </div>
-                @if(editTask)
+              </div>
+              <div class="field is-grouped">
+                <div class="control has-text-grey" style="width: 120px;">
+                  Ngày kết thúc
+                </div>
+                <div class="control is-expanded">
+                  @if (editTask)
+                  {
+                    <DateRangePicker @bind-StartDate="dateE" TimePicker="true" TimePicker24Hour="true" SingleDatePicker="true" OnRangeSelect="UpdateDateEnd">
+                      <PickerTemplate>
+                        <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
+                          <span class="icon is-small mr-1">
+                            <i class="material-icons-outlined is-size-6">calendar_today</i>
+                          </span>
+                          @if (context.TStartDate != null)
+                          {
+                            <span>@context.TStartDate.Value.ToString("dd/MM/yyyy")</span>
+                            <span class="icon is-small ml-3 mr-1">
+                              <i class="material-icons-outlined is-size-6">schedule</i>
+                            </span>
+                            <span>@context.TStartDate.Value.ToString("HH:mm")</span>
+                          }
+                          else
+                          {
+                            <span>dd/mm/yyyy</span>
+                            <span class="icon is-small ml-3 mr-1">
+                              <i class="material-icons-outlined is-size-6">schedule</i>
+                            </span>
+                            <span>hh:mm</span>
+                          }
+                        </a>
+                      </PickerTemplate>
+                    </DateRangePicker>
+                  }
+                  else
+                  {
+                    <div class="icon-text">
+                      <span class="icon is-small mr-1">
+                        <i class="material-icons-outlined is-size-6">calendar_today</i>
+                      </span>
+                      <span>@dateE.Value.DateTime.ToString("dd/MM/yyyy")</span>
+                      <span class="icon is-small ml-3 mr-1">
+                        <i class="material-icons-outlined is-size-6">schedule</i>
+                      </span>
+                      <span>@dateE.Value.DateTime.ToString("HH:mm")</span>
+                    </div>
+                  }
+                </div>
+              </div>
+              <div class="field is-grouped">
+                <div class="control has-text-grey" style="width: 120px;">
+                  Kế hoạch:
+                </div>
+                <div class="control is-expanded">
+                  <div class="dropdown is-hoverable">
+                    <div class="dropdown-trigger">
+                      <a class="icon-text">
+                        <span>@plan.name</span>
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                        </span>
+                      </a>
+                    </div>
+                    @if (editTask)
+                    {
+                      <div class="dropdown-menu">
+                        <div class="dropdown-content">
+                          <a class="dropdown-item">@plan.name</a>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+              <div class="field is-grouped">
+                <div class="control has-text-grey" style="width: 120px;">
+                  Nhóm công việc:
+                </div>
+                <div class="control is-expanded">
+                  <div class="dropdown is-hoverable">
+                    <div class="dropdown-trigger">
+                      <a class="icon-text">
+                        <span>@(sections != null ? sections.name : "Chọn nhóm công việc")</span>
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                        </span>
+                      </a>
+                    </div>
+                    @if (editTask)
+                    {
+                      <div class="dropdown-menu" style="width: 300px;">
+                        <div class="dropdown-content">
+                          @if (WorkService.RoleInPlan(plan, Layout.User.id) == 1)
+                          {
+                            <div class="p-2">
+                              <div class="field has-addons">
+                                <div class="control is-expanded">
+                                  <input @bind="sectionNew" class="input is-small" type="text" placeholder="Thêm nhóm công việc">
+                                </div>
+                                <div class="control">
+                                  <a class="button is-small is-link" @onclick="AddSection">
+                                    <span class="icon">
+                                      <i class="material-icons-outlined is-size-5">add</i>
+                                    </span>
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          }
+                          @foreach (var item in plan.sections)
+                          {
+                            <a class="dropdown-item" @onclick="() => UpdateSection(item.id)">@item.name</a>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+              <div class="field is-grouped">
+                <div class="control has-text-grey" style="width: 120px;">
+                  Mức độ ưu tiên:
+                </div>
+                <div class="control is-expanded">
+                  <div class="dropdown is-hoverable">
+                    <div class="dropdown-trigger">
+                      <a class="icon-text">
+                        <span style="color: @priority.color;">@(task.priority != 0 ? priority.name : "Chọn mức độ")</span>
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                        </span>
+                      </a>
+                    </div>
+                    @if (editTask)
+                    {
+                      <div class="dropdown-menu">
+                        <div class="dropdown-content">
+                          <a class="dropdown-item is-hidden" @onclick="() => UpdatePriorty(0)">Trống</a>
+                          @foreach (var item in WorkService.Priority())
+                          {
+                            <a class="dropdown-item" style="color: @item.color;" @onclick="() => UpdatePriorty(item.id)">@item.name</a>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+              <div class="field is-grouped">
+                <div class="control has-text-grey" style="width: 120px;">
+                  Nhãn công việc:
+                </div>
+                <div class="control is-expanded">
+                  <_LabelList labels="task.labels" sources="plan.labels" isEdit="editTask" OnUpdate="UpdateLabels" />
+                </div>
+              </div>
+              <div class="field">
+                <div class="control has-text-grey mb-2">Mô tả công việc:</div>
+                @if (editTask)
                 {
-                  <div class="buttons is-right">
-                    <a class="button is-link is-small" @onclick="Update">
-                      <span class="icon">
-                        <i class="material-icons-round is-size-6">done</i>
-                      </span>
-                      <span>Hoàn tất</span>
-                    </a>
-                    <a class="button has-text-danger is-small" @onclick="Cancel">
-                      <span class="icon">
-                        <i class="material-icons-round is-size-6">close</i>
-                      </span>
-                      <span>Hủy</span>
-                    </a>
+                  <div class="control">
+                    <textarea @bind="task.detail" class="textarea is-small is_bg" rows="5" placeholder="Nhập mô tả công việc..." style="height: calc(100vh - 518px);" />
                   </div>
                 }
-              </li> 
-            }
-            else if(tab == 2)
-            {
-              <li class="column is-10 is-size-7 p-4">
-                <_TaskSubList parent="task" tasks="subTasks" editRole="editTask" members="members" />
-              </li>
-            }
-            else if(tab == 3)
-            {
-              <li class="column is-10 is-size-7 p-4">
-                <_TaskTodolist task="task" todos="todoItems" editRole="editTask" />
-              </li>
-            }
-            else if(tab == 4)
-            {
-              <li class="column is-10 is-size-7 p-4">
-                <div class="has-text-grey">Bình luận</div>
-                <_TaskComments task="task" comments="comments" editRole="editTask" />
-              </li>
-            }
-            else if(tab == 5)
-            {
-              <li class="column is-10 is-size-7 p-4">
-                <div class="has-text-grey">Lịch sử cập nhật</div>
-                <div class="scrolly py-1 px-2" style="height: calc(100vh - 180px);">
-                  <_PlanLogs logs="logs" />
+                else
+                {
+                  <div class="content is-size-7">
+                    @((MarkupString)Shared.TextToHtml(task.detail))
+                  </div>
+                }
+              </div>
+              @if (editTask)
+              {
+                <div class="buttons is-right">
+                  <a class="button is-link is-small" @onclick="Update">
+                    <span class="icon">
+                      <i class="material-icons-round is-size-6">done</i>
+                    </span>
+                    <span>Hoàn tất</span>
+                  </a>
+                  <a class="button has-text-danger is-small" @onclick="Cancel">
+                    <span class="icon">
+                      <i class="material-icons-round is-size-6">close</i>
+                    </span>
+                    <span>Hủy</span>
+                  </a>
                 </div>
-              </li>
-            }
-            else if(tab == 6)
-            {
-              <li class="column is-10 is-size-7 p-4 has-text-info">
-                <div class="has-text-grey mb-1">Xóa công việc</div>
-                <div class="font_14 mb-2">
-                  Toàn bộ dữ liệu của công việc như file đính kèm, công việc phụ, bình luận của bạn và các thành viên sẽ bị xóa và không thể khôi phục.
-                </div>
-                <a class="button is-danger" @onclick="Delete">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">delete</i>
-                  </span>
-                  <span>Xóa công việc</span>
-                </a>
+              }
+            </li>
+          }
+          else if (tab == 2)
+          {
+            <li class="column is-10 is-size-7 p-4">
+              <_TaskSubList parent="task" tasks="subTasks" editRole="editTask" members="members" />
+            </li>
+          }
+          else if (tab == 3)
+          {
+            <li class="column is-10 is-size-7 p-4">
+              <_TaskTodolist task="task" todos="todoItems" editRole="editTask" />
+            </li>
+          }
+          else if (tab == 4)
+          {
+            <li class="column is-10 is-size-7 p-4">
+              <div class="has-text-grey">Bình luận</div>
+              <_TaskComments task="task" comments="comments" editRole="editTask" />
+            </li>
+          }
+          else if (tab == 5)
+          {
+            <li class="column is-10 is-size-7 p-4">
+              <div class="has-text-grey">Lịch sử cập nhật</div>
+              <div class="scrolly py-1 px-2" style="height: calc(100vh - 180px);">
+                <_PlanLogs logs="logs" />
+              </div>
+            </li>
+          }
+          else if (tab == 6)
+          {
+            <li class="column is-10 is-size-7 p-4 has-text-info">
+              <div class="has-text-grey mb-1">Xóa công việc</div>
+              <div class="font_14 mb-2">
+                Toàn bộ dữ liệu của công việc như file đính kèm, công việc phụ, bình luận của bạn và các thành viên sẽ bị xóa và không thể khôi phục.
+              </div>
+              <a class="button is-danger" @onclick="Delete">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">delete</i>
+                </span>
+                <span>Xóa công việc</span>
+              </a>
 
-                <div class="has-text-grey mb-1 mt-6">Rời khỏi công việc</div>
-                <div class="font_14 mb-2">
-                  Bạn sẽ rời khỏi công việc và không nhận thông báo mới. Dữ liệu của công việc không bị ảnh hưởng.
-                </div>
-                <a class="button is-info" @onclick="OutTask">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">remove</i>
-                  </span>
-                  <span>Rời khỏi</span>
-                </a>
-              </li>
-            }
-          </ul>
-        </section>
-      }
+              <div class="has-text-grey mb-1 mt-6">Rời khỏi công việc</div>
+              <div class="font_14 mb-2">
+                Bạn sẽ rời khỏi công việc và không nhận thông báo mới. Dữ liệu của công việc không bị ảnh hưởng.
+              </div>
+              <a class="button is-info" @onclick="OutTask">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">remove</i>
+                </span>
+                <span>Rời khỏi</span>
+              </a>
+            </li>
+          }
+        </ul>
+      </section>
+    }
     </section>
   </section>
 }
@@ -847,7 +841,7 @@
 
   private async Task Cancel()
   {
-    if(isChange)
+    if (isChange)
     {
       OnChanged();
       await OnUpdate.InvokeAsync(task);
@@ -887,9 +881,9 @@
 
   private async Task Update()
   {
-    if(await Validation())
+    if (await Validation())
     {
-      if(string.IsNullOrEmpty(task.id))
+      if (string.IsNullOrEmpty(task.id))
       {
         // Lưu vào database
         await DbWorkTask.Create(Layout.Company.id, task);
@@ -903,7 +897,7 @@
       else
       {
         var old = await DbWorkTask.Get(Layout.Company.id, task.id);
-        if(task.name != old.name)
+        if (task.name != old.name)
         {
           // Thông báo chuông
           foreach (var user in task.members)
@@ -923,14 +917,16 @@
 
   private async Task<bool> Validation()
   {
-    if(string.IsNullOrEmpty(task.name))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập tiêu đề của công việc");
-    else if(task.members.Count == 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Chọn người tham gia của công việc.");
-    else if(task.date_start == 0 || task.date_end == 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập thời gian thực hiện của công việc.");
-    else if(string.IsNullOrEmpty(task.section_id))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Chọn nhóm của công việc.");
+    if (Shared.IsEmpty(task.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập tiêu đề của công việc!");
+    else if (task.members.Count == 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Chọn người tham gia của công việc!");
+    else if (task.date_start == 0 || task.date_end == 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập thời gian thực hiện của công việc!");
+    else if (task.date_start >= task.date_end)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày bắt đầu đang lớn hơn ngày kết thúc!");
+    else if (string.IsNullOrEmpty(task.section_id))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa chọn nhóm của công việc!");
     else
       return true;
     return false;
@@ -938,7 +934,7 @@
 
   private async Task UpdateDB()
   {
-    if(!string.IsNullOrEmpty(task.id))
+    if (!string.IsNullOrEmpty(task.id))
     {
       await DbWorkTask.Update(Layout.Company.id, task);
       isChange = true;
@@ -948,7 +944,7 @@
   private async Task UpdateMembers()
   {
     var old = await DbWorkTask.Get(Layout.Company.id, task.id);
-    if(old != null)
+    if (old != null)
     {
       await UpdateDB();
       await WorkService.LogTaskMembers(Layout.Company.id, old, task, Layout.User, Layout.UserList);
@@ -957,7 +953,7 @@
 
   private async Task ChangeStatus(int statusId)
   {
-    if(!string.IsNullOrEmpty(task.id))
+    if (!string.IsNullOrEmpty(task.id))
     {
       var message = await WorkService.ChangeTaskStatus(Layout.Company.id, Layout.User, task, statusId);
       await JSRuntime.InvokeVoidAsync("tagline", true, message);
@@ -969,7 +965,7 @@
 
   private async Task ChangeDateStart(ChangeEventArgs e)
   {
-    if(e.Value != null)
+    if (e.Value != null)
     {
       task.date_start = Convert.ToDateTime(e.Value).Ticks;
       await UpdateDate();
@@ -978,38 +974,38 @@
 
   private async Task ChangeDateEnd(ChangeEventArgs e)
   {
-    if(e.Value != null)
+    if (e.Value != null)
     {
       task.date_end = Convert.ToDateTime(e.Value).Ticks;
       await UpdateDate();
     }
   }
-  
+
   private async Task UpdateDateStart(DateRange range)
   {
     task.date_start = range.Start.Ticks;
-    if(task.date_end == 0)
+    if (task.date_end == 0)
     {
       var dateEnd = range.Start.DateTime.ToString("yyyy-MM-dd, 23:55:00");
       task.date_end = Convert.ToDateTime(dateEnd).AddDays(7).Ticks;
     }
     await UpdateDate();
   }
-  
+
   private async Task UpdateDateEnd(DateRange range)
   {
     task.date_end = range.Start.Ticks;
     await UpdateDate();
   }
-  
+
   private async Task UpdateDate()
   {
-    if(task.date_start < task.date_end)
+    if (task.date_start < task.date_end)
     {
-      await UpdateDB(); 
-      if(!string.IsNullOrEmpty(task.id))
-        await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện", 
-          string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(task.date_start), new DateTime(task.date_end)), task.plan_id, task.id, Layout.User);
+      await UpdateDB();
+      if (!string.IsNullOrEmpty(task.id))
+        await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện",
+        string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(task.date_start), new DateTime(task.date_end)), task.plan_id, task.id, Layout.User);
     }
     else
       await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày bắt đầu đang lớn hơn ngày kết thúc!");
@@ -1018,7 +1014,7 @@
   private string sectionNew = string.Empty;
   private async Task AddSection()
   {
-    if(string.IsNullOrEmpty(sectionNew))
+    if (Shared.IsEmpty(sectionNew))
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề nhóm công việc!");
     else
     {
@@ -1038,63 +1034,63 @@
       sectionNew = string.Empty;
     }
   }
-  
+
   private async Task UpdateSection(string id)
   {
     task.section_id = id;
     await UpdateDB();
-    if(!string.IsNullOrEmpty(task.id))
+    if (!string.IsNullOrEmpty(task.id))
     {
       var section = plan.sections.SingleOrDefault(x => x.id == task.section_id);
       await WorkService.CreateLog(Layout.Company.id, "Cập nhật nhóm công việc",
-        section.name, task.plan_id, task.id, Layout.User);
+      section.name, task.plan_id, task.id, Layout.User);
     }
   }
-  
+
   private async Task UpdatePriorty(int id)
   {
     task.priority = id;
     await UpdateDB();
-    if(!string.IsNullOrEmpty(task.id))
-      await WorkService.CreateLog(Layout.Company.id, "Cập nhật mức độ ưu tiên", 
-        WorkService.Priority(task.priority).name, task.plan_id, task.id, Layout.User);
+    if (!string.IsNullOrEmpty(task.id))
+      await WorkService.CreateLog(Layout.Company.id, "Cập nhật mức độ ưu tiên",
+      WorkService.Priority(task.priority).name, task.plan_id, task.id, Layout.User);
   }
 
   private async Task UpdateLabels()
   {
     await UpdateDB();
   }
-  
+
   private async Task ChangeTab(int index)
   {
     var editRole = WorkService.RoleEditTask(plan, task, Layout.User.id);
     tab = index;
-    if(index == 1 && editRole)
+    if (index == 1 && editRole)
     {
       await JSRuntime.InvokeVoidAsync("setFocus", "task_name");
       await JSRuntime.InvokeVoidAsync("textAutoSize", "task_name");
     }
-    else if(index == 2)
+    else if (index == 2)
     {
       // Công việc phụ
       subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, task.plan_id, task.id);
     }
-    else if(index == 3)
+    else if (index == 3)
     {
       // Todolist liên kết
       todoItems = DbTodoItem.GetList(Layout.Company.id, task.id, Layout.User.id);
     }
-    else if(index == 4)
+    else if (index == 4)
     {
       // Bình luận
       comments = await DbWorkComment.GetList(Layout.Company.id, task.plan_id, task.id);
-      if(editRole)
+      if (editRole)
       {
         await JSRuntime.InvokeVoidAsync("setFocus", "task_comment");
         await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
       }
     }
-    else if(index == 5)
+    else if (index == 5)
     {
       // Lịch sử cập nhật
       logs = await DbWorkLog.GetListTask(Layout.Company.id, task.plan_id, task.id);

@@ -320,9 +320,9 @@
                 <li class="column is-1">
                   @if(roleManager)
                   {
-                    <div class="dropdown is-hoverable is-right">
+                    <div class="dropdown is-right @(item.id == moreSectionId ? "is-active" : "")">
                       <div class="dropdown-trigger">
-                        <a class="icon is-small has-text-dark">
+                        <a class="icon is-small has-text-dark" @onclick="() => MoreSection(item.id)">
                           <i class="material-icons-outlined is-size-6">more_horiz</i>
                         </a>
                       </div>
@@ -1134,7 +1134,7 @@
 
   private async Task UpdateSection()
   {
-    if(model.sections.Where(x => string.IsNullOrEmpty(x.name)).Count() == 0)
+    if(model.sections.Where(x => Shared.IsEmpty(x.name)).Count() == 0)
     {
       var item = model.sections.SingleOrDefault(x => x.id == editSectionId);
       if(item != null)

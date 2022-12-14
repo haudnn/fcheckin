@@ -480,12 +480,12 @@
 
   private async Task UpdateLabel()
   {
-    if(string.IsNullOrEmpty(label.name))
+    if(Shared.IsEmpty(label.name))
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề nhãn.");
-    else if(string.IsNullOrEmpty(label.color))
+    else if(Shared.IsEmpty(label.color))
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn màu cho nhãn.");
     else {
-      if(string.IsNullOrEmpty(label.id))
+      if(Shared.IsEmpty(label.id))
       {
         label.id = Mongo.RandomId();
         model.labels.Add(label);
@@ -507,7 +507,7 @@
 
   private async Task UpdateContent()
   {
-    if(string.IsNullOrEmpty(model.name) || string.IsNullOrEmpty(model.name.Trim()))
+    if(Shared.IsEmpty(model.name))
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề kế hoạch!");
     else
     {
