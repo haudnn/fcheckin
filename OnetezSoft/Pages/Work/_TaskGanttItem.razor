@@ -67,12 +67,13 @@
     <li class="column is-narrow item_day @today @sunday">
       @if(start == day)
       {
+        var time = string.Format("Từ ngày {0:dd/MM/yyyy, HH:mm} đến ngày {1:dd/MM/yyyy, HH:mm}", dateS, dateE);
         <div class="is_timeline" style="width: @(column * 40)px">
           <div class="item_task @status.color">
             <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" Drops="DropsType.Down" Opens="SideType.Left"
               TimePicker="true" TimePicker24Hour="true" OnRangeSelect="UpdateDate">
               <PickerTemplate>
-                <a id="@context.Id" @onclick="context.Toggle" class="pl-2 font_14" style="color: inherit;">
+                <a id="@context.Id" @onclick="context.Toggle" class="pl-2 font_14" style="color: inherit;" title="@time">
                   @if (context.TStartDate != null && context.TEndDate != null)
                   {
                     <span>@context.TStartDate.Value.ToString("dd/MM")</span>
