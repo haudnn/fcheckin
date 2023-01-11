@@ -123,7 +123,18 @@
                 var item = rankList[i];
                 var color = i == 0 ? "has-text-warning" : i == 1 ? "has-text-danger" : "has-text-link";
                 <li class="column is-one-third has-text-centered @color">
-                  <div>@(i + 1)st</div>
+                  @if(i == 0)
+                  {
+                    <div>1st</div>
+                  }
+                  else if(i == 1)
+                  {
+                    <div>2nd</div>
+                  }
+                  else if(i == 2)
+                  {
+                    <div>3rd</div>
+                  }
                   <div class="image is-36x36 is-rounded my-2">
                     <img src="@item.avatar" title="@item.name" />
                   </div>
