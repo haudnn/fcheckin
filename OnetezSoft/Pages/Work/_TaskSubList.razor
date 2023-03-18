@@ -159,6 +159,8 @@
       }
       else
       {
+        int index = tasks.IndexOf(task);
+        DropsType drop = tasks.IndexOf(task) < 3 ? DropsType.Down : DropsType.Up;
         DateTimeOffset? dateS = task.date_start > 0 ? new DateTime(task.date_start) : null;
         DateTimeOffset? dateE = task.date_end > 0 ? new DateTime(task.date_end) : null;
 
@@ -173,14 +175,15 @@
             }
             else
             {
-              <span class="item_name has-text-@(task.status == 4 ? "success is-line-through " : "info")" title="@task.name">
+              <span class="item_name has-text-@(task.status == 4 ? "success is-line-through " : "info")"
+                title="@task.name">
                 @task.name
               </span>
             }
           </div>
         </li>
         <li class="column is-narrow" style="width: 130px;">
-          <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE"
+          <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" Drops="drop"
             OnRangeSelect="(x) => UpdateDate(task, x)" Opens="SideType.Left">
             <PickerTemplate>
               <a id="@context.Id" @onclick="context.Toggle" class="icon-text">

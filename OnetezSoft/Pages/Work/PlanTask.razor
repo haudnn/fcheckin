@@ -966,11 +966,14 @@
       long minDay = taskList.OrderBy(x => x.date_start).Select(x => x.date_start).FirstOrDefault();
       long maxDay = taskList.OrderByDescending(x => x.date_end).Select(x => x.date_end).FirstOrDefault();
       dayStart = Shared.DateToDay(new DateTime(minDay)).AddDays(-4);
-      dayEnd = Shared.DateToDay(new DateTime(maxDay)).AddDays(4);
+      dayEnd = Shared.DateToDay(new DateTime(maxDay)).AddDays(9);
       dayTotal = dayEnd.Subtract(dayStart).Days;
       // Tự scroll đến ngày hôm nay
-      int today = DateTime.Today.Subtract(dayStart).Days;
-      await JSRuntime.InvokeVoidAsync("scrollGantt", today * 40 - 160);
+      if(dayStart <= DateTime.Today && DateTime.Today <= dayEnd)
+      {
+        int today = DateTime.Today.Subtract(dayStart).Days;
+        await JSRuntime.InvokeVoidAsync("scrollGantt", today * 40 - 160);
+      }
     }
   }
 
