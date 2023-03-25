@@ -1,0 +1,84 @@
+
+<div class="control is-expanded has-icons-left has-icons-right has_suggest">
+  <input class="input" type="text" placeholder="@title"
+    autocomplete="off" @bind="Searching" @bind:event="oninput" />
+  <span class="icon is-left">
+    <i class="material-icons-outlined is-size-5">search</i>
+  </span>
+  <a class="@(string.IsNullOrEmpty(keyword) ? "is-hidden" : "icon is-right has-text-danger")" @onclick="Cancel">
+    <i class="material-icons-outlined">close</i>
+  </a>
+  <ul class="suggest">
+    @foreach (var item in suggests)
+    {
+      <li class="rsitem" @onclick="() => Selected(item)">
+        <div class="user_item">
+          <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
+          <span>@item.name</span>
+        </div>
+      </li>
+    }
+  </ul>
+</div>
+
+@code {
+  [Parameter]
+  public List<string> members { get; set; }
+  [Parameter]
+  public List<UserModel> sources { get; set; }
+  [Parameter]
+  public string title { get; set; } = "Chọn nhân viên..";
+  [Parameter]
+  public string department { get; set; }
+  [Parameter]
+  public EventCallback<List<string>> OnUpdate { get; set; }
+  private string keyword = string.Empty;
+  private List<MemberModel> suggests = new();
+
+  private string Searching
+  {
+    get => keyword;
+    set
+    {
+      keyword = value;
+      suggests = GetSuggests();
+    }
+  }
+
+  private List<MemberModel> GetSuggests()
+  {
+    var results = new List<MemberModel>();
+    foreach (var item in sources)
+    {
+      if (!members.Contains(item.id))
+      {
+        bool check = true;
+        if(!string.IsNullOrEmpty(department) && !item.departments_id.Contains(department))
+          check = false;
+        if (!Shared.SearchKeyword(keyword, item.id + item.email + item.FullName))
+          check = false;
+        if(check)
+          results.Add(UserService.ConvertToMember(item));
+        if(results.Count >= 5)
+          break;
+      }
+    }
+    return results;
+  }
+
+  private async Task Selected(MemberModel item)
+  {
+    if(!members.Contains(item.id))
+    {
+      members.Add(item.id);
+      await OnUpdate.InvokeAsync(members);
+    }
+    suggests.RemoveAll(x => x.id == item.id);
+  }
+
+  private void Cancel()
+  {
+    keyword = null;
+    suggests.Clear();
+  }
+}

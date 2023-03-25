@@ -1,0 +1,76 @@
+
+<div class="control is-expanded has-icons-left has-icons-right has_suggest">
+  <input class="input is-rounded" type="text" placeholder="Nhập tên nhân viên..."
+    autocomplete="off" @bind="Searching" @bind:event="oninput" />
+  <span class="icon is-left">
+    <i class="material-icons-outlined is-size-5">search</i>
+  </span>
+  <a class="@(string.IsNullOrEmpty(keyword) ? "is-hidden" : "icon is-right has-text-danger")" @onclick="Cancel">
+    <i class="material-icons-outlined">close</i>
+  </a>
+  <ul class="suggest">
+    @foreach (var item in suggests)
+    {
+      <li class="rsitem" @onclick="() => Selected(item)">
+        <div class="user_item">
+          <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
+          <span>@item.name</span>
+        </div>
+      </li>
+    }
+  </ul>
+</div>
+
+@code {
+  [Parameter]
+  public string keyword { get; set; }
+  [Parameter]
+  public string department { get; set; }
+  [Parameter]
+  public List<UserModel> sources { get; set; }
+  [Parameter]
+  public EventCallback<string> OnUpdate { get; set; }
+  private List<MemberModel> suggests = new();
+
+  private string Searching
+  {
+    get => keyword;
+    set
+    {
+      keyword = value;
+      suggests = GetSuggests();
+    }
+  }
+
+  private List<MemberModel> GetSuggests()
+  {
+    var results = new List<MemberModel>();
+    foreach (var item in sources)
+    {
+      bool check = true;
+      if(!string.IsNullOrEmpty(department) && !item.departments_id.Contains(department))
+        check = false;
+      if (!Shared.SearchKeyword(keyword, item.id + item.email + item.FullName))
+        check = false;
+      if(check)
+        results.Add(UserService.ConvertToMember(item));
+      if(results.Count >= 5)
+        break;
+    }
+    return results;
+  }
+
+  private async Task Selected(MemberModel item)
+  {
+    suggests.Clear();
+    keyword = item.name;
+    await OnUpdate.InvokeAsync(item.id);
+  }
+
+  private async Task Cancel()
+  {
+    keyword = null;
+    suggests.Clear();
+    await OnUpdate.InvokeAsync(null);
+  }
+}

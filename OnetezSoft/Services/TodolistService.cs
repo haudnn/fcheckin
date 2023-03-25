@@ -44,5 +44,55 @@ namespace OnetezSoft.Services
         }
       }
     }
+
+
+    /// <summary>
+    /// Lấy Todolist theo ngày
+    /// </summary>
+    public static async Task<TodolistModel> GetTodoList(string companyId, string userId, long day)
+    {
+      // Lấy Todolist
+      var todolist = await DbTodolist.GetbyDay(companyId, userId, new DateTime(day));
+      if (todolist == null)
+      {
+        todolist = new TodolistModel();
+        todolist.date = day;
+        todolist.user_create = userId;
+        await DbTodolist.Create(companyId, todolist);
+      }
+
+      return todolist;
+    }
+
+
+    /// <summary>
+    /// Thêm công việc vào trong Todolist
+    /// </summary>
+    public static async Task<string> AddTodoItem(string companyId, string userId, long day, TodolistModel.Todo todo)
+    {
+      string error = string.Empty;
+      if (day >= DateTime.Today.Ticks)
+      {
+        // Lấy Todolist theo ngày
+        var todolist = await GetTodoList(companyId, userId, day);
+
+        // Thêm công việc
+        if (todolist.status < 3)
+        {
+          todo.status = 1;
+          todo.date = todolist.date;
+          todo.user = todolist.user_create;
+          todo.todolist = todolist.id;
+          await DbTodoItem.Update(companyId, todo);
+          await DbTodolist.Update(companyId, todolist);
+        }
+        else
+          error = "Không thể thêm công việc vào Todolist đã check-out!";
+      }
+      else
+        error = "Không thể thêm công việc vào Todolist của quá khứ!";
+
+      return error;
+    }
   }
 }

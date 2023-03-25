@@ -67,7 +67,7 @@ namespace OnetezSoft.Data
       point -= todoItems.Where(x => x.status < 4).Count();
       // Cập nhật điểm Todolist
       model.point = point > 0 ? point : 0;
-      
+
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<TodolistModel>(_collection);
@@ -81,7 +81,7 @@ namespace OnetezSoft.Data
 
 
     public static async Task<TodolistModel> UpdateData(string companyId, TodolistModel model)
-    { 
+    {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<TodolistModel>(_collection);
@@ -135,7 +135,7 @@ namespace OnetezSoft.Data
       var result = await collection.Find(filtered).FirstOrDefaultAsync();
 
       // Chuẩn hóa dữ liệu cũ và mới
-      if(result != null && result.todos != null && result.todos.Count > 0)
+      if (result != null && result.todos != null && result.todos.Count > 0)
       {
         foreach (var item in result.todos)
         {
@@ -246,7 +246,7 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Tính thành tựu Todolist
     /// </summary>
-    public static async Task Achievement(string companyId, string user)
+    public static async Task<bool> Achievement(string companyId, string user)
     {
       Handled.Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
 
@@ -264,13 +264,17 @@ namespace OnetezSoft.Data
           type = "todolist"
         };
         await DbAchievement.Create(companyId, model);
+        return true;
       }
+      return false;
     }
 
 
     #region Dữ liệu cố định
 
-    // Trạng thái: danh sách
+    /// <summary>
+    /// Trạng thái: danh sách
+    /// </summary>
     public static List<StaticModel> Status()
     {
       var list = new List<StaticModel>();
@@ -313,7 +317,9 @@ namespace OnetezSoft.Data
       return list;
     }
 
-    // Trạng thái: chi tiết
+    /// <summary>
+    /// Trạng thái: chi tiết
+    /// </summary>
     public static StaticModel Status(int id)
     {
       var query = from s in Status()
@@ -325,7 +331,9 @@ namespace OnetezSoft.Data
     }
 
 
-    // Độ ưu tiên: danh sách
+    /// <summary>
+    /// Độ ưu tiên: danh sách
+    /// </summary>
     public static List<StaticModel> Level()
     {
       var list = new List<StaticModel>();
@@ -354,7 +362,9 @@ namespace OnetezSoft.Data
       return list;
     }
 
-    // Độ ưu tiên: chi tiết
+    /// <summary>
+    /// Độ ưu tiên: chi tiết
+    /// </summary>
     public static StaticModel Level(int id)
     {
       var query = from s in Level()
@@ -365,8 +375,9 @@ namespace OnetezSoft.Data
       return new StaticModel();
     }
 
-
-    // Phân loại: danh sách
+    /// <summary>
+    /// Phân loại: danh sách
+    /// </summary>
     public static List<StaticModel> Type()
     {
       var list = new List<StaticModel>();
@@ -395,7 +406,9 @@ namespace OnetezSoft.Data
       return list;
     }
 
-    // Phân loại: chi tiết
+    /// <summary>
+    /// Phân loại: chi tiết
+    /// </summary>
     public static StaticModel Type(int id)
     {
       var query = from s in Type()
@@ -404,6 +417,50 @@ namespace OnetezSoft.Data
       if (query.Count() > 0)
         return query.FirstOrDefault();
       return new StaticModel();
+    }
+
+    /// <summary>
+    /// Trạng thái giao việc: danh sách
+    /// </summary>
+    public static List<StaticModel> AssignStatus()
+    {
+      var list = new List<StaticModel>();
+
+      list.Add(new StaticModel
+      {
+        id = 1,
+        name = "Chờ xác nhận",
+        color = "has-text-dark",
+      });
+
+      list.Add(new StaticModel
+      {
+        id = 2,
+        name = "Đã xác nhận",
+        color = "has-text-success",
+      });
+
+      list.Add(new StaticModel
+      {
+        id = 3,
+        name = "Đã từ chối",
+        color = "has-text-danger",
+      });
+
+      return list;
+    }
+
+    /// <summary>
+    /// Trạng thái giao việc: chi tiết
+    /// </summary>
+    public static StaticModel AssignStatus(int id)
+    {
+      var query = from s in AssignStatus()
+                  where s.id == id
+                  select s;
+      if (query.Count() > 0)
+        return query.FirstOrDefault();
+      return new StaticModel() { name = "Tất cả trạng thái" };
     }
 
     #endregion

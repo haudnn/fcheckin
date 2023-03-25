@@ -1,0 +1,272 @@
+@inject IJSRuntime JSRuntime
+
+<section class="modal is-active">
+  <div class="modal-background"></div>
+  <section class="modal-card is-medium">
+    <section class="modal-card-head">
+      <div class="modal-card-title">Giao việc</div>
+      <a class="delete is-medium" @onclick="Cancel"></a>
+    </section>
+    <section class="modal-card-body">
+      @foreach (var item in dataList)
+      {
+        var members = memberTodoList[item.id];
+        <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3">
+          <li class="column is-narrow" style="width: calc(100% - 560px);">
+            <div class="field">
+              <label class="label">Tiêu đề công việc</label>
+              <div class="control">
+                <input @bind="item.name" class="input" type="text" placeholder="Nhập tiêu đề công việc">
+              </div>
+            </div>
+          </li>
+          <li class="column is-narrow" style="width: 140px;">
+            <div class="field">
+              <label class="label">Độ ưu tiên</label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select @bind="item.level">
+                    @foreach (var sl in DbTodolist.Level())
+                    {
+                      <option value="@sl.id">@sl.name</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-narrow" style="width: 110px;">
+            <div class="field">
+              <label class="label">Bắt đầu</label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select @bind="item.start">
+                    @foreach (var sl in Shared.TimeList())
+                    {
+                      <option value="@sl.name">@sl.name</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-narrow" style="width: 110px;">
+            <div class="field">
+              <label class="label">Kết thúc</label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select @bind="item.end">
+                    @foreach (var sl in Shared.TimeList())
+                    {
+                      <option value="@sl.name">@sl.name</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-narrow" style="width: 160px;">
+            <div class="field">
+              <label class="label">Ngày thực hiện</label>
+              <div class="control">
+                <DatePicker value="item.date" css="button is-fullwidth" OnChange="x => item.date = x" />
+              </div>
+            </div>
+          </li>
+          <li class="column is-narrow has-text-centered" style="width: 40px;">
+            <div class="field">
+              <label class="label">Xóa</label>
+              <div class="control">
+                <a class="icon has-text-danger" @onclick="() => DeleteItem(item)">
+                  <i class="material-icons-outlined is-size-5">delete</i>
+                </a>
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-quarter">
+            <MemberSelected title="Chon người thực hiện" members="members" sources="userList"
+              OnUpdate="x => members = x" />
+          </li>
+          @foreach (var memberId in members)
+          {
+            var member = UserService.GetMember(Layout.UserList, memberId);
+            <li class="column is-narrow">
+              <div class="icon-text">
+                <span class="image is-rounded is-24x24">
+                  <img src="@member.avatar" alt="AVT">
+                </span>
+                <span class="ml-2">@member.name</span>
+                <a class="icon has-text-danger" @onclick="() => members.Remove(memberId)">
+                  <i class="material-icons-outlined is-size-6">close</i>
+                </a>
+              </div>
+            </li>
+          }
+          @if(!string.IsNullOrEmpty(memberCheckout[item.id]))
+          {
+            <li class="column is-full has-text-danger has-text-centered">
+              @memberCheckout[item.id] đã check-out Todolist vào ngày được chọn!
+            </li>
+          }
+          <li class="column is-full">
+            <hr class="my-0" />
+          </li>
+        </ul>
+      }
+      <div class="has-text-centered my-6">
+        <a class="icon-text has-text-link" @onclick="AddItem">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">add</i>
+          </span>
+          <span>Thêm công việc</span>
+        </a>
+      </div>
+      <div class="field is-grouped is-grouped-right">
+        <div class="control">  
+          <a class="button is-link" @onclick="Update">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">done</i>
+            </span>
+            <span>Giao việc</span>
+          </a>
+        </div>
+        <div class="control">  
+          <a class="button" @onclick="Cancel">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">close</i>
+            </span>
+            <span>Hủy</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+	[Parameter]
+	public EventCallback<bool> OnUpdate { get; set; }
+  private List<TodolistModel.Todo> dataList = new();
+  private Dictionary<string, List<string>> memberTodoList = new();
+  private Dictionary<string, string> memberCheckout = new();
+  private List<UserModel> userList => Layout.UserList.Where(x => x.id != Layout.User.id).ToList();
+
+  protected override async Task OnInitializedAsync()
+  {
+    await Reset();
+  }
+
+  private async Task Reset()
+  {
+    dataList.Clear();
+    memberTodoList.Clear();
+    await AddItem();
+  }
+
+  private async Task Cancel()
+  {
+    await Reset();
+    await OnUpdate.InvokeAsync(false); 
+  }
+
+  private async Task Update()
+  {
+    var msg = await CheckRequired();
+    if(!string.IsNullOrEmpty(msg))
+      await JSRuntime.InvokeVoidAsync("tagline", false, msg);
+    else
+    {
+      foreach (var item in dataList)
+      {
+        foreach (var memberId in memberTodoList[item.id])
+        {
+          var todo = Shared.Clone<TodolistModel.Todo>(item);
+          todo.id = Mongo.RandomId();
+          todo.user = memberId;
+          await DbTodoItem.Create(Layout.Company.id, todo);
+        }
+      }
+      await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã giao {dataList.Count} công việc thành công.");
+      await Reset();
+      await OnUpdate.InvokeAsync(true);
+    }
+  }
+
+  /// <summary>
+  /// Kiểm tra điều kiện
+  /// </summary>
+  private async Task<string> CheckRequired()
+  {
+    if(dataList.Any(x => Shared.IsEmpty(x.name)))
+      return "Có công việc chưa nhập tiêu đề!";
+    if(memberTodoList.Any(x => x.Value.Count == 0))
+      return "Có công việc chưa có người thực hiện";
+    if(dataList.Count > 0)
+      return await ListCheckout();
+    return null;
+  }
+
+  /// <summary>
+  /// Lấy thành viên đã checkout Todolist
+  /// </summary>
+  private async Task<string> ListCheckout()
+  {
+    string msg = string.Empty;
+    foreach (var item in dataList)
+    {
+      var checkouts = new List<string>();
+      foreach (var memberId in memberTodoList[item.id])
+      {
+        var todolist = await DbTodolist.GetbyDay(Layout.Company.id, memberId, new DateTime(item.date));
+        if(todolist != null && todolist.status == 3)
+          checkouts.Add(UserService.GetMember(Layout.UserList, memberId).name);
+      }
+
+      if(checkouts.Count > 0)
+      {
+        memberCheckout[item.id] = string.Join(", ", checkouts);
+        msg = "Có người đã check-out Todolist vào ngày được chọn!";
+      }
+      else
+        memberCheckout[item.id] = string.Empty;
+    }
+    return msg;
+  }
+
+  private async Task AddItem()
+  {
+    var item = new TodolistModel.Todo()
+      {
+        id = Mongo.RandomId(),
+        type = 2,
+        level = 1,
+        status = 1,
+        start = "08:30",
+        end = "17:30",
+        date = DateTime.Today.Ticks,
+        assign_user = Layout.User.id
+      };
+    dataList.Add(item);
+    memberTodoList.Add(item.id, new());
+    memberCheckout.Add(item.id, "");
+    await JSRuntime.InvokeVoidAsync("setFocus", "todo_" + item.id);
+  }
+
+  private async Task DeleteItem(TodolistModel.Todo item)
+  {
+    if (!Shared.IsEmpty(item.name))
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {item.name}?"))
+        return;
+    dataList.Remove(item);
+    memberTodoList.Remove(item.id);
+    memberCheckout.Remove(item.id);
+  }
+
+  private void AddMember(string todoId, string userId)
+  {
+    if(!memberTodoList[todoId].Contains(userId))
+      memberTodoList[todoId].Add(userId);
+  }
+}

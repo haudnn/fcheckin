@@ -1,0 +1,66 @@
+
+<div class="dropdown is-right @(toggle ? "is-active" : "")">
+  <div class="dropdown-trigger">
+    <a class="icon-text" @onclick="() => toggle = !toggle">
+      <span class="has-text-link">
+        @(string.IsNullOrEmpty(name) ? main : name)
+      </span>
+      <span class="icon">
+        <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+      </span>
+    </a>
+  </div>
+  <div class="dropdown-menu">
+    <div class="dropdown-content">
+      <a class="dropdown-item is-family-code" @onclick="() => Selected(null)">
+        @main
+      </a>
+      @foreach (var item in departments)
+      {
+        <a class="dropdown-item is-family-code @(department == item.id ? "has-text-link" : "")"
+          @onclick="() => Selected(item)">
+          @((MarkupString)item.name.Replace("'", "&nbsp;"))
+        </a>
+      }
+    </div>
+  </div>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string department { get; set; }
+  [Parameter]
+  public string main { get; set; } = "Tất cả phòng ban";
+  [Parameter]
+  public int level { get; set; }
+  [Parameter]
+  public EventCallback<string> OnUpdate { get; set; }
+  private List<DepartmentModel.SelectList> departments = new();
+  private bool toggle = false;
+  private string name = "";
+
+  protected override void OnInitialized()
+  {
+    departments = DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+    if(level > 0)
+      departments.RemoveAll(x => x.level > level);
+  }
+
+  private async Task Selected(DepartmentModel.SelectList item)
+  {
+    if(item == null)
+    {
+      department = null;
+      name = main;
+    }
+    else
+    {
+      department = item.id;
+      name = item.name.Replace("└─", "").Replace("'", "");
+    }
+    toggle = false;
+    await OnUpdate.InvokeAsync(department);
+  }
+}

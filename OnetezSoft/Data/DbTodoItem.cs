@@ -86,8 +86,40 @@ namespace OnetezSoft.Data
       var collection = _db.GetCollection<TodolistModel.Todo>(_collection);
 
       var results = collection.Find(x => x.user == userId && x.plan_task == taskId).ToList();
-      
+
       return (from x in results orderby x.date descending, x.start select x).ToList();
+    }
+
+    /// <summary>
+    /// Danh sách công việc đã giao
+    /// </summary>
+    public static async Task<List<TodolistModel.Todo>> GetAssignedList(string companyId, string assignUser,
+      long start, long end)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<TodolistModel.Todo>(_collection);
+
+      var results = await collection.Find(x => x.assign_user == assignUser
+        && x.date >= start && x.date <= end).ToListAsync();
+
+      return results;
+    }
+
+    /// <summary>
+    /// Danh sách công việc được giao
+    /// </summary>
+    public static async Task<List<TodolistModel.Todo>> GetMyAssignedList(string companyId, string userId,
+      long start, long end)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<TodolistModel.Todo>(_collection);
+
+      var results = await collection.Find(x => x.user == userId && !string.IsNullOrEmpty(x.assign_user)
+        && x.date >= start && x.date <= end).ToListAsync();
+
+      return results;
     }
   }
 }

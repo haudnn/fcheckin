@@ -1,17 +1,7 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<div class="card p-5 @(_loaded ? "" : "is-loading")">
+<div class="card p-5">
   <ul class="columns is-vcentered is-variable is-2">
     <li class="column">
       <h1 class="title is-5 has-text-info">
@@ -69,57 +59,16 @@
       </div>
     </li>
     <li class="column is-narrow">
-      <div class="dropdown is-right @(departmentShow ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="icon-text" @onclick="() => departmentShow = !departmentShow">
-            <span class="has-text-link">
-              @filterDepartment.name.Replace("└─", "").Replace("'", "")
-            </span>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-            </span>
-          </a>
-        </div>
-        <div class="dropdown-menu">
-          <div class="dropdown-content">
-            <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(null)">
-              Todolist của tôi
-            </a>
-            @foreach (var sl in departments)
-            {
-              <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(sl)">
-                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
-              </a>
-            }
-          </div>
-        </div>
-      </div>
+      <DepartmentDropdown main="Todolist của tôi" department="@filterDepartment" OnUpdate="ChangeDepartment" />
     </li>
     <li class="column is-one-quarter">
-      <div class="control has-icons-right has_suggest">
-        <input class="input is-rounded" type="text" placeholder="Nhập tên nhân viên..."
-               autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
-        <ul class="suggest">
-          @foreach (var item in userSuggests)
-          {
-            <li class="rsitem" @onclick="() => UserSelected(item)">
-              <div class="user_item">
-                <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
-                <span>@item.FullName</span>
-              </div>
-            </li>
-          }
-        </ul>
-        <span class="icon is-right">
-          <i class="material-icons-outlined">search</i>
-        </span>
-      </div>
+      <MemberSearch department="@filterDepartment" sources="Layout.UserList" OnUpdate="ChangeFilterUser" />
     </li>
   </ul>
 
   <table class="table is-noborder is-fullwidth is-vcentered is-responsive mt-3">
     <thead>
-      <tr class="has-text-weight-semibold">
+      <tr>
         <th>Thành viên</th>
         <th width="190px">Ngày check-in</th>
         <th width="190px">Ngày check-out</th>
@@ -164,7 +113,7 @@
                 <label class="td-label">Ngày</label>
                 <div class="td-value">
                   <a class="icon-text has-text-link" @onclick="() => ShowTodoItems(item.id)">
-                    <span class="has-text-weight-semibold">@string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))</span>
+                    <span class="has-text-weight-bold">@Shared.ConvertDateWeek(item.date)</span>
                     <span class="icon" title="Xem nhanh các công việc">
                       <i class="material-icons-outlined is-size-5">
                         @(showTodoItems.Contains(item.id) ? "arrow_drop_down" : "arrow_right")
@@ -290,7 +239,7 @@
               <td class="pl-6">
                 <label class="td-label">Ngày</label>
                 <div class="td-value">
-                  <span class="has-text-weight-semibold has-text-grey">@string.Format("{0:dd/MM/yyyy}", date)</span>
+                  <span class="has-text-weight-bold has-text-grey">@Shared.ConvertDateWeek(date.Ticks)</span>
                 </div>
               </td>
               <td colspan="4" class="is-italic has-text-grey">
@@ -307,24 +256,15 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
-  private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
-
   private List<DepartmentModel> departmentAll = new();
   private List<DepartmentModel.SelectList> departments = new();
-  private DepartmentModel.SelectList filterDepartment = new() { name = "Todolist của tôi" };
-  private List<UserModel> userSuggests = new();
   private List<UserModel> userList = new();
-  private string filterUserName = string.Empty;
-  private bool departmentShow = false;
-  private int dateType = 1;
-
   private List<TodolistModel> database = new();
   private List<string> showTodoItems = new();
+  private string filterDepartment = null;
   private DateTime filterStart = DateTime.Now;
   private DateTime filterEnd = DateTime.Now;
+  private int dateType = 1;
 
   protected override async Task OnInitializedAsync()
   {
@@ -340,51 +280,20 @@
     await GetTodolist();
   }
 
-  private async Task ChangeDepartment(DepartmentModel.SelectList item)
+  private async Task ChangeDepartment(string value)
   {
-    departmentShow = false;
-    userSuggests = new();
-    userList.Clear();
-    filterDepartment = item != null ? item : new() { name = "Todolist của tôi" };
-    if (item == null)
-      userList = new() { Layout.User }; 
+    filterDepartment = value;
+    if(string.IsNullOrEmpty(filterDepartment))
+      userList = new() { Layout.User };
     else
-      userList = Layout.UserList.Where(x => x.departments_id.Contains(filterDepartment.id)).ToList();
-
+      userList = Layout.UserList.Where(x => x.departments_id.Contains(filterDepartment)).ToList();
     await GetTodolist();
   }
 
-  private string UserSearch
+  private async Task ChangeFilterUser(string userId)
   {
-    get => filterUserName;
-    set
-    {
-      filterUserName = value;
-      departmentShow = false;
-      userSuggests = new();
-      if (!string.IsNullOrEmpty(value))
-      {
-        foreach (var item in Layout.UserList)
-        {
-          bool check = true;
-          if (!string.IsNullOrEmpty(filterDepartment.id))
-            if (item.departments_id == null || !item.departments_id.Contains(filterDepartment.id))
-              check = false;
-          if (!Handled.Shared.SearchKeyword(filterUserName, item.FullName))
-            check = false;
-
-          if (check)
-            userSuggests.Add(item);
-        }
-      }
-    }
-  }
-
-  private async Task UserSelected(UserModel item)
-  {
-    userSuggests = new();
-    filterUserName = item.FullName;
-    userList = Layout.UserList.Where(x => x.id == item.id).ToList();
+    userId = string.IsNullOrEmpty(userId) ? Layout.User.id : userId;
+    userList = Layout.UserList.Where(x => x.id == userId).ToList();
     await GetTodolist();
   }
 
@@ -414,8 +323,6 @@
 
   private async Task GetTodolist()
   {
-    _loaded = false;
-
     database.Clear();
     showTodoItems.Clear();
     Shared.GetTimeSpan(dateType, out filterStart, out filterEnd);
@@ -426,7 +333,5 @@
       database = await DbTodolist.GetList(Layout.Company.id, filterStart, filterEnd);
 
     await TodolistService.AutoConfirm(database, Layout.Company.todolist.time_confirm, Layout.Company.id);
-
-    _loaded = true;
   }
 }

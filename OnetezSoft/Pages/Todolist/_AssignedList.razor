@@ -1,0 +1,426 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<section class="card p-5">
+  <ul class="columns is-vcentered is-variable is-2 mb-3">
+    <li class="column">
+      <h1 class="title is-5 has-text-info">
+        VIỆC ĐÃ GIAO
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <div class="dropdown is-hoverable is-right">
+        <div class="dropdown-trigger">
+          <a class="icon-text">
+            <span class="has-text-link">@DbTodolist.AssignStatus(filterStatus).name</span>
+            <span class="icon">
+              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+            </span>
+          </a>
+        </div>
+        <div class="dropdown-menu">
+          <div class="dropdown-content">
+            <a class="dropdown-item" @onclick="() => ChangeFilterStatus(0)">Tất cả trạng thái</a>
+            @foreach (var item in DbTodolist.AssignStatus())
+            {
+              <a class="dropdown-item" @onclick="() => ChangeFilterStatus(item.id)">@item.name</a>
+            }
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
+    </li>
+    <li class="column is-one-quarter">
+      <MemberSearch department="@filterDepartment" sources="Layout.UserList" OnUpdate="ChangeFilterUser" />
+    </li>
+    <li class="column is-narrow" style="width: 180px;">
+      <div class="field has-addons">
+        <div class="control">
+          <span class="button is-link">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">event</i>
+            </span>
+          </span>
+        </div>
+        <div class="control is-expanded">
+          <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE"
+            OnRangeSelect="ChangeFilterDate">
+            <PickerTemplate>
+              <div id="@context.Id" @onclick="context.Toggle" class="button is-outlined is-link is-fullwidth">
+                @if (context.TStartDate != null)
+                {
+                  <span>@context.TStartDate.Value.ToString("dd/MM")</span>
+                }
+                <span class="icon has-text-grey">
+                  <i class="material-icons-outlined is-size-6">arrow_forward</i>
+                </span>
+                @if (context.TEndDate != null)
+                {
+                  <span>@context.TEndDate.Value.ToString("dd/MM")</span>
+                }
+              </div>
+            </PickerTemplate>
+          </DateRangePicker>
+        </div>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <a class="button is-link" @onclick="() => togglePopup = true">
+        <span class="icon">
+          <i class="material-icons-outlined is-size-5">add</i>
+        </span>
+        <span>Giao việc</span>
+      </a>
+    </li>
+  </ul>
+
+  <table class="table is-vcentered is-noborder is-fullwidth is-responsive">
+    <thead>
+      <tr>
+        <th>
+          Tiêu đề
+        </th>
+        <th width="15%">
+          Người được giao
+        </th>
+        <th width="120px">
+          Độ ưu tiên
+        </th>
+        <th width="110px" align="center">
+          Bắt đầu
+        </th>
+        <th width="110px" align="center">
+          Kết thúc
+        </th>
+        <th width="110px" align="center">
+          Tình trạng
+        </th>
+        <th width="120px" align="center">
+          Trạng thái
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var item in dataList)
+      {
+        long day = item.Key;
+        var todoList = item.Value;
+        if(todoList.Count() > 0)
+        {
+          <tr>
+            <td colspan="7"><hr class="m-0"></td>
+          </tr>
+          <tr>
+            <td colspan="7">
+              <a class="icon-text has-text-link" @onclick="() => ToggleDay(day)">
+                <span class="has-text-weight-bold">@Shared.ConvertDateWeek(day)</span>
+                <span class="icon" title="Xem nhanh các công việc">
+                  <i class="material-icons-outlined is-size-5">
+                    @(hiddenDays.Contains(day) ? "arrow_right" : "arrow_drop_down")
+                  </i>
+                </span>
+              </a>
+            </td>
+          </tr>
+          @if(!hiddenDays.Contains(day))
+          {
+            foreach (var todo in todoList)
+            {
+              var level = DbTodolist.Level(todo.level);
+              var status = DbTodolist.Status(todo.status);
+              var assign = DbTodolist.AssignStatus(todo.assign_status);
+              var member = UserService.GetMember(Layout.UserList, todo.user);
+
+              if(editList.Contains(todo.id))
+              {
+                <tr>
+                  <td>
+                    <input @bind="todo.name" class="input" type="text" placeholder="Nhập tên công việc" />
+                  </td>
+                  <td>
+                    <label class="td-label">Người được giao:</label>
+                    <div class="td-value">
+                      <div class="user_item">
+                        <span class="image is-rounded is-24x24">
+                          <img src="@member.avatar" alt="AVT">
+                        </span>
+                        <span class="text_1_line">@member.name</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <label class="td-label">Ưu tiên:</label>
+                    <div class="td-value">
+                      <div class="select is-fullwidth">
+                        <select @bind="todo.level">
+                          @foreach (var sl in DbTodolist.Level())
+                          {
+                            <option value="@sl.id">@sl.name</option>
+                          }
+                        </select>
+                      </div>
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Bắt đầu</label>
+                    <div class="td-value">
+                      <div class="select is-fullwidth">
+                        <select @bind="todo.start">
+                          @foreach (var sl in Shared.TimeList())
+                          {
+                            <option value="@sl.name">@sl.name</option>
+                          }
+                        </select>
+                      </div>
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Kết thúc</label>
+                    <div class="td-value">
+                      <div class="select is-fullwidth">
+                        <select @bind="todo.end">
+                          @foreach (var sl in Shared.TimeList())
+                          {
+                            <option value="@sl.name">@sl.name</option>
+                          }
+                        </select>
+                      </div>
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Ngày thực hiện</label>
+                    <div class="td-value">
+                      <DatePicker value="todo.date" format="dd/MM" OnChange="x => todo.date = x" />
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Hành động</label>
+                    <div class="td-value">
+                      <a class="icon-text has-text-link mr-2" @onclick="() => UpdateItem(todo)">
+                        <span class="icon is-small">
+                          <i class="material-icons-outlined is-size-6">done</i>
+                        </span>
+                        <span>Lưu</span>
+                      </a>
+                      <a class="icon-text has-text-danger" @onclick="() => DeleteItem(todo)">
+                        <span class="icon is-small">
+                          <i class="material-icons-outlined is-size-6">delete</i>
+                        </span>
+                        <span>Xóa</span>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              }
+              else
+              {
+                <tr>
+                  <td>
+                    <div class="ml-3 text_1_line" title="@todo.name">• @todo.name</div>
+                  </td>
+                  <td>
+                    <label class="td-label">Người được giao:</label>
+                    <div class="td-value">
+                      <div class="user_item">
+                        <span class="image is-rounded is-24x24">
+                          <img src="@member.avatar" alt="AVT">
+                        </span>
+                        <span class="text_1_line">@member.name</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <label class="td-label">Ưu tiên:</label>
+                    <div class="td-value">
+                      <span class="@level.color">@level.name</span>
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Bắt đầu</label>
+                    <div class="td-value">
+                      <span>@todo.start</span>
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Kết thúc</label>
+                    <div class="td-value">
+                      <span>@todo.end</span>
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Tình trạng</label>
+                    <div class="td-value">
+                      <span class="has-text-weight-semibold @status.color">@status.name</span>
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Trạng thái</label>
+                    <div class="td-value">
+                      @if(todo.assign_status == 1)
+                      {
+                        <div class="dropdown is-hoverable">
+                          <div class="dropdown-trigger">
+                            <div class="icon-text">
+                              <span class="@assign.color">@assign.name</span>
+                              <span class="icon is-small">
+                                <i class="material-icons-outlined is-size-6">expand_more</i>
+                              </span>
+                            </div>
+                          </div>
+                          <div class="dropdown-menu">
+                            <div class="dropdown-content py-0">
+                              <a class="dropdown-item px-2 icon-text has-text-link"
+                                @onclick="() => editList.Add(todo.id)">
+                                <span class="icon is-small">
+                                  <i class="material-icons-outlined is-size-6">edit</i>
+                                </span>
+                                <span>Chỉnh sửa</span>
+                              </a>
+                              <a class="dropdown-item px-2 icon-text has-text-danger"
+                                @onclick="() => DeleteItem(todo)">
+                                <span class="icon is-small">
+                                  <i class="material-icons-outlined is-size-6">delete</i>
+                                </span>
+                                <span>Xóa</span>
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                      else
+                      {
+                        <span class="has-text-weight-semibold @assign.color">@assign.name</span>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          }
+        }
+      }
+    </tbody>
+  </table>
+  @if(dataList.Count == 0)
+  {
+    <div class="py-1 has-text-grey has-text-centered">
+      Không có dữ liệu phù hợp.
+    </div>
+  }
+</section>
+
+@if(togglePopup)
+{
+  <_AssignedPopup OnUpdate="UpdateList" />
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  private Dictionary<long, List<TodolistModel.Todo>> dataList = new();
+  private List<string> editList = new();
+  private List<long> hiddenDays = new();
+  private int totalTask = 0;
+  private int filterStatus = 0;
+  private string filterDepartment = string.Empty;
+  private List<string> filterUserList = new();
+  private DateTimeOffset? filterDateS = DateTime.Today;
+  private DateTimeOffset? filterDateE = DateTime.Today;
+  private bool togglePopup = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
+    filterDateS = start;
+    filterDateE = end;
+    await GetList();
+  }
+
+  private async Task ChangeFilterStatus(int value)
+  {
+    filterStatus = value;
+    await GetList();
+  }
+
+  private async Task ChangeFilterDepartment(string value)
+  {
+    filterDepartment = value;
+    if(string.IsNullOrEmpty(filterDepartment))
+      filterUserList.Clear();
+    else
+      filterUserList = Layout.UserList.Where(x => x.departments_id.Contains(filterDepartment))
+        .Select(x => x.id).ToList();
+    await GetList();
+  }
+
+  private async Task ChangeFilterDate(DateRange range)
+  {
+    await GetList();
+  }
+
+  private async Task ChangeFilterUser(string value)
+  {
+    if(string.IsNullOrEmpty(value))
+      filterUserList.Clear();
+    else
+      filterUserList = new() { value };
+    await GetList();
+  }
+
+  private async Task UpdateList(bool isUpdate)
+  {
+    togglePopup = false;
+    if(isUpdate)
+      await GetList();
+  }
+
+  private void ToggleDay(long day)
+  {
+    if(hiddenDays.Contains(day))
+      hiddenDays.Remove(day);
+    else
+      hiddenDays.Add(day);
+  }
+
+  private async Task GetList()
+  {
+    var dataTodoList = await DbTodoItem.GetAssignedList(Layout.Company.id, Layout.User.id,
+      filterDateS.Value.Ticks, filterDateE.Value.Ticks);
+    if(filterStatus > 0)
+      dataTodoList.RemoveAll(x => x.assign_status != filterStatus);
+    if(filterUserList.Count > 0)
+      dataTodoList.RemoveAll(x => !filterUserList.Contains(x.user));
+    
+    dataList.Clear();
+    for (DateTime date = filterDateE.Value.DateTime; date >= filterDateS.Value.DateTime; date = date.AddDays(-1))
+    {
+      long day = date.Ticks;
+      var list = dataTodoList.Where(x => x.date == day).ToList();
+      if(list.Count > 0)
+        dataList.Add(day, list);
+    }
+  }
+
+  private async Task DeleteItem(TodolistModel.Todo item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {item.name}?"))
+      return;
+
+    dataList[item.date].Remove(item);
+    await DbTodoItem.Delete(Layout.Company.id, item.id);
+  }
+
+  private async Task UpdateItem(TodolistModel.Todo item)
+  {
+    if(Shared.IsEmpty(item.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên công việc !");
+    else
+    {
+      await DbTodoItem.Update(Layout.Company.id, item);
+      editList.Remove(item.id);
+    }
+    await GetList();
+  }
+}

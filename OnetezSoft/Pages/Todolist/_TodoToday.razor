@@ -1,7 +1,7 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<div class="card p-5 @(_loaded ? "" : "is-loading")">
+<div class="card p-5">
   <ul class="columns is-vcentered is-variable is-2 mb-3">
     <li class="column">
       <h1 class="title is-5 has-text-info mb-1">
@@ -14,17 +14,23 @@
     <li class="column is-narrow">
       <div class="field has-addons">
         <div class="control">
-          <a class="button is-link">
+          <span class="button is-link">
             <span class="icon">
-              <i class="material-icons-outlined is-size-6">calendar_today</i>
+              <i class="material-icons-outlined is-size-6">event</i>
             </span>
-          </a>
+          </span>
         </div>
-        <div class="control is-expanded" style="width: 100px;">
-          <div class="input is-link">
-            <DateRangePicker SingleDatePicker="true" @bind-StartDate="todoDate"
-                             OnSelectionStart="DateTodoChange" />
-          </div>
+        <div class="control">
+          <DateRangePicker SingleDatePicker="true" @bind-StartDate="todoDate" OnSelectionStart="DateTodoChange">
+            <PickerTemplate>
+              <div class="input is-link is-family-code" id="@context.Id" @onclick="context.Toggle" title="Chọn ngày">
+                @if (context.TStartDate != null)
+                {
+                  <span>@Shared.ConvertDateWeek(context.TStartDate.Value.Ticks)</span>
+                }
+              </div>
+            </PickerTemplate>
+          </DateRangePicker>
         </div>
         <div class="control">
           <a class="button is-link is-outlined" @onclick="() => DateTodoNavi(false)">
@@ -389,15 +395,10 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
-  [Parameter]
-  public UserModel User { get; set; }
-
   [Parameter]
   public string Day { get; set; }
-
-  private bool _loaded = false;
-
+  [Parameter]
+  public EventCallback OnCheckout { get; set; }
   private TodolistModel todolist = new();
   private List<TodolistModel.Todo> todoItems = new();
   private List<string> editList = new();
@@ -407,6 +408,15 @@
   {
     todoDate = string.IsNullOrEmpty(Day) ? DateTime.Today : Convert.ToDateTime(Day);
     await GetData();
+    MessagingCenter.Subscribe<_AssignedTodo, long>(this, "todolist_" + Layout.User.id, async (sender, value) =>
+    {
+      if(todoDate.Value.Ticks == value)
+      {
+        Console.WriteLine(todoDate.Value.DateTime.ToString("yyy-MM-dd") + " => " + new DateTime(value).ToString("yyyy-MM-dd"));
+        await GetData();
+        await InvokeAsync(StateHasChanged);
+      }
+    });
   }
 
   private async Task DateTodoChange(DateTimeOffset date)
@@ -426,8 +436,6 @@
 
   private async Task GetData()
   {
-    _loaded = false;
-
     editList.Clear();
     todolist = await DbTodolist.GetbyDay(Layout.Company.id, Layout.User.id, todoDate.Value.DateTime);
     if (todolist == null)
@@ -439,8 +447,6 @@
     }
     // Danh sách công việc
     todoItems = DbTodoItem.GetList(Layout.Company.id, todolist.id);
-
-    _loaded = true;
   }
 
 
@@ -600,6 +606,12 @@
 
       // Tính thành tựu
       await DbTodolist.Achievement(Layout.Company.id, todolist.user_create);
+
+       // Tính thành tựu
+      var achievement = await DbTodolist.Achievement(Layout.Company.id, todolist.user_create);
+      if(achievement)
+        await JSRuntime.InvokeVoidAsync("location.reload");
+      await OnCheckout.InvokeAsync(); 
     }
   }
 

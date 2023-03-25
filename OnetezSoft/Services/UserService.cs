@@ -15,7 +15,7 @@ namespace OnetezSoft.Services
     /// </summary>
     public static MemberModel ConvertToMember(UserModel user)
     {
-      return new MemberModel ()
+      return new MemberModel()
       {
         id = user.id,
         name = user.FullName,
@@ -30,12 +30,30 @@ namespace OnetezSoft.Services
     public static UserModel GetUser(List<UserModel> list, string userId)
     {
       var user = list.SingleOrDefault(x => x.id == userId);
-      if(user != null)
+      if (user != null)
         return user;
       else
-        return new UserModel() {
+        return new UserModel()
+        {
           //id = userId,
           last_name = "Tài khoản đã xóa",
+          avatar = "/images/avatar.png"
+        };
+    }
+
+    /// <summary>
+    /// Lấy 1 tài khoản trong danh sách tài khoản theo ID
+    /// </summary>
+    public static MemberModel GetMember(List<UserModel> list, string userId)
+    {
+      var user = list.SingleOrDefault(x => x.id == userId);
+      if (user != null)
+        return ConvertToMember(user);
+      else
+        return new MemberModel()
+        {
+          //id = userId,
+          name = "Tài khoản đã xóa",
           avatar = "/images/avatar.png"
         };
     }

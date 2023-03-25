@@ -6,11 +6,24 @@
 <PageTitle>Todolist của tôi</PageTitle>
 
 <section class="p-4">
-  <h1 class="title is-4 is-size-5-mobile has-text-weight-bold has-text-link">
-    Chào buổi @Shared.DateSession(), @Layout.User.FullName
-  </h1>
+  <ul class="columns is-multiline is-vcentered">
+    <li class="column">
+      <h1 class="title is-5 has-text-weight-bold has-text-link">
+        Chào buổi @Shared.DateSession(), @Layout.User.FullName
+      </h1>
+    </li>
+    <li class="column is-narrow has-text-weight-bold is-size-7">
+      Bạn đang có
+      <span class="has-text-danger">@achievement</span>
+      ngày liên tiếp không trễ Todolist
+    </li>
+  </ul>
 
-  <_TodoToday User="Layout.User" Day="@Day" />
+  <_AssignedTodo />
+
+  <_TodoToday Day="@Day" OnCheckout="GetAchievement" />
+
+  <_AssignedList />
 
   <_TodoList />
 
@@ -38,8 +51,21 @@
   public LayoutMain Layout { get; set; }
   [Parameter]
   public string Day { get; set; }
-
   private string msgAccess = string.Empty;
+  private int achievement = 0;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await GetAchievement();
+  }
+
+  private async Task GetAchievement()
+  {
+    // Tính thành tựu Todolist
+    Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
+    achievement = await DbTodolist.DataAchievement(Layout.Company.id, Layout.User.id, start, end);
+  }
+
   private bool CheckAccess()
   {
     return ProductService.CheckAccess(Layout.Company, Layout.User, "todolist", out msgAccess);

@@ -554,6 +554,68 @@ namespace OnetezSoft.Handled
 
 
     /// <summary>
+    /// Số ngày trong tháng
+    /// </summary>
+    public static List<List<long>> CalenderMonth(DateTime date)
+    {
+      var start = Convert.ToDateTime(string.Format("{0:yyyy-MM-01}", date));
+      var end = start.AddMonths(1).AddDays(-1);
+
+      // Lấy số ngày trong tuần nhưng của tháng trước
+      int before = 0;
+      if (start.DayOfWeek == DayOfWeek.Tuesday)
+        before = 1;
+      else if (start.DayOfWeek == DayOfWeek.Wednesday)
+        before = 2;
+      else if (start.DayOfWeek == DayOfWeek.Thursday)
+        before = 3;
+      else if (start.DayOfWeek == DayOfWeek.Friday)
+        before = 4;
+      else if (start.DayOfWeek == DayOfWeek.Saturday)
+        before = 5;
+      else if (start.DayOfWeek == DayOfWeek.Sunday)
+        before = 6;
+
+      // Danh sách ngày
+      var list = new List<long>();
+      // Ngày của tháng trước
+      for (DateTime d = start.AddDays(-before); d < start; d = d.AddDays(1))
+        list.Add(-d.Ticks);
+      // Ngày của tháng này
+      for (DateTime d = start; d <= end; d = d.AddDays(1))
+        list.Add(d.Ticks);
+
+      var results = new List<List<long>>();
+
+      int day = 0;
+      while (day < list.Count)
+      {
+        var week = new List<long>();
+        for (int i = 0; i < 7; i++)
+        {
+          week.Add(list[day]);
+          day++;
+
+          if (day == list.Count)
+          {
+            var after = end.AddDays(1);
+            while (i + 1 < 7)
+            {
+              week.Add(-after.Ticks);
+              after = after.AddDays(1);
+              i++;
+            }
+            break;
+          }
+        }
+        results.Add(week);
+      }
+
+      return results;
+    }
+
+
+    /// <summary>
     /// Mốc giờ
     /// </summary>
     public static List<StaticModel> TimeList(int min, int max)
@@ -562,7 +624,7 @@ namespace OnetezSoft.Handled
 
       for (int i = min; i <= max; i++)
       {
-        for (int m = 0; m < 60; m += 10)
+        for (int m = 0; m < 60; m += 5)
         {
           list.Add(new StaticModel
           {
