@@ -358,6 +358,8 @@
   private async Task ChangeFilterDate(DateRange range)
   {
     await GetList();
+    Console.WriteLine(filterDateS.Value.DateTime.ToString());
+    Console.WriteLine(filterDateE.Value.DateTime.ToString());
   }
 
   private async Task ChangeFilterUser(string value)
@@ -394,7 +396,9 @@
       dataTodoList.RemoveAll(x => !filterUserList.Contains(x.user));
     
     dataList.Clear();
-    for (DateTime date = filterDateE.Value.DateTime; date >= filterDateS.Value.DateTime; date = date.AddDays(-1))
+    var dateS = Convert.ToDateTime(filterDateS.Value.DateTime.ToString("yyyy-MM-dd"));
+    var dateE = Convert.ToDateTime(filterDateE.Value.DateTime.ToString("yyyy-MM-dd"));
+    for (DateTime date = dateE; date >= dateS; date = date.AddDays(-1))
     {
       long day = date.Ticks;
       var list = dataTodoList.Where(x => x.date == day).ToList();
