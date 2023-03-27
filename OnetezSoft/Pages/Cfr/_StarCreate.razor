@@ -1,16 +1,6 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
 <ul class="columns is-variable is-2 mb-4">
   <li class="column is-one-third">
     <div class="card p-2 has-text-centered">
@@ -193,10 +183,6 @@
   public List<DepartmentModel.SelectList> departments { get; set; }
   [Parameter]
   public UserModel User { get; set; }
-
-  private bool _success = false;
-  private string _message = string.Empty;
-
   private OkrCfrModel current = new() { type = 2 };
   private DepartmentModel.SelectList department = new() { name = "Tất cả phòng ban" };
   private List<OkrModel> okrList = new();
@@ -258,45 +244,18 @@
 
   private async Task Send()
   {
-    _success = false;
-    _message = string.Empty;
-
     if (string.IsNullOrEmpty(current.user_receive))
-    {
-      _message = "Bạn chưa chọn người nhận !";
-      await Task.Delay(10000);
-      _message = string.Empty;
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false,  "Bạn chưa chọn người nhận!");
     else if (current.user_receive == Layout.User.id)
-    {
-      _message = "Bạn không thể ghi nhận - tặng sao cho chính mình !";
-      await Task.Delay(10000);
-      _message = string.Empty;
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể ghi nhận - tặng sao cho chính mình!");
     else if (current.type == 2 && string.IsNullOrEmpty(current.evaluate))
-    {
-      _message = "Bạn chưa chọn tiêu chí ghi nhận !";
-      await Task.Delay(10000);
-      _message = string.Empty;
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn tiêu chí ghi nhận !");
     else if (current.type == 3 && current.star == 0)
-    {
-      _message = "Bạn chưa chọn số sao muốn tặng !";
-      await Task.Delay(10000);
-      _message = string.Empty;
-    }
-    else if (string.IsNullOrEmpty(current.content))
-    {
-      _message = "Bạn chưa nhập nội dung !";
-      await Task.Delay(10000);
-      _message = string.Empty;
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn số sao muốn tặng !");
+    else if (Shared.IsEmpty(current.content))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập nội dung !");
     else if (User == null || User.star_total < current.star)
-    {
-      _message = "Bạn không đủ số sao để ghi nhận - tặng sao !";
-      await Task.Delay(10000);
-      _message = string.Empty;
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không đủ số sao để ghi nhận - tặng sao !");
     else
     {
       if (current.type == 2)
@@ -351,10 +310,11 @@
       await DbNotify.Create(Layout.Company.id, notifyType, current.star.ToString(), current.user_receive, Layout.User.id);
 
       if (current.type == 2)
-        _message = $"Bạn đã Gửi ghi nhận cho {filterUserName} thành công!";
+        await JSRuntime.InvokeVoidAsync("tagline", true, 
+          $"Bạn đã Gửi ghi nhận cho {filterUserName} thành công!");
       else
-        _message = $"Bạn đã Tặng {current.star} sao cho {filterUserName} thành công!";
-      _success = true;
+        await JSRuntime.InvokeVoidAsync("tagline", true, 
+          $"Bạn đã Tặng {current.star} sao cho {filterUserName} thành công!");
       Cancel();
     }
   }

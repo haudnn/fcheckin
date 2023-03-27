@@ -271,45 +271,45 @@ namespace OnetezSoft.Data
       else if (type == 500)
       {
         name = Convert.ToInt32(key) > 0 ? $"Bạn đã được cấp {key} sao." : $"Bạn đã bị trừ {key} sao.";
-        link = "/cfr/star";
+        link = "/cfr";
       }
       else if (type == 501)
       {
         name = $"Bạn đã nhận được ghi nhận từ {creator}.";
-        link = "/cfr/star";
+        link = "/cfr";
       }
       else if (type == 502)
       {
         name = $"{creator} đã tặng cho bạn {key} sao.";
-        link = "/cfr/star";
+        link = "/cfr";
       }
       else if (type == 503)
       {
         var current = await DbOkrCheckin.Get(companyId, key);
         name = $"{creator} đã tạo bản Checkin nháp. Hãy xác nhận bản checkin nháp của họ nhé!";
-        link = $"/cfr/checkin/{current.okr}/info?checkin={key}";
+        link = $"/okr/checkin/{current.okr}/info?checkin={key}";
       }
       else if (type == 504)
       {
         var current = await DbOkrCheckin.Get(companyId, key);
         name = $"{creator} đã xác nhận bản checkin nháp của bạn.";
-        link = $"/cfr/checkin/{current.okr}/info?checkin={key}";
+        link = $"/okr/checkin/{current.okr}/info?checkin={key}";
       }
       else if (type == 505)
       {
         var current = await DbOkrCheckin.Get(companyId, key);
         name = $"Đã hoàn tất buổi checkin OKRs cùng {creator}.";
-        link = $"/cfr/checkin/{current.okr}/info?checkin={key}";
+        link = $"/okr/checkin/{current.okr}/info?checkin={key}";
       }
       else if (type == 506)
       {
         name = $"{creator} đã thêm một phản hồi mới về mục tiêu của họ.";
-        link = $"/cfr/checkin/{key}/feedback";
+        link = $"/okr/checkin/{key}/feedback";
       }
       else if (type == 507)
       {
         name = $"{creator} đã thêm một phản hồi mới về mục tiêu của bạn.";
-        link = $"/cfr/checkin/{key}/feedback";
+        link = $"/okr/checkin/{key}/feedback";
       }
       // ĐÀO TẠO
       else if (type == 600)

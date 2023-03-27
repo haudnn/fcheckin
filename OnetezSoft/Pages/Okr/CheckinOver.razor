@@ -1,25 +1,15 @@
-﻿@page "/cfr/checkin/{Id}/overview"
+﻿@page "/okr/checkin/{Id}/overview"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
 @if (okr != null)
 {
-  <section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+  <section class="columns is-gapless has_menu_left">
     <div class="column is-narrow">
       <div class="card p-3 menu_left">
-        <a class="button is-transparent has-text-link mb-5" href="/cfr/checkin?user=@okr.user_create">
+        <a class="button is-transparent has-text-link mb-5" href="/okr/checkin?user=@okr.user_create">
           <span class="icon">
             <i class="material-icons-outlined">
               arrow_back
@@ -27,13 +17,13 @@
           </span>
           <span>Trở về</span>
         </a>
-        <a href="/cfr/checkin/@okr.id/info">
+        <a href="/okr/checkin/@okr.id/info">
           Check-in<br />1:1
         </a>
-        <a href="/cfr/checkin/@okr.id/feedback">
+        <a href="/okr/checkin/@okr.id/feedback">
           Phản hồi
         </a>
-        <a class="is-active" href="/cfr/checkin/@okr.id/overview">
+        <a class="is-active" href="/okr/checkin/@okr.id/overview">
           Tổng quan
         </a>
       </div>
@@ -216,7 +206,7 @@
 
                 <tr>
                   <td>
-                    <a class="has-text-weight-semibold has-text-link" href="/cfr/checkin/@item.id/overview">
+                    <a class="has-text-weight-semibold has-text-link" href="/okr/checkin/@item.id/overview">
                       @item.name
                     </a>
                     <i class="has-text-grey">→ @key[2]</i>
@@ -346,15 +336,9 @@ else
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
   [Parameter]
   public string Id { get; set; }
-
-  private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
   private string _title = "CFRs - Tổng quan Check-in";
-
   private OkrModel okr = new();
   private Dictionary<string, OkrModel> okrRelated = new();
   private List<string> okrsShow = new();
@@ -387,7 +371,6 @@ else
 
       await Chart();
     }
-    _loaded = true;
   }
 
   protected override void OnAfterRender(bool firstRender)

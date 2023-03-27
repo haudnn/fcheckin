@@ -1,4 +1,4 @@
-﻿@page "/cfr/checkin/{Id}/info"
+﻿@page "/okr/checkin/{Id}/info"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
@@ -9,7 +9,7 @@
   <section class="columns is-gapless has_menu_left">
     <div class="column is-narrow">
       <div class="card p-3 menu_left">
-        <a class="button is-transparent has-text-link mb-5" href="/cfr/checkin?user=@okr.user_create">
+        <a class="button is-transparent has-text-link mb-5" href="/okr/checkin?user=@okr.user_create">
           <span class="icon">
             <i class="material-icons-outlined">
               arrow_back
@@ -17,13 +17,13 @@
           </span>
           <span>Trở về</span>
         </a>
-        <a class="is-active" href="/cfr/checkin/@okr.id/info">
+        <a class="is-active" href="/okr/checkin/@okr.id/info">
           Check-in<br />1:1
         </a>
-        <a href="/cfr/checkin/@okr.id/feedback">
+        <a href="/okr/checkin/@okr.id/feedback">
           Phản hồi
         </a>
-        <a href="/cfr/checkin/@okr.id/overview">
+        <a href="/okr/checkin/@okr.id/overview">
           Tổng quan
         </a>
       </div>
@@ -75,7 +75,7 @@
             {
               if (current == null || dataList.Where(x => !x.checkin).Count() == 0)
               {
-                <a class="button is-link" href="/cfr/checkin/@okr.id/add">
+                <a class="button is-link" href="/okr/checkin/@okr.id/add">
                   <span class="icon">
                     <i class="material-icons-outlined is-size-6">add</i>
                   </span>
@@ -84,7 +84,7 @@
               }
               else if (current != null && current.draft)
               {
-                <a class="button is-link" href="/cfr/checkin/@okr.id/@current.id">
+                <a class="button is-link" href="/okr/checkin/@okr.id/@current.id">
                   <span class="icon">
                     <i class="material-icons-outlined is-size-6">edit</i>
                   </span>
@@ -93,7 +93,7 @@
               }
               else if (current != null && !current.checkin)
               {
-                <a class="button is-link" href="/cfr/checkin/@okr.id/@current.id">
+                <a class="button is-link" href="/okr/checkin/@okr.id/@current.id">
                   <span class="icon">
                     <i class="material-icons-outlined is-size-6">format_list_bulleted</i>
                   </span>
@@ -331,7 +331,7 @@ else
   private void ChangeCheckin(ChangeEventArgs e)
   {
     current = dataList.SingleOrDefault(x => x.id == e.Value.ToString());
-    navigation.NavigateTo($"/cfr/checkin/{okr.id}/info?checkin={current.id}", false);
+    navigation.NavigateTo($"/okr/checkin/{okr.id}/info?checkin={current.id}", false);
   }
 
   private async Task Confirm()

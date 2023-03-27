@@ -1,25 +1,15 @@
-﻿@page "/cfr/checkin/{Id}/feedback"
+﻿@page "/okr/checkin/{Id}/feedback"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
 @if (okr != null)
 {
-  <section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+  <section class="columns is-gapless has_menu_left">
     <div class="column is-narrow">
       <div class="card p-3 menu_left">
-        <a class="button is-transparent has-text-link mb-5" href="/cfr/checkin?user=@okr.user_create">
+        <a class="button is-transparent has-text-link mb-5" href="/okr/checkin?user=@okr.user_create">
           <span class="icon">
             <i class="material-icons-outlined">
               arrow_back
@@ -27,13 +17,13 @@
           </span>
           <span>Trở về</span>
         </a>
-        <a href="/cfr/checkin/@okr.id/info">
+        <a href="/okr/checkin/@okr.id/info">
           Check-in<br />1:1
         </a>
-        <a class="is-active" href="/cfr/checkin/@okr.id/feedback">
+        <a class="is-active" href="/okr/checkin/@okr.id/feedback">
           Phản hồi
         </a>
-        <a href="/cfr/checkin/@okr.id/overview">
+        <a href="/okr/checkin/@okr.id/overview">
           Tổng quan
         </a>
       </div>
@@ -71,7 +61,7 @@
             </div>
           </li>
         </ul>
-        @if (current == null)
+        @if (model == null)
         {
           <div class="py-6 has-text-grey">
             Chưa có dữ liệu check-in
@@ -79,8 +69,8 @@
         }
         else
         {
-          var confident = DbOkr.Confident(current.confident);
-          var progress = DbOkrCheckin.GetProgress(current.key_results, okr.key_results);
+          var confident = DbOkr.Confident(model.confident);
+          var progress = DbOkrCheckin.GetProgress(model.key_results, okr.key_results);
           var okrColor = Shared.ProgressColor(progress);
 
           <div id="feedback" class="scrolly" style="height: calc(100vh - 282px);">
@@ -118,7 +108,7 @@
                   <td align="center">
                     <label class="td-label">Thay đổi</label>
                     <div class="td-value has-text-weight-semibold">
-                      @Shared.ConvertNumber(progress - current.progress_prev)%
+                      @Shared.ConvertNumber(progress - model.progress_prev)%
                     </div>
                   </td>
                   <td align="center" class="pl-0">
@@ -133,7 +123,7 @@
                     <hr class="m-0" />
                   </td>
                 </tr>
-                @foreach (var checkin in current.key_results)
+                @foreach (var checkin in model.key_results)
                 {
                   var kr = okr.key_results.SingleOrDefault(x => x.id == checkin.id);
                   if (kr != null)
@@ -159,14 +149,14 @@
                     </tr>
                   }
                 }
-                @if (current.feedbacks != null)
+                @if (model.feedbacks != null)
                 {
                   <tr>
                     <td colspan="4" class="pt-3 pr-3">
                       <ul class="columns is-multiline is-mobile">
-                        @foreach (var item in current.feedbacks)
+                        @foreach (var item in model.feedbacks)
                         {
-                          var checkin = current.key_results.SingleOrDefault(x => x.id == item.kr);
+                          var checkin = model.key_results.SingleOrDefault(x => x.id == item.kr);
                           var keyResult = okr.key_results.SingleOrDefault(x => x.id == item.kr);
 
                           if (item.user == Layout.User.id)
@@ -228,7 +218,7 @@
           <div class="field pr-3" style="height: 60px;">
             @if (!string.IsNullOrEmpty(replyId))
             {
-              var checkin = current.key_results.SingleOrDefault(x => x.id == replyId);
+              var checkin = model.key_results.SingleOrDefault(x => x.id == replyId);
               var keyResult = okr.key_results.SingleOrDefault(x => x.id == checkin.id);
 
               <div class="notification is-italic p-3 is-size-7">
@@ -273,17 +263,12 @@ else
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
   [Parameter]
   public string Id { get; set; }
-
-  private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
   private string _title = "CFRs - Phản hồi Check-in";
 
   private List<OkrCheckinModel> dataList = new();
-  private OkrCheckinModel current = null;
+  private OkrCheckinModel model = null;
   private OkrModel okr = null;
 
   private string replyId = string.Empty;
@@ -296,15 +281,14 @@ else
     {
       dataList.AddRange(DbOkrCheckin.GetList(Layout.Company.id, Layout.CycleId, okr.id, true));
       if (dataList.Count > 0)
-        current = dataList[0];
-      await JSRuntime.InvokeVoidAsync("textAutoSize", "#replyInput");
+        model = dataList[0];
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "replyInput");
     }
-    _loaded = true;
   }
 
   private void ChangeCheckin(ChangeEventArgs e)
   {
-    current = dataList.SingleOrDefault(x => x.id == e.Value.ToString());
+    model = dataList.SingleOrDefault(x => x.id == e.Value.ToString());
   }
 
   private async Task Reply(string id)
@@ -322,53 +306,39 @@ else
   {
     foreach (var file in e.GetMultipleFiles())
     {
-      _success = false;
-      _message = "Đang upload file lên...";
-
       try
       {
         if (file.Size <= Layout.MaxFileSize)
         {
           var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
-
           var fileLink = await Files.SaveFileAsync(fileContent, file.Name);
-
-          _message = string.Empty;
           replyContent += $" [img]{fileLink}[/img] ";
           await JSRuntime.InvokeVoidAsync("setFocus", "replyInput");
         }
         else
         {
-          _success = false;
-          _message = $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB";
+          await JSRuntime.InvokeVoidAsync("tagline", false,
+            $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB");
         }
       }
       catch (Exception ex)
       {
-        _success = false;
-        _message = $"ERROR: {ex.Message}";
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Lỗi khi upload: " + ex.Message);
       }
     }
   }
 
   private async Task Send()
   {
-    _success = false;
-    _message = string.Empty;
-
-    if (string.IsNullOrEmpty(replyContent))
-    {
-      _message = "Bạn chưa nhập nội dung phản hồi !";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
+    if (Shared.IsEmpty(replyContent))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập nội dung phản hồi !");
     else
     {
-      current = await DbOkrCheckin.Get(Layout.Company.id, current.id);
-      if (current.feedbacks == null)
-        current.feedbacks = new();
+      model = await DbOkrCheckin.Get(Layout.Company.id, model.id);
+      if (model.feedbacks == null)
+        model.feedbacks = new();
 
-      current.feedbacks.Add(new()
+      model.feedbacks.Add(new()
         {
           id = Mongo.RandomId(),
           user = Layout.User.id,
@@ -377,7 +347,7 @@ else
           kr = replyId
         });
 
-      current = await DbOkrCheckin.Update(Layout.Company.id, current);
+      model = await DbOkrCheckin.Update(Layout.Company.id, model);
 
       // Gửi thông báo chuông
       if (okr.user_create == Layout.User.id)

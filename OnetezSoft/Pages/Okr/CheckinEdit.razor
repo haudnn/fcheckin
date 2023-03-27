@@ -1,5 +1,5 @@
-﻿@page "/cfr/checkin/{OkrId}/add"
-@page "/cfr/checkin/{OkrId}/{CheckinId}"
+﻿@page "/okr/checkin/{OkrId}/add"
+@page "/okr/checkin/{OkrId}/{CheckinId}"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
@@ -18,13 +18,13 @@
           </span>
           <span>Trở về</span>
         </a>
-        <a class="is-active" href="/cfr/checkin/@okr.id/info">
+        <a class="is-active" href="/okr/checkin/@okr.id/info">
           Check-in<br />1:1
         </a>
-        <a href="/cfr/checkin/@okr.id/feedback">
+        <a href="/okr/checkin/@okr.id/feedback">
           Phản hồi
         </a>
-        <a href="/cfr/checkin/@okr.id/overview">
+        <a href="/okr/checkin/@okr.id/overview">
           Tổng quan
         </a>
       </div>
@@ -451,7 +451,7 @@
       return;
 
     await DbOkrCheckin.Delete(Layout.Company.id, current.id);
-    navigation.NavigateTo($"/cfr/checkin/{okr.id}/info");
+    navigation.NavigateTo($"/okr/checkin/{okr.id}/info");
   }
 
   private async Task Update()
@@ -497,7 +497,7 @@
       okr.date_checkin = current.date_create;
       okr.status_checkin = 1;
       await DbOkr.Update(Layout.Company.id, okr);
-      navigation.NavigateTo($"/cfr/checkin/{okr.id}/info");
+      navigation.NavigateTo($"/okr/checkin/{okr.id}/info");
       return;
     }
     await JSRuntime.InvokeVoidAsync("tagline", false, _message);
@@ -595,7 +595,7 @@
     // Gửi thông báo chuông
     await DbNotify.Create(Layout.Company.id, 505, current.id, okr.user_checkin, Layout.User.id);
 
-    navigation.NavigateTo($"/cfr/checkin/{okr.id}/info", false);
+    navigation.NavigateTo($"/okr/checkin/{okr.id}/info", false);
   }
 
   private async Task AutoCheckin()
@@ -640,7 +640,7 @@
       okr.progress_prev = current.progress_prev;
       await DbOkr.Update(Layout.Company.id, okr);
 
-      navigation.NavigateTo($"/cfr/checkin/{okr.id}/info", false);
+      navigation.NavigateTo($"/okr/checkin/{okr.id}/info", false);
     }
     await JSRuntime.InvokeVoidAsync("tagline", false, _message);
   }

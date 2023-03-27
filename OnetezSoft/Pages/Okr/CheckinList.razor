@@ -1,20 +1,10 @@
-﻿@page "/cfr/checkin"
+﻿@page "/okr/checkin"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<section class="p-4 @(_loaded ? "" : "is-loading")">
+<section class="p-4">
   <div class="card p-5 p-4-mobile">
     <ul class="columns is-vcentered is-variable is-2">
       <li class="column">
@@ -77,7 +67,7 @@
           <tr>
             <td>
               <div class="is-flex">
-                <a class="has-text-weight-semibold" href="/cfr/checkin/@okr.id/info">
+                <a class="has-text-weight-semibold" href="/okr/checkin/@okr.id/info">
                   @okr.name
                 </a>
                 @if (okr.done)
@@ -229,15 +219,9 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
-  private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
   private string _title = "CFRs - Check-in";
-
   private List<OkrModel> okrList = new();
   private List<string> okrsShow = new();
-
   private List<DepartmentModel.SelectList> departments = new();
   private string filterDepartment = string.Empty;
   private string filterUserName = string.Empty;
@@ -315,7 +299,7 @@
 
   private void UserSelected(UserModel item)
   {
-    string url = "/cfr/checkin?user=" + item.id;
+    string url = "/okr/checkin?user=" + item.id;
     navigation.NavigateTo(url, false);
 
     filterUser = item;
@@ -325,10 +309,8 @@
 
   private void ShowOkrList()
   {
-    _loaded = false;
     filterUserName = filterUser.FullName;
     okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, filterUser.id);
-    _loaded = true;
   }
 
   private void ShowKeys(string id)

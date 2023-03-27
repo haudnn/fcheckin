@@ -59,8 +59,7 @@
     </ul>
     @foreach (var child in dataList)
     {
-      <ComponentOkrView CompanyId="@Layout.Company.id" CycleId="@Layout.CycleId" UserId="@Layout.User.id"
-                      UserList="@Layout.UserList" Current="child" ShowChilds="true" />
+      <_OkrOverview Current="child" ShowChilds="true" />
     }
   </div>
 </section>
@@ -323,7 +322,7 @@
 
   public void ListenCallback()
   {
-    MessagingCenter.Subscribe<ComponentOkrView, UserModel>(this, "okrs_" + Layout.User.id, (sender, value) =>
+    MessagingCenter.Subscribe<_OkrOverview, UserModel>(this, "okrs_" + Layout.User.id, (sender, value) =>
     {
       UserSelected(value);
       InvokeAsync(StateHasChanged);
