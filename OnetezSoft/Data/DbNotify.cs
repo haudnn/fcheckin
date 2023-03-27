@@ -210,6 +210,42 @@ namespace OnetezSoft.Data
         name = $"{creator} đã xác nhận Todolist của bạn";
         link = "/todolist/" + string.Format("{0:yyyy-MM-dd}", new DateTime(current.date));
       }
+      else if (type == 201)
+      {
+        var current = await DbTodoItem.Get(companyId, key);
+        name = $"{creator} đã giao cho bạn công việc <b>{current.name}</b>";
+        link = "/todolist";
+      }
+      else if (type == 202)
+      {
+        var current = await DbTodoItem.Get(companyId, key);
+        name = $"{creator} đã xác nhận yêu cầu công việc <b>{current.name}</b>";
+        link = "/todolist";
+      }
+      else if (type == 203)
+      {
+        var current = await DbTodoItem.Get(companyId, key);
+        name = $"{creator} đã từ chối yêu cầu công việc <b>{current.name}</b>";
+        link = "/todolist";
+      }
+      else if (type == 212)
+      {
+        var current = await DbTodoItem.Get(companyId, key);
+        name = $"{creator} đã cập nhật trạng thái Pending cho công việc <b>{current.name}</b>";
+        link = "/todolist";
+      }
+      else if (type == 214)
+      {
+        var current = await DbTodoItem.Get(companyId, key);
+        name = $"{creator} đã cập nhật trạng thái Done cho công việc <b>{current.name}</b>";
+        link = "/todolist";
+      }
+      else if (type == 215)
+      {
+        var current = await DbTodoItem.Get(companyId, key);
+        name = $"{creator} đã cập nhật trạng thái Cancel cho công việc <b>{current.name}</b>";
+        link = "/todolist";
+      }
       // ĐỔI QUÀ
       else if (type == 300)
       {
@@ -303,7 +339,7 @@ namespace OnetezSoft.Data
 
       #endregion
 
-      if (create != target)
+      if (create != target && !string.IsNullOrEmpty(name))
       {
         var model = new NotifyModel();
         model.name = name;

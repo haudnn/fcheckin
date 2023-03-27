@@ -484,6 +484,12 @@
   {
     item.status = status;
     await DbTodoItem.Update(Layout.Company.id, item);
+    if(!string.IsNullOrEmpty(item.assign_user))
+    {
+      // Gửi thông báo cho người giao
+      int notiType = 210 + item.status;
+      await DbNotify.Create(Layout.Company.id, notiType, item.id, item.assign_user, Layout.User.id);
+    }
   }
 
   private async Task EditItem(string id)

@@ -205,7 +205,7 @@
 
   private async Task RejectItem(TodolistModel.Todo item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn từ chối công việc: {item.name}?"))
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc chắc muốn từ chối công việc này?"))
       return;
 
     item.assign_status = 3;
@@ -229,6 +229,8 @@
     {
       item.assign_status = 1;
       await JSRuntime.InvokeVoidAsync("tagline", false, error);
+      // Gửi thông báo cho người giao
+      await DbNotify.Create(Layout.Company.id, 202, item.id, item.assign_user, Layout.User.id);
     }
   }
 

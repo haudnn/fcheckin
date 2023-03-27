@@ -409,7 +409,7 @@
 
   private async Task DeleteItem(TodolistModel.Todo item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {item.name}?"))
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa công việc: {item.name}?"))
       return;
 
     dataList[item.date].Remove(item);
@@ -419,7 +419,7 @@
   private async Task UpdateItem(TodolistModel.Todo item)
   {
     if(Shared.IsEmpty(item.name))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên công việc !");
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần nhập tiêu đề công việc!");
     else
     {
       await DbTodoItem.Update(Layout.Company.id, item);

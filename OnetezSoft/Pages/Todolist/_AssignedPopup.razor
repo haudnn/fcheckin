@@ -186,6 +186,8 @@
           todo.id = Mongo.RandomId();
           todo.user = memberId;
           await DbTodoItem.Create(Layout.Company.id, todo);
+          // Gửi thông báo
+          await DbNotify.Create(Layout.Company.id, 201, todo.id, todo.user, Layout.User.id);
         }
       }
       await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã giao {dataList.Count} công việc thành công.");
@@ -200,9 +202,9 @@
   private async Task<string> CheckRequired()
   {
     if(dataList.Any(x => Shared.IsEmpty(x.name)))
-      return "Có công việc chưa nhập tiêu đề!";
+      return "Bạn cần nhập tiêu đề công việc!";
     if(memberTodoList.Any(x => x.Value.Count == 0))
-      return "Có công việc chưa có người thực hiện";
+      return "Bạn cần nhập người được giao việc!";
     if(dataList.Count > 0)
       return await ListCheckout();
     return null;
@@ -227,7 +229,7 @@
       if(checkouts.Count > 0)
       {
         memberCheckout[item.id] = string.Join(", ", checkouts);
-        msg = "Có người đã check-out Todolist vào ngày được chọn!";
+        msg = "Bạn không thể giao việc cho thành viên đã check-out vào ngày được chọn";
       }
       else
         memberCheckout[item.id] = string.Empty;
@@ -257,7 +259,7 @@
   private async Task DeleteItem(TodolistModel.Todo item)
   {
     if (!Shared.IsEmpty(item.name))
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {item.name}?"))
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa công việc: {item.name}?"))
         return;
     dataList.Remove(item);
     memberTodoList.Remove(item.id);

@@ -87,10 +87,11 @@ namespace OnetezSoft.Services
           await DbTodolist.Update(companyId, todolist);
         }
         else
-          error = "Không thể thêm công việc vào Todolist đã check-out!";
+          error = "Bạn không thể xác nhận công việc này vì đã check out Todolist ngày "
+            + string.Format("{0:dd/MM/yyyy}", new DateTime(day));
       }
       else
-        error = "Không thể thêm công việc vào Todolist của quá khứ!";
+        error = "Không thể thêm công việc vào Todolist của ngày đã qua!";
 
       return error;
     }
