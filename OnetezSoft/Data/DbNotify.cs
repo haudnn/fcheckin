@@ -267,7 +267,7 @@ namespace OnetezSoft.Data
         name = $"Bạn đã nhận được một món quà từ {creator}. Hãy khám phá xem đây là món quà gì nào?";
         link = "/gift/exchange?tab=give";
       }
-      // CFRS
+      // OKRs & CFRS
       else if (type == 500)
       {
         name = Convert.ToInt32(key) > 0 ? $"Bạn đã được cấp {key} sao." : $"Bạn đã bị trừ {key} sao.";
@@ -310,6 +310,30 @@ namespace OnetezSoft.Data
       {
         name = $"{creator} đã thêm một phản hồi mới về mục tiêu của bạn.";
         link = $"/okr/checkin/{key}/feedback";
+      }
+      else if (type == 508)
+      {
+        var current = await DbOkr.Get(companyId, key);
+        name = $"{creator} đã gửi đánh giá OKR. Bạn hãy thực hiện đánh giá nhé!";
+        link = $"/okr/review/{current.user_create}/{key}";
+      }
+      else if (type == 509)
+      {
+        var current = await DbOkr.Get(companyId, key);
+        name = $"Bản đánh giá OKR của bạn đã được {creator} mở lại. Bạn hãy thực hiện lại bản bánh giá nhé!";
+        link = $"/okr/review/{current.user_create}/{key}";
+      }
+      else if (type == 510)
+      {
+        var current = await DbOkr.Get(companyId, key);
+        name = $"{creator} đã xác nhận bản đánh giá OKR của bạn!";
+        link = $"/okr/review/{current.user_create}/{key}";
+      }
+      else if (type == 511)
+      {
+        var current = await DbOkr.Get(companyId, key);
+        name = $"{creator} đã gửi đánh giá OKR. Bạn hãy xem đánh giá nhé!";
+        link = $"/okr/review/{current.user_create}/{key}";
       }
       // ĐÀO TẠO
       else if (type == 600)

@@ -99,9 +99,9 @@ namespace OnetezSoft.Data
           result.teams_id = new();
         if (result.products == null)
           result.products = new();
-        if(result.plans_pin == null)
+        if (result.plans_pin == null)
           result.plans_pin = new();
-        if(result.plans_hide == null)
+        if (result.plans_hide == null)
           result.plans_hide = new();
       }
 
@@ -115,7 +115,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<UserModel>(_collection);
 
-      if(!string.IsNullOrEmpty(id))
+      if (!string.IsNullOrEmpty(id))
         return await collection.Find(x => x.delete && x.id == id).FirstOrDefaultAsync();
       else if (!string.IsNullOrEmpty(email))
         return await collection.Find(x => x.delete && x.email == email.Trim()).FirstOrDefaultAsync();
@@ -130,14 +130,14 @@ namespace OnetezSoft.Data
       var collection = _db.GetCollection<UserModel>(_collection);
 
       var results = collection.Find(x => !x.delete && x.active).ToList();
-      
+
       foreach (var item in results)
       {
-        if(item.products == null)
+        if (item.products == null)
           item.products = new();
       }
 
-      return results;
+      return (from x in results orderby x.title, x.role select x).ToList();
     }
 
 
@@ -193,7 +193,7 @@ namespace OnetezSoft.Data
       if (onlyAdmin)
         return await collection.Find(x => !x.delete && x.role == 1).ToListAsync();
       else
-        return await collection.Find(x => !x.delete && x.role >= 1 && x.role <=2).ToListAsync();
+        return await collection.Find(x => !x.delete && x.role >= 1 && x.role <= 2).ToListAsync();
     }
 
 

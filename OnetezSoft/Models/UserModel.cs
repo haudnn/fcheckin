@@ -55,6 +55,7 @@ namespace OnetezSoft.Models
 
     /// <summary>Chức danh: 1. quản lý, 2. phó quản lý, 3. nhân viên</summary>
     public int title { get; set; }
+    /// <summary>Tên chức danh</summary>
     public string title_name { get; set; }
 
     /// <summary>Danh sách công ty trực thuộc</summary>
@@ -97,7 +98,7 @@ namespace OnetezSoft.Models
     public string verify { get; set; }
 
     /// <summary>Các kế hoạch đã ghim</summary>
-    public List<string> plans_pin  { get; set; }
+    public List<string> plans_pin { get; set; }
 
     /// <summary>Các kế hoạch đã lưu trữ</summary>
     public List<string> plans_hide { get; set; }

@@ -55,14 +55,14 @@ namespace OnetezSoft.Data
 
       var result = await collection.Find(x => x.id == id && !x.delete).FirstOrDefaultAsync();
 
-      if(result != null)
+      if (result != null)
       {
         if (result.members_id == null)
           result.members_id = new();
         if (result.members_list == null)
           result.members_list = new();
       }
-      
+
       return result;
     }
 
@@ -109,7 +109,7 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Danh sách phòng ban dùng cho Select
     /// </summary>
-    public static List<DepartmentModel.SelectList> GetSelectList(string companyId, string parent, int level, 
+    public static List<DepartmentModel.SelectList> GetSelectList(string companyId, string parent, int level,
       List<DepartmentModel> listAll)
     {
       if (listAll == null)
@@ -145,10 +145,10 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Danh sách phòng ban của một người
     /// </summary>
-    public static List<DepartmentModel.SelectList> GetSelectListOfUser(string companyId, List<string> departments_id, 
+    public static List<DepartmentModel.SelectList> GetSelectListOfUser(string companyId, List<string> departments_id,
       List<DepartmentModel> listAll)
     {
-      if(listAll == null)
+      if (listAll == null)
         listAll = GetAll(companyId);
 
       // Lấy data phòng ban của một người
@@ -161,7 +161,7 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Danh sách tên phòng ban của một người
     /// </summary>
-    public static List<string> GetNameListOfUser(string companyId, List<string> departments_id, 
+    public static List<string> GetNameListOfUser(string companyId, List<string> departments_id,
       List<DepartmentModel> departments)
     {
       var results = new List<string>();
@@ -177,7 +177,7 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Tất cả phòng ban cấp dưới của 1 phòng ban
     /// </summary>
-    public static async Task<List<DepartmentModel>> GetAllChilds(string companyId, string parent, 
+    public static async Task<List<DepartmentModel>> GetAllChilds(string companyId, string parent,
       List<DepartmentModel> departments)
     {
       if (departments == null)
@@ -206,7 +206,7 @@ namespace OnetezSoft.Data
       var results = new List<DepartmentModel>();
 
       var item = await Get(companyId, parent);
-      if(item != null)
+      if (item != null)
       {
         results.Add(item);
         if (!string.IsNullOrEmpty(item.parent))
@@ -221,7 +221,7 @@ namespace OnetezSoft.Data
     /// Thêm nhân viên vào phòng ban
     /// </summary>
     /// <returns></returns>
-    public static async Task<DepartmentModel> AddMember(string companyId, DepartmentModel department, 
+    public static async Task<DepartmentModel> AddMember(string companyId, DepartmentModel department,
       string memberId, int memberRole)
     {
       if (department.members_id == null)
@@ -237,7 +237,7 @@ namespace OnetezSoft.Data
         {
           manager.role = 3;
           var mangerUser = await DbUser.Get(companyId, manager.id);
-          if(mangerUser != null)
+          if (mangerUser != null)
           {
             mangerUser.title = 3;
             mangerUser.title_name = string.Empty;
@@ -268,7 +268,7 @@ namespace OnetezSoft.Data
 
       // Update data user
       var user = await DbUser.Get(companyId, memberId);
-      if(user != null)
+      if (user != null)
       {
         if (user.departments_id == null)
           user.departments_id = new();
@@ -278,11 +278,11 @@ namespace OnetezSoft.Data
         // Set chức danh theo lần set cuối cùng
         if (memberRole != 0 && memberRole != 3)
           user.title = memberRole;
-        
+
         // Nếu chưa có chức danh thì là nhân viên
         if (user.title == 0)
           user.title = 3;
-        
+
         // Set tên chức danh
         if (user.title == 1)
           user.title_name = department.manager;
@@ -314,7 +314,7 @@ namespace OnetezSoft.Data
 
       var department = collection.Find(x => x.id == departmentId && !x.delete).FirstOrDefault();
 
-      if(department != null)
+      if (department != null)
       {
         if (department.members_list == null)
           department.members_list = new();
@@ -339,7 +339,7 @@ namespace OnetezSoft.Data
     {
       var results = new List<UserModel>();
 
-      if(user.departments_id != null)
+      if (user.departments_id != null)
       {
         // Lấy data phòng ban của một người
         var departmentAll = GetAll(companyId);
@@ -347,7 +347,7 @@ namespace OnetezSoft.Data
         var managerList = new List<string>();
         foreach (var item in departments)
         {
-          if(item.members_list != null)
+          if (item.members_list != null)
           {
             var manager = item.members_list.SingleOrDefault(x => x.role == 1);
             if (manager != null && manager.id != user.id && !managerList.Contains(manager.id))
@@ -356,10 +356,54 @@ namespace OnetezSoft.Data
         }
 
         // Lấy thông tin quản lý
-        if(managerList.Count > 0)
+        if (managerList.Count > 0)
         {
           var userList = DbUser.GetAll(companyId);
           results = userList.Where(x => managerList.Contains(x.id)).ToList();
+        }
+      }
+
+      return results;
+    }
+
+
+    /// <summary>
+    /// Danh sách nhân viên cấp dưới của một người
+    /// </summary>
+    public static List<UserModel> GetStaffListOfManager(string companyId, UserModel user)
+    {
+      var results = new List<UserModel>();
+
+      if (user.departments_id != null)
+      {
+        // Tất cả dữ liệu phòng ban
+        var departmentAll = GetAll(companyId);
+        // Lấy data phòng ban của một người
+        var departmentOfUser = departmentAll.Where(x => user.departments_id.Contains(x.id)).ToList();
+        // Lấy danh sách phòng ban mà User làm quản lý
+        var managerDeartments = new List<string>();
+        foreach (var department in departmentOfUser)
+        {
+          if (department.members_list != null)
+          {
+            var manager = department.members_list.SingleOrDefault(x => x.role == 1);
+            if (manager != null && manager.id == user.id && !managerDeartments.Contains(department.id))
+              managerDeartments.Add(department.id);
+          }
+        }
+
+        // Lấy thông tin nhân viên
+        if (managerDeartments.Count > 0)
+        {
+          var userList = DbUser.GetAll(companyId);
+          foreach (var item in userList)
+          {
+            foreach (var departmentId in managerDeartments)
+            {
+              if (item.departments_id.Contains(departmentId))
+                results.Add(item);
+            }
+          }
         }
       }
 
@@ -372,20 +416,20 @@ namespace OnetezSoft.Data
     /// </summary>
     public static bool CheckManagerRole(string companyId, UserModel user, string manager, List<DepartmentModel> departmentAll)
     {
-      if(user.departments_id != null)
+      if (user.departments_id != null)
       {
         // Lấy data phòng ban của một người
-        if(departmentAll == null)
+        if (departmentAll == null)
           departmentAll = GetAll(companyId);
         var departments = departmentAll.Where(x => user.departments_id.Contains(x.id)).ToList();
         foreach (var item in departments)
         {
-          if(item.members_list != null)
+          if (item.members_list != null)
           {
             // Lấy quản lý và phó quản lý
             var managerList = item.members_list.Where(x => x.role == 1 || x.role == 2).ToList();
             // user không phải là quản lý thì mới xét tiếp
-            if(managerList.Where(x => x.id == user.id && x.role == 1).Count() == 0)
+            if (managerList.Where(x => x.id == user.id && x.role == 1).Count() == 0)
             {
               // Kiểm tra manager có phải là quản lý/phó quản lý
               if (managerList.Where(x => x.id == manager).Count() > 0)

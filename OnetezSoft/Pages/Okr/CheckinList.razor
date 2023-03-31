@@ -1,4 +1,5 @@
 ﻿@page "/okr/checkin"
+@page "/okr/checkin/{UserId}"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
@@ -12,38 +13,21 @@
           CHECK-IN OKRs
         </h1>
       </li>
-      <li class="column is-one-quarter">
-        <div class="select is-fullwidth">
-          <select @onchange="ChangeDepartment" class="is-family-code">
-            <option value="">Tất cả phòng ban</option>
-            @foreach (var item in departments)
-            {
-              <option value="@item.id">@item.name</option>
-            }
-          </select>
-        </div>
-      </li>
-      <li class="column is-one-quarter">
-        <div class="control has-icons-right has_suggest">
-          <input class="input" type="text" placeholder="Nhập tên nhân viên..."
-                 autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
-          <ul class="suggest">
-            @foreach (var item in userSuggests)
-            {
-              <li class="rsitem" @onclick="() => UserSelected(item)">
-                <div class="user_item">
-                  <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
-                  <span>@item.FullName</span>
-                </div>
-              </li>
-            }
-          </ul>
-          <span class="icon is-right">
-            <i class="material-icons-outlined is-size-6">search</i>
-          </span>
-        </div>
-      </li>
+      @if(userInfo != null)
+      {
+        <li class="column is-narrow">
+          <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
+        </li>
+        <li class="column is-one-quarter">
+          <MemberSearch keyword="@userFullName" department="@filterDepartment" sources="Layout.UserList"      
+            OnUpdate="ChangeFilterUser" />
+        </li>
+        <li class="column is-narrow">
+          <a href="/okr/history/@userInfo.id">Lịch sử chỉnh sửa</a>
+        </li>
+      }
     </ul>
+
     <table class="table is-fullwidth is-noborder is-responsive mt-3">
       <thead>
         <tr>
@@ -150,12 +134,6 @@
                   @kr.name
                 </td>
                 <td class="pl-2">
-                  <a class="icon-text has-text-link is-hidden" @onclick="() => ShowTask(okr, kr)">
-                    <span class="icon is-small">
-                      <i class="material-icons-outlined">task</i>
-                    </span>
-                    <span>Hành động</span>
-                  </a>
                   @if (!string.IsNullOrEmpty(kr.link))
                   {
                     <a class="icon-text has-text-link" href="@kr.link" target="_blank">
@@ -197,8 +175,6 @@
   </div>
 </section>
 
-<TaskPopup Okr="taskOkr" Kr="taskKr" />
-
 @if(!CheckAccess())
 {
   <div class="modal is-active">
@@ -219,39 +195,30 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string UserId { get; set; }
   private string _title = "CFRs - Check-in";
   private List<OkrModel> okrList = new();
   private List<string> okrsShow = new();
   private List<DepartmentModel.SelectList> departments = new();
   private string filterDepartment = string.Empty;
-  private string filterUserName = string.Empty;
-  private string filterUserId = string.Empty;
-  private UserModel filterUser = null;
-  private List<UserModel> userSuggests = new();
+  private UserModel userInfo = null;
+  private string userFullName = string.Empty;
 
-  private OkrModel taskOkr = null;
-  private OkrModel.KeyResult taskKr = null;
-
-  protected override async Task OnInitializedAsync()
+  protected override async Task OnParametersSetAsync()
   {
     departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
     
-    var uri = navigation.ToAbsoluteUri(navigation.Uri);
-    if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("user", out var outkey))
-      filterUserId = outkey.ToString();
-
-    if (!string.IsNullOrEmpty(filterUserId))
-      filterUser = await DbUser.Get(Layout.Company.id, filterUserId);
-    if (filterUser == null)
-      filterUser = Layout.User;
+    if(string.IsNullOrEmpty(UserId))
+      userInfo = Layout.User;
+    else
+    {
+      userInfo = await DbUser.Get(Layout.Company.id, UserId);
+      if(userInfo != null)
+        userFullName = userInfo.FullName;
+    }
 
     ShowOkrList();
-  }
-
-  protected override void OnAfterRender(bool firstRender)
-  {
-    taskOkr = null;
-    taskKr = null;
   }
   
   private string msgAccess = string.Empty;
@@ -260,57 +227,22 @@
     return ProductService.CheckAccess(Layout.Company, Layout.User, "okrs", out msgAccess);
   }
 
-  private void ChangeDepartment(ChangeEventArgs e)
+  private void ChangeFilterDepartment(string value)
   {
-    filterDepartment = e.Value.ToString();
-    filterUserName = string.Empty;
-    userSuggests = new();
-    foreach (var item in Layout.UserList)
-    {
-      if (!string.IsNullOrEmpty(filterDepartment) && item.departments_id.Contains(filterDepartment))
-        userSuggests.Add(item);
-    }
+    filterDepartment = value;
   }
 
-  private string UserSearch
+  private void ChangeFilterUser(string value)
   {
-    get => filterUserName;
-    set
-    {
-      filterUserName = value;
-      userSuggests = new();
-      if (!string.IsNullOrEmpty(value))
-      {
-        foreach (var item in Layout.UserList)
-        {
-          bool check = true;
-          if (!string.IsNullOrEmpty(filterDepartment))
-            if (!item.departments_id.Contains(filterDepartment))
-              check = false;
-          if (!Handled.Shared.SearchKeyword(filterUserName, item.first_name + item.last_name))
-            check = false;
-
-          if (check)
-            userSuggests.Add(item);
-        }
-      }
-    }
-  }
-
-  private void UserSelected(UserModel item)
-  {
-    string url = "/okr/checkin?user=" + item.id;
-    navigation.NavigateTo(url, false);
-
-    filterUser = item;
-    userSuggests = new();
-    ShowOkrList();
+    if(string.IsNullOrEmpty(value))
+      userFullName = string.Empty;
+    else
+      navigation.NavigateTo("/okr/checkin/" + value, false);
   }
 
   private void ShowOkrList()
   {
-    filterUserName = filterUser.FullName;
-    okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, filterUser.id);
+    okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, userInfo.id);
   }
 
   private void ShowKeys(string id)
@@ -319,11 +251,5 @@
       okrsShow.Remove(id);
     else
       okrsShow.Add(id);
-  }
-
-  private void ShowTask(OkrModel okr, OkrModel.KeyResult kr)
-  {
-    taskOkr = okr;
-    taskKr = kr;
   }
 }

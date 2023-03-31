@@ -1,0 +1,149 @@
+
+@if(data != null)
+{
+  var progress = DbOkr.GetProgress(data.key_results);
+  var okrColor = Shared.ProgressColor(progress);
+
+  <tr>
+    <td>
+      <div class="is-flex">
+        <a class="has-text-weight-semibold has-text-link" href="/okr/review/@data.user_create/@data.id">
+          @data.name
+        </a>
+      </div>
+    </td>
+    <td align="right">
+      <span class="icon-text">
+        @if (data.done)
+        {
+          <span class="ml-1 icon" title="OKRs đã hoàn thành">
+            <i class="material-icons is-size-6 has-text-success">check_circle</i>
+          </span>
+        }
+        <a class="icon" @onclick="() => toggle = !toggle">
+          <i class="material-icons-outlined is-size-5">
+            @(toggle ? "arrow_drop_down" : "arrow_right")
+          </i>
+        </a>
+      </span>
+    </td>
+    <td>
+      <label class="td-label">Tiến độ</label>
+      <div class="td-value">
+        <div class="progress_has_value">
+          <progress class="progress is-small @okrColor" value="@progress" max="100"></progress>
+          <span>@string.Format("{0:0}%", progress)</span>
+        </div>
+      </div>
+    </td>
+    <td align="center">
+      <label class="td-label">Điểm hệ thống</label>
+      <div class="td-value">
+        <div class="input is-centered has-text-weight-semibold is_bg">
+          @string.Format("{0:0}%", progress)
+        </div>
+      </div>
+    </td>
+    <td align="center">
+      <label class="td-label">Tự đánh giá</label>
+      <div class="td-value">
+        <div class="input is-centered has-text-weight-semibold is_bg">
+          @string.Format("{0:0}%", data.review_data.staff_point)
+        </div>
+      </div>
+    </td>
+    <td align="center">
+      <label class="td-label">QL đánh giá</label>
+      <div class="td-value">
+        <div class="input is-centered has-text-weight-semibold is_bg">
+          @string.Format("{0:0}%", data.review_data.manager_point)
+        </div>
+      </div>
+    </td>
+    <td align="center">
+      <label class="td-label">Nhân viên</label>
+      <div class="td-value">
+        @if(data.review_send_status > 1)
+        {
+          <span class="has-text-grey">
+            @string.Format("{0:dd/MM/yyyy HH:mm}", new DateTime(data.review_send_date))
+          </span>
+        }
+      </div>
+    </td>
+    <td align="center">
+      <label class="td-label">Quản lý</label>
+      <div class="td-value">
+        @if(data.review_send_status == 3)
+        {
+          <span class="has-text-grey">
+            @string.Format("{0:dd/MM/yyyy HH:mm}", new DateTime(data.review_manager_date))
+          </span>
+        }
+        else
+        {
+          <span class="has-text-warning-dark">
+            Chưa xác nhận
+          </span>
+        }
+      </div>
+    </td>
+  </tr>
+
+  @if(toggle)
+  {
+    foreach (var kr in data.key_results)
+    {
+      <tr>
+        <td class="pl-4">
+          @kr.name
+        </td>
+        <td class="td-hide"></td>
+        <td>
+          <label class="td-label">Tiến độ</label>
+          <div class="td-value">
+            <span class="has-text-success" title="@string.Format("{0:0,0.000} / {1:0,0.000}", kr.result, kr.target)">
+              @Shared.ConvertNumber(kr.result)/@Shared.ConvertNumber(kr.target)
+            </span>
+            <span class="is-pulled-right">@kr.unit</span>
+          </div>
+        </td>
+        <td align="center">
+          <label class="td-label">Điểm hệ thống</label>
+          <div class="td-value">
+            <div class="input is-centered has-text-weight-semibold is_bg">
+              @string.Format("{0:0}%", Shared.Progress(kr.result, kr.target))
+            </div>
+          </div>
+        </td>
+        <td align="center">
+          <label class="td-label">Tự đánh giá</label>
+          <div class="td-value">
+            <div class="input is-centered has-text-weight-semibold is_bg">
+              @string.Format("{0:0}%", 0)
+            </div>
+          </div>
+        </td>
+        <td align="center">
+          <label class="td-label">QL đánh giá</label>
+          <div class="td-value">
+            <div class="input is-centered has-text-weight-semibold is_bg">
+              @string.Format("{0:0}%", 0)
+            </div>
+          </div>
+        </td>
+        <td align="center"></td>
+        <td align="center"></td>
+      </tr>
+    }
+  }
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public OkrModel data { get; set; }
+
+  private bool toggle = false;
+}

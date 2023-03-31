@@ -14,9 +14,11 @@ namespace OnetezSoft.Models
     public string name { get; set; }
 
     public string parent { get; set; }
-    // Chức danh quản lý
+
+    /// <summary>Chức danh quản lý</summary>
     public string manager { get; set; }
-    // Chức danh phó quản lý
+
+    /// <summary>Chức danh phó quản lý</summary>
     public string deputy { get; set; }
 
     public int pos { get; set; }
@@ -28,8 +30,11 @@ namespace OnetezSoft.Models
 
     public class MembersList
     {
-      public string id { get; set; } // ID nhân viên
-      public int role { get; set; } // 1: quản lý; 2: phó quản lý; 3: nhân viên
+      /// <summary>ID nhân viên</summary>
+      public string id { get; set; }
+
+      /// <summary>1: quản lý; 2: phó quản lý; 3: nhân viên</summary>
+      public int role { get; set; }
     }
 
     public class SelectList

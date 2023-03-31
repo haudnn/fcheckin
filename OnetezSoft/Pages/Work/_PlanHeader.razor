@@ -159,10 +159,8 @@ else
   public LayoutMain Layout { get; set; }
   [Parameter]
   public WorkPlanModel model { get; set; }
-
   private string tab = "detail";
   private string view = "";
-  private bool toggleMenu = false;
 
   protected override void OnParametersSet()
   {
@@ -182,7 +180,6 @@ else
           view = "list";
       }
     }
-    toggleMenu = false;
   }
   
   protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -195,7 +192,6 @@ else
 
   private async Task PinPlan()
   {
-    toggleMenu = false;
     if(Layout.User.plans_pin.Contains(model.id))
     {
       if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy ghim kế hoạch: {model.name}?"))
@@ -216,7 +212,6 @@ else
 
   private async Task HidePlan()
   {
-    toggleMenu = false;
     if(Layout.User.plans_hide.Contains(model.id))
     {
       if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy lưu trữ kế hoạch: {model.name}?"))
@@ -237,7 +232,6 @@ else
 
   private async Task DeletePlan()
   {
-    toggleMenu = false;
     if(WorkService.RoleInPlan(model, Layout.User.id) == 1)
     {
       if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa kế hoạch {model.name}. Việc này sẽ khiến dữ liệu công việc trong kế hoạch bị mất.\nBạn có chắc chắn muốn thực hiện?"))
@@ -255,7 +249,6 @@ else
 
   private async Task LeavePlan()
   {
-    toggleMenu = false;
     if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc chắn muốn rời khỏi kế hoạch này?"))
         return;
     if(await WorkService.RemoveMemberInPlan(Layout.Company.id, model.id, Layout.User.id))

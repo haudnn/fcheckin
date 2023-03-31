@@ -1,0 +1,72 @@
+@page "/okr/history/{UserId}"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle></PageTitle>
+
+<section class="p-4">
+  <div class="card p-5 p-4-mobile">
+    @if(userInfo != null)
+    {
+      <ul class="columns is-vcentered is-variable is-2">
+        <li class="column">
+          <h1 class="title is-5 has-text-info">LỊCH SỬA CHỈNH SỬA OKRs</h1>
+        </li>
+        <li class="column is-one-quarter">
+          <div class="select is-fullwidth">
+            <select @onchange="ChangeFilterOkr">
+              <option value="">Lọc theo OKRs</option>
+              @foreach (var item in okrList)
+              {
+                <option value="@item.id">@item.name</option>
+              }
+            </select>
+          </div>
+        </li>
+        <li class="column is-narrow">
+          <a class="icon-text has-text-link" href="/okr/checkin/@UserId">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">arrow_back</i>
+            </span>
+            <span>Trở về</span>
+          </a>
+        </li>
+      </ul>
+    }
+    else
+    {
+      <div class="py-6 has-text-centered">
+        Dữ liệu không tồn tại hoặc đã bị xóa!
+      </div>
+    }
+  </div>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string UserId { get; set; }
+  
+  private UserModel userInfo = null;
+  private List<OkrModel> okrList = new();
+  private string filterOkr = string.Empty;
+
+  protected override async Task OnParametersSetAsync()
+  {
+    userInfo = await DbUser.Get(Layout.Company.id, UserId);
+    okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, UserId);
+    await GetList();
+  }
+
+  private async Task ChangeFilterOkr(ChangeEventArgs e)
+  {
+    filterOkr = e.Value.ToString();
+    await GetList();
+  }
+
+  private async Task GetList()
+  {
+
+  }
+}

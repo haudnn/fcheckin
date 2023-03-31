@@ -11,54 +11,128 @@ namespace OnetezSoft.Models
 
     public bool delete { get; set; }
 
+    /// <summary>Tên OKRs</summary>
     public string name { get; set; }
-    // Chu kỳ
+
+    /// <summary>Chu kỳ</summary>
     public string cycle { get; set; }
-    // Loại: 1. mở rộng, 2. Cam kết
+
+    /// <summary>Loại: 1. mở rộng, 2. Cam kết</summary>
     public int type { get; set; }
-    // OKRs cấp trên
+
+    /// <summary>OKRs cấp trên</summary>
     public string parent { get; set; }
-    // Độ tự tin
+
+    /// <summary>Độ tự tin</summary>
     public int confident { get; set; }
-    // Ngày tạo
+
+    /// <summary>Ngày tạo</summary>
     public long date_create { get; set; }
-    // Người tạo
+
+    /// <summary>Người tạo</summary>
     public string user_create { get; set; }
-    // Lần checkin cuối cùng
+
+    /// <summary>Lần checkin cuối cùng</summary>
     public long date_checkin { get; set; }
-    // Lần checkin tiếp theo
+
+    /// <summary>Lần checkin tiếp theo</summary>
     public long next_checkin { get; set; }
-    // Quản lý checkin
+
+    /// <summary>Quản lý checkin</summary>
     public string user_checkin { get; set; }
-    // Trạng thái checkin: 1. Nháp, 2. Đã xác nhận, 3. Đã checkin
+
+    /// <summary>Trạng thái checkin: 1. Nháp, 2. Đã xác nhận, 3. Đã checkin</summary>
     public int status_checkin { get; set; }
-    // Hoàn thành/Chưa
+
+    /// <summary>Hoàn thành/Chưa</summary>
     public bool done { get; set; }
-    // Tiến độ lần checkin trước
+
+    /// <summary>Tiến độ lần checkin trước</summary>
     public double progress_prev { get; set; }
-    // Kết quả chính
+
+    /// <summary>Kết quả chính</summary>
     public List<KeyResult> key_results { get; set; }
 
+    /// <summary>Đánh giá OKRs</summary>
+    public Review review_data { get; set; } = new();
 
+    /// <summary>Thời gian nhân viên gửi đánh giá</summary>
+    public long review_send_date { get; set; }
+
+    /// <summary>Trạng thái gửi đánh giá: 1. Nháp, 2. Đã gửi, 3. Đã xác nhận</summary>
+    public int review_send_status { get; set; }
+
+    /// <summary>Nhân sự tự nhận xét</summary>
+    public string review_staff_comment { get; set; }
+
+    /// <summary>Quản lý nhận xét</summary>
+    public string review_manager_comment { get; set; }
+
+    /// <summary>Quản lý đánh giá: ID</summary>
+    public string review_manager_id { get; set; }
+
+    /// <summary>Quản lý đánh giá: thời gian</summary>
+    public long review_manager_date { get; set; }
+
+    /// <summary>Người xem đánh giá</summary>
+    public List<string> review_viewers { get; set; } = new();
+
+
+    /// <summary>Kết quả chính</summary>
     public class KeyResult
     {
       public string id { get; set; }
+
+      /// <summary>Tên KR</summary>
       public string name { get; set; }
+
+      /// <summary>Kết quả</summary>
       public double target { get; set; }
+
+      /// <summary>Mục tiêu</summary>
       public double result { get; set; }
+
+      /// <summary>Thay đổi so với lần trước</summary>
       public double change { get; set; }
+
+      /// <summary>Đơn vị tính</summary>
       public string unit { get; set; }
+
+      /// <summary>Link chi tiết</summary>
       public string link { get; set; }
+
+      /// <summary>Độ tự tin</summary>
       public int confident { get; set; }
-      // OKRs liên kết chéo
+
+      /// <summary>OKRs liên kết chéo</summary>
       public List<CrossLink> cross_links { get; set; }
+
+      /// <summary>Đánh giá OKRs</summary>
+      public Review review_data { get; set; } = new();
     }
 
+    /// <summary>OKRs liên kết chéo</summary>
     public class CrossLink
     {
       public string id { get; set; }
       public string okr { get; set; }
       public string user { get; set; }
+    }
+
+    /// <summary>Đánh giá</summary>
+    public class Review
+    {
+      /// <summary>Nhân sự tự đánh giá</summary>
+      public double staff_point { get; set; }
+
+      /// <summary>Quản lý đánh giá</summary>
+      public double manager_point { get; set; }
+
+      /// <summary>Nhân sự tự nhận xét</summary>
+      public string staff_comment { get; set; }
+
+      /// <summary>Quản lý nhận xét</summary>
+      public string manager_comment { get; set; }
     }
   }
 }

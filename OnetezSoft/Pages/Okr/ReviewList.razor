@@ -1,0 +1,172 @@
+@page "/okr/review"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>Đánh giá OKRs</PageTitle>
+
+<section class="p-4">
+  <div class="card p-5 p-4-mobile">
+    <ul class="columns is-vcentered is-variable is-2">
+      <li class="column is-full-mobile">
+        <h1 class="title is-5 has-text-info">ĐÁNH GIÁ OKRs CÁ NHÂN</h1>
+      </li>
+    </ul>
+
+    <table class="table is-fullwidth is-vcentered is-noborder is-responsive mt-5">
+      <thead>
+        <tr>
+          <th>Mục tiêu</th>
+          <th width="60px"></th>
+          <th width="130px" align="center">Tiến độ</th>
+          <th width="120px" align="center">Điểm hệ thống</th>
+          <th width="120px" align="center">Tự đánh giá</th>
+          <th width="120px" align="center">QL đánh giá</th>
+          <th width="110px" align="center">Nhân viên</th>
+          <th width="110px" align="center">Quản lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var okr in myOkrList)
+        {
+          <_ReviewItem data="okr" />
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card p-5 p-4-mobile">
+    <ul class="columns is-vcentered is-variable is-2">
+      <li class="column is-full-mobile">
+        <h1 class="title is-5 has-text-info">ĐÁNH GIÁ OKRs ĐỘI NHÓM</h1>
+      </li>
+      <li class="column is-narrow">
+        <StaticDropdown value="@filterStatus" title="Tất cả trạng thái" data="statusList"
+          OnUpdate="ChangeFilterStatus" />
+      </li>
+      <li class="column is-narrow">
+        <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
+      </li>
+      <li class="column is-one-quarter">
+        <MemberSearch department="@filterDepartment" sources="Layout.UserList" OnUpdate="ChangeFilterUser" />
+      </li>
+    </ul>
+
+    <table class="table is-fullwidth is-vcentered is-noborder is-responsive mt-5">
+      <thead>
+        <tr>
+          <th>Mục tiêu</th>
+          <th width="60px"></th>
+          <th width="130px" align="center">Tiến độ</th>
+          <th width="120px" align="center">Điểm hệ thống</th>
+          <th width="120px" align="center">Tự đánh giá</th>
+          <th width="120px" align="center">QL đánh giá</th>
+          <th width="110px" align="center">Nhân viên</th>
+          <th width="110px" align="center">Quản lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var user in userList)
+        {
+          var okrList = dataOkrList.Where(x => x.user_create == user.id);
+          if(!okrList.Any()) continue;
+          <tr>
+            <td colspan="8">
+              <div class="user_item">
+                <img class="image is-36x36 mr-2" src="@user.avatar" alt="IMG">
+                <div>
+                  <p class="has-text-weight-semibold has-text-info is-size-6">
+                    @user.FullName
+                  </p>
+                  <p class="text_1_line has-text-grey is-size-7" style="max-width: 400px;">
+                    @user.departments_name
+                  </p>
+                </div>
+              </div>
+            </td>
+          </tr>
+          @foreach (var okr in okrList)
+          {
+            <_ReviewItem data="okr" />
+          }
+          <tr>
+            <td colspan="8">
+              <hr class="m-0" />
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private List<OkrModel> myOkrList = new();
+  private List<OkrModel> dataOkrList = new();
+  private List<UserModel> userList = new();
+  private string filterDepartment = null;
+  private int filterStatus = 0;
+  private List<StaticModel> statusList = new();
+
+  protected override void OnInitialized()
+  {
+    //filterDepartment = Layout.User.department_default;
+    statusList = GetStatusList();
+    ChangeFilterDepartment(filterDepartment);
+  }
+
+  protected override void OnParametersSet()
+  {
+    myOkrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, Layout.User.id);
+  }
+
+  private void ChangeFilterStatus(int value)
+  {
+    filterStatus = value;
+    GetDataOkrList();
+  }
+
+  private void ChangeFilterDepartment(string value)
+  {
+    filterDepartment = value;
+    if(string.IsNullOrEmpty(filterDepartment))
+      userList = GetUsersReview();
+    else
+      userList = Layout.UserList.Where(x => x.departments_id.Contains(filterDepartment)).ToList();
+    GetDataOkrList();
+  }
+
+  private void ChangeFilterUser(string userId)
+  {
+    userId = string.IsNullOrEmpty(userId) ? Layout.User.id : userId;
+    userList = Layout.UserList.Where(x => x.id == userId).ToList();
+    GetDataOkrList();
+  }
+
+  private void GetDataOkrList()
+  {
+    var userListId = userList.Select(x => x.id).ToList();
+    dataOkrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, userListId);
+  }
+
+  private List<UserModel> GetUsersReview()
+  {
+    var okrReivews = DbOkr.GetListByReview(Layout.Company.id, Layout.CycleId, Layout.User.id);
+    var userReviews = okrReivews.Select(x => x.user_create).ToList();
+    if(userReviews.Any())
+      return Layout.UserList.Where(x => userReviews.Contains(x.id)).ToList();
+    else
+      return DbDepartment.GetStaffListOfManager(Layout.Company.id, Layout.User);
+  }
+
+  private List<StaticModel> GetStatusList()
+  {
+    var results = new List<StaticModel>();
+    results.Add(new() { id = 1, name = "Trống" });
+    results.Add(new() { id = 2, name = "Chưa xác nhận" });
+    results.Add(new() { id = 3, name = "Đã xác nhận" });
+    return results;
+  }
+}

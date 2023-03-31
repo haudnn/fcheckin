@@ -257,7 +257,6 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   private List<DepartmentModel> departmentAll = new();
-  private List<DepartmentModel.SelectList> departments = new();
   private List<UserModel> userList = new();
   private List<TodolistModel> database = new();
   private List<string> showTodoItems = new();
@@ -269,8 +268,6 @@
   protected override async Task OnInitializedAsync()
   {
     departmentAll = DbDepartment.GetAll(Layout.Company.id);
-    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
-
     await ChangeDepartment(null);
   }
 

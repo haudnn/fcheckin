@@ -111,6 +111,9 @@ namespace OnetezSoft.Data
     }
 
 
+    /// <summary>
+    /// Danh sách OKRs theo danh sách User
+    /// </summary>
     public static List<OkrModel> GetList(string companyId, string cycle, List<string> listUser)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
@@ -122,6 +125,23 @@ namespace OnetezSoft.Data
 
       return results.OrderByDescending(x => x.user_create).ToList();
     }
+
+
+    /// <summary>
+    /// Danh sách OKRs mà User là người xem hoặc là người đánh giá
+    /// </summary>
+    public static List<OkrModel> GetListByReview(string companyId, string cycle, string userId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<OkrModel>(_collection);
+
+      var results = collection.Find(x => x.cycle == cycle && !x.delete
+          && (x.review_manager_id == userId || x.review_viewers.Contains(userId))).ToList();
+
+      return results.OrderByDescending(x => x.user_create).ToList();
+    }
+
 
     /// <summary>
     /// Tính % tiến độ hoàn thành của OKRs
