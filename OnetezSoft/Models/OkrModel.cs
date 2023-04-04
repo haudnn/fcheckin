@@ -86,10 +86,10 @@ namespace OnetezSoft.Models
       /// <summary>Tên KR</summary>
       public string name { get; set; }
 
-      /// <summary>Kết quả</summary>
+      /// <summary>Mục tiêu</summary>
       public double target { get; set; }
 
-      /// <summary>Mục tiêu</summary>
+      /// <summary>Kết quả hiện tại</summary>
       public double result { get; set; }
 
       /// <summary>Thay đổi so với lần trước</summary>

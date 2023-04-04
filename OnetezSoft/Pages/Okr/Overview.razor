@@ -5,66 +5,74 @@
 <PageTitle>@_title</PageTitle>
 
 <section class="p-4 @(_loaded ? "" : "is-loading")">
-  <div class="card p-5 p-4-mobile">
+  <div class="card px-5 pt-5 pb-2 p-4-mobile">
     <ul class="columns is-vcentered is-variable is-2 is-mobile is-multiline mb-5">
       <li class="column is-full-mobile">
         <h1 class="title is-5 has-text-info">
           TỔNG QUAN OKRs
         </h1>
       </li>
-      <li class="column is-one-quarter-tablet is-half-mobile">
-        <div class="select is-fullwidth">
-          <select @onchange="ChangeDepartment" class="is-family-code">
-            <option value="">Tất cả phòng ban</option>
-            @foreach (var item in departments)
-            {
-              <option value="@item.id">@item.name</option>
-            }
-          </select>
-        </div>
+      <li class="column is-narrow">
+        <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
       </li>
-      <li class="column is-one-quarter-tablet is-half-mobile">
-        <div class="control has-icons-right has_suggest">
-          <input class="input" type="text" placeholder="Nhập tên nhân viên..."
-                 autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
-          <ul class="suggest">
-            @foreach (var item in userSuggests)
-            {
-              <li class="rsitem" @onclick="() => UserSelected(item)">
-                <div class="user_item">
-                  <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
-                  <span>@item.FullName</span>
-                </div>
-              </li>
-            }
-          </ul>
-          <span class="icon is-right">
-            <i class="material-icons-outlined">search</i>
-          </span>
-        </div>
-      </li>
-    </ul>
-    <ul class="columns is-multiline is-mobile is-variable is-1 px-4 my-1 is-size-7 is-hidden-mobile">
-      <li class="column">
-      </li>
-      <li class="column is-3">
-        Quản lý
+      <li class="column is-one-quarter">
+        <MemberSearch department="@filterDepartment" sources="Layout.UserList"      
+          OnUpdate="ChangeFilterUser" />
       </li>
       <li class="column is-narrow">
-        <div style="width: 100px;">Số nhân sự</div>
-      </li>
-      <li class="column is-2 has-text-right">
-        Tiến độ OKRs
+        <div class="field has-addons">
+          <div class="control">
+            <a class="button is-link @(!listMode ? "" : "is-outlined")" @onclick="() => ChangeMode(false)">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">account_tree</i>
+              </span>
+            </a>
+          </div>
+          <div class="control">
+            <a class="button is-link @(listMode ? "" : "is-outlined")" @onclick="() => ChangeMode(true)">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">toc</i>
+              </span>
+            </a>
+          </div>
+        </div>
       </li>
     </ul>
-    @foreach (var child in dataList)
+
+    @if(listMode)
     {
-      <_OkrOverview Current="child" ShowChilds="true" />
+      <div class="pb-4">
+        <ul class="columns is-multiline is-mobile is-variable is-1 px-4 my-1 is-size-7 is-hidden-mobile">
+          <li class="column">
+          </li>
+          <li class="column is-3">
+            Quản lý
+          </li>
+          <li class="column is-narrow">
+            <div style="width: 100px;">Số nhân sự</div>
+          </li>
+          <li class="column is-2 has-text-right">
+            Tiến độ OKRs
+          </li>
+        </ul>
+        @foreach (var child in dataList)
+        {
+          <_OkrOverview Current="child" ShowChilds="true" />
+        }
+      </div>
+    }
+    else
+    {
+      <div class="scrolly" style="height: calc(100vh - 135px);">
+        @{
+          var data = okrList[100];
+        }
+      </div>
     }
   </div>
 </section>
 
-<section class="p-4 @(_loaded ? "" : "is-loading")">
+<section class="p-4 @(listMode ? "" : "is-hidden")">
   <div class="card p-5 p-4-mobile">
     <ul class="columns is-vcentered is-variable is-2">
       <li class="column">
@@ -153,12 +161,6 @@
                   @kr.name
                 </td>
                 <td class="pl-2">
-                  <a class="icon-text has-text-link is-hidden" @onclick="() => ShowTask(okr, kr)">
-                    <span class="icon is-small">
-                      <i class="material-icons-outlined">task</i>
-                    </span>
-                    <span>Hành động</span>
-                  </a>
                   @if (!string.IsNullOrEmpty(kr.link))
                   {
                     <a class="icon-text has-text-link" href="@kr.link" target="_blank">
@@ -199,8 +201,6 @@
   </div>
 </section>
 
-<TaskPopup Okr="taskOkr" Kr="taskKr" />
-
 @if(!CheckAccess())
 {
   <div class="modal is-active">
@@ -231,12 +231,8 @@
 
   private List<DepartmentModel.SelectList> departments = new();
   private string filterDepartment = string.Empty;
-  private string filterUserName = string.Empty;
   private UserModel filterUser = new();
-  private List<UserModel> userSuggests = new();
-
-  private OkrModel taskOkr = null;
-  private OkrModel.KeyResult taskKr = null;
+  private bool listMode = true;
 
   protected override void OnInitialized()
   {
@@ -247,10 +243,9 @@
     ListenCallback();
   }
 
-  protected override void OnAfterRender(bool firstRender)
+  private async Task ChangeMode(bool value)
   {
-    taskOkr = null;
-    taskKr = null;
+    listMode = value;
   }
 
   private string msgAccess = string.Empty;
@@ -259,43 +254,23 @@
     return ProductService.CheckAccess(Layout.Company, Layout.User, "okrs", out msgAccess);
   }
 
-  private void ChangeDepartment(ChangeEventArgs e)
+  private void ChangeFilterDepartment(string value)
   {
-    filterDepartment = e.Value.ToString();
-    filterUserName = string.Empty;
-    userSuggests = new();
+    filterDepartment = value;
   }
 
-  private string UserSearch
+  private async Task ChangeFilterUser(string value)
   {
-    get => filterUserName;
-    set
+    if(!string.IsNullOrEmpty(value))
     {
-      filterUserName = value;
-      userSuggests = new();
-      if (!string.IsNullOrEmpty(value))
-      {
-        foreach (var item in Layout.UserList)
-        {
-          bool check = true;
-          if (!string.IsNullOrEmpty(filterDepartment))
-            if (item.departments_id == null || !item.departments_id.Contains(filterDepartment))
-              check = false;
-          if (!Handled.Shared.SearchKeyword(filterUserName, item.FullName))
-            check = false;
-
-          if (check)
-            userSuggests.Add(item);
-        }
-      }
+      filterUser = await DbUser.Get(Layout.Company.id, value);
+      Search();
     }
   }
 
   private void UserSelected(UserModel item)
   {
     filterUser = item;
-    filterUserName = string.Empty;
-    userSuggests = new();
     Search();
   }
 
@@ -312,12 +287,6 @@
       okrsShow.Remove(id);
     else
       okrsShow.Add(id);
-  }
-
-  private void ShowTask(OkrModel okr, OkrModel.KeyResult kr)
-  {
-    taskOkr = okr;
-    taskKr = kr;
   }
 
   public void ListenCallback()

@@ -76,9 +76,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<BannerModel>(_collection);
 
-      var sorted = Builders<BannerModel>.Sort.Descending("date");
-
-      var results = collection.Find(new BsonDocument()).Sort(sorted).ToList();
+      var results = collection.Find(new BsonDocument()).ToList();
 
       return (from x in results orderby x.pin descending, x.date descending select x).ToList();
     }

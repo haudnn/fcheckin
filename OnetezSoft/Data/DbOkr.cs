@@ -46,6 +46,9 @@ namespace OnetezSoft.Data
 
     public static async Task<OkrModel> Get(string companyId, string id)
     {
+      if (string.IsNullOrEmpty(id))
+        return null;
+
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<OkrModel>(_collection);

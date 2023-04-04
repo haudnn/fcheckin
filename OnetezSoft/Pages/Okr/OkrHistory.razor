@@ -2,7 +2,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<PageTitle></PageTitle>
+<PageTitle>Lịch sử chỉnh sửa OKRs</PageTitle>
 
 <section class="p-4">
   <div class="card p-5 p-4-mobile">
@@ -32,6 +32,84 @@
           </a>
         </li>
       </ul>
+
+      <table class="table is-fullwidth is-responsive mt-3">
+        <thead>
+          <tr>
+            <th>Thời gian</th>
+            <th width="200px">Hành động</th>
+            <th width="30%">Nội dung cũ</th>
+            <th width="30%">Nội dung mới</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var item in dataList)
+          {
+            <tr>
+              <td>
+                <label class="td-label">Thời gian</label>
+                <div class="td-value">
+                  @string.Format("{0:HH:mm - dd/MM/yyyy}", new DateTime(item.created))
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Hành động</label>
+                <div class="td-value">
+                  @item.action
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Cũ</label>
+                <div class="td-value">
+                  @if(!string.IsNullOrEmpty(item.old.okr))
+                  {
+                    <div class="has-text-weight-semibold has-text-link">
+                      O: @item.old.okr
+                    </div>
+                    @for (int i = 0; i < item.old.kr.Count; i++)
+                    {
+                      <div class="has-text-link">
+                        KR: @item.old.kr[i]
+                      </div>
+                      <div class="has-text-grey">
+                        Mục tiêu:
+                        <span class="has-text-weight-semibold">@item.old.target[i]</span>
+                      </div>
+                    }
+                  }
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Mới</label>
+                <div class="td-value">
+                  @if(!string.IsNullOrEmpty(item.edit.okr))
+                  {
+                    <div class="has-text-weight-semibold has-text-link">
+                      O: @item.edit.okr
+                    </div>
+                    @for (int i = 0; i < item.edit.kr.Count; i++)
+                    {
+                      <div class="has-text-link">
+                        KR: @item.edit.kr[i]
+                      </div>
+                      <div class="has-text-grey">
+                        Mục tiêu:
+                        <span class="has-text-weight-semibold">@item.edit.target[i]</span>
+                      </div>
+                    }
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if(!dataList.Any())
+      {
+        <div class="py-6 has-text-grey has-text-centered">
+          Không có dữ liệu
+        </div>
+      }
     }
     else
     {
@@ -48,6 +126,7 @@
   [Parameter]
   public string UserId { get; set; }
   
+  private List<OkrLogModel> dataList = new();
   private UserModel userInfo = null;
   private List<OkrModel> okrList = new();
   private string filterOkr = string.Empty;
@@ -67,6 +146,8 @@
 
   private async Task GetList()
   {
-
+    dataList = await DbOkrLog.GetList(Layout.Company.id, UserId);
+    if(!string.IsNullOrEmpty(filterOkr))
+      dataList.RemoveAll(x => x.okr_id != filterOkr);
   }
 }

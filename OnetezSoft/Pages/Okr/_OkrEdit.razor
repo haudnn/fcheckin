@@ -1,0 +1,447 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+@if (model != null)
+{
+  <section class="p-4">
+    <div class="card p-5 p-4-mobile">
+      <ul class="columns is-vcentered is-variable is-2 is-mobile mb-5">
+        <li class="column">
+          <h1 class="title is-5 is-size-6-mobile has-text-info">
+            @(string.IsNullOrEmpty(model.id) ? "TẠO OKRs MỚI" : "CHỈNH SỬA OKRs")
+          </h1>
+        </li>
+        <li class="column is-narrow">
+          <a class="button is-outlined is-danger" @onclick="Cancel">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">cancel</i>
+            </span>
+            <span>Hủy tạo</span>
+          </a>
+        </li>
+      </ul>
+
+      <ul class="columns is-multiline is-vcentered is-mobile">
+        <li class="column is-one-fifth-tablet is-full-mobile">
+          <label class="label has-text-weight-bold">Mục tiêu của bạn:</label>
+        </li>
+        <li class="column is-four-fifths-tablet is-full-mobile">
+          <input @bind="model.name" type="text" class="input has-text-weight-semibold is_bg"
+            placeholder="Bắt buộc nhập..." />
+        </li>
+        <li class="column is-one-fifth-tablet is-one-third-mobile">
+          <label class="label has-text-weight-bold">OKRs cấp trên</label>
+        </li>
+        <li class="column is-two-fifths-tablet is-two-thirds-mobile">
+          <div class="select is-fullwidth is_bg">
+            <select @bind="model.parent">
+              <option>- Chọn OKRs cấp trên -</option>
+              @foreach (var user in managerList)
+              {
+                var okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, user.id);
+                <optgroup label="@user.FullName">
+                  @foreach (var okr in okrList)
+                  {
+                    <option value="@okr.id">@okr.name</option>
+                  }
+                </optgroup>
+              }
+            </select>
+          </div>
+        </li>
+        <li class="column is-one-fifth-tablet is-full-mobile">
+          <div class="field is-grouped">
+            <div class="control">
+              <label class="label has-text-weight-bold">Loại:</label>
+            </div>
+            <div class="control is-expanded">
+              <div class="select is-fullwidth is_bg">
+                <select @bind="model.type">
+                  @foreach (var sl in DbOkr.Type())
+                  {
+                    <option value="@sl.id">@sl.name</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li class="column is-full">
+          <hr class="m-0" />
+        </li>
+      </ul>
+
+      <ul class="columns is-multiline is-mobile">
+        @foreach (var kr in model.key_results)
+        {
+          <li class="column is-one-fifth-tablet is-full-mobile">
+            <label class="label has-text-weight-bold pt-2">Kết quả then chốt:</label>
+          </li>
+          <li class="column is-four-fifths-tablet is-full-mobile">
+            <div class="field has-addons">
+              <div class="control is-expanded">
+                <input @bind="kr.name" type="text" class="input is_bg" placeholder="Bắt buộc nhập..." />
+              </div>
+              <div class="control">
+                <a class="button is-danger" title="Xóa kết quả then chốt" @onclick="() => DeleteKey(kr)">
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">close</i>
+                  </span>
+                </a>
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-fifth-tablet is-one-third-mobile">
+            <label class="label has-text-weight-bold pt-2">Mục tiêu:</label>
+          </li>
+          <li class="column is-two-fifths-tablet is-two-thirds-mobile">
+            <div class="field is-grouped">
+              <div class="control is-expanded">
+                <InputDouble @bind-Value="kr.target" @bind-Value:event="OnInput" Class="input is_bg"
+                  Text="Nhập số liệu mục tiêu" />
+              </div>
+              <div class="control" style="width: 100px;">
+                <input @bind="kr.unit" type="text" class="input is_bg" placeholder="Đơn vị tính" />
+              </div>
+            </div>
+          </li>
+          <li class="column is-two-fifths-tablet is-full-mobile">
+            <div class="field is-grouped">
+              <div class="control">
+                <label class="label has-text-weight-bold">Kết quả:</label>
+              </div>
+              <div class="control is-expanded">
+                <input @bind="kr.link" type="text" class="input is_bg" placeholder="Nhập link kết quả..." />
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-fifth-tablet is-half-mobile">
+            <div class="label has-text-weight-bold pt-2">Cá nhân liên kết chéo:</div>
+          </li>
+          <li class="column is-four-fifths-tablet is-full-mobile">
+            <ul class="columns is-multiline">
+              <li class="column is-half">
+                <_SearchCross Kr="kr" UserList="Layout.UserList" OnAddCross="ChangeCross" />
+              </li>
+
+              @foreach (var cross in kr.cross_links)
+              {
+                var user = Layout.UserList.SingleOrDefault(x => x.id == cross.user);
+                var okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, cross.user);
+
+                <li class="column is-half">
+                  <div class="field has-addons">
+                    <div class="control is-expanded">
+                      <div class="select is-fullwidth is_bg">
+                        <select @bind="cross.okr">
+                          <option>
+                            - chọn OKRs của @(user != null ? user.FullName : cross.user) -
+                          </option>
+                          @foreach (var okr in okrList)
+                          {
+                            <option value="@okr.id">@okr.name</option>
+                          }
+                        </select>
+                      </div>
+                    </div>
+                    <div class="control">
+                      <a class="button is_bg has-text-danger" title="Xóa liên kết chéo"
+                        @onclick="() => DeleteCross(kr, cross)">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">close</i>
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+                </li>
+              }
+            </ul>
+          </li>
+        }
+
+        <li class="column is-full">
+          <hr class="m-0" />
+        </li>
+      </ul>
+
+      <div class="field is-grouped is-grouped-right is-grouped-multiline mt-5">
+        <div class="control">
+          <a class="button" @onclick="AddKey">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">add</i>
+            </span>
+            <span>Thêm</span>
+            <span class="is-hidden-mobile ml-1">kết quả</span>
+          </a>
+        </div>
+        <div class="control">
+          <a class="button is-link" @onclick="Update">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">done</i>
+            </span>
+            <span>@(string.IsNullOrEmpty(model.id) ? "Tạo" : "Cập nhật")</span>
+            <span class="is-hidden-mobile ml-1">OKRs</span>
+          </a>
+        </div>
+        <div class="control">
+          <a class="button is-danger" @onclick="() => DeleteItem(model)">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">delete</i>
+            </span>
+            <span>Xóa</span>
+            <span class="is-hidden-mobile ml-1">OKRs</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public OkrModel model { get; set; }
+  [Parameter]
+	public EventCallback<bool> OnUpdate { get; set; }
+  
+  private List<UserModel> managerList = new();
+
+  protected override void OnInitialized()
+  {
+    managerList = DbDepartment.GetManagerList(Layout.Company.id, Layout.User);
+  }
+
+  private async Task ChangeCross(string id)
+  {
+    await JSRuntime.InvokeAsync<string>("console.log", id);
+  }
+
+  private void DeleteCross(OkrModel.KeyResult kr, OkrModel.CrossLink item)
+  {
+    kr.cross_links.Remove(item);
+  }
+
+  private void AddKey()
+  {
+    var item = new OkrModel.KeyResult()
+      {
+        id = Mongo.RandomId(),
+        cross_links = new()
+      };
+    model.key_results.Add(item);
+  }
+
+  private async Task DeleteKey(OkrModel.KeyResult item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa kết quả then chốt: {item.name} ?"))
+      return;
+
+    model.key_results.Remove(item);
+  }
+
+  private async Task DeleteItem(OkrModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa OKRs: {item.name} ?"))
+      return;
+    
+    // Lấy dữ liệu cũ
+    var okrOld = await DbOkr.Get(Layout.Company.id, model.id);
+
+    item.delete = true;
+    await DbOkr.Update(Layout.Company.id, item);
+    // Tạo lịch sử
+    await AddLog(okrOld, item);
+    await OnUpdate.InvokeAsync(true);
+  }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+  }
+
+  private async Task Update()
+  {
+    if (Shared.IsEmpty(model.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập các mục tiêu của bạn!");
+    else if (model.key_results.Where(x => Shared.IsEmpty(x.name)).Count() > 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, 
+        "Nhập đầy đủ tiêu đề của các kết quả then chốt hoặc xóa kết quả then chốt không cần thiết!");
+    else if (model.key_results.Where(x => x.target == 0).Count() > 0
+      || model.key_results.Where(x => Shared.IsEmpty(x.unit)).Count() > 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập đầy đủ mục tiêu của các kết quả then chốt!");
+    else
+    {
+      // Lấy dữ liệu cũ
+      var okrOld = await DbOkr.Get(Layout.Company.id, model.id);
+
+      // Xóa check-in nháp
+      if (await CompareCheckin() == false)
+        return;
+
+      // Remove CrossLinks not set OKRs
+      foreach (var kr in model.key_results)
+        kr.cross_links.RemoveAll(x => string.IsNullOrEmpty(x.okr));
+
+      // Create OKRs on DB
+      if (string.IsNullOrEmpty(model.id))
+        await DbOkr.Create(Layout.Company.id, model);
+      // Update OKRs on DB
+      else
+        await DbOkr.Update(Layout.Company.id, model);
+      
+      // Tạo lịch sử
+      await AddLog(okrOld, model);
+
+      await OnUpdate.InvokeAsync(true);
+    }
+  }
+
+
+  /// <summary>
+  /// Tạo lịch sử chỉnh sửa
+  /// </summary>
+  private async Task AddLog(OkrModel okrOld, OkrModel okrNew)
+  {
+    var log = new OkrLogModel()
+    {
+      user_id = Layout.User.id,
+      okr_id = model.id
+    };
+    if(okrOld == null)
+    {
+      log.action = "Tạo mới OKR";
+      log.edit.okr = okrNew.name;
+      foreach (var kr in okrNew.key_results)
+      {
+        log.edit.kr.Add(kr.name);
+        log.edit.target.Add(Shared.ConvertCurrency(kr.target) + " " + kr.unit);
+      }
+    }
+    else if(okrNew.delete)
+    {
+      log.action = "Xóa OKR";
+      log.old.okr = okrNew.name;
+    }
+    else if(okrOld.key_results.Count == okrNew.key_results.Count)
+    {
+      if(okrOld.name == okrNew.name)
+      {
+        bool hasEdit = AddLogKey(log, okrOld, okrNew);
+        // Có chỉnh sửa thì mới tạo log
+        if(hasEdit)
+        {
+          log.action = "Chỉnh sửa KR";
+          log.old.okr = okrOld.name;
+          log.edit.okr = okrNew.name;
+        }
+        else
+          return;
+      }
+      else
+      {
+        log.old.okr = okrOld.name;
+        log.edit.okr = okrNew.name;
+        bool hasEdit = AddLogKey(log, okrOld, okrNew);
+        if(hasEdit)
+          log.action = "Chỉnh sửa OKR";
+        else
+          log.action = "Chỉnh sửa O";
+      }
+    }
+    else if(okrOld.key_results.Count < okrNew.key_results.Count)
+    {
+      log.action = "Tạo KR";
+      log.old.okr = okrOld.name;
+      log.edit.okr = okrNew.name;
+
+      var krsOld = okrOld.key_results.Select(x => x.id);
+      var krsNew = okrNew.key_results.Where(x => !krsOld.Contains(x.id));
+      foreach (var kr in krsNew)
+      {
+        log.edit.kr.Add(kr.name);
+        log.edit.target.Add(Shared.ConvertCurrency(kr.target) + " " + kr.unit);
+      }
+    }
+    else if(okrOld.key_results.Count > okrNew.key_results.Count)
+    {
+      log.action = "Xóa KR";
+      log.old.okr = okrOld.name;
+      log.edit.okr = okrNew.name;
+
+      var krsNew = okrNew.key_results.Select(x => x.id);
+      var krsOld = okrOld.key_results.Where(x => !krsNew.Contains(x.id));
+      foreach (var kr in krsOld)
+      {
+        log.old.kr.Add(kr.name);
+        log.old.target.Add(Shared.ConvertCurrency(kr.target) + " " + kr.unit);
+      }
+    }
+    else
+    {
+      log.old.okr = okrOld.name;
+      log.edit.okr = okrNew.name;
+      bool hasEdit = AddLogKey(log, okrOld, okrNew);
+      if(hasEdit)
+        log.action = "Chỉnh sửa OKR";
+      else
+        return;
+    }
+
+    Console.WriteLine("Add log " + DateTime.Now.ToString("HH:mm:ss"));
+    await DbOkrLog.Create(Layout.Company.id, log);
+  }
+
+  private bool AddLogKey(OkrLogModel log, OkrModel okrOld, OkrModel okrNew)
+  {
+    bool hasEdit = false;
+    for (int i = 0; i < okrNew.key_results.Count; i++)
+    {
+      var krOld = okrOld.key_results[i]; 
+      var krNew = okrNew.key_results[i];
+      if(krOld.name != krNew.name || krOld.target != krNew.target)
+      {
+        log.old.kr.Add(krOld.name);
+        log.old.target.Add(Shared.ConvertCurrency(krOld.target) + " " + krOld.unit);
+        log.edit.kr.Add(krNew.name);
+        log.edit.target.Add(Shared.ConvertCurrency(krNew.target) + " " + krNew.unit);
+        hasEdit = true;
+      }
+    }
+    return hasEdit;
+  }
+
+
+  /// <summary>
+  /// Kiểm tra OKRs có check-in nháp không?
+  /// </summary>
+  private async Task<bool> CompareCheckin()
+  {
+    var checkinDraft = DbOkrCheckin.GetDraft(Layout.Company.id, model.id);
+    var okrOld = await DbOkr.Get(Layout.Company.id, model.id);
+    if (okrOld != null && checkinDraft.Count > 0)
+    {
+      if(okrOld.key_results.Count < model.key_results.Count)
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "OKRs này đang tồn tại một bản checkin nháp. Nếu xác nhận tạo KRs mới, bản checkin nháp của OKRs này sẽ bị hủy bỏ. \nBạn có chắc chắn muốn tạo không?"))
+          return false;
+
+        // Xóa các bản check-in nháp
+        foreach (var checkin in checkinDraft)
+          await DbOkrCheckin.Delete(Layout.Company.id, checkin.id);
+        model.status_checkin = 0;
+      }
+      else if(okrOld.key_results.Count > model.key_results.Count)
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "OKRs này đang tồn tại một bản checkin nháp. Nếu xác nhận xoá KRs, bản checkin nháp của OKRs này sẽ bị hủy bỏ. \nBạn có chắc chắn muốn xoá không? "))
+          return false;
+
+        // Xóa các bản check-in nháp
+        foreach (var checkin in checkinDraft)
+          await DbOkrCheckin.Delete(Layout.Company.id, checkin.id);
+        model.status_checkin = 0;
+      }
+    }
+    return true;
+  }
+}
