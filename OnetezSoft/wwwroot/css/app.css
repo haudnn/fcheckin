@@ -3243,3 +3243,177 @@ button.dropdown-item {
   flex-grow: 1;
   color: #333;
 }
+
+/* OKRs Treeview */
+* {
+  --padding: 20px;
+  --card-width: 320px;
+  --card-height: 110px;
+  --card-height-expand: 300px;
+  --slidebar-width: 400px;
+}
+
+.tree_okr {
+  width: 100%;
+  height: calc(100vh - 125px);
+  overflow: auto;
+  position: relative;
+}
+.tree_okr > .tree {
+  overflow: hidden;
+  padding: 20px;
+}
+.tree_okr > .tree > .tree_card:first-of-type.is_active ~ .horizontal_dash {
+  top: calc(var(--card-height-expand) + var(--padding) + 20px);
+}
+.tree_okr > .tree > .horizontal_dash {
+  top: calc(var(--card-height) + 2 * var(--padding));
+  width: calc(100% - var(--card-width) - 2 * var(--padding));
+  left: calc(var(--card-width) / 2 + var(--padding));
+}
+
+.tree_okr_slidebar {
+  width: var(--slidebar-width);
+  height: calc(100vh - 108px);
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  background-color: white;
+  z-index: 98;
+  box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.14);
+  transition: all 300ms ease;
+}
+
+.tree_okr_slidebar .sliderbar_body {
+  overflow-y: auto;
+  height: calc(100% - 56px);
+}
+
+.tree {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: fit-content;
+  height: fit-content;
+  position: relative;
+}
+.tree .horizontal_dash {
+  content: "";
+  display: block;
+  position: absolute;
+  top: calc(var(--card-height) + var(--padding));
+  transform: translateY(-50%);
+  width: calc(100% - var(--card-width));
+  left: calc(var(--card-width) / 2);
+  height: 1px;
+  background: white;
+  border: none;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.4);
+}
+
+.tree_card {
+  flex-direction: column;
+  background-color: white;
+  box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.1);
+  position: relative;
+  border-radius: 4px;
+  width: var(--card-width);
+  height: var(--card-height);
+}
+.tree_card.is_active {
+  display: flex;
+  padding-bottom: 20px;
+  height: var(--card-height-expand);
+}
+.tree_card.is_active ~ .horizontal_dash {
+  top: calc(var(--card-height-expand) + var(--padding));
+}
+.tree_card > ul {
+  flex: 1 1 0%;
+  overflow-y: auto;
+}
+.tree_card > ul::-webkit-scrollbar {
+  width: 0px;
+}
+.tree_card ul li {
+  margin-bottom: 10px;
+}
+.tree_card ul li:last-of-type {
+  margin-bottom: 0;
+}
+.tree_card ul li ul {
+  padding-left: 5px;
+}
+.tree_card ul li ul li {
+  margin-bottom: 5px;
+}
+.tree_card::after {
+  content: "";
+  display: none;
+  position: absolute;
+  width: 1000%;
+  height: 8px;
+  background-color: #fff;
+  z-index: 9;
+}
+.tree_card.is_first::after {
+  display: block;
+  top: -24px;
+  left: auto;
+  right: 50%;
+}
+.tree_card.is_last::after {
+  display: block;
+  top: -24px;
+  right: auto;
+  left: 50%;
+}
+.tree_card hr {
+  background-color: #ecf0ff;
+}
+.tree_card.has_child .dash_line.child {
+  display: block;
+}
+.tree_card.has_parent .dash_line.parent {
+  display: block;
+}
+.tree_card .dash_line {
+  position: absolute;
+  border: none;
+  border-left: 1px dashed rgba(0, 0, 0, 0.4);
+  background-color: white;
+  height: 20px;
+  width: 1px;
+}
+.tree_card .dash_line.parent,
+.tree_card .dash_line.child {
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+}
+.tree_card .dash_line.parent {
+  bottom: 100%;
+}
+.tree_card .dash_line.parent .icon {
+  position: absolute;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  background-color: #6b8fe0;
+  color: white;
+  bottom: -8px;
+  left: calc(50% - 1px);
+  transform: translateX(-50%);
+}
+.tree_card .dash_line.parent .icon span {
+  font-size: 10px;
+  font-weight: 600;
+}
+.tree_card .dash_line.child {
+  top: 100%;
+}
+
+.tree_card_list {
+  margin-top: 40px;
+  gap: 20px;
+}

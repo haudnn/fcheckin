@@ -4,44 +4,45 @@
 
 <PageTitle>@_title</PageTitle>
 
-<section class="p-4 @(_loaded ? "" : "is-loading")">
-  <div class="card px-5 pt-5 pb-2 p-4-mobile">
-    <ul class="columns is-vcentered is-variable is-2 is-mobile is-multiline mb-5">
-      <li class="column is-full-mobile">
-        <h1 class="title is-5 has-text-info">
-          TỔNG QUAN OKRs
-        </h1>
-      </li>
-      <li class="column is-narrow">
-        <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
-      </li>
-      <li class="column is-one-quarter">
-        <MemberSearch department="@filterDepartment" sources="Layout.UserList"      
-          OnUpdate="ChangeFilterUser" />
-      </li>
-      <li class="column is-narrow">
-        <div class="field has-addons">
-          <div class="control">
-            <a class="button is-link @(!listMode ? "" : "is-outlined")" @onclick="() => ChangeMode(false)">
-              <span class="icon">
-                <i class="material-icons-outlined is-size-6">account_tree</i>
-              </span>
-            </a>
+<section class="p-4">
+  <div class="card">
+    <div class="p-5 p-4-mobile">
+      <ul class="columns is-vcentered is-variable is-2 is-mobile is-multiline mb-0">
+        <li class="column is-full-mobile">
+          <h1 class="title is-5 has-text-info">
+            TỔNG QUAN OKRs
+          </h1>
+        </li>
+        <li class="column is-narrow">
+          <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
+        </li>
+        <li class="column is-one-quarter">
+          <MemberSearch department="@filterDepartment" sources="Layout.UserList"      
+            OnUpdate="ChangeFilterUser" />
+        </li>
+        <li class="column is-narrow">
+          <div class="field has-addons">
+            <div class="control">
+              <a class="button is-link @(!listMode ? "" : "is-outlined")" @onclick="() => ChangeMode(false)">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">account_tree</i>
+                </span>
+              </a>
+            </div>
+            <div class="control">
+              <a class="button is-link @(listMode ? "" : "is-outlined")" @onclick="() => ChangeMode(true)">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">toc</i>
+                </span>
+              </a>
+            </div>
           </div>
-          <div class="control">
-            <a class="button is-link @(listMode ? "" : "is-outlined")" @onclick="() => ChangeMode(true)">
-              <span class="icon">
-                <i class="material-icons-outlined is-size-6">toc</i>
-              </span>
-            </a>
-          </div>
-        </div>
-      </li>
-    </ul>
-
+        </li>
+      </ul>
+    </div>
     @if(listMode)
     {
-      <div class="pb-4">
+      <div class="px-5 pb-5 pt-0">
         <ul class="columns is-multiline is-mobile is-variable is-1 px-4 my-1 is-size-7 is-hidden-mobile">
           <li class="column">
           </li>
@@ -57,15 +58,19 @@
         </ul>
         @foreach (var child in dataList)
         {
-          <_OkrOverview Current="child" ShowChilds="true" />
+          <_ListViewItem Current="child" ShowChilds="true" />
         }
       </div>
     }
     else
     {
-      <div class="scrolly" style="height: calc(100vh - 135px);">
-        @{
-          var data = okrList[100];
+      <hr class="m-0" />
+      <div id="okr_treeview" class="tree_okr p-1">
+        @foreach (var item in treeview)
+        {
+          var childs = database.Where(x => x.parent == item.id).ToList();
+          <_TreeViewItem model="item" childs="childs" database="database"
+            ParentFirst="true" ParentLast="true" />
         }
       </div>
     }
@@ -90,8 +95,8 @@
           <th>Mục tiêu</th>
           <th width="160px">Kết Quả Then Chốt</th>
           <th width="200px" align="center">Tiến độ</th>
-          <th width="90px" align="center">Thay đổi</th>
-          <th width="90px" align="center">Ngày tạo</th>
+          <th width="100px" align="center">Thay đổi</th>
+          <th width="100px" align="center">Ngày tạo</th>
         </tr>
       </thead>
       <tbody>
@@ -201,6 +206,8 @@
   </div>
 </section>
 
+<_StickSideBar model="stickSideBar" OnClose="CloseSideBar" />
+
 @if(!CheckAccess())
 {
   <div class="modal is-active">
@@ -221,31 +228,40 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
-  private bool _loaded = false;
   private string _title = "Tổng quan OKRs";
 
   private List<DepartmentModel> dataList = new();
+  private List<DepartmentModel> treeview = new();
+  private List<DepartmentModel> database = new();
   private List<OkrModel> okrList = new();
   private List<string> okrsShow = new();
-
-  private List<DepartmentModel.SelectList> departments = new();
   private string filterDepartment = string.Empty;
   private UserModel filterUser = new();
-  private bool listMode = true;
+  private bool listMode = false;
+  private DepartmentModel stickSideBar = null;
 
   protected override void OnInitialized()
   {
     filterUser = Layout.User;
-    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+    database = DbDepartment.GetAll(Layout.Company.id);
+    treeview = database.Where(x => string.IsNullOrEmpty(x.parent)).ToList();
     dataList = DbDepartment.GetList(Layout.Company.id, null);
-    Search();
-    ListenCallback();
+    GetOkrUser();
+    Subscribe();
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if(firstRender)
+    {
+      await JSRuntime.InvokeVoidAsync("dragScroll", "okr_treeview");
+    }
   }
 
   private async Task ChangeMode(bool value)
   {
     listMode = value;
+    await JSRuntime.InvokeVoidAsync("dragScroll", "okr_treeview");
   }
 
   private string msgAccess = string.Empty;
@@ -257,6 +273,10 @@
   private void ChangeFilterDepartment(string value)
   {
     filterDepartment = value;
+    if(!string.IsNullOrEmpty(filterDepartment))
+      treeview = database.Where(x => x.id == filterDepartment).ToList();
+    else
+      treeview = database.Where(x => string.IsNullOrEmpty(x.parent)).ToList();
   }
 
   private async Task ChangeFilterUser(string value)
@@ -264,21 +284,19 @@
     if(!string.IsNullOrEmpty(value))
     {
       filterUser = await DbUser.Get(Layout.Company.id, value);
-      Search();
+      GetOkrUser();
     }
   }
 
   private void UserSelected(UserModel item)
   {
     filterUser = item;
-    Search();
+    GetOkrUser();
   }
 
-  private void Search()
+  private void GetOkrUser()
   {
-    _loaded = false;
     okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, filterUser.id);
-    _loaded = true;
   }
 
   private void ShowKeys(string id)
@@ -289,11 +307,22 @@
       okrsShow.Add(id);
   }
 
-  public void ListenCallback()
+  private void CloseSideBar()
   {
-    MessagingCenter.Subscribe<_OkrOverview, UserModel>(this, "okrs_" + Layout.User.id, (sender, value) =>
+    stickSideBar = null;
+  }
+
+  public void Subscribe()
+  {
+    MessagingCenter.Subscribe<_ListViewItem, UserModel>(this, "okr_listview" + Layout.User.id, (sender, value) =>
     {
       UserSelected(value);
+      InvokeAsync(StateHasChanged);
+    });
+
+    MessagingCenter.Subscribe<_TreeViewItem, DepartmentModel>(this, "okr_treeview" + Layout.User.id, (sender, value) =>
+    {
+      stickSideBar = value;
       InvokeAsync(StateHasChanged);
     });
   }

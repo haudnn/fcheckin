@@ -1,0 +1,209 @@
+
+@if(model != null)
+{
+  var manager = GetManager();
+  <div class="tree">
+    <div class="tree_card 
+      @(showMore ? "is_active" : "" )
+      @(ParentFirst ? " is_first" : "" )
+      @(ParentLast ? "is_last" : "" )
+      @(childs.Count > 0 ? "has_child" : "" )
+      @(string.IsNullOrEmpty(model.parent) ? "" : "has_parent" )">
+      <div class="dash_line parent">
+        <span class="icon">
+          <span class="material-icons">arrow_downward</span>
+        </span>
+      </div>
+      <div class="px-4 py-3">
+        <div class="columns is-mobile is-variable is-1">
+          <div class="column is-7">
+            <a class="has-text-weight-bold has-text-link-dark text_1_line" @onclick="ShowMore">
+              @model.name
+            </a>
+          </div>
+          <div class="column is-5 has-text-right">
+            <a class="icon-text has-text-link" @onclick="OpenSlide">
+              <span class="is-size-7">@model.members_id.Count nhân viên</span>
+              <span class="icon is-small">
+                <i class="material-icons-outlined is-size-6">arrow_right</i>
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <hr class="m-0" />
+      @if(manager != null)
+      {
+        var okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, manager.id);
+        var progress = GetProgress(okrList);
+        var color = Shared.ProgressColor(progress);
+
+        <a class="is-block px-4 py-3" @onclick="ShowMore">
+          <div class="columns is-mobile is-vcentered is-variable is-1">
+            <div class="column is-8">
+              <div class="user_item has-text-info">
+                <img class="image is-36x36 mr-2" src="@manager.avatar" alt="IMG">
+                <span class="text_1_line">@manager.FullName</span>
+              </div>
+            </div>
+            <div class="column is-4">
+              <div class="progress_has_value">
+                <progress class="progress is-small @color" value="@progress" max="100"></progress>
+                <span class="@color">@string.Format("{0:0}%", progress)</span>
+              </div>
+            </div>
+          </div>
+        </a>
+
+        @if(showMore)
+        {
+          <hr class="m-0" />
+          <ul class="px-4 py-3">
+            @foreach (var okr in okrList)
+            {
+              var okrProgress = DbOkr.GetProgress(okr.key_results);
+              var okrColor = Shared.ProgressColor(okrProgress);
+              var showKey = okrsShow.Contains(okr.id);
+
+              <li>
+                <strong>O:</strong>
+                <span>@okr.name</span>
+              </li>
+              <li>
+                <a class="columns is-mobile is-vcentered is-variable is-1" @onclick="() => ShowKeys(okr.id)">
+                  <div class="column is-5">
+                    <a class="icon-text">
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">
+                          @(showKey ? "arrow_drop_down" : "arrow_right")
+                        </i>
+                      </span>
+                      <span>@string.Format("{0}KRs", okr.key_results.Count)</span>
+                    </a>
+                  </div>
+                  <div class="column is-7">
+                    <div class="progress_has_value">
+                      <progress class="progress is-small @okrColor" value="@okrProgress" max="100"></progress>
+                      <span class="@okrColor">@string.Format("{0:0}%", okrProgress)</span>
+                    </div>
+                  </div>
+                </a>
+              </li>
+              @if(showKey)
+              {
+                <li class="pl-5">
+                  @foreach (var kr in okr.key_results)
+                  {
+                    <div class="columns is-mobile is-vcentered is-variable is-1 is-size-7 mb-2">
+                      <div class="column is-8">
+                        <span>@kr.name</span>
+                      </div>
+                      <div class="column is-4">
+                        <span title="@string.Format("{0:0,0.000} / {1:0,0.000}", kr.result, kr.target)">
+                          @Shared.ConvertNumber(kr.result)/@Shared.ConvertNumber(kr.target)
+                        </span>
+                        <span class="is-pulled-right">@kr.unit</span>
+                      </div>
+                    </div>
+                  }
+                </li>
+              }
+            }
+            @if(okrList.Count == 0)
+            {
+              <div class="py-6 has-text-centered has-text-grey">
+                Chưa có OKRs
+              </div>
+            }
+          </ul>
+        }
+      }
+      else
+      {
+        <div class="px-4 py-3">
+          <div class="columns is-mobile is-vcentered is-variable is-1">
+            <div class="column p-8">
+              <p>Không có quản lý</p>
+            </div>
+            <div class="column is-4">
+              <div class="progress_has_value">
+                <progress class="progress is-small" value="0" max="100"></progress>
+                <span class="has-text-success">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+      <div class="dash_line child"></div>
+    </div>
+    
+    @if (childs.Count > 0)
+    {
+      <div class="is-flex tree_card_list">
+        @for (int i = 0; i < childs.Count(); i++)
+        {
+          var item = childs[i];
+          var childList = database.Where(x => x.parent == item.id).ToList();
+          <_TreeViewItem model="item" childs="childList" database="database"
+            ParentFirst="@(i == 0 && ParentFirst)"
+            ParentLast="@(i == childs.Count() - 1 && ParentLast)" />
+        }
+      </div>
+    }
+    <div class="horizontal_dash"></div>
+  </div>
+}
+
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public DepartmentModel model { get; set; }
+  [Parameter]
+  public List<DepartmentModel> childs { get; set; }
+  [Parameter]
+  public List<DepartmentModel> database { get; set; }
+  [Parameter]
+  public bool ParentFirst { get; set; }
+  [Parameter]
+  public bool ParentLast { get; set; }
+
+  private List<string> okrsShow = new();
+  private bool showMore;
+
+
+  private UserModel GetManager()
+  {
+    var manager = model.members_list.Where(x => x.role < 3).OrderBy(x => x.role).FirstOrDefault();
+    if(manager != null)
+      return Layout.UserList.FirstOrDefault(x => x.id == manager.id);
+    return null;
+  }
+
+  private double GetProgress(List<OkrModel> list)
+  {
+    double result = 0;
+    foreach (var item in list)
+      result += DbOkr.GetProgress(item.key_results);
+    return list.Count > 0 ? result / list.Count : 0;
+  }
+
+  private void OpenSlide()
+  {
+    MessagingCenter.Send(this, "okr_treeview" + Layout.User.id, model);
+  }
+
+  private void ShowMore()
+  {
+    showMore = !showMore;
+  }
+
+  private void ShowKeys(string id)
+  {
+    if (okrsShow.Contains(id))
+      okrsShow.Remove(id);
+    else
+      okrsShow.Add(id);
+  }
+}

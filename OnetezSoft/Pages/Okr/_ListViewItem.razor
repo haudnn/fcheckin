@@ -34,7 +34,7 @@
       var child = childs[i];
       var color = string.IsNullOrEmpty(Color) ? Shared.ColorRandom(i + 1) : Color;
 
-      <_OkrOverview Current="child" ShowChilds="false" Color="@color" />
+      <_ListViewItem Current="child" ShowChilds="false" Color="@color" />
     }
     @if (childs.Count == 0)
     {
@@ -67,6 +67,8 @@
     if (Current.members_id.Count > 0)
     {
       var role = Current.members_list.SingleOrDefault(x => x.role == 1);
+      if(role == null)
+        role = Current.members_list.SingleOrDefault(x => x.role == 2);
       if (role != null)
         manger = Layout.UserList.SingleOrDefault(x => x.id == role.id);
 
@@ -88,6 +90,6 @@
 
   private void ShowOKRsUser()
   {
-    MessagingCenter.Send(this, "okrs_" + Layout.User.id, manger);
+    MessagingCenter.Send(this, "okr_listview" + Layout.User.id, manger);
   }
 }

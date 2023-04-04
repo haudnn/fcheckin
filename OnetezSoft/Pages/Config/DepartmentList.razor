@@ -5,23 +5,13 @@
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
 @if (Layout.User.role != 1 && !Layout.User.role_manage.system)
 {
   <PopupNoRole />
 }
 else
 {
-  <section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+  <section class="columns is-gapless has_menu_left">
     <div class="column is-narrow">
       <div class="card p-3 menu_left">
         <a class="is-active" href="/config/system/department/list">
@@ -69,10 +59,6 @@ else
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
-  private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
   private string _title = "Danh sách phòng ban";
 
   private List<DepartmentModel> database = new();
@@ -81,9 +67,7 @@ else
   protected override async Task OnInitializedAsync()
   {
     database = DbDepartment.GetAll(Layout.Company.id);
-    dataList = database.Where(x => x.parent == null).ToList();
-    _loaded = true;
-
+    dataList = database.Where(x => string.IsNullOrEmpty(x.parent)).ToList();
     await UpdateUserDepartmentName();
   }
 
