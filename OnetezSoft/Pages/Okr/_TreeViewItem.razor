@@ -5,10 +5,10 @@
   <div class="tree">
     <div class="tree_card 
       @(showMore ? "is_active" : "" )
-      @(ParentFirst ? " is_first" : "" )
-      @(ParentLast ? "is_last" : "" )
-      @(childs.Count > 0 ? "has_child" : "" )
-      @(string.IsNullOrEmpty(model.parent) ? "" : "has_parent" )">
+      @(isFirst ? " is_first" : "" )
+      @(isLast ? "is_last" : "" )
+      @(childs.Count == 0 ? "" : "has_child" )
+      @(level == 0 ? "" : "has_parent" )">
       <div class="dash_line parent">
         <span class="icon">
           <span class="material-icons">arrow_downward</span>
@@ -22,7 +22,7 @@
             </a>
           </div>
           <div class="column is-5 has-text-right">
-            <a class="icon-text has-text-link" @onclick="OpenSlide">
+            <a class="icon-text has-text-link" @onclick="ShowSideBar">
               <span class="is-size-7">@model.members_id.Count nhân viên</span>
               <span class="icon is-small">
                 <i class="material-icons-outlined is-size-6">arrow_right</i>
@@ -125,12 +125,6 @@
             <div class="column p-8">
               <p>Không có quản lý</p>
             </div>
-            <div class="column is-4">
-              <div class="progress_has_value">
-                <progress class="progress is-small" value="0" max="100"></progress>
-                <span class="has-text-success">0%</span>
-              </div>
-            </div>
           </div>
         </div>
       }
@@ -145,8 +139,9 @@
           var item = childs[i];
           var childList = database.Where(x => x.parent == item.id).ToList();
           <_TreeViewItem model="item" childs="childList" database="database"
-            ParentFirst="@(i == 0 && ParentFirst)"
-            ParentLast="@(i == childs.Count() - 1 && ParentLast)" />
+            level="@(level + 1)"
+            isFirst="@(i == 0 && isFirst)"
+            isLast="@(i == childs.Count() - 1 && isLast)" />
         }
       </div>
     }
@@ -165,9 +160,11 @@
   [Parameter]
   public List<DepartmentModel> database { get; set; }
   [Parameter]
-  public bool ParentFirst { get; set; }
+  public bool isFirst { get; set; }
   [Parameter]
-  public bool ParentLast { get; set; }
+  public bool isLast { get; set; }
+  [Parameter]
+  public int level { get; set; }
 
   private List<string> okrsShow = new();
   private bool showMore;
@@ -183,15 +180,11 @@
 
   private double GetProgress(List<OkrModel> list)
   {
-    double result = 0;
+    double total = 0;
     foreach (var item in list)
-      result += DbOkr.GetProgress(item.key_results);
-    return list.Count > 0 ? result / list.Count : 0;
-  }
-
-  private void OpenSlide()
-  {
-    MessagingCenter.Send(this, "okr_treeview" + Layout.User.id, model);
+      total += DbOkr.GetProgress(item.key_results);
+    var result = list.Count > 0 ? total / list.Count : 0;
+    return Convert.ToInt32(result);
   }
 
   private void ShowMore()
@@ -205,5 +198,10 @@
       okrsShow.Remove(id);
     else
       okrsShow.Add(id);
+  }
+
+  private void ShowSideBar()
+  {
+    MessagingCenter.Send(this, "okr_treeview" + Layout.User.id, model);
   }
 }

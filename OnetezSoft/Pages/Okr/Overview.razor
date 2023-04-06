@@ -56,9 +56,10 @@
             Tiến độ OKRs
           </li>
         </ul>
-        @foreach (var child in dataList)
+        @foreach (var item in listview)
         {
-          <_ListViewItem Current="child" ShowChilds="true" />
+          var childs = database.Where(x => x.parent == item.id).ToList();
+          <_ListViewItem model="item" childs="childs" database="database" ShowChilds="true" />
         }
       </div>
     }
@@ -70,7 +71,7 @@
         {
           var childs = database.Where(x => x.parent == item.id).ToList();
           <_TreeViewItem model="item" childs="childs" database="database"
-            ParentFirst="true" ParentLast="true" />
+            level="0" isFirst="true" isLast="true" />
         }
       </div>
     }
@@ -137,7 +138,7 @@
               <label class="td-label">Tiến độ</label>
               <div class="td-value">
                 <div class="progress_has_value">
-                  <progress class="progress is-small @okrColor" value="@progress" max="100"></progress>
+                  <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100"></progress>
                   <span>@string.Format("{0:0}%", progress)</span>
                 </div>
               </div>
@@ -230,7 +231,7 @@
   public LayoutMain Layout { get; set; }
   private string _title = "Tổng quan OKRs";
 
-  private List<DepartmentModel> dataList = new();
+  private List<DepartmentModel> listview = new();
   private List<DepartmentModel> treeview = new();
   private List<DepartmentModel> database = new();
   private List<OkrModel> okrList = new();
@@ -244,8 +245,8 @@
   {
     filterUser = Layout.User;
     database = DbDepartment.GetAll(Layout.Company.id);
-    treeview = database.Where(x => string.IsNullOrEmpty(x.parent)).ToList();
-    dataList = DbDepartment.GetList(Layout.Company.id, null);
+    listview = DbDepartment.GetList(Layout.Company.id, null);
+    GetTreeView();
     GetOkrUser();
     Subscribe();
   }
@@ -264,19 +265,10 @@
     await JSRuntime.InvokeVoidAsync("dragScroll", "okr_treeview");
   }
 
-  private string msgAccess = string.Empty;
-  private bool CheckAccess()
-  {
-    return ProductService.CheckAccess(Layout.Company, Layout.User, "okrs", out msgAccess);
-  }
-
   private void ChangeFilterDepartment(string value)
   {
     filterDepartment = value;
-    if(!string.IsNullOrEmpty(filterDepartment))
-      treeview = database.Where(x => x.id == filterDepartment).ToList();
-    else
-      treeview = database.Where(x => string.IsNullOrEmpty(x.parent)).ToList();
+    GetTreeView();
   }
 
   private async Task ChangeFilterUser(string value)
@@ -292,6 +284,24 @@
   {
     filterUser = item;
     GetOkrUser();
+  }
+
+  private void GetTreeView()
+  {
+    if(string.IsNullOrEmpty(filterDepartment))
+      treeview = database.Where(x => string.IsNullOrEmpty(x.parent)).ToList(); 
+    else
+      treeview = database.Where(x => x.id == filterDepartment).ToList();
+    if(treeview.Count > 1)
+    {
+      var main = new DepartmentModel()
+      {
+        name = "TỔNG QUAN OKRs",
+        members_id = Layout.UserList.Select(x => x.id).ToList(),
+        members_list = new()
+      };
+      treeview = new() { main };
+    }
   }
 
   private void GetOkrUser()
@@ -310,6 +320,12 @@
   private void CloseSideBar()
   {
     stickSideBar = null;
+  }
+
+  private string msgAccess = string.Empty;
+  private bool CheckAccess()
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, "okrs", out msgAccess);
   }
 
   public void Subscribe()

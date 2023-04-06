@@ -2,34 +2,16 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<PageTitle>@_title</PageTitle>
+<PageTitle>Thống kê CFRs</PageTitle>
 
 <section class="columns is-gapless has_menu_left">
   <div class="column is-narrow">
     <_MenuLeft Company="Layout.Company" User="Layout.User" />
   </div>
   <div class="column">
-    <div class="tabs_white is_radius mb-4">
-      <a class="button is-size-5 has-text-weight-semibold has-text-@(tab == 1 ? "link is_bg" : "grey is-white")"
-          @onclick="() => tab = 1">
-        CHECK-IN OKRs
-      </a>
-      <a class="button is-size-5 has-text-weight-semibold has-text-@(tab == 2 ? "link is_bg" : "grey is-white")"
-          @onclick="() => tab = 2">
-        GHI NHẬN - TẶNG SAO
-      </a>
-    </div>
 
-    @if(tab == 1)
-    {
-      <CFRsCheckin departmentAll="departmentAll" departments="departments" />
-      <CFRsHistory departmentAll="departmentAll" departments="departments" />
-    }
-    else
-    {
-      <CFRsStar departmentAll="departmentAll" departments="departments" type="2" />
-      <CFRsStar departmentAll="departmentAll" departments="departments" type="3" />
-    }
+    <CFRsStar departmentAll="departmentAll" departments="departments" type="2" />
+    <CFRsStar departmentAll="departmentAll" departments="departments" type="3" />
     
   </div>
 </section>
@@ -37,12 +19,8 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
-  private string _title = "Thống kê CFRs";
-
   private List<DepartmentModel> departmentAll = new();
   private List<DepartmentModel.SelectList> departments = new();
-  private int tab = 1;
 
   protected override void OnInitialized()
   {

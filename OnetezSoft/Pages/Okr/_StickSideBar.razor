@@ -2,13 +2,13 @@
 @if(model != null)
 {
   <div class="tree_okr_slidebar">
-    <div class="icon-text is-size-7 p-4" @onclick="Close">
+    <a class="icon-text is-size-7 p-4" @onclick="Close">
       <span class="icon is-small has-text-link">
         <i class="material-icons-outlined is-size-6">arrow_back</i>
       </span>
       <span class="has-text-link">Đóng</span>
       <span class="ml-5">Chi tiết phòng ban</span>
-    </div>
+    </a>
     
     <div class="sliderbar_body px-4">
       <div class="columns is-mobile is-vcentered">
@@ -41,64 +41,67 @@
           </div>
 
           <ul class="py-3">
-            <li class="has-text-grey mb-3 is-size-7">
-              Tiến độ OKRs
-            </li>
-            @foreach (var okr in okrList)
+            @if(okrList.Count > 0)
             {
-              var okrProgress = DbOkr.GetProgress(okr.key_results);
-              var okrColor = Shared.ProgressColor(okrProgress);
-              var showKey = okrsShow.Contains(okr.id);
-
-              <li class="mb-2">
-                <strong>O:</strong>
-                <span>@okr.name</span>
+              <li class="has-text-grey mb-3 is-size-7">
+                Tiến độ OKRs
               </li>
-              <li class="mb-2">
-                <a class="columns is-mobile is-vcentered is-variable is-1" @onclick="() => ShowKeys(okr.id)">
-                  <div class="column is-5">
-                    <a class="icon-text">
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-5">
-                          @(showKey ? "arrow_drop_down" : "arrow_right")
-                        </i>
-                      </span>
-                      <span>@string.Format("{0}KRs", okr.key_results.Count)</span>
-                    </a>
-                  </div>
-                  <div class="column is-7">
-                    <div class="progress_has_value">
-                      <progress class="progress is-small @okrColor" value="@okrProgress" max="100"></progress>
-                      <span class="@okrColor">@string.Format("{0:0}%", okrProgress)</span>
-                    </div>
-                  </div>
-                </a>
-              </li>
-              @if(showKey)
+              @foreach (var okr in okrList)
               {
-                <li class="pl-5 mb-4">
-                  @foreach (var kr in okr.key_results)
-                  {
-                    <div class="columns is-mobile is-vcentered is-variable is-1 is-size-7 mb-2">
-                      <div class="column is-8">
-                        <span>@kr.name</span>
-                      </div>
-                      <div class="column is-4">
-                        <span title="@string.Format("{0:0,0.000} / {1:0,0.000}", kr.result, kr.target)">
-                          @Shared.ConvertNumber(kr.result)/@Shared.ConvertNumber(kr.target)
+                var okrProgress = DbOkr.GetProgress(okr.key_results);
+                var okrColor = Shared.ProgressColor(okrProgress);
+                var showKey = okrsShow.Contains(okr.id);
+
+                <li class="mb-2">
+                  <strong>O:</strong>
+                  <span>@okr.name</span>
+                </li>
+                <li class="mb-2">
+                  <a class="columns is-mobile is-vcentered is-variable is-1" @onclick="() => ShowKeys(okr.id)">
+                    <div class="column is-5">
+                      <a class="icon-text">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">
+                            @(showKey ? "arrow_drop_down" : "arrow_right")
+                          </i>
                         </span>
-                        <span class="is-pulled-right">@kr.unit</span>
+                        <span>@string.Format("{0}KRs", okr.key_results.Count)</span>
+                      </a>
+                    </div>
+                    <div class="column is-7">
+                      <div class="progress_has_value">
+                        <progress class="progress is-small @okrColor" value="@okrProgress" max="100"></progress>
+                        <span class="@okrColor">@string.Format("{0:0}%", okrProgress)</span>
                       </div>
                     </div>
-                  }
+                  </a>
                 </li>
+                @if(showKey)
+                {
+                  <li class="pl-5 mb-4">
+                    @foreach (var kr in okr.key_results)
+                    {
+                      <div class="columns is-mobile is-vcentered is-variable is-1 is-size-7 mb-2">
+                        <div class="column is-8">
+                          <span>@kr.name</span>
+                        </div>
+                        <div class="column is-4">
+                          <span title="@string.Format("{0:0,0.000} / {1:0,0.000}", kr.result, kr.target)">
+                            @Shared.ConvertNumber(kr.result)/@Shared.ConvertNumber(kr.target)
+                          </span>
+                          <span class="is-pulled-right">@kr.unit</span>
+                        </div>
+                      </div>
+                    }
+                  </li>
+                }
               }
             }
-            @if(okrList.Count == 0)
+            else
             {
-              <div class="has-text-centered has-text-grey is-size-7">
+              <li class="has-text-centered has-text-grey is-size-7">
                 Chưa có OKRs
-              </div>
+              </li>
             }
           </ul>
           <hr class="mt-3 mb-5" />
@@ -116,8 +119,8 @@
   [Parameter]
   public EventCallback OnClose { get; set; }
 
-  private bool openKR;
   private List<string> okrsShow = new();
+    
   private void Close()
   {
     OnClose.InvokeAsync();
