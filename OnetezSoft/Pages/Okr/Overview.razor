@@ -58,7 +58,7 @@
         </ul>
         @foreach (var item in listview)
         {
-          var childs = database.Where(x => x.parent == item.id).ToList();
+          var childs = GetChilds(item.id);
           <_ListViewItem model="item" childs="childs" database="database" ShowChilds="true" />
         }
       </div>
@@ -69,7 +69,7 @@
       <div id="okr_treeview" class="tree_okr p-1">
         @foreach (var item in treeview)
         {
-          var childs = database.Where(x => x.parent == item.id).ToList();
+          var childs = GetChilds(item.id);
           <_TreeViewItem model="item" childs="childs" database="database"
             level="0" isFirst="true" isLast="true" />
         }
@@ -286,12 +286,22 @@
     GetOkrUser();
   }
 
+
+  private List<DepartmentModel> GetChilds(string parent)
+  {
+    if(string.IsNullOrEmpty(parent))
+      return database.Where(x => string.IsNullOrEmpty(x.parent)).ToList();
+    else
+      return database.Where(x => x.parent == parent).ToList(); 
+  }
+
   private void GetTreeView()
   {
     if(string.IsNullOrEmpty(filterDepartment))
-      treeview = database.Where(x => string.IsNullOrEmpty(x.parent)).ToList(); 
+      treeview = database.Where(x => string.IsNullOrEmpty(x.parent)).ToList();
     else
       treeview = database.Where(x => x.id == filterDepartment).ToList();
+
     if(treeview.Count > 1)
     {
       var main = new DepartmentModel()

@@ -138,14 +138,17 @@
         {
           var item = childs[i];
           var childList = database.Where(x => x.parent == item.id).ToList();
+          var childFist = i == 0;
+          var childLast = i + 1 == childs.Count;
           <_TreeViewItem model="item" childs="childList" database="database"
-            level="@(level + 1)"
-            isFirst="@(i == 0 && isFirst)"
-            isLast="@(i == childs.Count() - 1 && isLast)" />
+            level="@(level + 1)" isFirst="childFist" isLast="childLast" />
         }
       </div>
     }
-    <div class="horizontal_dash"></div>
+    @if (childs.Count > 1)
+    {
+      <div class="horizontal_dash"></div>
+    }
   </div>
 }
 

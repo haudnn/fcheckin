@@ -23,6 +23,8 @@ namespace OnetezSoft.Data
         model.members_id = new();
       if (model.members_list == null)
         model.members_list = new();
+      if (string.IsNullOrEmpty(model.parent))
+        model.parent = null;
       model.delete = false;
 
       var collection = _db.GetCollection<DepartmentModel>(_collection);
@@ -35,6 +37,9 @@ namespace OnetezSoft.Data
 
     public static async Task<DepartmentModel> Update(string companyId, DepartmentModel model)
     {
+      if (string.IsNullOrEmpty(model.parent))
+        model.parent = null;
+
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<DepartmentModel>(_collection);
@@ -115,7 +120,11 @@ namespace OnetezSoft.Data
       if (listAll == null)
         listAll = GetAll(companyId);
 
-      var list = listAll.Where(x => x.parent == parent).ToList();
+      var list = new List<DepartmentModel>();
+      if (string.IsNullOrEmpty(parent))
+        list = listAll.Where(x => string.IsNullOrEmpty(x.parent)).ToList();
+      else
+        list = listAll.Where(x => x.parent == parent).ToList();
 
       var results = new List<DepartmentModel.SelectList>();
       foreach (var item in list)
