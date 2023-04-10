@@ -104,14 +104,14 @@
                   <div class="td-value">
                     <div class="progress_has_value">
                       <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100"></progress>
-                      <span>@Shared.ConvertNumber(progress)%</span>
+                      <span>@Shared.FormatPercent(progress)%</span>
                     </div>
                   </div>
                 </td>
                 <td align="center">
                   <label class="td-label">Thay đổi</label>
                   <div class="td-value has-text-weight-semibold">
-                    @Shared.ConvertNumber(progress - okr.progress_prev)%
+                    @Shared.FormatPercent(progress - okr.progress_prev)%
                   </div>
                 </td>
                 <td align="center">
@@ -131,12 +131,6 @@
                     @kr.name
                   </td>
                   <td class="pl-2">
-                    <a class="icon-text has-text-link is-hidden" @onclick="() => ShowTask(okr, kr)">
-                      <span class="icon is-small">
-                        <i class="material-icons-outlined">task</i>
-                      </span>
-                      <span>Hành động</span>
-                    </a>
                     @if (!string.IsNullOrEmpty(kr.link))
                     {
                       <a class="icon-text has-text-link" href="@kr.link" target="_blank">
@@ -151,7 +145,7 @@
                     <label class="td-label">Đạt được</label>
                     <div class="td-value">
                       <span class="has-text-success">
-                        @Shared.ConvertCurrency(kr.result)/@Shared.ConvertCurrency(kr.target)
+                        @Shared.ConvertNumber(kr.result)/@Shared.ConvertNumber(kr.target)
                       </span>
                       <span class="is-pulled-right">@kr.unit</span>
                     </div>
@@ -159,7 +153,7 @@
                   <td align="center">
                     <label class="td-label">Thay đổi</label>
                     <div class="td-value">
-                      @Shared.ConvertNumber(Shared.Progress(kr.change, kr.target))%
+                      @Shared.FormatPercent(Shared.Progress(kr.change, kr.target))%
                     </div>
                   </td>
                   <td align="center">
@@ -229,14 +223,14 @@
                     <div class="td-value">
                       <div class="progress_has_value">
                         <progress class="progress is-small is-link" value="@Convert.ToInt32(progress)" max="100"></progress>
-                        <span>@Shared.ConvertNumber(progress)%</span>
+                        <span>@Shared.FormatPercent(progress)%</span>
                       </div>
                     </div>
                   </td>
                   <td align="center">
                     <label class="td-label">Thay đổi</label>
                     <div class="td-value has-text-weight-semibold">
-                      @Shared.ConvertNumber(progress - item.progress_prev)%
+                      @Shared.FormatPercent(progress - item.progress_prev)%
                     </div>
                   </td>
                   <td align="center">
@@ -257,12 +251,6 @@
                         @kr.name
                       </td>
                       <td class="pl-2">
-                        <a class="icon-text has-text-link is-hidden" @onclick="() => ShowTask(item, kr)">
-                          <span class="icon is-small">
-                            <i class="material-icons-outlined">task</i>
-                          </span>
-                          <span>Hành động</span>
-                        </a>
                         @if (!string.IsNullOrEmpty(kr.link))
                         {
                           <a class="icon-text has-text-link" href="@kr.link" target="_blank">
@@ -277,7 +265,7 @@
                         <label class="td-label">Đạt được</label>
                         <div class="td-value">
                           <span class="has-text-success">
-                            @Shared.ConvertCurrency(kr.result)/@Shared.ConvertCurrency(kr.target)
+                            @Shared.ConvertNumber(kr.result)/@Shared.ConvertNumber(kr.target)
                           </span>
                           <span class="is-pulled-right">@kr.unit</span>
                         </div>
@@ -285,7 +273,7 @@
                       <td align="center">
                         <label class="td-label">Thay đổi</label>
                         <div class="td-value">
-                          @Shared.ConvertNumber(Shared.Progress(kr.change, kr.target))%
+                          @Shared.FormatPercent(Shared.Progress(kr.change, kr.target))%
                         </div>
                       </td>
                       <td align="center">
@@ -314,8 +302,6 @@ else
   </section>
 }
 
-<TaskPopup Okr="taskOkr" Kr="taskKr" />
-
 @if(!CheckAccess())
 {
   <div class="modal is-active">
@@ -342,10 +328,6 @@ else
   private OkrModel okr = new();
   private Dictionary<string, OkrModel> okrRelated = new();
   private List<string> okrsShow = new();
-
-  private OkrModel taskOkr = null;
-  private OkrModel.KeyResult taskKr = null;
-
   private List<OkrCheckinModel> dataList = new();
 
   protected override async Task OnInitializedAsync()
@@ -373,12 +355,6 @@ else
     }
   }
 
-  protected override void OnAfterRender(bool firstRender)
-  {
-    taskOkr = null;
-    taskKr = null;
-  }
-
   private string msgAccess = string.Empty;
   private bool CheckAccess()
   {
@@ -391,12 +367,6 @@ else
       okrsShow.Remove(id);
     else
       okrsShow.Add(id);
-  }
-
-  private void ShowTask(OkrModel okr, OkrModel.KeyResult kr)
-  {
-    taskOkr = okr;
-    taskKr = kr;
   }
 
   private async Task Chart()

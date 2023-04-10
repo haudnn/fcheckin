@@ -63,7 +63,7 @@
       @foreach (var okr in okrList)
       {
         var progress = DbOkr.GetProgress(okr.key_results);
-        var progressColor = Shared.ProgressColor(progress);
+        var okrColor = Shared.ProgressColor(progress);
         var showKey = okrsShow.Contains(okr.id);
         var confident = DbOkr.Confident(okr.confident);
 
@@ -98,15 +98,15 @@
             <label class="td-label">Tiến độ</label>
             <div class="td-value">
               <div class="progress_has_value">
-                <progress class="progress is-small @progressColor" value="@progress" max="100"></progress>
-                <span>@Shared.ConvertNumber(progress)%</span>
+                <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100" />
+                <span>@Shared.FormatPercent(progress)%</span>
               </div>
             </div>
           </td>
           <td align="center">
             <label class="td-label">Thay đổi</label>
             <div class="td-value has-text-weight-semibold">
-              @Shared.ConvertNumber(progress - okr.progress_prev)%
+              @Shared.FormatPercent(progress - okr.progress_prev)%
             </div>
           </td>
           <td align="center">
@@ -128,12 +128,6 @@
                 @kr.name
               </td>
               <td class="pl-2">
-                <a class="icon-text has-text-link" @onclick="() => ShowTask(okr, kr)">
-                  <span class="icon is-small">
-                    <i class="material-icons-outlined">task</i>
-                  </span>
-                  <span>Hành động</span>
-                </a>
                 @if (!string.IsNullOrEmpty(kr.link))
                 {
                   <a class="icon-text ml-2 has-text-link" href="@kr.link" target="_blank">
@@ -156,7 +150,7 @@
               <td align="center">
                 <label class="td-label">Thay đổi</label>
                 <div class="td-value">
-                  @Shared.ConvertNumber(Shared.Progress(kr.change, kr.target))%
+                  @Shared.FormatPercent(Shared.Progress(kr.change, kr.target))%
                 </div>
               </td>
               <td align="center">
@@ -200,6 +194,7 @@
           var key = dict.Key.Split("|");
           var item = dict.Value;
           var progress = DbOkr.GetProgress(item.key_results);
+          var okrColor = Shared.ProgressColor(progress);
           var showKey = okrsShow.Contains(item.id);
           var confident = DbOkr.Confident(item.confident);
           var related = okrList.SingleOrDefault(x => x.id == key[0]);
@@ -238,15 +233,15 @@
               <label class="td-label">Tiến độ</label>
               <div class="td-value">
                 <div class="progress_has_value">
-                  <progress class="progress is-small is-link" value="@progress" max="100"></progress>
-                  <span>@Shared.ConvertNumber(progress)%</span>
+                  <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100" />
+                  <span>@Shared.FormatPercent(progress)%</span>
                 </div>
               </div>
             </td>
             <td align="center">
               <label class="td-label">Thay đổi</label>
               <div class="td-value has-text-weight-semibold">
-                @Shared.ConvertNumber(progress - item.progress_prev)%
+                @Shared.FormatPercent(progress - item.progress_prev)%
               </div>
             </td>
             <td align="center">
@@ -262,18 +257,11 @@
             foreach (var kr in item.key_results)
             {
               var confidentKr = DbOkr.Confident(kr.confident);
-
               <tr>
                 <td class="pl-4">
                   @kr.name
                 </td>
                 <td class="pl-2">
-                  <a class="icon-text has-text-link" @onclick="() => ShowTask(item, kr)">
-                    <span class="icon is-small">
-                      <i class="material-icons-outlined">task</i>
-                    </span>
-                    <span>Hành động</span>
-                  </a>
                   @if (!string.IsNullOrEmpty(kr.link))
                   {
                     <a class="icon-text ml-2 has-text-link" href="@kr.link" target="_blank">
@@ -296,7 +284,7 @@
                 <td align="center">
                   <label class="td-label">Thay đổi</label>
                   <div class="td-value">
-                    @Shared.ConvertNumber(Shared.Progress(kr.change, kr.target))%
+                    @Shared.FormatPercent(Shared.Progress(kr.change, kr.target))%
                   </div>
                 </td>
                 <td align="center">

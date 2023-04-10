@@ -357,8 +357,6 @@
   private async Task ChangeFilterDate(DateRange range)
   {
     await GetList();
-    Console.WriteLine(filterDateS.Value.DateTime.ToString());
-    Console.WriteLine(filterDateE.Value.DateTime.ToString());
   }
 
   private async Task ChangeFilterUser(string value)
@@ -393,6 +391,8 @@
       dataTodoList.RemoveAll(x => x.assign_status != filterStatus);
     if(filterUserList.Count > 0)
       dataTodoList.RemoveAll(x => !filterUserList.Contains(x.user));
+    else if(filterUserList.Count == 0 && !string.IsNullOrEmpty(filterDepartment))
+      dataTodoList.Clear();
     
     dataList.Clear();
     var dateS = Convert.ToDateTime(filterDateS.Value.DateTime.ToString("yyyy-MM-dd"));
@@ -421,9 +421,15 @@
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần nhập tiêu đề công việc!");
     else
     {
-      await DbTodoItem.Update(Layout.Company.id, item);
-      editList.Remove(item.id);
+      var todolist = await DbTodolist.GetbyDay(Layout.Company.id, item.user, new DateTime(item.date));
+      if(todolist != null && todolist.status == 3)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể chọn ngày nhân viên đã check-out Todolist!");
+      else
+      {
+        await DbTodoItem.Update(Layout.Company.id, item);
+        editList.Remove(item.id);
+        await GetList();
+      }
     }
-    await GetList();
   }
 }

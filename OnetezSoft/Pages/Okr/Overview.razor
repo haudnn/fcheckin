@@ -139,14 +139,14 @@
               <div class="td-value">
                 <div class="progress_has_value">
                   <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100"></progress>
-                  <span>@string.Format("{0:0}%", progress)</span>
+                  <span>@Shared.FormatPercent(progress)%</span>
                 </div>
               </div>
             </td>
             <td align="center">
               <label class="td-label">Thay đổi</label>
               <div class="td-value has-text-weight-semibold">
-                @string.Format("{0:0}%", progress - okr.progress_prev)
+                @Shared.FormatPercent(progress - okr.progress_prev)%
               </div>
             </td>
             <td align="center">
@@ -181,7 +181,7 @@
                   <label class="td-label">Đạt được</label>
                   <div class="td-value">
                     <span class="has-text-success" title="@string.Format("{0:0,0.000} / {1:0,0.000}", kr.result, kr.target)">
-                      @Shared.ConvertCurrency(kr.result)/@Shared.ConvertCurrency(kr.target)
+                      @Shared.ConvertNumber(kr.result)/@Shared.ConvertNumber(kr.target)
                     </span>
                     <span class="is-pulled-right">@kr.unit</span>
                   </div>
@@ -189,7 +189,7 @@
                 <td align="center">
                   <label class="td-label">Thay đổi</label>
                   <div class="td-value">
-                    @string.Format("{0:0}%", Shared.Progress(kr.change, kr.target))
+                    @Shared.FormatPercent(Shared.Progress(kr.change, kr.target))%
                   </div>
                 </td>
                 <td align="center">

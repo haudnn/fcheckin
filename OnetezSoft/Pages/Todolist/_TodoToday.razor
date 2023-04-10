@@ -199,12 +199,24 @@
                 </a>
                 @if (!item.confirm)
                 {
-                  <a class="icon-text has-text-danger" @onclick="() => DeleteItem(item)">
-                    <span class="icon">
-                      <i class="material-icons-outlined is-size-5">delete</i>
-                    </span>
-                    <span>Xóa</span>
-                  </a>
+                  if(string.IsNullOrEmpty(item.assign_user))
+                  {
+                    <a class="icon-text has-text-danger" @onclick="() => DeleteItem(item)">
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">delete</i>
+                      </span>
+                      <span>Xóa</span>
+                    </a>
+                  }
+                  else
+                  {
+                    <a class="icon-text has-text-danger" @onclick="() => RejectItem(item)">
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">history</i>
+                      </span>
+                      <span>Hủy nhận</span>
+                    </a>
+                  }
                 }
               </div>
             </td>
@@ -216,7 +228,19 @@
           var level = DbTodolist.Level(item.level);
           <tr>
             <td>
-              <span class="has-text-weight-semibold has-text-link">@item.name</span>
+              @if(string.IsNullOrEmpty(item.assign_user))
+              {
+                <span class="has-text-weight-semibold has-text-link">@item.name</span>
+              }
+              else
+              {
+                <span class="icon-text">
+                  <span class="icon is-small has-text-danger" title="Công việc được giao">
+                    <i class="material-icons-outlined is-size-6">assignment</i>
+                  </span>
+                 <span class="has-text-weight-semibold has-text-link">@item.name</span>
+                </span>
+              }
             </td>
             <td>
               <label class="td-label">Phân loại</label>
@@ -314,12 +338,24 @@
                   </a>
                   @if (!item.confirm)
                   {
-                    <a class="icon-text has-text-danger" @onclick="() => DeleteItem(item)">
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-5">delete</i>
-                      </span>
-                      <span>Xóa</span>
-                    </a>
+                    if(string.IsNullOrEmpty(item.assign_user))
+                    {
+                      <a class="icon-text has-text-danger" @onclick="() => DeleteItem(item)">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">delete</i>
+                        </span>
+                        <span>Xóa</span>
+                      </a>
+                    }
+                    else
+                    {
+                      <a class="icon-text has-text-danger" @onclick="() => RejectItem(item)">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">history</i>
+                        </span>
+                        <span>Hủy nhận</span>
+                      </a>
+                    }
                   }
                 </div>
               }
@@ -505,12 +541,30 @@
       if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {item.name}?"))
         return;
 
-      todoItems.Remove(item);
       await DbTodoItem.Delete(Layout.Company.id, item.id);
       await DbTodolist.Update(Layout.Company.id, todolist);
+      todoItems.Remove(item);
     }
     else
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể xóa công việc đã Check-in !");
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể xóa công việc đã xác nhận !");
+  }
+
+  private async Task RejectItem(TodolistModel.Todo item)
+  {
+    if (todolist.status < 2 || !item.confirm)
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy nhận: {item.name}?"))
+        return;
+
+      item.todolist = null;
+      item.assign_status = 1;
+      await DbTodoItem.Update(Layout.Company.id, item);
+      await DbTodolist.Update(Layout.Company.id, todolist);
+      await JSRuntime.InvokeVoidAsync("clickBtn", "reload_assigned");
+      todoItems.Remove(item);
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể hủy công việc đã xác nhận !");
   }
 
   private async Task UpdateItem(TodolistModel.Todo item)
@@ -617,7 +671,7 @@
       var achievement = await DbTodolist.Achievement(Layout.Company.id, todolist.user_create);
       if(achievement)
         await JSRuntime.InvokeVoidAsync("location.reload");
-      await OnCheckout.InvokeAsync(); 
+      await OnCheckout.InvokeAsync();
     }
   }
 

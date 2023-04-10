@@ -49,7 +49,7 @@ public class DbOkrLog
 
     var collection = _db.GetCollection<OkrLogModel>(_collection);
 
-    var results = await collection.Find(new BsonDocument()).ToListAsync();
+    var results = await collection.Find(x => x.user_id == userId).ToListAsync();
 
     return results.OrderByDescending(x => x.created).ToList();
   }

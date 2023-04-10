@@ -46,6 +46,24 @@ namespace OnetezSoft.Handled
 
 
     /// <summary>
+    /// Format kiểu dữ liệu phần trăm
+    /// </summary>
+    public static string FormatPercent(double value)
+    {
+      if (value == 0)
+        return "0";
+      else if (value >= 1000 || value <= -1000)
+        return value.ToString("0,0");
+      else if (value % 1 == 0)
+        return value.ToString();
+      else if (value % 1 != 0)
+        return value.ToString("0.0");
+
+      return value.ToString();
+    }
+
+
+    /// <summary>
     /// Đổi cách hiển thị tiền tệ
     /// </summary>
     public static string ConvertCurrency(double money)
@@ -58,7 +76,6 @@ namespace OnetezSoft.Handled
         return money.ToString();
       else if (money != 0)
         return money.ToString();
-
       return "0";
     }
 
@@ -78,19 +95,19 @@ namespace OnetezSoft.Handled
         {
           str = String.Format(" {0:0,0.0}", number / 1000000000);
           str = str.Replace(" 0", "").Replace(".0", "");
-          str += "B";
+          str += " tỷ";
         }
         else if (number >= 1000000)
         {
           str = String.Format(" {0:0,0.0}", number / 1000000);
           str = str.Replace(" 0", "").Replace(".0", "");
-          str += "M";
+          str += " triệu";
         }
         else if (number >= 1000)
         {
           str = String.Format(" {0:0,0}", number / 1000);
           str = str.Replace(" 0", "");
-          str += "K";
+          str += " nghìn";
         }
         else if (number % 1 == 0)
         {

@@ -4,9 +4,7 @@
 <section class="card p-5">
   <ul class="columns is-vcentered is-variable is-2 mb-3">
     <li class="column">
-      <h1 class="title is-5 has-text-info">
-        VIỆC ĐƯỢC GIAO
-      </h1>
+      <h1 class="title is-5 has-text-info">VIỆC ĐƯỢC GIAO</h1>
     </li>
     <li class="column is-narrow">
       <div class="dropdown is-hoverable is-right">
@@ -51,6 +49,8 @@
     </li>
   </ul>
 
+  <a id="reload_assigned" class="is-hidden" @onclick="GetList"></a>
+
   <table class="table is-fullwidth is-vcentered is-responsive">
     <thead>
         <tr>
@@ -68,7 +68,7 @@
       {
         var level = DbTodolist.Level(todo.level);
         var assign = DbTodolist.AssignStatus(todo.assign_status);
-        var member = UserService.GetMember(Layout.UserList, todo.user);
+        var member = UserService.GetMember(Layout.UserList, todo.assign_user);
 
         <tr>
           <td>
@@ -210,27 +210,29 @@
 
     item.assign_status = 3;
     await DbTodoItem.Update(Layout.Company.id, item);
+    // Gửi thông báo cho người giao
+    await DbNotify.Create(Layout.Company.id, 203, item.id, item.assign_user, Layout.User.id);
   }
 
   private async Task AcceptItem(TodolistModel.Todo item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn chập nhận công việc: {item.name}?"))
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn chấp nhận công việc: {item.name}?"))
       return;
 
-    item.confirm = true;
     item.assign_status = 2;
     string error = await TodolistService.AddTodoItem(Layout.Company.id, item.user, item.date, item);
     if(string.IsNullOrEmpty(error))
     {
       await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm công việc vào Todolist của bạn.");
+      // Gửi thông báo cho người giao
+      await DbNotify.Create(Layout.Company.id, 202, item.id, item.assign_user, Layout.User.id);
+      // Yêu cầu làm mới lại trang Todolist
       SendMessage(item);
     }
     else
     {
       item.assign_status = 1;
       await JSRuntime.InvokeVoidAsync("tagline", false, error);
-      // Gửi thông báo cho người giao
-      await DbNotify.Create(Layout.Company.id, 202, item.id, item.assign_user, Layout.User.id);
     }
   }
 

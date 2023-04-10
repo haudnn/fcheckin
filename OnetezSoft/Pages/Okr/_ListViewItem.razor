@@ -29,8 +29,8 @@
         var progressColor = Shared.ProgressColor(progress);
 
         <div class="progress_has_value">
-          <progress class="progress is-small @progressColor" value="@progress" max="100"></progress>
-          <span>@string.Format("{0:0}%", progress)</span>
+          <progress class="progress is-small @progressColor" value="@Convert.ToInt32(progress)" max="100"></progress>
+          <span>@Shared.FormatPercent(progress)%</span>
         </div>
       }
     </li>
@@ -83,8 +83,7 @@
     double total = 0;
     foreach (var item in list)
       total += DbOkr.GetProgress(item.key_results);
-    var result = list.Count > 0 ? total / list.Count : 0;
-    return Convert.ToInt32(result);
+    return list.Count > 0 ? total / list.Count : 0;
   }
 
   private void ToggleChilds()
