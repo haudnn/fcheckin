@@ -1,7 +1,7 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<div class="card p-5 @(_loaded ? "" : "is-loading")">
+<div class="card p-5 p-4-mobile">
   <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3">
     <li class="column is-full">
       <h1 class="title is-5 has-text-info">
@@ -34,51 +34,10 @@
       </div>
     </li>
     <li class="column is-narrow">
-      <div class="dropdown is-right @(departmentShow ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="icon-text" @onclick="() => departmentShow = !departmentShow">
-            <span class="has-text-link">
-              @filterDepartment.name.Replace("└─", "").Replace("'", "")
-            </span>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-            </span>
-          </a>
-        </div>
-        <div class="dropdown-menu">
-          <div class="dropdown-content">
-            <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(null)">
-              Tất cả phòng ban
-            </a>
-            @foreach (var sl in departments)
-            {
-              <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(sl)">
-                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
-              </a>
-            }
-          </div>
-        </div>
-      </div>
+      <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
     </li>
     <li class="column is-one-quarter">
-      <div class="control has-icons-right has_suggest">
-        <input class="input is-rounded" type="text" placeholder="Nhập tên nhân viên..."
-               autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
-        <ul class="suggest">
-          @foreach (var item in userSuggests)
-          {
-            <li class="rsitem" @onclick="() => UserSelected(item)">
-              <div class="user_item">
-                <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
-                <span>@item.FullName</span>
-              </div>
-            </li>
-          }
-        </ul>
-        <span class="icon is-right">
-          <i class="material-icons-outlined">search</i>
-        </span>
-      </div>
+      <MemberSearch department="@filterDepartment" sources="Layout.UserList" OnUpdate="ChangeFilterUser" />
     </li>
   </ul>
 
@@ -254,17 +213,12 @@
   [Parameter]
   public List<DepartmentModel.SelectList> departments { get; set; }
 
-  private bool _loaded = false;
-
   private List<TodolistModel> database = new();
   private List<string> showItems = new();
   private List<UserModel> userList = new();
-  private List<UserModel> userSuggests = new();
-  private string filterUserSearch = string.Empty;
+  private string filterDepartment = string.Empty;
   private DateTimeOffset? filterStart = null;
   private DateTimeOffset? filterEnd = null;
-  private DepartmentModel.SelectList filterDepartment = new() { name = "Tất cả phòng ban" };
-  private bool departmentShow = false;
 
   protected override async Task OnInitializedAsync()
   {
@@ -272,13 +226,7 @@
     filterStart = start;
     filterEnd = end;
 
-    DepartmentModel.SelectList department = null;
-    if (!string.IsNullOrEmpty(Layout.User.department_default))
-      department = departments.SingleOrDefault(x => x.id == Layout.User.department_default);
-
-    await ChangeDepartment(department);
-
-    _loaded = true;
+    await ChangeFilterDepartment(Layout.User.department_default);
   }
 
   public async Task ChangePicker(DateRange range)
@@ -297,64 +245,27 @@
     await GetData();
   }
 
-  private async Task ChangeDepartment(DepartmentModel.SelectList item)
+  private async Task ChangeFilterDepartment(string value)
   {
-    departmentShow = false;
-    userSuggests = new();
-    filterUserSearch = string.Empty;
-    filterDepartment = item != null ? item : new() { name = "Tất cả phòng ban" };
-
-    if (item == null)
-      userList = (from x in Layout.UserList select x).ToList();
+    filterDepartment = value;
+    if (string.IsNullOrEmpty(value))
+      userList = Layout.UserList;
     else
-      userList = (from x in Layout.UserList
-                  where x.departments_id.Contains(filterDepartment.id)
-                  select x).ToList();
+      userList = Layout.UserList.Where(x => x.departments_id.Contains(filterDepartment)).ToList();
+    await GetData();
+  }
 
+  private async Task ChangeFilterUser(string value)
+  {
+    if(!string.IsNullOrEmpty(value))
+      userList = Layout.UserList.Where(x => x.id == value).ToList();
     await GetData();
   }
 
   private async Task GetData()
   {
-    _loaded = false;
-
     showItems.Clear();
     database = await DbTodolist.GetList(Layout.Company.id, filterStart.Value.DateTime, filterEnd.Value.DateTime);
-
-    _loaded = true;
-  }
-
-  private string UserSearch
-  {
-    get => filterUserSearch;
-    set
-    {
-      filterUserSearch = value;
-      userSuggests = new();
-      if (!string.IsNullOrEmpty(value))
-      {
-        foreach (var item in Layout.UserList)
-        {
-          bool check = true;
-          if (!string.IsNullOrEmpty(filterDepartment.id))
-            if (item.departments_id == null || !item.departments_id.Contains(filterDepartment.id))
-              check = false;
-          if (!Handled.Shared.SearchKeyword(filterUserSearch, item.FullName))
-            check = false;
-
-          if (check)
-            userSuggests.Add(item);
-        }
-      }
-    }
-  }
-
-  private async Task UserSelected(UserModel item)
-  {
-    userSuggests = new();
-    filterUserSearch = item.FullName;
-    userList = new() { item };
-    await GetData();
   }
 
   private void ShowItems(string id)

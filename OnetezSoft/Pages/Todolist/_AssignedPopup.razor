@@ -11,8 +11,8 @@
       @foreach (var item in dataList)
       {
         var members = memberTodoList[item.id];
-        <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3">
-          <li class="column is-narrow" style="width: calc(100% - 560px);">
+        <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3 is-mobile">
+          <li class="column is-narrow is-full-mobile" style="width: calc(100% - 560px);">
             <div class="field">
               <label class="label">Tiêu đề công việc</label>
               <div class="control">
@@ -20,7 +20,7 @@
               </div>
             </div>
           </li>
-          <li class="column is-narrow" style="width: 140px;">
+          <li class="column is-narrow is-full-mobile" style="width: 140px;">
             <div class="field">
               <label class="label">Độ ưu tiên</label>
               <div class="control">
@@ -35,7 +35,7 @@
               </div>
             </div>
           </li>
-          <li class="column is-narrow" style="width: 110px;">
+          <li class="column is-narrow is-half-mobile" style="width: 110px;">
             <div class="field">
               <label class="label">Bắt đầu</label>
               <div class="control">
@@ -50,7 +50,7 @@
               </div>
             </div>
           </li>
-          <li class="column is-narrow" style="width: 110px;">
+          <li class="column is-narrow is-half-mobile" style="width: 110px;">
             <div class="field">
               <label class="label">Kết thúc</label>
               <div class="control">
@@ -65,7 +65,7 @@
               </div>
             </div>
           </li>
-          <li class="column is-narrow" style="width: 160px;">
+          <li class="column is-narrow is-half-mobile" style="width: 160px;">
             <div class="field">
               <label class="label">Ngày thực hiện</label>
               <div class="control">
@@ -73,17 +73,17 @@
               </div>
             </div>
           </li>
-          <li class="column is-narrow has-text-centered" style="width: 40px;">
+          <li class="column is-narrow is-half-mobile has-text-centered" style="width: 40px;">
             <div class="field">
               <label class="label">Xóa</label>
-              <div class="control">
+              <div class="control py-1">
                 <a class="icon has-text-danger" @onclick="() => DeleteItem(item)">
                   <i class="material-icons-outlined is-size-5">delete</i>
                 </a>
               </div>
             </div>
           </li>
-          <li class="column is-one-quarter">
+          <li class="column is-one-quarter is-full-mobile">
             <MemberSelected title="Chọn người thực hiện" members="members" sources="userList"
               OnUpdate="x => members = x" />
           </li>

@@ -210,7 +210,20 @@
           var level = DbTodolist.Level(item.level);
           <tr>
             <td>
-              <span class="has-text-weight-semibold has-text-link">@item.name</span>
+              @if(string.IsNullOrEmpty(item.assign_user))
+              {
+                <span class="has-text-weight-semibold has-text-link">@item.name</span>
+              }
+              else
+              {
+                var assignor = UserService.GetMember(Layout.UserList, item.assign_user);
+                <span class="icon-text">
+                  <span class="icon is-small has-text-danger" title="Công việc được giao bởi @assignor.name">
+                    <i class="material-icons-outlined is-size-6">assignment</i>
+                  </span>
+                  <span class="has-text-weight-semibold has-text-link">@item.name</span>
+                </span>
+              }
             </td>
             <td>
               <label class="td-label">Phân loại</label>
@@ -599,7 +612,24 @@
                 var status = DbTodolist.Status(todo.status);
                 <tr>
                   <td class="pl-6">
-                    <div class="ml-3 text_1_line" onclick="toggleText(this)">• @todo.name</div>
+                    <span class="icon-text ml-3">
+                      @if(string.IsNullOrEmpty(todo.assign_user))
+                      {
+                        <span class="icon is-small has-text-grey">
+                          <i class="material-icons is-size-7">fiber_manual_record</i>
+                        </span>
+                      }
+                      else
+                      {
+                        var assignor = UserService.GetMember(Layout.UserList, todo.assign_user);
+                        <span class="icon is-small has-text-danger" title="Công việc được giao bởi @assignor.name">
+                          <i class="material-icons-outlined is-size-6">assignment</i>
+                        </span>
+                      }
+                      <span class="has-text-weight-semibold has-text-link" onclick="toggleText(this)">
+                        @todo.name
+                      </span>
+                    </span>
                   </td>
                   <td>
                     <label class="has-text-grey">Phân loại:</label>

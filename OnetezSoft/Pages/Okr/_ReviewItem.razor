@@ -4,137 +4,264 @@
   var progress = DbOkr.GetProgress(data.key_results);
   var okrColor = Shared.ProgressColor(progress);
 
-  <tr>
-    <td>
-      <div class="is-flex">
-        <a class="has-text-weight-semibold has-text-link" href="/okr/review/@data.user_create/@data.id">
-          @data.name
-        </a>
-      </div>
-    </td>
-    <td align="right">
-      <span class="icon-text">
-        @if (data.done)
-        {
-          <span class="ml-1 icon" title="OKRs đã hoàn thành">
-            <i class="material-icons is-size-6 has-text-success">check_circle</i>
-          </span>
-        }
-        <a class="icon" @onclick="() => toggle = !toggle">
-          <i class="material-icons-outlined is-size-5">
-            @(toggle ? "arrow_drop_down" : "arrow_right")
-          </i>
-        </a>
-      </span>
-    </td>
-    <td>
-      <label class="td-label">Tiến độ</label>
-      <div class="td-value">
-        <div class="progress_has_value">
-          <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100"></progress>
-          <span>@Shared.FormatPercent(progress)%</span>
+  if(Layout.IsMobile)
+  {
+    <tr>
+      <td colspan="8">
+        <ul class="columns is-vcentered is-multiline is-mobile is-variable is-1" style="width: 100%;">
+          <li class="column is-full">
+            <div class="icon-text">
+              <a class="has-text-weight-semibold has-text-link" href="/okr/review/@data.user_create/@data.id">
+                @data.name
+              </a>
+              @if (data.done)
+              {
+                <span class="icon" title="OKRs đã hoàn thành">
+                  <i class="material-icons is-size-6 has-text-success">check_circle</i>
+                </span>
+              }
+              <a class="icon" @onclick="() => toggle = !toggle">
+                <i class="material-icons-outlined is-size-5">
+                  @(toggle ? "arrow_drop_down" : "arrow_right")
+                </i>
+              </a>
+            </div>
+          </li>
+          <li class="column is-half has-text-grey">
+            Tiến độ
+          </li>
+          <li class="column is-half">
+            <div class="progress_has_value">
+              <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100" />
+              <span>@Shared.FormatPercent(progress)%</span>
+            </div>
+          </li>
+          <li class="column is-half has-text-grey">
+            Điểm hệ thống
+          </li>
+          <li class="column is-half">
+            @Shared.FormatPercent(progress)%
+          </li>
+          <li class="column is-half has-text-grey">
+            Tự đánh giá
+          </li>
+          <li class="column is-half">
+            @Shared.FormatPercent(data.review_data.staff_point)%
+          </li>
+          <li class="column is-half has-text-grey">
+            QL đánh giá
+          </li>
+          <li class="column is-half">
+            @Shared.FormatPercent(data.review_data.manager_point)%
+          </li>
+          <li class="column is-half has-text-grey">
+            Nhân viên
+          </li>
+          <li class="column is-half">
+            @if(data.review_send_status > 1)
+            {
+              <span class="has-text-grey">
+                @string.Format("{0:dd/MM/yyyy HH:mm}", new DateTime(data.review_send_date))
+              </span>
+            }
+          </li>
+          <li class="column is-half has-text-grey">
+            Quản lý
+          </li>
+          <li class="column is-half">
+            @if(data.review_send_status == 3)
+            {
+              <span class="has-text-grey">
+                @string.Format("{0:dd/MM/yyyy HH:mm}", new DateTime(data.review_manager_date))
+              </span>
+            }
+            else if(data.review_send_status > 1)
+            {
+              <span class="has-text-warning-dark">
+                Chưa xác nhận
+              </span>
+            }
+          </li>
+        </ul>
+      </td>
+    </tr>
+  }
+  else
+  {
+    <tr>
+      <td>
+        <div class="is-flex">
+          <a class="has-text-weight-semibold has-text-link" href="/okr/review/@data.user_create/@data.id">
+            @data.name
+          </a>
         </div>
-      </div>
-    </td>
-    <td align="center">
-      <label class="td-label">Điểm hệ thống</label>
-      <div class="td-value">
-        <div class="input is-centered has-text-weight-semibold is_bg">
-          @Shared.FormatPercent(progress)%
+      </td>
+      <td align="right">
+        <span class="icon-text">
+          @if (data.done)
+          {
+            <span class="ml-1 icon" title="OKRs đã hoàn thành">
+              <i class="material-icons is-size-6 has-text-success">check_circle</i>
+            </span>
+          }
+          <a class="icon" @onclick="() => toggle = !toggle">
+            <i class="material-icons-outlined is-size-5">
+              @(toggle ? "arrow_drop_down" : "arrow_right")
+            </i>
+          </a>
+        </span>
+      </td>
+      <td>
+        <label class="td-label">Tiến độ</label>
+        <div class="td-value">
+          <div class="progress_has_value">
+            <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100" />
+            <span>@Shared.FormatPercent(progress)%</span>
+          </div>
         </div>
-      </div>
-    </td>
-    <td align="center">
-      <label class="td-label">Tự đánh giá</label>
-      <div class="td-value">
-        <div class="input is-centered has-text-weight-semibold is_bg">
-          @Shared.FormatPercent(data.review_data.staff_point)%
+      </td>
+      <td align="center">
+        <label class="td-label">Điểm hệ thống</label>
+        <div class="td-value">
+          <div class="input is-centered has-text-weight-semibold is_bg">
+            @Shared.FormatPercent(progress)%
+          </div>
         </div>
-      </div>
-    </td>
-    <td align="center">
-      <label class="td-label">QL đánh giá</label>
-      <div class="td-value">
-        <div class="input is-centered has-text-weight-semibold is_bg">
-          @Shared.FormatPercent(data.review_data.manager_point)%
+      </td>
+      <td align="center">
+        <label class="td-label">Tự đánh giá</label>
+        <div class="td-value">
+          <div class="input is-centered has-text-weight-semibold is_bg">
+            @Shared.FormatPercent(data.review_data.staff_point)%
+          </div>
         </div>
-      </div>
-    </td>
-    <td align="center">
-      <label class="td-label">Nhân viên</label>
-      <div class="td-value">
-        @if(data.review_send_status > 1)
-        {
-          <span class="has-text-grey">
-            @string.Format("{0:dd/MM/yyyy HH:mm}", new DateTime(data.review_send_date))
-          </span>
-        }
-      </div>
-    </td>
-    <td align="center">
-      <label class="td-label">Quản lý</label>
-      <div class="td-value">
-        @if(data.review_send_status == 3)
-        {
-          <span class="has-text-grey">
-            @string.Format("{0:dd/MM/yyyy HH:mm}", new DateTime(data.review_manager_date))
-          </span>
-        }
-        else if(data.review_send_status > 1)
-        {
-          <span class="has-text-warning-dark">
-            Chưa xác nhận
-          </span>
-        }
-      </div>
-    </td>
-  </tr>
+      </td>
+      <td align="center">
+        <label class="td-label">QL đánh giá</label>
+        <div class="td-value">
+          <div class="input is-centered has-text-weight-semibold is_bg">
+            @Shared.FormatPercent(data.review_data.manager_point)%
+          </div>
+        </div>
+      </td>
+      <td align="center">
+        <label class="td-label">Nhân viên</label>
+        <div class="td-value">
+          @if(data.review_send_status > 1)
+          {
+            <span class="has-text-grey">
+              @string.Format("{0:dd/MM/yyyy HH:mm}", new DateTime(data.review_send_date))
+            </span>
+          }
+        </div>
+      </td>
+      <td align="center">
+        <label class="td-label">Quản lý</label>
+        <div class="td-value">
+          @if(data.review_send_status == 3)
+          {
+            <span class="has-text-grey">
+              @string.Format("{0:dd/MM/yyyy HH:mm}", new DateTime(data.review_manager_date))
+            </span>
+          }
+          else if(data.review_send_status > 1)
+          {
+            <span class="has-text-warning-dark">
+              Chưa xác nhận
+            </span>
+          }
+        </div>
+      </td>
+    </tr>
+  }
 
   @if(toggle)
   {
     foreach (var kr in data.key_results)
     {
-      <tr>
-        <td class="pl-4">
-          @kr.name
-        </td>
-        <td class="td-hide"></td>
-        <td>
-          <label class="td-label">Tiến độ</label>
-          <div class="td-value">
-            <span class="has-text-success" title="@string.Format("{0:0,0.000} / {1:0,0.000}", kr.result, kr.target)">
-              @Shared.ConvertNumber(kr.result)/@Shared.ConvertNumber(kr.target)
-            </span>
-            <span class="is-pulled-right">@kr.unit</span>
-          </div>
-        </td>
-        <td align="center">
-          <label class="td-label">Điểm hệ thống</label>
-          <div class="td-value">
-            <div class="input is-centered has-text-weight-semibold is_bg">
-              @Shared.FormatPercent(Shared.Progress(kr.result, kr.target))%
+      if(Layout.IsMobile)
+      {
+        <tr>
+          <td colspan="8">
+            <ul class="columns is-vcentered is-multiline is-mobile is-variable is-1" style="width: 100%;">
+              <li class="column is-full has-text-weight-medium">
+                @kr.name
+              </li>
+              <li class="column is-half has-text-grey">
+                Tiến độ
+              </li>
+              <li class="column is-half">
+                <span class="has-text-success">
+                  @Shared.ConvertNumber(kr.result)/@Shared.ConvertNumber(kr.target)
+                </span>
+                <span class="is-pulled-right">@kr.unit</span>
+              </li>
+              <li class="column is-half has-text-grey">
+                Điểm hệ thống
+              </li>
+              <li class="column is-half">
+                @Shared.FormatPercent(Shared.Progress(kr.result, kr.target))%
+              </li>
+              <li class="column is-half has-text-grey">
+                Tự đánh giá
+              </li>
+              <li class="column is-half">
+                @Shared.FormatPercent(kr.review_data.staff_point)%
+              </li>
+              <li class="column is-half has-text-grey">
+                QL đánh giá
+              </li>
+              <li class="column is-half">
+                @Shared.FormatPercent(kr.review_data.manager_point)%
+              </li>
+            </ul>
+          </td>
+        </tr>
+      }
+      else
+      {
+        <tr>
+          <td class="pl-4">
+            @kr.name
+          </td>
+          <td class="td-hide"></td>
+          <td>
+            <label class="td-label">Tiến độ</label>
+            <div class="td-value">
+              <span class="has-text-success" title="@string.Format("{0:0,0.000} / {1:0,0.000}", kr.result, kr.target)">
+                @Shared.ConvertNumber(kr.result)/@Shared.ConvertNumber(kr.target)
+              </span>
+              <span class="is-pulled-right">@kr.unit</span>
             </div>
-          </div>
-        </td>
-        <td align="center">
-          <label class="td-label">Tự đánh giá</label>
-          <div class="td-value">
-            <div class="input is-centered has-text-weight-semibold is_bg">
-              @Shared.FormatPercent(kr.review_data.staff_point)%
+          </td>
+          <td align="center">
+            <label class="td-label">Điểm hệ thống</label>
+            <div class="td-value">
+              <div class="input is-centered has-text-weight-semibold is_bg">
+                @Shared.FormatPercent(Shared.Progress(kr.result, kr.target))%
+              </div>
             </div>
-          </div>
-        </td>
-        <td align="center">
-          <label class="td-label">QL đánh giá</label>
-          <div class="td-value">
-            <div class="input is-centered has-text-weight-semibold is_bg">
-              @Shared.FormatPercent(kr.review_data.manager_point)%
+          </td>
+          <td align="center">
+            <label class="td-label">Tự đánh giá</label>
+            <div class="td-value">
+              <div class="input is-centered has-text-weight-semibold is_bg">
+                @Shared.FormatPercent(kr.review_data.staff_point)%
+              </div>
             </div>
-          </div>
-        </td>
-        <td align="center"></td>
-        <td align="center"></td>
-      </tr>
+          </td>
+          <td align="center">
+            <label class="td-label">QL đánh giá</label>
+            <div class="td-value">
+              <div class="input is-centered has-text-weight-semibold is_bg">
+                @Shared.FormatPercent(kr.review_data.manager_point)%
+              </div>
+            </div>
+          </td>
+          <td align="center"></td>
+          <td align="center"></td>
+        </tr>
+      }
     }
   }
 }

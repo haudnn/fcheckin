@@ -1,7 +1,7 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<div class="card p-5 @(_loaded ? "" : "is-loading")">
+<div class="card p-5">
   <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3">
     <li class="column">
       <div class="dropdown is-hoverable">
@@ -32,7 +32,10 @@
         </div>
       </div>
     </li>
-    <li class="column is-narrow has-text-right" style="width: 130px;">
+    <li class="column is-narrow">
+      <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
+    </li>
+    <li class="column is-narrow has-text-right" style="width: 150px;">
       <div class="dropdown is-hoverable is-right">
         <div class="dropdown-trigger">
           <a class="icon-text">
@@ -78,33 +81,6 @@
             <a class="dropdown-item" @onclick="() => ChangeDate(3)">
               Quý này
             </a>
-          </div>
-        </div>
-      </div>
-    </li>
-    <li class="column is-narrow">
-      <div class="dropdown is-right @(departmentShow ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="icon-text" @onclick="() => departmentShow = !departmentShow">
-            <span class="has-text-link">
-              @filterDepartment.name.Replace("└─", "").Replace("'", "")
-            </span>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-            </span>
-          </a>
-        </div>
-        <div class="dropdown-menu">
-          <div class="dropdown-content">
-            <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(null)">
-              Tất cả phòng ban
-            </a>
-            @foreach (var sl in departments)
-            {
-              <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(sl)">
-                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
-              </a>
-            }
           </div>
         </div>
       </div>
@@ -176,28 +152,14 @@
   [Parameter]
   public List<DepartmentModel.SelectList> departments { get; set; }
 
-  private bool _loaded = false;
-
   private List<ProgressModel> rankList = new();
-  private List<string> userList = new();
+  private List<string> filterUserList = new();
+  private string filterDepartment = string.Empty;
   private int filterDate = 2;
-  private DepartmentModel.SelectList filterDepartment = new() { name = "Tất cả phòng ban" };
-  private bool departmentShow = false;
 
   protected override async Task OnInitializedAsync()
   {
-    DepartmentModel.SelectList department = null;
-    if (!string.IsNullOrEmpty(Layout.User.department_default))
-      department = departments.SingleOrDefault(x => x.id == Layout.User.department_default);
-
-    await ChangeDepartment(department);
-
-    _loaded = true;
-  }
-
-  protected override void OnAfterRender(bool firstRender)
-  {
-    departmentShow = false;
+    await ChangeFilterDepartment(Layout.User.department_default);
   }
 
   private async Task ChangeDate(int type)
@@ -206,27 +168,24 @@
     await GetData();
   }
 
-  private async Task ChangeDepartment(DepartmentModel.SelectList item)
+  private async Task ChangeFilterDepartment(string value)
   {
-    filterDepartment = item != null ? item : new() { name = "Tất cả phòng ban" };
-    if (item == null)
-      userList = (from x in Layout.UserList select x.id).ToList();
+    filterDepartment = value;
+    if (string.IsNullOrEmpty(value))
+      filterUserList = Layout.UserList.Select(x => x.id).ToList();
     else
-      userList = (from x in Layout.UserList
-                  where x.departments_id.Contains(filterDepartment.id)
-                  select x.id).ToList();
+      filterUserList = Layout.UserList.Where(x => x.departments_id.Contains(filterDepartment))
+        .Select(x => x.id).ToList();
     await GetData();
   }
 
   private async Task GetData()
   {
-    _loaded = false;
-
     Shared.GetTimeSpan(filterDate, out DateTime start, out DateTime end);
     var database = await DbKaizen.GetList(Layout.Company.id, null, null, start, end);
 
     rankList.Clear();
-    foreach (var userId in userList)
+    foreach (var userId in filterUserList)
     {
       var user = Layout.UserList.SingleOrDefault(x => x.id == userId);
       if (user != null)
@@ -246,7 +205,5 @@
       }
     }
     rankList = rankList.OrderByDescending(x => x.value).ToList();
-
-    _loaded = true;
   }
 }

@@ -1,7 +1,7 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<div class="card p-5 @(_loaded ? "" : "is-loading")">
+<div class="card p-5 p-4-mobile">
   <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3">
     <li class="column is-full">
       <h1 class="title is-5 has-text-info">
@@ -34,51 +34,10 @@
       </div>
     </li>
     <li class="column is-narrow">
-      <div class="dropdown is-right @(departmentShow ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="icon-text" @onclick="() => departmentShow = !departmentShow">
-            <span class="has-text-link">
-              @filterDepartment.name.Replace("└─", "").Replace("'", "")
-            </span>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-            </span>
-          </a>
-        </div>
-        <div class="dropdown-menu">
-          <div class="dropdown-content">
-            <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(null)">
-              Tất cả phòng ban
-            </a>
-            @foreach (var sl in departments)
-            {
-              <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(sl)">
-                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
-              </a>
-            }
-          </div>
-        </div>
-      </div>
+      <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
     </li>
     <li class="column is-one-quarter">
-      <div class="control has-icons-right has_suggest">
-        <input class="input is-rounded" type="text" placeholder="Nhập tên nhân viên..."
-               autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
-        <ul class="suggest">
-          @foreach (var item in userSuggests)
-          {
-            <li class="rsitem" @onclick="() => UserSelected(item)">
-              <div class="user_item">
-                <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
-                <span>@item.FullName</span>
-              </div>
-            </li>
-          }
-        </ul>
-        <span class="icon is-right">
-          <i class="material-icons-outlined">search</i>
-        </span>
-      </div>
+      <MemberSearch department="@filterDepartment" sources="Layout.UserList" OnUpdate="ChangeFilterUser" />
     </li>
   </ul>
   <ul class="columns is-multiline is-variable is-2">
@@ -109,16 +68,11 @@
   [Parameter]
   public List<DepartmentModel.SelectList> departments { get; set; }
 
-  private bool _loaded = false;
-
   private List<ProgressModel> chartList = new();
-  private List<UserModel> userSuggests = new();
-  private string filterUserSearch = string.Empty;
+  private string filterDepartment = string.Empty;
   private string filterUserId = string.Empty;
-  private DateTimeOffset? filterStart { get; set; }
-  private DateTimeOffset? filterEnd { get; set; }
-  private DepartmentModel.SelectList filterDepartment = new() { name = "Tất cả phòng ban" };
-  private bool departmentShow = false;
+  private DateTimeOffset? filterStart = null;
+  private DateTimeOffset? filterEnd = null;
 
   protected override async Task OnInitializedAsync()
   {
@@ -126,13 +80,7 @@
     filterStart = start;
     filterEnd = end;
 
-    DepartmentModel.SelectList department = null;
-    if (!string.IsNullOrEmpty(Layout.User.department_default))
-      department = departments.SingleOrDefault(x => x.id == Layout.User.department_default);
-
-    await ChangeDepartment(department);
-
-    _loaded = true;
+    await ChangeFilterDepartment(Layout.User.department_default);
   }
 
   public async Task ChangePicker(DateRange range)
@@ -151,53 +99,22 @@
     await GetData();
   }
 
-  private async Task ChangeDepartment(DepartmentModel.SelectList item)
+  private async Task ChangeFilterDepartment(string value)
   {
-    departmentShow = false;
-    userSuggests = new();
+    filterDepartment = value;
     filterUserId = string.Empty;
-    filterUserSearch = string.Empty;
-    filterDepartment = item != null ? item : new() { name = "Tất cả phòng ban" };
     await GetData();
   }
 
-  private string UserSearch
+  private async Task ChangeFilterUser(string value)
   {
-    get => filterUserSearch;
-    set
-    {
-      filterUserSearch = value;
-      userSuggests = new();
-      if (!string.IsNullOrEmpty(value))
-      {
-        foreach (var item in Layout.UserList)
-        {
-          bool check = true;
-          if (!string.IsNullOrEmpty(filterDepartment.id))
-            if (item.departments_id == null || !item.departments_id.Contains(filterDepartment.id))
-              check = false;
-          if (!Handled.Shared.SearchKeyword(filterUserSearch, item.FullName))
-            check = false;
-
-          if (check)
-            userSuggests.Add(item);
-        }
-      }
-    }
-  }
-
-  private async Task UserSelected(UserModel item)
-  {
-    userSuggests = new();
-    filterUserId = item.id;
-    filterUserSearch = item.FullName;
+    if(!string.IsNullOrEmpty(value))
+      filterUserId = value;
     await GetData();
   }
 
   private async Task GetData()
   {
-    _loaded = false;
-
     var start = filterStart.Value.DateTime;
     var end = filterEnd.Value.DateTime;
     var database = await DbTodolist.GetList(Layout.Company.id, start, end);
@@ -205,17 +122,18 @@
     chartList.Clear();
     if (!string.IsNullOrEmpty(filterUserId))
     {
+      var user = UserService.GetUser(Layout.UserList, filterUserId);
       var item = new ProgressModel()
       {
         id = filterUserId,
-        name = filterUserSearch
+        name = user.FullName
       };
       item.desc = await RenderChart(filterUserId, new List<string>() { filterUserId }, database);
       chartList.Add(item);
     }
-    else if (!string.IsNullOrEmpty(filterDepartment.id))
+    else if (!string.IsNullOrEmpty(filterDepartment))
     {
-      var department = departmentAll.SingleOrDefault(x => x.id == filterDepartment.id);
+      var department = departmentAll.SingleOrDefault(x => x.id == filterDepartment);
       if (department != null)
       {
         var item = new ProgressModel()
@@ -253,8 +171,6 @@
         chartList.Add(item);
       }
     }
-
-    _loaded = true;
   }
 
   private async Task<string> RenderChart(string id, List<string> members_id, List<TodolistModel> data)

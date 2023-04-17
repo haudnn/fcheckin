@@ -68,7 +68,7 @@
       {
         var level = DbTodolist.Level(todo.level);
         var assign = DbTodolist.AssignStatus(todo.assign_status);
-        var member = UserService.GetMember(Layout.UserList, todo.assign_user);
+        var assignor = UserService.GetMember(Layout.UserList, todo.assign_user);
 
         <tr>
           <td>
@@ -100,9 +100,9 @@
             <div class="td-value">
               <div class="user_item">
                 <span class="image is-rounded is-24x24">
-                  <img src="@member.avatar" alt="AVT">
+                  <img src="@assignor.avatar" alt="AVT">
                 </span>
-                <span class="text_1_line">@member.name</span>
+                <span class="text_1_line">@assignor.name</span>
               </div>
             </div>
           </td>

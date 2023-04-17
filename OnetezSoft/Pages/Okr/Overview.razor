@@ -13,13 +13,21 @@
             TỔNG QUAN OKRs
           </h1>
         </li>
-        <li class="column is-narrow">
+        <li class="column is-narrow is-full-mobile">
           <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
         </li>
-        <li class="column is-one-quarter">
-          <MemberSearch department="@filterDepartment" sources="Layout.UserList"      
-            OnUpdate="ChangeFilterUser" />
-        </li>
+        @if(listMode)
+        {
+          <li class="column is-one-quarter-tablet">
+            <MemberSearch department="@filterDepartment" sources="Layout.UserList"      
+              OnUpdate="ChangeFilterUser" />
+          </li>
+        }
+        else
+        {
+          <li class="column is-1 is-hidden-mobile">
+          </li>
+        }
         <li class="column is-narrow">
           <div class="field has-addons">
             <div class="control">

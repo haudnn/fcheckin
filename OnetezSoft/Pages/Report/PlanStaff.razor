@@ -24,61 +24,20 @@
         </div>
         <div class="dropdown-menu">
           <div class="dropdown-content">
-            <a class="dropdown-item" @onclick="() => FilterStatus(0)">Tất cả</a>
+            <a class="dropdown-item" @onclick="() => ChangeFilterStatus(0)">Tất cả</a>
             @foreach (var item in WorkService.StatusPlan())
             {
-              <a class="dropdown-item" @onclick="() => FilterStatus(item.id)">@item.name</a>
+              <a class="dropdown-item" @onclick="() => ChangeFilterStatus(item.id)">@item.name</a>
             }
           </div>
         </div>
       </div>
     </li>
     <li class="column is-narrow">
-      <div class="dropdown is-right @(toggleDepartment ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="icon-text" @onclick="() => toggleDepartment = !toggleDepartment">
-            <span class="has-text-link">
-              @department.name
-            </span>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-            </span>
-          </a>
-        </div>
-        <div class="dropdown-menu">
-          <div class="dropdown-content">
-            <a class="dropdown-item is-family-code" @onclick="() => FilterDepartment(null)">
-              Tất cả phòng ban
-            </a>
-            @foreach (var sl in departments)
-            {
-              <a class="dropdown-item is-family-code" @onclick="() => FilterDepartment(sl)">
-                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
-              </a>
-            }
-          </div>
-        </div>
-      </div>
+      <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
     </li>
-    <li class="column is-one-quarter-tablet is-full-mobile">
-      <div class="control has-icons-right has_suggest">
-          <input class="input is-rounded is-small" type="text" placeholder="Nhập tên nhân viên..."
-                  autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
-          <ul class="suggest">
-            @foreach (var item in userSuggests)
-            {
-              <li class="rsitem" @onclick="() => UserSelected(item)">
-                <div class="user_item">
-                  <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
-                  <span>@item.FullName</span>
-                </div>
-              </li>
-            }
-          </ul>
-          <span class="icon is-right">
-            <i class="material-icons-outlined">search</i>
-          </span>
-        </div>
+    <li class="column is-one-quarter">
+      <MemberSearch department="@filterDepartment" sources="Layout.UserList" OnUpdate="ChangeFilterUser" />
     </li>
   </ul>
 
@@ -205,78 +164,43 @@
   private List<UserModel> members = new();
   private List<WorkPlanModel.Report> reportList = new();
   private DepartmentModel department = new() { name = "Tất cả phòng ban", members_id = new() };
-  private List<UserModel> userSuggests = new();
-  private List<string> staffList = new();
-  private bool toggleDepartment = false;
-  private string filterKey = string.Empty;
+  private List<string> filterUserList = new();
+  private string filterDepartment = string.Empty;
   private int filterStatus = 0;
 
   protected override async Task OnInitializedAsync()
   {
-    // Phòng ban mặc định
-    if (!string.IsNullOrEmpty(Layout.User.department_default))
-      department = departmentAll.FirstOrDefault(x => x.id == Layout.User.department_default);
-
-    if(department == null)
-      department = new() { name = "Tất cả phòng ban", members_id = new() };
-    
-    staffList = department.members_id;
-    
-    await GetDataList();
+   
+    await ChangeFilterDepartment(Layout.User.department_default);
   }
-  
-  private async Task FilterDepartment(DepartmentModel.SelectList item)
+
+  private async Task ChangeFilterDepartment(string value)
   {
-    userSuggests = new();
-    toggleDepartment = false;
-    filterKey = string.Empty;
-    if (item != null)
+    department = departmentAll.FirstOrDefault(x => x.id == value);
+    if(department == null)
     {
-      department = departmentAll.FirstOrDefault(x => x.id == item.id);
-      staffList = department.members_id;
+      department = new() { name = "Tất cả phòng ban", members_id = new() };
+      filterDepartment = string.Empty;
+      filterUserList = Layout.UserList.Select(x => x.id).ToList();
     }
     else
-      department = new() { name = "Tất cả phòng ban" };
+    {
+      filterDepartment = value;
+      filterUserList = department.members_id;
+    }
     await GetDataList();
   }
 
-  private async Task FilterStatus(int value)
+  private async Task ChangeFilterUser(string value)
+  {
+    if(!string.IsNullOrEmpty(value))
+      filterUserList = new() { value };
+    await GetDataList();
+  }
+
+  private async Task ChangeFilterStatus(int value)
   {
     filterStatus = value;
-    await GetDataList();
-  }
-  
-  private string UserSearch
-  {
-    get => filterKey;
-    set
-    {
-      filterKey = value;
-      userSuggests = new();
-      toggleDepartment = false;
-      if (!string.IsNullOrEmpty(value))
-      {
-        foreach (var item in Layout.UserList)
-        {
-          bool check = true;
-          if (!string.IsNullOrEmpty(department.id))
-            if (item.departments_id == null || !item.departments_id.Contains(department.id))
-              check = false;
-          if (!Handled.Shared.SearchKeyword(filterKey, item.FullName))
-            check = false;
-
-          if (check)
-            userSuggests.Add(item);
-        }
-      }
-    }
-  }
-
-  private async Task UserSelected(UserModel item)
-  {
-    userSuggests = new();
-    filterKey = item.FullName;
-    staffList = new() { item.id };
     await GetDataList();
   }
 
@@ -293,11 +217,9 @@
     List<WorkPlanModel> planList = new();
     foreach (var plan in data)
     {
-      if(staffList.Count == 0)
-        planList.Add(plan);
-      else
+      if(filterUserList.Count > 0)
       {
-        var check = plan.members.Where(x => staffList.Contains(x.id)).Count();
+        var check = plan.members.Where(x => filterUserList.Contains(x.id)).Count();
         if(check > 0)
           planList.Add(plan);
       }
@@ -312,13 +234,12 @@
     }
 
     // Lấy danh sách thành viên trong phòng ban
-    if(department == null || staffList.Count == 0)
-      members = Layout.UserList;
-    else
-      members = Layout.UserList.Where(x => staffList.Contains(x.id)).ToList();
+    members.Clear();
+    if(filterUserList.Count > 0)
+      members = Layout.UserList.Where(x => filterUserList.Contains(x.id)).ToList();
     
     // Lấy thống kê thành viên
-    reportList = new();
+    reportList.Clear();
     foreach (var member in members)
     {
       var tasks = taskList.Where(x => x.members.Where(m => m.id == member.id).Count() > 0).ToList();

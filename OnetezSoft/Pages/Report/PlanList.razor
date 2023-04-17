@@ -11,36 +11,12 @@
       </h1>
     </li>
     <li class="column is-narrow">
-      <div class="dropdown @(toggleDepartment ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="icon-text" @onclick="() => toggleDepartment = !toggleDepartment">
-            <span class="has-text-link">
-              @department.name
-            </span>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-            </span>
-          </a>
-        </div>
-        <div class="dropdown-menu">
-          <div class="dropdown-content">
-            <a class="dropdown-item is-family-code" @onclick="() => FilterDepartment(null)">
-              Tất cả phòng ban
-            </a>
-            @foreach (var sl in departments)
-            {
-              <a class="dropdown-item is-family-code" @onclick="() => FilterDepartment(sl)">
-                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
-              </a>
-            }
-          </div>
-        </div>
-      </div>
+      <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
     </li>
     <li class="column is-one-quarter">
       <div class="control has-icons-right">
-        <input @bind="filterKey" class="input is-small is-rounded" type="text" 
-          placeholder="Tiêu đề kế hoạch..." @onkeydown="FilterKey">
+        <input @bind="filterKeyword" class="input is-small is-rounded" type="text" 
+          placeholder="Tiêu đề kế hoạch..." @onkeydown="ChangeFilterKeyword">
         <span class="icon is-right is-small">
           <i class="material-icons-outlined is-size-5">search</i>
         </span>
@@ -187,34 +163,33 @@
   public List<DepartmentModel> departmentAll { get; set; }
   [Parameter]
   public List<DepartmentModel.SelectList> departments { get; set; }
-
   private Dictionary<int, List<WorkPlanModel>> planList = new();
   private List<int> toggleStatus = new() { 1 };
   private DepartmentModel department = new() { name = "Tất cả phòng ban" };
-  private bool toggleDepartment = false;
-  private string filterKey = string.Empty;
+  private string filterDepartment = string.Empty;
+  private string filterKeyword = string.Empty;
 
   protected override async Task OnInitializedAsync()
   {
-    if (!string.IsNullOrEmpty(Layout.User.department_default))
-      department = departmentAll.FirstOrDefault(x => x.id == Layout.User.department_default);
-    if(department == null)
-      department = new() { name = "Tất cả phòng ban" };
-    
-    await GetDataList();
+    await ChangeFilterDepartment(Layout.User.department_default);
   }
-  
-  private async Task FilterDepartment(DepartmentModel.SelectList item)
+
+  private async Task ChangeFilterDepartment(string value)
   {
-    toggleDepartment = false;
-    if (item != null)
-      department = departmentAll.FirstOrDefault(x => x.id == item.id);
-    else
+    department = departmentAll.FirstOrDefault(x => x.id == value);
+    if(department == null)
+    {
       department = new() { name = "Tất cả phòng ban" };
+      filterDepartment = string.Empty;
+    }
+    else
+    {
+      filterDepartment = value;
+    }
     await GetDataList();
   }
   
-  private async Task FilterKey(KeyboardEventArgs args)
+  private async Task ChangeFilterKeyword(KeyboardEventArgs args)
   {
     if (args.Key == "Enter")
     {
@@ -222,7 +197,7 @@
     }
     else if(args.Key == "Escape")
     {
-      filterKey = string.Empty;
+      filterKeyword = string.Empty;
       await GetDataList();
     }
   }
@@ -241,8 +216,8 @@
     var data = await DbWorkPlan.GetAll(Layout.Company.id);
 
     // Tìm kiếm theo tiêu đề kế hoạch
-    if(!string.IsNullOrEmpty(filterKey))
-      data = data.Where(x => Shared.SearchKeyword(filterKey, x.name)).ToList();
+    if(!string.IsNullOrEmpty(filterKeyword))
+      data = data.Where(x => Shared.SearchKeyword(filterKeyword, x.name)).ToList();
 
     // Lọc dự án theo phòng ban
     var views = new List<WorkPlanModel>();

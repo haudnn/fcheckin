@@ -181,7 +181,7 @@
                   <label class="td-label">Tiến độ</label>
                   <div class="td-value">
                     <div class="progress_has_value">
-                      <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100"></progress>
+                      <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100" />
                       <span>@Shared.FormatPercent(progress)%</span>
                     </div>
                   </div>
@@ -248,11 +248,9 @@
             {
               <tr>
                 <td>
-                  <div class="is-flex">
-                    <span class="has-text-weight-semibold has-text-link">
-                      @okr.name
-                    </span>
-                  </div>
+                  <span class="has-text-weight-semibold has-text-link">
+                    @okr.name
+                  </span>
                 </td>
                 <td>
                   <label class="td-label">Tiến độ</label>
@@ -289,7 +287,7 @@
                 </td>
               </tr>
               <tr>
-                <td colspan="5">
+                <td colspan="5" class="td-block">
                   <div class="field">
                     <label class="label">Nhân sự nhận xét OKRs</label>
                     <div class="control">
@@ -311,7 +309,7 @@
               @if(!string.IsNullOrEmpty(okr.review_data.manager_comment) || editMode == 2)
               {
                 <tr>
-                  <td colspan="5">
+                  <td colspan="5" class="td-block">
                     <div class="field">
                       <label class="label">Quản lý nhận xét OKRs</label>
                       <div class="control">
@@ -331,12 +329,12 @@
                   </td>
                 </tr>
               }
-              <tr>
+              <tr class="is-hidden-mobile">
                 <td colspan="5">
                   <hr class="m-0" />
                 </td>
               </tr>
-              <tr class="has-text-grey">
+              <tr class="has-text-grey is-hidden-mobile">
                 <td class="pl-4">Kết quả then chốt</td>
                 <td align="center">Đạt được</td>
                 <td align="center">Điểm hệ thống</td>
@@ -402,9 +400,9 @@
                   </td>
                 </tr>
                 <tr>
-                  <td colspan="5" class="pl-4">
+                  <td colspan="5" class="pl-4 td-block">
                     <div class="field">
-                      <label class="label">Nhân sự nhận xét OKRs</label>
+                      <label class="label">Nhân sự nhận xét KRs</label>
                       <div class="control">
                         @if(editMode == 1)
                         {
@@ -424,9 +422,9 @@
                 @if(!string.IsNullOrEmpty(kr.review_data.manager_comment) || editMode == 2)
                 {
                   <tr>
-                    <td colspan="5" class="pl-4">
+                    <td colspan="5" class="pl-4 td-block">
                       <div class="field">
-                        <label class="label">Quản lý nhận xét OKRs</label>
+                        <label class="label">Quản lý nhận xét KRs</label>
                         <div class="control">
                           @if(editMode == 2)
                           {
@@ -445,13 +443,13 @@
                   </tr>
                 }
               }
-              <tr>
+              <tr class="is-hidden-mobile">
                 <td colspan="5">
                   <hr class="m-0" />
                 </td>
               </tr>
               <tr>
-                <td colspan="5">
+                <td colspan="5" class="td-block">
                   <span class="has-text-weight-semibold is-size-6 has-text-info mr-2">Nhân sự phản hồi</span>
                   <div class="dropdown is-up is-hoverable">
                     <div class="dropdown-trigger">
@@ -490,7 +488,7 @@
               @if(!string.IsNullOrEmpty(okr.review_manager_comment) || editMode == 2)
               {
                 <tr>
-                  <td colspan="5">
+                  <td colspan="5" class="td-block">
                     <span class="has-text-weight-semibold is-size-6 has-text-info mr-2">Quản lý phản hồi</span>
                     <div class="dropdown is-up is-hoverable">
                       <div class="dropdown-trigger">
@@ -530,8 +528,8 @@
 
         @if(editMode == 1)
         {
-          <ul class="columns is-multiline is-variable is-2">
-            <li class="column is-half">
+          <ul class="columns is-multiline is-variable is-2 is-mobile">
+            <li class="column is-half is-full-mobile">
               <div class="has-text-grey mb-2">Chọn người đánh giá</div>
               <ul class="columns is-vcentered is-multiline is-variable is-2">
                 <li class="column is-4">
@@ -560,7 +558,7 @@
                 }
               </ul>
             </li>
-            <li class="column is-half">
+            <li class="column is-half is-full-mobile">
               <div class="has-text-grey mb-2">Chọn người xem</div>
               <ul class="columns is-vcentered is-multiline is-variable is-2">
                 <li class="column is-4">
@@ -605,7 +603,7 @@
                 <span>Hủy</span>
               </a>
             </li>
-            <li class="column is-narrow">
+            <li class="column is-narrow is-full-mobile">
               <a class="button is-link" @onclick="SendReview">
                 <span class="icon">
                   <i class="material-icons-outlined is-size-6">fact_check</i>
@@ -617,7 +615,7 @@
         }
         else if(editMode == 2)
         {
-          <ul class="columns is-multiline is-variable is-2">
+          <ul class="columns is-multiline is-variable is-2 is-mobile">
             <li class="column"></li>
             <li class="column is-narrow">
               <a class="button is-white has-text-danger" @onclick="Cancel">
