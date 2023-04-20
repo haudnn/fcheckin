@@ -57,5 +57,25 @@ namespace OnetezSoft.Services
           avatar = "/images/avatar.png"
         };
     }
+
+    /// <summary>
+    /// Danh sách nhân sự trong phòng ban, sắp xếp theo cấp bậc
+    /// </summary>
+    public static async Task<List<UserModel>> GetUserListInDepartment(string companyId, string departmentId)
+    {
+      var results = new List<UserModel>();
+      var department = await DbDepartment.Get(companyId, departmentId);
+      if (department != null)
+      {
+        var userList = await DbUser.GetAll(companyId, departmentId);
+        foreach (var member in department.members_list)
+        {
+          var user = userList.SingleOrDefault(x => x.id == member.id);
+          if (user != null)
+            results.Add(user);
+        }
+      }
+      return results;
+    }
   }
 }

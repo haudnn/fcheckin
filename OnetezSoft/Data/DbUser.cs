@@ -131,13 +131,18 @@ namespace OnetezSoft.Data
 
       var results = collection.Find(x => !x.delete && x.active).ToList();
 
-      foreach (var item in results)
-      {
-        if (item.products == null)
-          item.products = new();
-      }
-
       return (from x in results orderby x.title, x.role select x).ToList();
+    }
+
+
+    public static async Task<List<UserModel>> GetAll(string companyId, string department)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<UserModel>(_collection);
+
+      return await collection.Find(x => !x.delete && x.active
+        && x.departments_id.Contains(department)).ToListAsync();
     }
 
 

@@ -272,7 +272,7 @@
                           <div class="dropdown-menu">
                             <div class="dropdown-content py-0">
                               <a class="dropdown-item px-2 icon-text has-text-link"
-                                @onclick="() => editList.Add(todo.id)">
+                                @onclick="() => EditItem(todo)">
                                 <span class="icon is-small">
                                   <i class="material-icons-outlined is-size-6">edit</i>
                                 </span>
@@ -408,28 +408,71 @@
 
   private async Task DeleteItem(TodolistModel.Todo item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa công việc: {item.name}?"))
-      return;
+    var todo = await DbTodoItem.Get(Layout.Company.id, item.id);
+    if(todo != null)
+    {
+      if(todo.assign_status == 1)
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa công việc: {item.name}?"))
+          return;
+        await DbTodoItem.Delete(Layout.Company.id, item.id);
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể xóa công việc này!");
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Công việc này đã được xóa trước đó!");
+    await GetList();
+  }
 
-    dataList[item.date].Remove(item);
-    await DbTodoItem.Delete(Layout.Company.id, item.id);
+  private async Task EditItem(TodolistModel.Todo item)
+  {
+    var todo = await DbTodoItem.Get(Layout.Company.id, item.id);
+    if(todo != null)
+    {
+      if(todo.assign_status == 1)
+        editList.Add(todo.id);
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể chỉnh sửa công việc này!");
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Công việc này đã được xóa trước đó!");
+    await GetList();
   }
 
   private async Task UpdateItem(TodolistModel.Todo item)
   {
-    if(Shared.IsEmpty(item.name))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần nhập tiêu đề công việc!");
-    else
+    var todo = await DbTodoItem.Get(Layout.Company.id, item.id);
+    if(todo != null)
     {
-      var todolist = await DbTodolist.GetbyDay(Layout.Company.id, item.user, new DateTime(item.date));
-      if(todolist != null && todolist.status == 3)
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể chọn ngày nhân viên đã check-out Todolist!");
-      else
+      if(todo.assign_status == 1)
       {
-        await DbTodoItem.Update(Layout.Company.id, item);
-        editList.Remove(item.id);
-        await GetList();
+        if(Shared.IsEmpty(item.name))
+        {
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần nhập tiêu đề công việc!");
+          return;
+        }
+        else
+        {
+          var todolist = await DbTodolist.GetbyDay(Layout.Company.id, item.user, new DateTime(item.date));
+          if(todolist != null && todolist.status == 3)
+          {
+            await JSRuntime.InvokeVoidAsync("tagline", false, 
+              "Bạn không thể chọn ngày nhân viên đã check-out Todolist!");
+            return;
+          }
+          else
+          {
+            await DbTodoItem.Update(Layout.Company.id, item);
+          }
+        }
       }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể chỉnh sửa công việc này!");
     }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Công việc này đã được xóa trước đó!");
+    editList.Remove(item.id);
+    await GetList();
   }
 }

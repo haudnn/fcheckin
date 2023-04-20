@@ -325,9 +325,6 @@ namespace OnetezSoft.Data
 
       if (department != null)
       {
-        if (department.members_list == null)
-          department.members_list = new();
-
         var member = department.members_list.SingleOrDefault(x => x.id == userId);
         if (member != null)
         {
@@ -423,7 +420,8 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Kiểm tra manager có phải quản lý/phó quản lý của user
     /// </summary>
-    public static bool CheckManagerRole(string companyId, UserModel user, string manager, List<DepartmentModel> departmentAll)
+    public static bool CheckManagerRole(string companyId, UserModel user, string manager,
+      List<DepartmentModel> departmentAll)
     {
       if (user.departments_id != null)
       {

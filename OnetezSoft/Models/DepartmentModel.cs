@@ -25,7 +25,7 @@ namespace OnetezSoft.Models
 
     public List<string> members_id { get; set; }
 
-    public List<MembersList> members_list { get; set; }
+    public List<MembersList> members_list { get; set; } = new();
 
 
     public class MembersList

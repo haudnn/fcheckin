@@ -205,35 +205,49 @@
 
   private async Task RejectItem(TodolistModel.Todo item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc chắc muốn từ chối công việc này?"))
-      return;
+    var todo = await DbTodoItem.Get(Layout.Company.id, item.id);
+    if(todo != null)
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc chắc muốn từ chối công việc này?"))
+        return;
 
-    item.assign_status = 3;
-    await DbTodoItem.Update(Layout.Company.id, item);
-    // Gửi thông báo cho người giao
-    await DbNotify.Create(Layout.Company.id, 203, item.id, item.assign_user, Layout.User.id);
+      todo.assign_status = 3;
+      await DbTodoItem.Update(Layout.Company.id, todo);
+      // Gửi thông báo cho người giao
+      await DbNotify.Create(Layout.Company.id, 203, todo.id, todo.assign_user, Layout.User.id);
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Công việc đã bị người giao việc xóa");
+    await GetList();
   }
 
   private async Task AcceptItem(TodolistModel.Todo item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn chấp nhận công việc: {item.name}?"))
-      return;
-
-    item.assign_status = 2;
-    string error = await TodolistService.AddTodoItem(Layout.Company.id, item.user, item.date, item);
-    if(string.IsNullOrEmpty(error))
+    var todo = await DbTodoItem.Get(Layout.Company.id, item.id);
+    if(todo != null)
     {
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm công việc vào Todolist của bạn.");
-      // Gửi thông báo cho người giao
-      await DbNotify.Create(Layout.Company.id, 202, item.id, item.assign_user, Layout.User.id);
-      // Yêu cầu làm mới lại trang Todolist
-      SendMessage(item);
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn chấp nhận công việc: {item.name}?"))
+        return;
+     
+      todo.assign_status = 2;
+      string error = await TodolistService.AddTodoItem(Layout.Company.id, todo.user, todo.date, todo);
+      if(string.IsNullOrEmpty(error))
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm công việc vào Todolist của bạn.");
+        // Gửi thông báo cho người giao
+        await DbNotify.Create(Layout.Company.id, 202, todo.id, todo.assign_user, Layout.User.id);
+        // Yêu cầu làm mới lại trang Todolist
+        SendMessage(todo);
+      }
+      else
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, error);
+      }
     }
     else
-    {
-      item.assign_status = 1;
-      await JSRuntime.InvokeVoidAsync("tagline", false, error);
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Công việc đã bị người giao việc xóa");
+    await GetList();
+
   }
 
   public void SendMessage(TodolistModel.Todo item)

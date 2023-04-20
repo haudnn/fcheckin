@@ -89,7 +89,7 @@ namespace OnetezSoft.Models
     public string page_default { get; set; }
 
     /// <summary>Sản phẩm được sử dụng</summary>
-    public List<string> products { get; set; }
+    public List<string> products { get; set; } = new();
 
     /// <summary>Số dư tài khoản</summary>
     public int balance { get; set; }

@@ -38,6 +38,8 @@
   [Parameter]
 	public string css { get; set; } = "is-left";
   [Parameter]
+	public bool isMember { get; set; } = false;
+  [Parameter]
   public EventCallback<string> OnUpdate { get; set; }
   private List<DepartmentModel.SelectList> departments = new();
   private bool toggle = false;
@@ -45,7 +47,10 @@
 
   protected override void OnInitialized()
   {
-    departments = DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+    if(isMember)
+      departments = DbDepartment.GetSelectListOfUser(Layout.Company.id, Layout.User.departments_id, null);
+    else
+      departments = DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
     if(level > 0)
       departments.RemoveAll(x => x.level > level);
   }

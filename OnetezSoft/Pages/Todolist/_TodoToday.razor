@@ -80,13 +80,13 @@
         {
           <tr>
             <td>
-              @if (item.confirm)
+              @if (item.confirm || !string.IsNullOrEmpty(item.assign_user))
               {
                 <input id="todo_@item.id" value="@item.name" class="input" type="text" readonly />
               }
               else
               {
-                <input id="todo_@item.id" @bind="item.name" class="input" type="text" placeholder="Nhập tên công việc" />
+                <input id="todo_@item.id" @bind="item.name" class="input" type="text" placeholder="Tên công việc" />
               }
             </td>
             <td>
