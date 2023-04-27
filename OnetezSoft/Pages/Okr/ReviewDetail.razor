@@ -25,10 +25,12 @@
             </div>
           </div>
         </li>
-        <li class="column is-one-quarter">
-          <div class="field is-grouped">
+        <li class="column is-one-third">
+          <div class="field has-addons">
             <div class="control">
-               OKRs
+              <span class="button is-static">
+                OKRs
+              </span>
             </div>
             <div class="control is-expanded">
               <div class="select is-fullwidth">
@@ -132,7 +134,7 @@
                   <span class="icon">
                     <i class="material-icons-outlined is-size-6">refresh</i>
                   </span>
-                  <span>Mở lại</span>
+                  <span>Đánh giá lại</span>
                 </a>
               }
               else if(okr.review_send_status == 3)
@@ -141,7 +143,7 @@
                   <span class="icon">
                     <i class="material-icons-outlined is-size-6">refresh</i>
                   </span>
-                  <span>Mở lại</span>
+                  <span>Đánh giá lại</span>
                 </a>
                 <span class="icon-text has-text-link">
                   <span class="icon">
@@ -156,7 +158,7 @@
       </ul>
 
       @if(okr.review_manager_id == Layout.User.id || okr.review_viewers.Contains(Layout.User.id) 
-        || okr.user_create == Layout.User.id)
+        || okr.user_create == Layout.User.id || isManager)
       {
         <table class="table is-fullwidth is-vcentered is-noborder is-responsive mt-5">
           <thead>
@@ -203,7 +205,7 @@
                 </td>
               </tr>
               <tr class="has-text-grey">
-                <td class="pl-4">Kết quả then chốt</td>
+                <td class="pl-6">Kết quả then chốt</td>
                 <td align="center">Đạt được</td>
                 <td align="center">Điểm hệ thống</td>
                 <td align="center">Tự đánh giá</td>
@@ -212,7 +214,7 @@
               @foreach (var kr in okr.key_results)
               {
                 <tr>
-                  <td class="pl-4">
+                  <td class="pl-6">
                     <span class="has-text-weight-semibold has-text-link">
                       @kr.name
                     </span>
@@ -239,7 +241,7 @@
                 </tr>
               }
               <tr>
-                <td colspan="5" class="pl-4 has-text-grey has-text-weight-semibold is-italic">
+                <td colspan="5" class="pl-6 has-text-grey has-text-weight-semibold is-italic">
                   Chưa có bản đánh giá cho OKRs này
                 </td>
               </tr>
@@ -335,7 +337,7 @@
                 </td>
               </tr>
               <tr class="has-text-grey is-hidden-mobile">
-                <td class="pl-4">Kết quả then chốt</td>
+                <td class="pl-6">Kết quả then chốt</td>
                 <td align="center">Đạt được</td>
                 <td align="center">Điểm hệ thống</td>
                 <td align="center">Tự đánh giá</td>
@@ -344,7 +346,7 @@
               @foreach (var kr in okr.key_results)
               {
                 <tr>
-                  <td class="pl-4">
+                  <td class="pl-6">
                     <span class="has-text-weight-semibold has-text-link">
                       @kr.name
                     </span>
@@ -406,7 +408,7 @@
                   </td>
                 </tr>
                 <tr>
-                  <td colspan="5" class="pl-4 td-block">
+                  <td colspan="5" class="pl-6 td-block">
                     <div class="field">
                       <label class="label">Nhân sự nhận xét KRs</label>
                       <div class="control">
@@ -428,7 +430,7 @@
                 @if(!string.IsNullOrEmpty(kr.review_data.manager_comment) || editMode == 2)
                 {
                   <tr>
-                    <td colspan="5" class="pl-4 td-block">
+                    <td colspan="5" class="pl-6 td-block">
                       <div class="field">
                         <label class="label">Quản lý nhận xét KRs</label>
                         <div class="control">
@@ -469,7 +471,7 @@
                           <p class="has-text-weight-semibold">Gợi ý câu hỏi</p>
                           <p>Bạn nhận được gì từ người quản lý của bạn mà bạn thấy hữu ích hoặc giúp đỡ bạn tốt?</p>
                           <p>Điều gì từ người quản lý đã gây ảnh hưởng tới hoạt động OKRs này của bạn?</p>
-                          <p>Nếu quay lại thời gian, người quản lí nên làm gì để giúp bạn thành công trong OKRs này hơn?</p>
+                          <p>Nếu quay lại thời gian, người quản lý nên làm gì để giúp bạn thành công trong OKRs này hơn?</p>
                           <p>Các kỹ năng, năng lực tôi muốn cải thiện và tốt hơn trong tương lai?</p>
                           <p>Điều gì từ công ty mà bạn kỳ vọng sẽ giúp ích cho việc cải thiện năng lực của bạn?</p>
                         </div>
@@ -506,8 +508,8 @@
                         <div class="dropdown-content" style="min-width:400px;width:fit-content">
                           <div class="dropdown-item content">
                             <p class="has-text-weight-semibold">Gợi ý câu hỏi</p>
-                            <p>OKRs này, bạn ấy làm việc như thế nào, hiệu quả chưa?</p>
-                            <p>Bạn ấy cần làm gì để quý cải thiện và tốt hơn?</p>
+                            <p>OKRs này, Nhân sự làm việc như thế nào, hiệu quả chưa?</p>
+                            <p>Nhân sự cần làm gì để quý cải thiện và tốt hơn?</p>
                           </div>
                         </div>
                       </div>
@@ -670,6 +672,7 @@
   private OkrModel okr = null;
   private List<OkrModel> okrList = new();
   private int editMode = 0;
+  private bool isManager = false;
   private string departmentManager = string.Empty;
   private string departmentViewers = string.Empty;
 
@@ -679,6 +682,7 @@
     userInfo = await DbUser.Get(Layout.Company.id, UserId);
     okr = await DbOkr.Get(Layout.Company.id, OkrId);
     okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, UserId);
+    isManager = DbDepartment.CheckManagerRole(Layout.Company.id, userInfo, Layout.User.id, null);
   }
 
   private void ChangeOkr(ChangeEventArgs e)
@@ -750,13 +754,13 @@
 
   private async Task OpenReview()
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn mở lại bản đánh giá này?"))
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn đánh giá lại bản đánh giá này?"))
      return;
     okr.review_send_status = 1;
     await DbOkr.Update(Layout.Company.id, okr);
     // Gửi thông báo cho nhân viên
     await DbNotify.Create(Layout.Company.id, 509, okr.id, okr.user_create, Layout.User.id);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã mở lại bản đánh giá OKR thành công.");
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã mở lại đánh giá bản đánh giá OKR.");
   }
 
   private async Task DoneReview()

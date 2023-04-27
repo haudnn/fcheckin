@@ -117,21 +117,25 @@
   private int filterStatus = 0;
   private List<StaticModel> statusList = new();
 
-  protected override async Task OnInitializedAsync()
+  protected override void OnInitialized()
   {
     statusList = GetStatusList();
-    await ChangeFilterDepartment(filterDepartment);
+    myOkrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, Layout.User.id);
   }
 
-  protected override void OnParametersSet()
+  protected override async Task OnParametersSetAsync()
   {
-    myOkrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, Layout.User.id);
+    var uri = navigation.ToAbsoluteUri(navigation.Uri);
+    if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("department", out var outDepartment))
+      await ChangeFilterDepartment(outDepartment);
+    else
+      GetOkrReviewList();
   }
 
   private void ChangeFilterStatus(int value)
   {
     filterStatus = value;
-    FilterOkrList();
+    GetOkrReviewList();
   }
 
   private async Task ChangeFilterDepartment(string value)
@@ -141,7 +145,8 @@
     if(string.IsNullOrEmpty(value))
     {
       filterDepartment = value;
-      userList = GetUsersReview();
+      GetOkrReviewList();
+      await JSRuntime.InvokeVoidAsync("history.pushState", null, "Đánh giá OKRs", "/okr/review");
     }
     else
     {
@@ -153,9 +158,10 @@
         {
           filterDepartment = value;
           userList = await UserService.GetUserListInDepartment(Layout.Company.id, department.id);
-          var userListId = userList.Select(x => x.id).ToList();
-          dataOkrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, userListId);
-          FilterOkrList();
+          GetOkrReviewList();
+          await JSRuntime.InvokeVoidAsync("history.pushState", null, 
+            "Đánh giá OKRs " + department.name,
+            "/okr/review?department=" + value);
         }
         else
         {
@@ -178,9 +184,7 @@
         if(DbDepartment.CheckManagerRole(Layout.Company.id, user, Layout.User.id, null))
         {
           userList = Layout.UserList.Where(x => x.id == userId).ToList();
-          var userListId = userList.Select(x => x.id).ToList();
-          dataOkrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, userListId);
-          FilterOkrList();
+          GetOkrReviewList();
         }
         else
           await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không phải quản lý của " + user.FullName);
@@ -190,12 +194,25 @@
     }
   }
 
-  private List<UserModel> GetUsersReview()
+  private void GetOkrReviewList()
   {
-    // Chỉ hiện thị OKRs mà user là người xem hoặc đánh giá
-    dataOkrList = DbOkr.GetListByReview(Layout.Company.id, Layout.CycleId, Layout.User.id);
-    var userReviews = dataOkrList.Select(x => x.user_create).ToList();
-    return Layout.UserList.Where(x => userReviews.Contains(x.id)).ToList();
+    if(string.IsNullOrEmpty(filterDepartment))
+    {
+      // Chỉ hiện thị OKRs mà user là người xem hoặc đánh giá
+      dataOkrList = DbOkr.GetListByReview(Layout.Company.id, Layout.CycleId, Layout.User.id);
+      var userReviews = dataOkrList.Select(x => x.user_create).ToList();
+      userList = Layout.UserList.Where(x => userReviews.Contains(x.id)).ToList();
+    }
+    else
+    {
+      var userListId = userList.Select(x => x.id).ToList();
+      dataOkrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, userListId);
+    }
+
+    if(filterStatus == 1)
+      dataOkrList.RemoveAll(x => x.review_send_status > 1);
+    else if(filterStatus > 1)
+      dataOkrList.RemoveAll(x => x.review_send_status != filterStatus);
   }
 
   private void FilterOkrList()

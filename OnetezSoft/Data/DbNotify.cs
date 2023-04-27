@@ -220,31 +220,31 @@ namespace OnetezSoft.Data
       {
         var current = await DbTodoItem.Get(companyId, key);
         name = $"{creator} đã xác nhận yêu cầu công việc <b>{current.name}</b>";
-        link = "/todolist";
+        link = "/todolist#assigned_list";
       }
       else if (type == 203)
       {
         var current = await DbTodoItem.Get(companyId, key);
         name = $"{creator} đã từ chối yêu cầu công việc <b>{current.name}</b>";
-        link = "/todolist";
+        link = "/todolist#assigned_list";
       }
       else if (type == 212)
       {
         var current = await DbTodoItem.Get(companyId, key);
         name = $"{creator} đã cập nhật trạng thái Pending cho công việc <b>{current.name}</b>";
-        link = "/todolist";
+        link = "/todolist#assigned_list";
       }
       else if (type == 214)
       {
         var current = await DbTodoItem.Get(companyId, key);
         name = $"{creator} đã cập nhật trạng thái Done cho công việc <b>{current.name}</b>";
-        link = "/todolist";
+        link = "/todolist#assigned_list";
       }
       else if (type == 215)
       {
         var current = await DbTodoItem.Get(companyId, key);
         name = $"{creator} đã cập nhật trạng thái Cancel cho công việc <b>{current.name}</b>";
-        link = "/todolist";
+        link = "/todolist#assigned_list";
       }
       // ĐỔI QUÀ
       else if (type == 300)

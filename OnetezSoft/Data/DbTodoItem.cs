@@ -119,7 +119,7 @@ namespace OnetezSoft.Data
       var results = await collection.Find(x => x.user == userId && !string.IsNullOrEmpty(x.assign_user)
         && x.date >= start && x.date <= end).ToListAsync();
 
-      return results;
+      return results.OrderByDescending(x => x.date).ToList();
     }
   }
 }

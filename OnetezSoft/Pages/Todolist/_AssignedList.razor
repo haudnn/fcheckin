@@ -1,7 +1,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<section class="card p-5">
+<section id="assigned_list" class="card p-5">
   <ul class="columns is-vcentered is-variable is-2 mb-3">
     <li class="column">
       <h1 class="title is-5 has-text-info">
@@ -135,7 +135,7 @@
 
               if(editList.Contains(todo.id))
               {
-                <tr>
+                <tr id="assign_@todo.id">
                   <td>
                     <input @bind="todo.name" class="input" type="text" placeholder="Nhập tên công việc" />
                   </td>
@@ -216,7 +216,7 @@
               }
               else
               {
-                <tr>
+                <tr id="todo-@todo.id">
                   <td>
                     <div class="ml-3 text_1_line" title="@todo.name">• @todo.name</div>
                   </td>
@@ -252,7 +252,9 @@
                   <td align="center">
                     <label class="td-label">Tình trạng</label>
                     <div class="td-value">
-                      <span class="has-text-weight-semibold @status.color">@status.name</span>
+                      <span class="has-text-weight-semibold @status.color.Replace("is-", "has-text-")">
+                        @status.name
+                      </span>
                     </div>
                   </td>
                   <td align="center">
@@ -296,6 +298,36 @@
                     </div>
                   </td>
                 </tr>
+                @if(!Shared.IsEmpty(todo.detail))
+                {
+                  <tr>
+                    <td colspan="7">
+                      <div class="is-flex pl-5">
+                        <label class="td-label is-show">Chi tiết:</label>
+                        <div class="td-value is-word-break">
+                          <div class="text_1_line" onclick="toggleText(this)">
+                            @((MarkupString)Shared.GetLinks(todo.detail))
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                }
+                @if(!Shared.IsEmpty(todo.result))
+                {
+                  <tr>
+                    <td colspan="7">
+                      <div class="is-flex pl-5">
+                        <label class="td-label is-show">Kết quả:</label>
+                        <div class="td-value is-word-break">
+                          <div class="text_1_line" onclick="toggleText(this)">
+                            @((MarkupString)Shared.GetLinks(todo.result))
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                }
               }
             }
           }
@@ -400,7 +432,7 @@
     for (DateTime date = dateE; date >= dateS; date = date.AddDays(-1))
     {
       long day = date.Ticks;
-      var list = dataTodoList.Where(x => x.date == day).ToList();
+      var list = dataTodoList.Where(x => x.date == day).OrderBy(x => x.start).ToList();
       if(list.Count > 0)
         dataList.Add(day, list);
     }
