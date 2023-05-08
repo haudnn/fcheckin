@@ -6,6 +6,6 @@ FASTDO is a web app: OKRs, Todolist, Kaizen, Educate, Plan
 
 - Username: dev.conando@gmail.com
 
-- Password: 123456@#"
+- Password: 123456@#
 
 > Developed by jack90nguyen
