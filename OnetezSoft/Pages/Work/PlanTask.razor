@@ -1215,40 +1215,49 @@
 
   private async Task AddTask(WorkPlanModel.Task item, string sectionId)
   {
-    toggleAdd = false;
-    editTab = 1;
-    editTask = new()
+    if(Shared.IsEmpty(editSectionId))
     {
-      status = 1,
-      plan_id = model.id,
-      section_id = sectionId,
-      labels = new(),
-      members = new() { new() { id = Layout.User.id, role = 2 }}
-    };
-    await JSRuntime.InvokeVoidAsync("setFocus", "task_name");
-    await JSRuntime.InvokeVoidAsync("textAutoSize", "task_name");
+      editTab = 1;
+      editTask = new()
+      {
+        status = 1,
+        plan_id = model.id,
+        section_id = sectionId,
+        labels = new(),
+        members = new() { new() { id = Layout.User.id, role = 2 }}
+      };
+      await JSRuntime.InvokeVoidAsync("setFocus", "task_name");
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "task_name");
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Vui lòng hoàn tất chỉnh sửa nhóm công việc trước!");
   }
 
   private async Task EditTask(string taskId)
   {
-    editTask = await DbWorkTask.Get(Layout.Company.id, taskId);
-    var editRole = WorkService.RoleEditTask(model, editTask, Layout.User.id);
-
-    if(editTab == 1 && editRole)
-      await JSRuntime.InvokeVoidAsync("textAutoSize", "task_name");
-    else if(editTab == 2)
-      subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.id, taskId);
-    else if(editTab == 3)
-      todoItems = DbTodoItem.GetList(Layout.Company.id, taskId, Layout.User.id);
-    else if(editTab == 4)
+    if(Shared.IsEmpty(editSectionId))
     {
-      comments = await DbWorkComment.GetList(Layout.Company.id, model.id, taskId);
-      if(editRole)
+      editTask = await DbWorkTask.Get(Layout.Company.id, taskId);
+      var editRole = WorkService.RoleEditTask(model, editTask, Layout.User.id);
+
+      if(editTab == 1 && editRole)
+        await JSRuntime.InvokeVoidAsync("textAutoSize", "task_name");
+      else if(editTab == 2)
+        subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.id, taskId);
+      else if(editTab == 3)
+        todoItems = DbTodoItem.GetList(Layout.Company.id, taskId, Layout.User.id);
+      else if(editTab == 4)
       {
-        await JSRuntime.InvokeVoidAsync("setFocus", "task_comment");
-        await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
+        comments = await DbWorkComment.GetList(Layout.Company.id, model.id, taskId);
+        if(editRole)
+        {
+          await JSRuntime.InvokeVoidAsync("setFocus", "task_comment");
+          await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
+        }
       }
     }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Vui lòng hoàn tất chỉnh sửa nhóm công việc trước!");
   }
 
   private async Task OnEditList(WorkPlanModel.Task item)
@@ -1273,14 +1282,11 @@
   {
     editTab = 1;
     editTask = null;
-    //if(item != null)
-      //await GetTaskList();
   }
 
   private void OnUpdateList(WorkPlanModel.Task item)
   {
     MessagingCenter.Send(this, "plan_" + item.plan_id, item.plan_id);
-    //await GetTaskList();
   }
 
   private void OnToggle(string id)
@@ -1330,7 +1336,8 @@
     }
     else
     {
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể thay đổi nhóm, vì bạn không tham gia vào công việc này!");
+      await JSRuntime.InvokeVoidAsync("tagline", false, 
+        "Không thể thay đổi nhóm, vì bạn không tham gia vào công việc này!");
       SplitTaskList();
     }
   }
