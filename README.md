@@ -26,4 +26,4 @@ FASTDO is a web app: OKRs, Todolist, Kaizen, Educate, Plan
     + Update: Cập nhật lại UI hiển thị để biết cấp ví nào
 - Ghi nhận:
     + Tách số sao được cấp/sao ghi nhận
-    + Thả tim bình luậnghi nhận/tặng sao
+    + Thả tim bình luận ghi nhận/tặng sao
