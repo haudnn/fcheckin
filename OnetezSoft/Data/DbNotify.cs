@@ -126,6 +126,12 @@ namespace OnetezSoft.Data
 
       #region Các loại thông tạo
 
+      if (type == 9)
+      {
+        var current = await DbBlog.Get(companyId, key);
+        name = $"{creator} đã đăng một tin tức mới";
+        link = string.IsNullOrEmpty(current.link) ? $"/blogs/{key}" : current.link;
+      }
       if (type == 10)
       {
         var current = await DbDepartment.Get(companyId, key);

@@ -13,6 +13,7 @@
           <SidebarMain />
         </aside>
         <section id="content" class="column">
+          <HeaderMain />
           <Carousel />
           @Body
         </section>
@@ -42,10 +43,6 @@
       <section class="column is-full movingBallG"></section>
     }
   </main>
-  @if (User != null && Company != null)
-  {
-    <Notification User="User" Company="Company" />
-  }
 </CascadingValue>
 
 @code {
@@ -78,6 +75,7 @@
         await JSRuntime.InvokeVoidAsync("console.log", "Device detection: " + (IsMobile ? "Mobile" : "Desktop"));
 
         var userStorage = await storage.GetAsync<string>("user");
+        
         if (!userStorage.Success || string.IsNullOrEmpty(userStorage.Value))
         {
           navigation.NavigateTo("/logout", false);
@@ -140,6 +138,7 @@
     OkrConfig = await DbOkrConfig.Get(Company.id);
     DaysOff = DbDayOff.GetAll(Company.id);
     UserList = DbUser.GetAll(Company.id);
+    
 
     await InvokeAsync(StateHasChanged);
 

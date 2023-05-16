@@ -1,0 +1,189 @@
+@inject IJSRuntime JSRuntime
+
+@if(data != null)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card is-medium">
+      <section class="modal-card-head">
+        <div class="modal-card-title">Thiết lập ghim tin tức</div>
+        <a class="delete is-medium" @onclick="Close"></a>
+      </section>
+      <section class="modal-card-body" style="min-height: 350px;">
+        <ul class="columns is-multiline is-vcentered mb-2">
+          <li class="column font_14">
+            <span class="has-text-weight-semibold">
+              Thêm bài viết cần ghim
+            </span>
+            <span class="has-text-danger">
+              (Tối đa 5 bài)
+            </span>
+            <div>
+              Hiện tại đang có @mainpin bài ghim của CONANDO HOLDING
+            </div>
+          </li>
+          <li class="column is-narrow">
+            <div class="select is-fullwidth">
+              <select @onchange="ChangeDepartment" class="is-family-code">
+                @foreach (var item in departments)
+                {
+                  if(department == item.id)
+                  {
+                    <option value="@item.id" selected>@item.name</option>
+                  }
+                  else
+                  {
+                    <option value="@item.id">@item.name</option>
+                  }
+                }
+              </select>
+            </div>
+          </li>
+        </ul>
+
+        <div class="control has-icons-right has_suggest">
+          <input class="input is-rounded is_bg" type="text" autocomplete="off"
+            placeholder="Nhập tiêu đề bài viết để tìm và ghim..." value="@keyword" @oninput="Search" />
+          <span class="icon is-right">
+            <i class="material-icons-outlined is-size-5">search</i>
+          </span>
+          <ul class="suggest">
+            @foreach (var item in suggests)
+            {
+              <li class="rsitem">
+                <div class="user_item" @onclick="() => AddItem(item)">
+                  <img class="image is-24x24 mr-2" src="@item.image" alt="IMG">
+                  <span class="has-text-weight-medium">@item.name</span>
+                </div>
+              </li>
+            }
+          </ul>
+        </div>
+
+        <Dropzone Items="data" TItem="BlogModel" InstantReplace="true"
+          OnItemDrop="x => OnItemDragdrop(x)">
+          <ul class="columns is-vcentered is-variable is-2 mt-4">
+            <li class="column is-narrow" style="width: 40px;">
+              <a class="icon has-text-grey">
+                <i class="material-icons-outlined is-size-5">swap_vert</i>
+              </a>
+            </li>
+            <li class="column is-narrow" style="width: 60px;">
+              <div class="image is-1by1">
+                <img src="@context.image" alt="IMG">
+              </div>
+            </li>
+            <li class="column is-narrow" style="width: calc(100% - 300px);">
+              <div class="text_1_line has-text-weight-semibold has-text-link">@context.name</div>
+              <div class="text_1_line has-text-grey">@context.desc</div>
+            </li>
+            <li class="column is-narrow" style="width: 100px;">
+              <span class="tag @(string.IsNullOrEmpty(context.link) ? "is-info" : "is-link")">
+                @(string.IsNullOrEmpty(context.link) ? "Bài viết" : "Liên kết")
+              </span>
+            </li>
+            <li class="column is-narrow has-text-right" style="width: 100px;">
+              <a class="icon-text has-text-danger" @onclick="() => DeleteItem(context)">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">push_pin</i>
+                </span>
+                <span>Bỏ ghim</span>
+              </a>
+            </li>
+          </ul>
+        </Dropzone>
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<BlogModel> data { get; set; }
+  [Parameter]
+  public string department { get; set; }
+  [Parameter]
+  public List<DepartmentModel.SelectList> departments { get; set; }
+  [Parameter]
+  public int mainpin { get; set; }
+  [Parameter]
+  public EventCallback OnClose { get; set; }
+  private List<BlogModel> dataList = new();
+  private List<BlogModel> suggests = new();
+  private string keyword = string.Empty;
+
+  private async Task Close()
+  {
+    keyword = string.Empty;
+    await OnClose.InvokeAsync();
+  }
+
+  private async Task ChangeDepartment(ChangeEventArgs e)
+  {
+    keyword = string.Empty;
+    department = e.Value.ToString();
+    await GetList();
+  }
+
+  private async Task GetList()
+  {
+    dataList = await DbBlog.GetList(Layout.Company.id, department);
+    data = dataList.Where(x => x.pin).OrderBy(x => x.pos).ToList();
+    suggests.Clear();
+  }
+
+  private async Task Search(ChangeEventArgs e)
+  {
+    if(dataList.Count == 0)
+      await GetList();
+    keyword = e.Value.ToString();
+    suggests = dataList.Where(x => !x.pin && Shared.SearchKeyword(keyword, x.name)).Take(5).ToList();
+  }
+
+  private async Task AddItem(BlogModel item)
+  {
+    if(data.Count > 4)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chỉ có thể ghim tối đa 5 bài!");
+    }
+    else
+    {
+      item.pin = true;
+      item.pos = data.Count;
+      await DbBlog.Update(Layout.Company.id, item);
+      data = dataList.Where(x => x.pin).ToList();
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm bài viết vào danh sách ghim");
+    }
+    keyword = string.Empty;
+    suggests.Clear();
+    ChangeMainPin();
+  }
+
+  private async Task DeleteItem(BlogModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn bỏ ghim bài này?"))
+     return;
+    item.pin = false;
+    await DbBlog.Update(Layout.Company.id, item);
+    data.Remove(item);
+    ChangeMainPin();
+  }
+
+  private void ChangeMainPin()
+  {
+    if(departments.Any(x => x.id == department && x.level == 0))
+      mainpin = data.Count;
+  }
+
+  private async Task OnItemDragdrop(BlogModel item)
+  {
+    for (int pos = 0; pos < data.Count; pos++)
+    {
+      var blog = data[pos];
+      blog.pos = pos;
+      await DbBlog.Update(Layout.Company.id, blog);
+    }
+  }
+}
