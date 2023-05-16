@@ -134,17 +134,16 @@ namespace OnetezSoft.Data
     public static async Task<UserModel> Login(string username, string pass)
     {
       var user = await GetbyEmail(username);
-      return user;
-      
-      // if (user != null)
-      // {
-      //   var password = Handled.Shared.CreateMD5(pass);
 
-      //   if (user.password == password)
-      //     return user;
-      // }
+      if (user != null)
+      {
+        var password = Handled.Shared.CreateMD5(pass);
 
-      // return null;
+        if (user.password == password)
+          return user;
+      }
+
+      return null;
     }
 
 
