@@ -1,0 +1,267 @@
+@page "/config/gift/category"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>Danh mục cửa hàng</PageTitle>
+
+@if (Layout.User.role != 1 && !Layout.User.role_manage.store)
+{
+  <PopupNoRole />
+}
+else
+{
+  <section class="columns is-gapless has_menu_left">
+    <div class="column is-narrow">
+      <div class="card p-3 menu_left">
+        <a href="/config/gift">
+          Cửa hàng
+        </a>
+        <a href="/config/gift/exchange">
+          Đơn hàng
+        </a>
+        <a class="is-active" href="/config/gift/category">
+          Danh mục
+        </a>
+        <a  href="/config/gift/banner">
+          Ưu đãi
+        </a>
+      </div>
+    </div>
+    <div class="column">
+      <div class="card p-5">
+        <ul class="columns is-vcentered">
+          <li class="column">
+            <h1 class="title is-5 has-text-info">
+              DANH MỤC CỬA HÀNG
+            </h1>
+          </li>
+          <li class="column is-narrow">
+            <a class="button is-link" @onclick="() => EditItem(null)">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-6">add</span>
+              </span>
+              <span>Thêm mới</span>
+            </a>
+          </li>
+        </ul>
+
+        <ul class="columns is-vcentered is-variable is-1 has-text-grey is-table">
+          <li class="column is-narrow" style="width: 6%;"></li>
+          <li class="column is-narrow" style="width: 10%;">Hình ảnh</li>
+          <li class="column" style="width:76%;">Tên danh mục</li>
+          <li class="column is-narrow has-text-centered" style="width: 8%;">Xử lý</li>
+        </ul>
+        <Dropzone Items="company.gift_category" TItem="StaticModel" InstantReplace="true"
+          OnItemDrop="x => OnItemDragdrop(x)">
+          <ul class="columns is-vcentered is-variable is-1 has-text-grey is-table">
+            <li class="column is-narrow" style="width: 6%;">
+              <span class="icon has-text-grey">
+                <i class="material-icons-outlined is-size-5">swap_vert</i>
+              </span>
+            </li>
+            <li class="column is-narrow" style="width: 10%;">
+              <a class="image is-48x48" href="@context.icon" target="_blank">
+                <img src="@context.icon" alt="IMG" style="object-fit: contain;">
+              </a>
+            </li>
+            <li class="column" style="width:76%;">
+              <a class="has-text-weight-semibold" @onclick="() => EditItem(context)">@context.name</a>
+            </li>
+            <li class="column is-narrow has-text-centered" style="width: 8%;">
+              <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(context)">
+                <i class="material-icons-outlined is-size-5">
+                  edit
+                </i>
+              </a>
+              <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(context)">
+                <i class="material-icons-outlined is-size-5">
+                  delete
+                </i>
+              </a>
+            </li>
+          </ul>
+        </Dropzone>
+      </div>
+    </div>
+  </section>
+}
+
+@if (model != null)
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <div class="modal-card-head">
+        <div class="modal-card-title">
+          @(model.id == 0 ? "Thêm danh mục mới" : "Chỉnh sửa danh mục")
+        </div>
+        <a class="delete" @onclick="() => model = null"></a>
+      </div>
+      <form @onsubmit="Update" class="modal-card-body">
+        <div class="field">
+          <label class="label">Tên danh mục *</label>
+          <div class="control">
+            <input @bind="model.name" type="text" class="input" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">Hình ảnh *</label>
+          <div class="field has-addons">
+            <div class="control">
+              <a class="image is-square">
+                <img src="@model.icon" style="object-fit: contain;" />
+              </a>
+            </div>
+            <div class="control is-expanded">
+              <InputFile OnChange="Upload" accept="image/*" class="input" />
+            </div>
+          </div>
+        </div>
+        <div class="field mt-5">
+          <div class="buttons is-right">
+            <a class="button" @onclick="() => model = null">
+              Hủy
+            </a>
+            <a class="button is-link" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">done</i>
+              </span>
+              <span>Cập nhật</span>
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  private CompanyModel company = new() { gift_category = new() };
+  private StaticModel model = null;
+
+  protected override async Task OnInitializedAsync()
+  {
+    company = await DbMainCompany.Get(Layout.Company.id);
+  }
+
+  /// <summary>
+  ///   Xóa danh mục
+  /// </summary>
+
+  private async Task DeleteItem(StaticModel item)
+  {
+    var products = await DbGiftProduct.GetListOfCategory(Layout.Company.id, item.id);
+    if(products.Count > 0)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", false, 
+        $"Danh mục {item.name} đang có {products.Count} sản phẩm, thực hiện thay đổi danh mục của sản phẩm trước khi xoá danh mục này! ");
+    }
+    else
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+        return;
+      company.gift_category.Remove(item);
+      await DbMainCompany.Update(company);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa danh mục sản phẩm.");
+    }
+  }
+
+  /// <summary>
+  /// Chỉnh sửa danh mục
+  /// </summary>
+
+  private void EditItem(StaticModel item)
+  {
+    if (item == null)
+    {
+      model = new();
+    }
+    else
+    {
+      model = item;
+    }
+  }
+
+  /// <summary>
+  /// Update danh mục
+  /// </summary>
+
+  private async Task Update()
+  {
+    if (Shared.IsEmpty(model.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa nhập tên danh mục!");
+    else if(Shared.IsEmpty(model.icon))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa chọn hình ảnh danh mục!");
+    else
+    {
+      if (model.id == 0)
+      {
+        model.id = RandomId();
+        company.gift_category.Add(model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã tạo danh mục sản phẩm mới.");
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin danh mục.");
+      company.gift_category = company.gift_category.OrderBy(x => x.color).ToList();
+      company = await DbMainCompany.Update(company);
+      model = null;
+    }
+  }
+
+
+  /// <summary>
+  /// Tải ảnh
+  /// </summary>
+
+  private async Task Upload(InputFileChangeEventArgs e)
+  {
+    foreach (var file in e.GetMultipleFiles())
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đang tải file lên...");
+      try
+      {
+        if (file.Size <= Layout.MaxFileSize)
+        {
+          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
+          model.icon = await Files.SaveFileAsync(fileContent, file.Name);
+        }
+        else
+        {
+          await JSRuntime.InvokeVoidAsync("tagline", false, 
+            $"File tối đa cho phép là {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB");
+        }
+      }
+      catch (Exception ex)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Lỗi: {ex.Message}");
+      }
+    }
+  }
+
+  private int RandomId()
+  {
+    var id = Shared.RandomInt(1, int.MaxValue);
+    if(company.gift_category.Where(x => x.id == id).Count() > 0)
+      return RandomId();
+    else
+      return id;
+  }
+
+
+  /// <summary>
+  /// Sắp xếp danh mục
+  /// </summary>
+
+  private async Task OnItemDragdrop(StaticModel item)
+  {
+    for (int pos = 0; pos < company.gift_category.Count; pos++)
+    {
+      var category = company.gift_category[pos];
+      category.color = string.Format("{0:0,0}", pos);
+    }
+    company.gift_category = company.gift_category.OrderBy(x => x.color).ToList();
+    company = await DbMainCompany.Update(company);
+  }
+}

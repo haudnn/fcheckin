@@ -63,6 +63,10 @@ namespace OnetezSoft.Models
     public List<Category> blog_category { get; set; } = new();
 
 
+    /// <summary>Danh mục cửa hàng</summary>
+    public List<StaticModel> gift_category { get; set; } = new();
+
+
 
     /// <summary>Cấu hình Todolist</summary>
     public class Todolist
