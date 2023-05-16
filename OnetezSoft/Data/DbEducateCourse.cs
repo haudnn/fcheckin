@@ -161,5 +161,21 @@ namespace OnetezSoft.Data
       else
         return results;
     }
+
+    /// <summary>
+    /// Danh sách khóa học được phép chấm thi
+    /// </summary>
+    public static async Task<List<EducateCourseModel>> GetListByExaminer(string companyId, string userId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<EducateCourseModel>(_collection);
+
+      var builder = Builders<EducateCourseModel>.Filter;
+
+      var sorted = Builders<EducateCourseModel>.Sort.Descending("date");
+
+      return await collection.Find(x => x.teacher == userId || x.examiner.Contains(userId)).Sort(sorted).ToListAsync();
+    }
   }
 }

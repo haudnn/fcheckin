@@ -146,13 +146,25 @@
                   <select @onchange="@((ChangeEventArgs e) => ChangeStatus(item, Convert.ToInt32(e.Value)))">
                     @foreach (var sl in statusList)
                     {
-                      if (item.status == sl.id)
+                      @* if (item.status == sl.id)
                       {
                         <option value="@sl.id" selected>@sl.name</option>
                       }
                       else
                       {
                         <option value="@sl.id">@sl.name</option>
+                      } *@
+                      if (item.status == sl.id)
+                      {
+                        <option value="@sl.id" selected>
+                          @StatusName(sl, item.lessons.Count, done, examPass, examTotal)
+                        </option>
+                      }
+                      else
+                      {
+                        <option value="@sl.id">
+                          @StatusName(sl, item.lessons.Count, done, examPass, examTotal)
+                        </option>
                       }
                     }
                   </select>
@@ -196,7 +208,7 @@
 
   protected override async Task OnInitializedAsync()
   {
-    courseList.AddRange(await DbEducateCourse.GetList(Layout.Company.id, null, null, null, Layout.User.id));
+    courseList = await DbEducateCourse.GetListByExaminer(Layout.Company.id, Layout.User.id);
     statusList.AddRange(DbEducateLearned.Status());
 
     await Search();
@@ -239,7 +251,14 @@
 
   private async Task Search()
   {
-    dataList = await DbEducateLearned.GetList(Layout.Company.id, Layout.User.id, filterCourse, filterUserId, filterStatus);
+    dataList = await DbEducateLearned.GetListByExaminer(Layout.Company.id, Layout.User.id, filterCourse, filterUserId, filterStatus);
+  }
+
+  private string StatusName(StaticModel status, int lessons, int done, int examPass, int examTotal)
+  {
+    if(status.id == 1 && done == lessons && examPass == examTotal)
+      return "Đã học xong";
+    return status.name;
   }
 
   private async Task ChangeStatus(EducateLearnedModel item, int status)

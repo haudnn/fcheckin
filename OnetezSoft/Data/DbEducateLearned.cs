@@ -92,6 +92,52 @@ namespace OnetezSoft.Data
     }
 
     /// <summary>
+    /// Danh sách kỳ học của học viên theo giảng viên
+    /// <param name="status">1. đang học, 2. Cấp chứng chỉ, 3. Không đạt</param>
+    /// </summary>
+    public static async Task<List<EducateLearnedModel>> GetListByExaminer(string companyId, string examiner, string course, string user, int status)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<EducateLearnedModel>(_collection);
+
+      var builder = Builders<EducateLearnedModel>.Filter;
+
+      var filtered = builder.Gt("date", 0);
+
+      if (!string.IsNullOrEmpty(course))
+        filtered = filtered & builder.Eq("course", course);
+      if (!string.IsNullOrEmpty(user))
+        filtered = filtered & builder.Eq("user", user);
+      if (status > 0)
+        filtered = filtered & builder.Eq("status", status);
+
+      var sorted = Builders<EducateLearnedModel>.Sort.Descending("date");
+
+      var educateLearnedList = await collection.Find(filtered).Sort(sorted).ToListAsync();
+
+      if(educateLearnedList.Count > 0)
+      {
+        var result = new List<EducateLearnedModel>();
+
+        foreach(var learned in educateLearnedList)
+        {
+          var courseModel = await DbEducateCourse.Get(companyId, learned.course);
+          if(courseModel != null)
+          {
+            if(courseModel.examiner.Contains(examiner) || courseModel.teacher == examiner)
+            {
+              result.Add(learned);
+            }
+          }
+        }
+        return result;
+      }
+
+      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+    }
+
+    /// <summary>
     /// Danh sách kỳ học của một người
     /// <param name="status">1. đang học, 2. Cấp chứng chỉ, 3. Không đạt</param>
     /// </summary>

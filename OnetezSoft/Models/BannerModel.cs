@@ -20,6 +20,9 @@ namespace OnetezSoft.Models
     public bool pin { get; set; }
     // Ngày tạo
     public long date { get; set; }
+
+    public int pos { get; set; }
+    
     // Trang hiển thị
     public Dictionary<string, string> pages { get; set; }
   }

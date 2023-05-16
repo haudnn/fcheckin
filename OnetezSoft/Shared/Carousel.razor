@@ -34,6 +34,7 @@
   protected override void OnInitialized()
   {
     database = DbBanner.GetList(Layout.Company.id);
+    database = (from x in database orderby x.pos ascending, x select x).ToList();
     ConfigSlide();
     SlideFirst();
   }

@@ -44,6 +44,9 @@ namespace OnetezSoft.Models
     /// <summary>Không thống kê</summary>
     public bool no_report { get; set; }
 
+    /// <summary>Không thống kê: Todolist</summary>
+    public bool no_report_todolist { get; set; }
+
     /// <summary>Tự checkin OKRs</summary>
     public bool okr_checkin { get; set; }
 

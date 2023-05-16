@@ -121,6 +121,7 @@
               </div>
             </div>
           </li>
+          
           <li class="column is-two-thirds">
             <div class="field is-grouped is-grouped-multiline pt-5 mt-1">
               @foreach (var id in current.category)
@@ -163,6 +164,30 @@
               </strong>
             </div>
           </div>
+        </div>
+      </li>
+      <li class="column is-full">
+        <div class="field">
+          <label class="label">Người chấm thi</label>
+          <ul class="columns is-vcentered is-multiline is-variable is-2">
+            <li class="column is-one-third">
+              <MemberSelected members="current.examiner" sources="Layout.UserList"
+                title="Chọn người chấm thi" OnUpdate="ChangeExaminer" />
+            </li>
+            @foreach (var userId in current.examiner)
+            {
+              var examiner = UserService.GetMember(Layout.UserList, userId);
+              <li class="column is-narrow">
+                <div class="icon-text">
+                  <img class="icon is-rounded image is-24x24 mr-2" src="@examiner.avatar" alt="IMG">
+                  <span>@examiner.name</span>
+                  <a class="icon has-text-danger" @onclick="() => current.examiner.Remove(userId)">
+                    <i class="material-icons-outlined is-size-6">close</i>
+                  </a>
+                </div>
+              </li>
+            }
+          </ul>
         </div>
       </li>
       <li class="column is-full">
@@ -318,6 +343,11 @@
     var id = e.Value.ToString();
     if (!string.IsNullOrEmpty(id) && !current.category.Contains(id))
       current.category.Add(id);
+  }
+
+  private void ChangeExaminer(List<string> values)
+  {
+    current.examiner = values;
   }
 
   private async Task Upload(InputFileChangeEventArgs e)

@@ -96,8 +96,8 @@ namespace OnetezSoft.Data
 
       var filtered = builder.Eq("type", 2);
 
-      if (!string.IsNullOrEmpty(teacher))
-        filtered = filtered & builder.Eq("teacher", teacher);
+      // if (!string.IsNullOrEmpty(teacher))
+      //   filtered = filtered & builder.Eq("teacher", teacher);
       if (!string.IsNullOrEmpty(course))
         filtered = filtered & builder.Eq("course", course);
       if (!string.IsNullOrEmpty(lesson))
@@ -106,10 +106,32 @@ namespace OnetezSoft.Data
         filtered = filtered & builder.Eq("user", user);
       if(check != null)
         filtered = filtered & builder.Eq("check", check);
-
+      
       var sorted = Builders<EducateExamModel>.Sort.Descending("date");
+
+      var examEducateList = await collection.Find(filtered).Sort(sorted).ToListAsync();
+
+      if(examEducateList.Count > 0)
+      {
+        var result = new List<EducateExamModel>();
+
+        foreach(var exam in examEducateList)
+        {
+          var courseModel = await DbEducateCourse.Get(companyId, exam.course);
+          if(courseModel != null)
+          {
+            if(courseModel.examiner.Contains(teacher) || courseModel.teacher == teacher)
+            {
+              result.Add(exam);
+            }
+          }
+        }
+        return result;
+      }
 
       return await collection.Find(filtered).Sort(sorted).ToListAsync();
     }
+
   }
+
 }

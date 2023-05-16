@@ -22,6 +22,10 @@ namespace OnetezSoft.Models
     public string user { get; set; }
     // ID giảng viên
     public string teacher { get; set; }
+
+    /// <summary>Người chấm thi</summary>
+    public string examiner { get; set; }
+    
     // Loại bài thi
     public int type { get; set; }
     // Mức điểm bài thi
@@ -36,6 +40,10 @@ namespace OnetezSoft.Models
     public string comment { get; set; }
     // Thời gian thi
     public long date { get; set; }
+
+    /// <summary>Thời gian chấm bài</summary>
+    public long date_check { get; set; }
+    
     // Câu hỏi
     public List<Question> questions { get; set; }
 
