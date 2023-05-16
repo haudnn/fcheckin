@@ -1,0 +1,801 @@
+﻿@page "/config/other/blogs"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+  <div id="notify">
+    <div class="notification is-@(_success ? "success" : "danger")">
+      <button class="delete" @onclick="() => _message = string.Empty"></button>
+      <p>@((MarkupString)_message)</p>
+    </div>
+  </div>
+}
+
+@if (Layout.User.role != 1 && !Layout.User.role_manage.other)
+{
+  <PopupNoRole />
+}
+else
+{
+<section class="columns is-gapless has_menu_left  @(_loaded ? "" : "is-loading")">
+  <div class="column is-narrow">
+    <div class="card p-3 menu_left">
+      <a href="/config/other/banner">
+        Banner
+      </a>
+      <a class="is-active" href="/config/other/blogs">
+        Tin tức
+      </a>
+      <a href="/config/other/quotes">
+        Châm ngôn
+      </a>
+    </div>
+  </div>
+  <div class="column">
+    <div class="card p-5">
+      <ul class="columns is-vcentered is-multiline is-variable is-2 mb-5">
+        <li class="column">
+          <h1 class="title is-5 has-text-info">
+            QUẢN LÝ TIN TỨC
+          </h1>
+        </li>
+        <li class="column is-one-quarter">
+            <form class="control has-icons-right" @onsubmit="Search">
+              <input @bind="filterKeyword" class="input is-rounded is_bg" type="text" placeholder="Nhập từ khóa..." />
+              <span class="icon is-right">
+                <i class="material-icons-outlined is-size-5">search</i>
+              </span>
+            </form>
+        </li>
+        <li class="column is-narrow">
+          <div class="select is-fullwidth">
+            <select @onchange="ChangeDepartment" class="is-family-code">
+              <option value="">Phòng ban</option>
+              @foreach (var item in departments)
+              {
+                <option value="@item.id">@item.name</option>
+              }
+            </select>
+          </div>
+        </li>
+        <li class="column is-narrow">
+          <a class="button is-link" @onclick="() => EditItem(null)">
+            <span class="icon">
+              <span class="material-icons-outlined is-size-6">add</span>
+            </span>
+            <span>Thêm mới</span>
+          </a>
+        </li>
+        <li class="column is-narrow">
+            <a class="button is-dark" @onclick="ShowPin">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-6">push_pin</span>
+              </span>
+              <span>Thiết lập ghim</span>
+            </a>
+          </li>
+        <li class="column is-full has-text-danger">
+          Lưu ý: chỉ đăng tin tức và thiết lập tin tức được ghim cho đơn vị mà mình trực thuộc
+        </li>
+      </ul>
+      <table class="table is-fullwidth is-vcentered is-responsive mt-5">
+        <thead>
+            <tr>
+              <th width="60px">Hình</th>
+              <th>Tiêu đề</th>
+              <th width="15%">Danh mục</th>
+              <th width="100px">Loại tin</th>
+              <th width="12%">Phòng ban</th>
+              <th width="80px" align="center">Hiển thị</th>
+              <th width="70px" align="center">Xử lý</th>
+            </tr>
+        </thead>
+        <tbody>
+          @foreach (var item in dataList)
+          {
+            var department = departmentAll.SingleOrDefault(x => x.id == item.department);
+
+               <tr>
+                <td align="center">
+                  <a class="image is-square" href="@item.image" target="_blank">
+                    <img src="@item.image" alt="IMG" />
+                  </a>
+                </td>
+                <td>
+                  <label class="td-label">Tiêu đề</label>
+                  <div class="td-value">
+                    <a class="has-text-weight-semibold" @onclick="() => EditItem(item)">
+                      @item.name
+                    </a>
+                    <div class="text_1_line has-text-grey">@item.desc</div>
+                  </div>
+                </td>
+                <td>
+                    <label class="td-label">Danh mục</label>
+                    <div class="td-value">
+                      @if(!Shared.IsEmpty(item.category))
+                      {
+                        var cat = GetCategoryName(item.category);
+                        <span class="tag is-rounded" style="background: @cat.color; color: #fff">
+                          @cat.name
+                        </span>
+                      }
+                    </div>
+                </td>
+                <td>
+                  <label class="td-label">Loại tin</label>
+                  <div class="td-value">
+                    @if (string.IsNullOrEmpty(item.link))
+                    {
+                      <span class="tag is-info">Bài viết</span>
+                    }
+                    else
+                    {
+                      <a class="tag is-link" href="@item.link" target="_blank">Liên kết</a>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Phòng ban</label>
+                  <div class="td-value has-text-weight-semibold">
+                    @(department != null ? department.name : "Tất cả phòng ban")
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Ghim</label>
+                  <div class="td-value">
+                    <a class="icon" @onclick="() => ToggleShow(item)">
+                      @if (item.is_show)
+                      {
+                        <span class="material-icons-outlined is-size-5 has-text-;ink">
+                          check_box
+                        </span>
+                      }
+                      else
+                      {
+                        <span class="material-icons-outlined is-size-5 has-text-grey">
+                          check_box_outline_blank
+                        </span>
+                      }
+                    </a>
+                  </div>
+                </td>
+                <td>
+                  <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                    <i class="material-icons-outlined is-size-5">
+                      edit
+                    </i>
+                  </a>
+                  <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                    <i class="material-icons-outlined is-size-5">
+                      delete
+                    </i>
+                  </a>
+                </td>
+              </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+}
+<BlogsPin data="pinList" mainpin="@mainPin" department="@filterDepartment"
+  departments="departments" OnClose="ClosePin" />
+
+
+@if (model != null)
+{
+ <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card is-large">
+      <div class="modal-card-head">
+        <div class="modal-card-title">
+          @(string.IsNullOrEmpty(model.id) ? "Thêm tin tức mới" : "Chỉnh sửa tin tức")
+        </div>
+        <a class="delete" @onclick="() => model = null"></a>
+      </div>
+      <div class="modal-card-body">
+        <ul class="columns is-multiline is-variable is-2">
+          <li class="column is-full">
+            <div class="field">
+              <label class="label">Tiêu đề (tối đa 100 ký tự) *</label>
+              <div class="control">
+                <input @bind="model.name" type="text" class="input is_bg" maxlength="100" />
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-third">
+            <div class="field">
+              <label class="label">Hình ảnh *</label>
+              <div class="field is-grouped">
+                <div class="control">
+                  <a class="image is-square">
+                    <img src="@model.image" />
+                  </a>
+                </div>
+                <div class="control">
+                  <a class="button" onclick="document.getElementById('fileThumb').click()">
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-6">file_upload</i>
+                    </span>
+                    <span>Chọn hình</span>
+                  </a>
+                  <InputFile OnChange="Upload" accept="image/*" class="is-hidden" id="fileThumb" />
+                </div>
+                <div class="control is-expanded">
+                  <input @bind="model.image" class="input" type="text" placeholder="Nhập link hình..." />
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-third">
+            <div class="field">
+              <label class="label">Phòng ban</label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select @bind="model.department">
+                    <option value="">Chọn phòng ban</option>
+                    @foreach (var item in departments)
+                    {
+                      <option value="@item.id">@item.name</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-third">
+            <div class="field">
+              <label class="label">Danh mục</label>
+              <div class="control">
+                <div class="dropdown is-fullwidth @(toggleCategory ? "is-active" : "")">
+                  <div class="dropdown-trigger">
+                    <a class="button is-fullwidth" @onclick="() => toggleCategory = !toggleCategory">
+                      <span style="flex-grow: 1; text-align: left;">
+                        @GetCategoryName(model.category).name
+                      </span>
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                      </span>
+                    </a>
+                  </div>
+                  <div class="dropdown-menu">
+                    <div class="dropdown-content">
+                      <div class="dropdown-item">
+                        <div class="field is-grouped">
+                          <div class="control is-expanded">
+                             <input @bind="category.name" class="input" type="text" placeholder="Nhập tên danh mục" />
+                          </div>
+                          <div class="control">
+                            <div class="input_color"
+                              style="background: @(category.color + "30"); color: @category.color;">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-5">palette</i>
+                              </span>
+                              <input @bind="category.color" type="color">
+                            </div>
+                          </div>
+                          <div class="control">
+                            <a class="button is-link" @onclick="UpdateCategory">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-5">
+                                  @(string.IsNullOrEmpty(category.id) ? "add" : "done")
+                                </i>
+                              </span>
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                      <hr class="dropdown-divider">
+                      @foreach (var item in company.blog_category)
+                      {
+                        <div class="dropdown-item">
+                          <div class="icon-text is-fullwidth">
+                            <span class="icon is-small mr-2" style="color: @item.color;">
+                              <i class="material-icons is-size-6">fiber_manual_record</i>
+                            </span>
+                            <a class="has-text-weight-semibold has-text-dark" style="flex-grow: 1;"
+                              @onclick="() => SelectCategory(item.id)">
+                              @item.name
+                            </a>
+                            <a class="icon has-text-link" @onclick="() => category = item">
+                              <i class="material-icons-outlined is-size-6">edit</i>
+                            </a>
+                            <a class="icon has-text-danger" @onclick="() => DeleteCategory(item.id)">
+                              <i class="material-icons-outlined is-size-6">delete</i>
+                            </a>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-full">
+            <div class="field">
+              <label class="label">Tóm tắt</label>
+              <div class="control">
+                <textarea @bind="model.desc" class="textarea is_bg" rows="2" maxlength="200" />
+              </div>
+            </div>
+          </li>
+          <li class="column is-full">
+            <div class="field is-grouped">
+              <div class="control">
+                Loại tin tức
+              </div>
+              <div class="control">
+                <label class="radio">
+                  @if(isLink)
+                  {
+                    <input type="radio" name="type" @onclick="() => isLink = false">
+                  }
+                  else
+                  {
+                    <input type="radio" name="type" @onclick="() => isLink = false" checked>
+                  }
+                  <span>Bài viết</span>
+                </label>
+              </div>
+              <div class="control">
+                <label class="radio">
+                  @if(isLink)
+                  {
+                    <input type="radio" name="type" @onclick="() => isLink = true" checked>
+                  }
+                  else
+                  {
+                    <input type="radio" name="type" @onclick="() => isLink = true">
+                  }
+                  <span>Link</span>
+                </label>
+              </div>
+              <div class="control is-expanded has-text-right">
+                <a class="icon-text has-text-link" @onclick="() => model.is_show = !model.is_show">
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6">
+                      @(model.is_show ? "check_box" : "check_box_outline_blank")
+                    </i>
+                  </span>
+                  <span>Hiển thị</span>
+                </a>
+              </div>
+            </div>
+          </li>
+          <li class="column is-full">
+            <div class="field @(isLink ? "" : "is-hidden")">
+              <label class="label">Liên kết</label>
+              <div class="control">
+                <input @bind="model.link" type="text" class="input" placeholder="Nhập link của bài viết..." />
+              </div>
+            </div>
+            <div class="field @(isLink ? "is-hidden" : "")">
+              <label class="label">Nội dung</label>
+              <div class="control">
+                <BlazoredTextEditor @ref="@editor">
+                  <ToolbarContent>
+                    <select class="ql-header">
+                      <option selected=""></option>
+                      <option value="1"></option>
+                      <option value="2"></option>
+                      <option value="3"></option>
+                      <option value="4"></option>
+                      <option value="5"></option>
+                    </select>
+                    <span class="ql-formats">
+                      <button class="ql-bold"></button>
+                      <button class="ql-italic"></button>
+                      <button class="ql-underline"></button>
+                      <button class="ql-strike"></button>
+                    </span>
+                    <span class="ql-formats">
+                      <select class="ql-color"></select>
+                      <select class="ql-background"></select>
+                    </span>
+                    <span class="ql-formats">
+                      <button class="ql-list" value="ordered"></button>
+                      <button class="ql-list" value="bullet"></button>
+                    </span>
+                    <span class="ql-formats">
+                      <button class="ql-link"></button>
+                    </span>
+                    <span class="ql-formats">
+                      <button onclick="document.getElementById('fileEditor').click()">
+                        <i class="material-icons-outlined">image</i>
+                      </button>
+                    </span>
+                  </ToolbarContent>
+                  <EditorContent>
+                    @((MarkupString)model.content)
+                  </EditorContent>
+                </BlazoredTextEditor>
+                <InputFile OnChange="UploadEditor" accept="image/*" class="is-hidden" id="fileEditor" />
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="modal-card-foot blog">
+        <a class="button is-link" @onclick="Update">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">done</i>
+          </span>
+          <span>Cập nhật</span>
+        </a>
+        <a class="button" @onclick="() => model = null">
+          Hủy
+        </a>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private bool _loaded = false;
+  private bool _success = false;
+  private string _message = string.Empty;
+  private string _title = "Quản lý tin tức";
+
+  private BlogModel model = null;
+  private List<BlogModel> dataList = new();
+  private List<DepartmentModel> departmentAll = new();
+  private List<DepartmentModel.SelectList> departments = new();
+  private string filterDepartment = string.Empty;
+  private bool isLink = false;
+  private string filterKeyword = string.Empty;
+  private BlazoredTextEditor editor;
+
+
+  private List<BlogModel> pinList = null;
+  private int mainPin = 0;
+  private CompanyModel company = new();
+
+  private bool toggleCategory = false;
+  private CompanyModel.Category category = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+    departments.RemoveAll(x => x.level > 1);
+
+    company = await DbMainCompany.Get(Layout.Company.id);
+
+    dataList = await DbBlog.GetList(Layout.Company.id, filterDepartment);
+
+    mainPin = await GetDocorpPinCount();
+
+    _loaded = true;
+  }
+
+  protected override void OnAfterRender(bool firstRender)
+  {
+    _message = string.Empty;
+  }
+
+
+  private async Task ChangeDepartment(ChangeEventArgs e)
+  {
+    filterDepartment = e.Value.ToString();
+    await Search();
+  }
+
+  /// <summary>
+  /// Xóa bài vieeys
+  /// </summary>
+
+  private async Task DeleteItem(BlogModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+      return;
+
+    dataList.Remove(item);
+    await DbBlog.Delete(Layout.Company.id, item.id);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa bài viết thành công.");
+  }
+
+  private async Task ToggleItem(BlogModel item)
+  {
+    item.pin = !item.pin;
+    await DbBlog.Update(Layout.Company.id, item);
+  }
+
+  private void EditItem(BlogModel item)
+  {
+    if (item == null)
+    {
+      model = new();
+    }
+    else
+    {
+      model = item;
+      isLink = !string.IsNullOrEmpty(item.link);
+    }
+    StateHasChanged();
+  }
+
+  private async Task Upload(InputFileChangeEventArgs e)
+  {
+    _success = false;
+    foreach (var file in e.GetMultipleFiles())
+    {
+      _message = "Đang upload file lên...";
+      try
+      {
+        if (file.Size <= Layout.MaxFileSize)
+        {
+          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
+          model.image = await Files.SaveFileAsync(fileContent, file.Name);
+          _message = string.Empty;
+        }
+        else
+        {
+          _message = $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB";
+        }
+      }
+      catch (Exception ex)
+      {
+        _message = $"ERROR: {ex.Message}";
+      }
+    }
+  }
+
+
+  /// <summary>
+  /// Xử lý việc tải file
+  /// </summary>
+
+  private async Task UploadEditor(InputFileChangeEventArgs e)
+  {
+    _success = false;
+    foreach (var file in e.GetMultipleFiles())
+    {
+      _message = "Đang upload file lên...";
+      try
+      {
+        if (file.Size <= Layout.MaxFileSize)
+        {
+          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
+          var image = await Files.SaveFileAsync(fileContent, file.Name);
+          await editor.InsertImage(image);
+          _message = string.Empty;
+        }
+        else
+        {
+          _message = $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB";
+        }
+      }
+      catch (Exception ex)
+      {
+        _message = $"ERROR: {ex.Message}";
+      }
+    }
+  }
+
+  /// <summary>
+  ///  Xử lý tạo tin tức
+  /// </summary>
+
+  private async Task Update()
+  {
+    _success = false;
+    _message = string.Empty;
+
+    if (Shared.IsEmpty(model.name) || Shared.IsEmpty(model.image))
+    {
+       _message = "Bạn cần nhập nội dung và hình ảnh!";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+
+    else if(isLink && Shared.IsEmpty(model.link))
+    {
+      _message = "Bạn chưa nhập liên kết của bài viết!";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else if(Shared.IsEmpty(model.department))
+    {
+      _message = "Bạn chưa chọn phòng ban!!";
+      await Task.Delay(5000);
+      _message = string.Empty;
+    }
+    else
+    {
+      var department = departments.SingleOrDefault(x => x.id == model.department);
+      if(department == null || department.level == 0)
+        model.is_all = true;
+      else
+        model.is_all = false;
+      
+      if (isLink)
+      {
+        model.content = string.Empty;
+      }
+      else
+      {
+        model.link = string.Empty;
+        model.content = await editor.GetHTML();
+      }
+
+      // Set ngày kích hoạt hiển thị bài viết
+      bool isSend = false;
+      if(model.is_show && model.date == 0)
+      {
+        model.date = DateTime.Now.Ticks;
+        isSend = true;
+      }
+
+      if (string.IsNullOrEmpty(model.id))
+      {
+        await DbBlog.Create(Layout.Company.id, model);
+        dataList.Insert(0, model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo bài viết thành công.");
+      }
+      else
+      {
+        await DbBlog.Update(Layout.Company.id, model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Cập nhật bài viết thành công");
+      }
+
+      // Gửi thông báo
+      if(isSend)
+        await SendNotify(model);
+
+      model = null;
+      StateHasChanged();
+    }
+  }
+
+ 
+
+  // Search tin tức
+  private async Task Search()
+  {
+    dataList = await DbBlog.GetList(Layout.Company.id, filterDepartment);
+    if(!Shared.IsEmpty(filterKeyword))
+      dataList.RemoveAll(x => !Shared.SearchKeyword(filterKeyword, x.name));
+  }
+  
+
+  /// <summary>
+  /// Lấy số lượng phòng ban đang được pin của docorp 
+  /// </summary>
+  /// <returns>Số lượng</returns>
+  private async Task<int> GetDocorpPinCount()
+  {
+    var mainList = departments.Where(x => x.level == 0).ToList();
+    if(mainList.Count > 0)
+    {
+      var main = mainList[0];
+      var mainBlogs = await DbBlog.GetList(Layout.Company.id, main.id);
+      return mainBlogs.Count(x => x.pin);
+    }
+    return 0;
+  }
+
+  /// <summary>
+  /// Hiển thị danh sách ghim
+  /// </summary>
+  private async Task ShowPin()
+  {
+    if(Shared.IsEmpty(filterDepartment))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn phòng ban cần thiết lập!");
+    else
+    {
+      var list = await DbBlog.GetList(Layout.Company.id, filterDepartment);
+      pinList = list.Where(x => x.pin).OrderBy(x => x.pos).ToList();
+    }
+  }
+
+  /// <summary>
+  /// Ản danh sách ghim
+  /// </summary>
+  private async Task ClosePin()
+  {
+    pinList = null;
+    mainPin = await GetDocorpPinCount();
+  }
+
+  /// <summary>
+  /// Lấy tên danh mục
+  /// </summary>
+  private CompanyModel.Category GetCategoryName(string id)
+  {
+    var result = company.blog_category.FirstOrDefault(x => x.id == id);
+    if(result != null)
+      return result;
+    else
+      return new CompanyModel.Category() { name = "Chọn danh mục" };
+  }
+
+  private async Task ToggleShow(BlogModel item)
+  {
+    item.is_show = !item.is_show;
+
+    // Set ngày kích hoạt hiển thị bài viết
+    bool isSend = false;
+    if(item.is_show && item.date == 0)
+    {
+      item.date = DateTime.Now.Ticks;
+      isSend = true;
+    }
+
+    await DbBlog.Update(Layout.Company.id, item);
+
+    // Gửi thông báo
+    if(isSend)
+      await SendNotify(item);
+  }
+
+
+  /// <summary>
+  ///  Gửi thông báo cho user
+  /// </summary>
+
+  private async Task SendNotify(BlogModel item)
+  {
+    var userList = new List<string>();
+    if(item.is_all)
+      userList = Layout.UserList.Select(x => x.id).ToList();
+    else
+      userList = Layout.UserList.Where(x => x.departments_id.Contains(item.department)).Select(x => x.id).ToList();
+    foreach (var userId in userList)
+      await DbNotify.Create(Layout.Company.id, 9, item.id, userId, Layout.User.id);
+  }
+
+
+  /// <summary>
+  /// Cập nhật danh mục
+  /// </summary>
+  private async Task UpdateCategory()
+  {
+    if(Shared.IsEmpty(category.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên danh mục");
+    else
+    {
+      if(Shared.IsEmpty(category.color))
+        category.color = "#333333";
+      if(Shared.IsEmpty(category.id))
+      {
+        category.id = Mongo.RandomId();
+        company.blog_category.Add(category);
+      }
+      category = new();
+      await DbMainCompany.Update(company);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật danh mục.");
+    }
+  }
+
+  
+  /// <summary>
+  /// Chọn danh mục
+  /// </summary>
+  private void SelectCategory(string id)
+  { 
+    model.category = id;
+    toggleCategory = false;
+  }
+
+  /// <summary>
+  /// Xóa danh mục
+  /// </summary>
+  private async Task DeleteCategory(string id)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn xóa danh mục này?"))
+     return;
+
+    company.blog_category.RemoveAll(x => x.id == id);
+    await DbMainCompany.Update(company);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa danh mục.");
+  }
+}

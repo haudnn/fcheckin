@@ -1,0 +1,142 @@
+﻿@page "/blogs/{Id}"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="p-4 @(_loaded ? "" : "is-loading")">
+  @if (model != null)
+  {
+    <ul class="columns is-variable is-5">
+      <li class="column is-two-thirds">
+        <ul class="columns is-vcentered is-variable is-2 mb-3">
+          <li class="column is-narrow">
+            <strong class="has-text-link">Tin tức</strong>
+            <span>/</span>
+            <span>@category</span>
+          </li>
+          <li class="column">
+            <hr class="m-0">
+          </li>
+          <li class="column is-narrow">
+            <a class="icon-text" href="/blogs">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-4">chevron_left</i>
+              </span>
+              <span>Trở về</span>
+            </a>
+          </li>
+        </ul>
+        <h1 class="title is-5 has-text-info mb-3">
+          @model.name
+        </h1>
+        <div class="icon-text mb-3">
+          <span class="icon is-small mr-2">
+            <i class="material-icons-outlined is-size-6">date_range</i>
+          </span>
+          <span class="has-text-grey">
+            @string.Format("{0:HH:mm, dd/MM/yyyy}", new DateTime(model.date))
+          </span>
+        </div>
+        <div class="content">
+          @((MarkupString)model.content)
+        </div>
+      </li>
+      <li class="column is-one-third">
+        <div class="title is-5 has-text-info">
+          Tin mới nhất
+        </div>
+        @foreach (var item in otherList)
+        {
+          var link = string.IsNullOrEmpty(item.link) ? $"/blogs/{item.id}" : item.link;
+          var target = string.IsNullOrEmpty(item.link) ? "_self" : "_blank";
+          var cat = GetCategory(item.category);
+
+          <div class="card mt-5">
+            <div class="card-image">
+              @if(item.date > DateTime.Now.AddDays(-7).Ticks)
+              {
+                <span class="tag is-rounded is-danger">Tin mới</span>
+              }
+              <a class="image is-5by3" href="@link" target="@target">
+                <img src="@item.image" alt="img" />
+              </a>
+            </div>
+            <div class="card-content px-4 py-2">
+              <div class="mt-2 is-size-7 has-text-grey">
+                @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))
+              </div>
+              <h3 class="font_14 text_2_line mt-2">
+                <a class="has-text-black has-text-weight-medium" href="@link" target="@target">@item.name</a>
+              </h3>
+              @if(cat != null)
+              {
+                <span class="tag is-rounded has-text-weight-semibold my-2" style="background: @cat.color; color: #fff">
+                  @cat.name
+                </span>
+              } 
+            </div>
+          </div>
+        }
+      </li>
+    </ul>
+  }
+  else
+  {
+    <h1 class="title is-5 has-text-info">
+      Không tìm thấy bài viết
+    </h1>
+  }
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string Id { get; set; }
+  private string _title = "Tin tức";
+  private BlogModel model = null;
+  private string category = string.Empty;
+  private List<CompanyModel.Category> categorys = new();
+  private List<BlogModel> otherList = new();
+  private bool _loaded = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    // Danh mục tin tức
+    var company = await DbMainCompany.Get(Layout.Company.id);
+    categorys = company.blog_category;
+
+
+    _loaded = true;
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    model = await DbBlog.Get(Layout.Company.id, Id);
+    if(model != null)
+    {
+      _title = model.name;
+      category = GetCategory(model.category).name;
+
+      var database = await DbBlog.GetListShow(Layout.Company.id, model.department);
+      otherList = database.Where(x => x.id != model.id && x.date >= DateTime.Today.AddDays(-7).Ticks).Take(4).ToList();
+    }
+    else
+    {
+      _title = "Không tìm thấy trang!";
+    }
+  }
+
+  /// <summary>
+  /// Lấy tên danh mục
+  /// </summary>
+  private CompanyModel.Category GetCategory(string id)
+  {
+    var result = categorys.FirstOrDefault(x => x.id == id);
+    if(result != null)
+      return result;
+    else
+      return new CompanyModel.Category() { name = "Chi tiết" };
+  }
+}
