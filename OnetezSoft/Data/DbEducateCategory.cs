@@ -56,7 +56,6 @@ namespace OnetezSoft.Data
         return false;
     }
 
-
     public static async Task<EducateCategoryModel> Get(string companyId, string id)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
@@ -65,7 +64,6 @@ namespace OnetezSoft.Data
 
       return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
     }
-
 
     public static List<EducateCategoryModel> GetList(string companyId, string keyword)
     {

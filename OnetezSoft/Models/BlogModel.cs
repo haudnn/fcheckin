@@ -24,5 +24,6 @@ namespace OnetezSoft.Models
     public bool pin { get; set; }
     // Ngày tạo
     public long date { get; set; }
+
   }
 }

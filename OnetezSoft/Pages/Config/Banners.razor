@@ -64,7 +64,7 @@ else
             </a>
           </li>
         </ul>
-        <table class="table is-fullwidth is-vcentered is-responsive mt-5">
+        @* <table class="table is-fullwidth is-vcentered is-responsive mt-5">
           <thead>
             <tr>
               <th width="120px">Hình ảnh</th>
@@ -154,7 +154,83 @@ else
               </tr>
             }
           </tbody>
-        </table>
+        </table> *@
+        <ul class="columns is-vcentered is-variable is-1 has-text-grey is-table">
+          <li class="column is-narrow" style="width: 4%;"></li>
+          <li class="column is-narrow" style="width: 10%;">Hình ảnh</li>
+          <li class="column is-narrow" style="width: 20%;">Tiêu đề</li>
+          <li class="column" style="width:24%;">Liên kết</li>
+          <li class="column is-narrow" style="width: 15%;">Phòng ban</li>
+          <li class="column is-narrow" style="width: 15%;">Trang hiển thị</li>
+          <li class="column is-narrow has-text-centered" style="width: 6%;">Ghim</li>
+          <li class="column is-narrow has-text-centered" style="width: 8%;">Xử lý</li>
+        </ul>
+        <Dropzone Items="dataList" TItem="BannerModel" InstantReplace="true" OnItemDrop="x => OnItemDragdrop(x)">
+          @{
+            var department = departmentAll.SingleOrDefault(x => x.id == context.department);
+          }
+          <ul class="columns is-vcentered is-variable is-1 is-table">
+            <li class="column is-narrow" style="width: 4%;">
+              <span class="icon has-text-grey">
+                <i class="material-icons-outlined is-size-5">swap_vert</i>
+              </span>
+            </li>
+            <li class="column is-narrow" style="width: 10%;">
+              <a class="image" href="@context.image" target="_blank">
+                <img src="@context.image" alt="IMG" />
+              </a>
+            </li>
+            <li class="column is-narrow" style="width: 20%;">
+              <a class="has-text-weight-semibold" @onclick="() => EditItem(context)">
+                @context.name
+              </a>
+            </li>
+            <li class="column" style="width:20%;">
+              <a class="text_1_line" href="@context.link" target="_blank">
+                @context.link
+              </a>
+            </li>
+            <li class="column is-narrow" style="width: 15%;">
+              <span class="has-text-weight-semibold">@(department != null ? department.name : "")</span>
+            </li>
+            <li class="column is-narrow" style="width: 15%;">
+              <div class="text_3_line" onclick="toggleText(this)">
+                @foreach (var p in context.pages)
+                {
+                  <p>@p.Value</p>
+                }
+              </div>
+            </li>
+            <li class="column is-narrow has-text-centered" style="width: 6%;">
+              <a class="icon" @onclick="() => ToggleItem(context)">
+                @if (context.pin)
+                {
+                  <span class="material-icons-outlined is-size-4 has-text-success">
+                    toggle_on
+                  </span>
+                }
+                else
+                {
+                  <span class="material-icons-outlined is-size-4 has-text-black">
+                    toggle_off
+                  </span>
+                }
+              </a>
+            </li>
+            <li class="column is-narrow has-text-centered" style="width: 8%;">
+              <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(context)">
+                <i class="material-icons-outlined is-size-5">
+                  edit
+                </i>
+              </a>
+              <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(context)">
+                <i class="material-icons-outlined is-size-5">
+                  delete
+                </i>
+              </a>
+            </li>
+          </ul>
+        </Dropzone>
       </div>
     </div>
   </section>
@@ -323,7 +399,7 @@ else
       dataList = dataList.Where(x => x.department == filterDepartment).ToList();
     if (!string.IsNullOrEmpty(filterPage))
       dataList = dataList.Where(x => x.pages.Keys.Contains(filterPage)).ToList();
-    dataList = (from x in dataList orderby x.pin descending, x.date select x).ToList();
+    dataList = (from x in dataList orderby x.pin descending, x.pos select x).ToList();
   }
 
   private void ChangePage(ChangeEventArgs e)
@@ -363,6 +439,20 @@ else
     {
       current = item;
     }
+  }
+
+  private async Task OnItemDragdrop(BannerModel item)
+  {
+    Console.WriteLine(item.pos);
+    for (int pos = 0; pos < dataList.Count; pos++)
+    {
+      var banner = dataList[pos];
+      banner.pos = pos;
+      Console.WriteLine(dataList[pos].pos);
+      await DbBanner.Update(Layout.Company.id, banner);
+      Console.WriteLine(item.pos);
+    }
+    Search();
   }
 
   private void SelectPage(ChangeEventArgs e)
