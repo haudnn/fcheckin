@@ -96,6 +96,20 @@ namespace OnetezSoft.Data
       return results;
     }
 
+        /// <summary>
+        /// Lấy danh sách sản phẩm của một danh mục
+        /// </summary>
+        public static async Task<List<GiftProductModel>> GetListOfCategory(string companyId, int categoryId)
+        {
+            var _db = Mongo.DbConnect("company_" + companyId);
+
+            var collection = _db.GetCollection<GiftProductModel>(_collection);
+
+            var results = await collection.Find(x => x.category == categoryId).ToListAsync();
+
+            return (from x in results orderby x.sold descending, x.price_list descending select x).ToList();
+        }
+
 
     public static async Task<List<GiftProductModel>> GetListShow(string companyId)
     {
