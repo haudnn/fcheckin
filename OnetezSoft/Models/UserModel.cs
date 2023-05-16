@@ -85,6 +85,9 @@ namespace OnetezSoft.Models
     /// <summary>Tổng số sao nhận được </summary>
     public int star_receive { get; set; }
 
+    /// <summary>Tổng sao cho đi</summary>
+    public int star_give { get; set; }
+
     /// <summary>Trang mặc định khi vào phần mềm</summary>
     public string page_default { get; set; }
 

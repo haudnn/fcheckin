@@ -118,17 +118,47 @@
                 @((MarkupString)Shared.GetLinks(item.content))
               </div>
               <div class="field is-grouped">
+                @if(Layout.User.id == item.user_receive)
+                {
+                  <div class="control">
+                      @if(item.like)
+                      {
+                        <span class="icon is-small has-text-danger" title="Bạn đã thả tim">
+                          <i class="material-icons-outlined is-size-6">favorite</i>
+                        </span>
+                      }
+                      else
+                      {
+                        <a class="icon is-small has-text-dark" title="Thả tim" @onclick="() => Like(item, create)">
+                          <i class="material-icons-outlined is-size-6">favorite_border</i>
+                        </a>
+                      }
+                  </div>
+                  <div class="control has-text-grey">•</div>
+                }
+                else if(item.like && receive != null)
+                {
+                  <div class="control">
+                    <span class="icon is-small has-text-danger" title="@receive.FullName đã thả tim.">
+                      <i class="material-icons-outlined is-size-6">favorite</i>
+                    </span>
+                  </div>
+                  <div class="control has-text-grey">•</div>
+                }
                 <div class="control">
-                  <span class="icon-text">
+                  <span class="icon-text has-text-dark">
+                    <span class="icon is-small" title="@(item.privacy ? "Riêng tư" : "Công khai")">
+                      <i class="material-icons-round">@(item.privacy ? "lock" : "public")</i>
+                    </span>
                     <span class="has-text-weight-semibold">@item.star</span>
-                    <span class="icon">
+                    <span class="icon is-small">
                       <i class="material-icons-outlined has-text-warning">star</i>
                     </span>
                   </span>
                 </div>
                 @if (logsTab == 2)
                 {
-                  <div class="control">•</div>
+                  <div class="control has-text-grey">•</div>
                   <div class="control has-text-weight-semibold text_1_line" style="max-width: 280px;">
                     @if (string.IsNullOrEmpty(item.okr_name))
                     {
@@ -140,8 +170,8 @@
                     }
                   </div>
                 }
-                <div class="control">•</div>
-                <div class="control">
+                <div class="control has-text-grey">•</div>
+                <div class="control has-text-grey">
                   @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date_create))
                 </div>
               </div>
@@ -164,10 +194,18 @@
   private bool logsReceive = true;
   private List<OkrCfrModel> logList = new();
 
-  protected override async Task OnInitializedAsync()
+
+    protected override async Task OnParametersSetAsync()
   {
+    var uri = navigation.ToAbsoluteUri(navigation.Uri);
+    if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("type", out var outType))
+      logsTab = Convert.ToInt32(outType);
+    if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("send", out var outSend))
+      logsReceive = !Convert.ToBoolean(outSend);
     await Start();
   }
+
+
 
   private async Task ChangeTab(int type)
   {
@@ -202,5 +240,14 @@
       logList = await DbOkrCfr.GetListReceive(Layout.Company.id, Layout.User.id, logsTab, logsStart, logsEnd);
     else
       logList = await DbOkrCfr.GetListGive(Layout.Company.id, Layout.User.id, logsTab, logsStart, logsEnd);
+  }
+
+  private async Task Like(OkrCfrModel item, UserModel create)
+  {
+    var name = create != null ? "cho " + create.FullName : "thành công!";
+    item.like = true;
+    await DbOkrCfr.Update(Layout.Company.id, item);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Bạn đã thả tim " + name);
+    await DbNotify.Create(Layout.Company.id, 512, item.type.ToString(), item.user_create, Layout.User.id);
   }
 }

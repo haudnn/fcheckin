@@ -24,3 +24,6 @@ FASTDO is a web app: OKRs, Todolist, Kaizen, Educate, Plan
 - Cấu hình cấp sao - trừ sao:
     + Add: Thêm tính năng chọn ví khi cấp sao hoặc trừ sau
     + Update: Cập nhật lại UI hiển thị để biết cấp ví nào
+- Ghi nhận:
+    + Tách số sao được cấp/sao ghi nhận
+    + Thả tim bình luậnghi nhận/tặng sao
