@@ -19,3 +19,8 @@ FASTDO is a web app: OKRs, Todolist, Kaizen, Educate, Plan
     + Thêm chức năng "Tạo Danh mục" cho cửa hàng.
     + Fix lại thêm mới một sản phẩm (Danh mục).
     + Cập nhật lại UI ở trang "Đổi quà" (Danh mục).
+- Đội nhóm: 
+    + Update: Phân sao thành 2 loại, cập nhật UI
+- Cấu hình cấp sao - trừ sao:
+    + Add: Thêm tính năng chọn ví khi cấp sao hoặc trừ sau
+    + Update: Cập nhật lại UI hiển thị để biết cấp ví nào
