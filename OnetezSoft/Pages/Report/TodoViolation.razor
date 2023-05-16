@@ -189,15 +189,6 @@
     await ChangeDepartment(department);
   }
 
-  protected override async Task OnParametersSetAsync()
-  {
-    if(string.IsNullOrEmpty(filterUserSearch))
-    {
-      Console.WriteLine("trigger param");
-      await GetData();
-    }
-  }
-
   public async Task ChangePicker(DateRange range)
   {
     filterStart = Convert.ToDateTime(range.Start.DateTime.ToString("yyyy-MM-dd"));

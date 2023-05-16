@@ -92,7 +92,7 @@
           <th width="20%">Bài thi</th>
           <th width="160px">Chấm điểm</th>
           <th width="20%">Học viên</th>
-          <th width="150px">Ngày nộp bài</th>
+          <th width="20%">Người chấm</th>
           <th width="110px">Xử lý</th>
         </tr>
       </thead>
@@ -100,6 +100,7 @@
         @foreach (var item in dataList)
         {
           var user = Layout.UserList.SingleOrDefault(x => x.id == item.user);
+          var examiner = Layout.UserList.SingleOrDefault(x => x.id == item.examiner);
           <tr>
             <td>
               <label class="td-label">Khóa học</label>
@@ -144,12 +145,28 @@
                 {
                   <span>@item.user</span>
                 }
+                <div class="mt-1 is-size-7">
+                  Ngày nộp: @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
+                </div>
               </div>
             </td>
             <td>
-              <label class="td-label">Ngày nộp bài</label>
+              <label class="td-label">Người chấm</label>
               <div class="td-value">
-                @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
+                @if (examiner != null)
+                {
+                  <div class="user_item">
+                    <img class="image is-24x24 mr-2" src="@examiner.avatar" alt="IMG" />
+                    <span>@examiner.FullName</span>
+                  </div>
+                  <div class="mt-1 is-size-7">
+                    Ngày chấm: @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date_check))
+                  </div>
+                }
+                else
+                {
+                  <span>@item.examiner</span>
+                }
               </div>
             </td>
             <td>
@@ -202,8 +219,8 @@
 
   protected override async Task OnInitializedAsync()
   {
-    courseList.AddRange(await DbEducateCourse.GetList(Layout.Company.id, null, null, null, Layout.User.id));
-
+    // courseList.AddRange(await DbEducateCourse.GetList(Layout.Company.id, null, null, null, Layout.User.id));
+    courseList = await DbEducateCourse.GetListByExaminer(Layout.Company.id, Layout.User.id);
     await Search();
     _loaded = true;
   }

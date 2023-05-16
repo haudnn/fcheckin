@@ -30,6 +30,10 @@ namespace OnetezSoft.Models
     public long date { get; set; }
     // Người tạo
     public string creator { get; set; }
+
+    // Danh sách người chấm thi
+    public List<string> examiner { get; set; } = new();
+
     // Giảng viên
     public string teacher { get; set; }
     // Đánh giá

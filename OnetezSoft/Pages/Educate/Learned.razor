@@ -491,6 +491,8 @@
 
     // Gửi thông báo chuông
     await DbNotify.Create(Layout.Company.id, 601, examLesson.id, examLesson.teacher, Layout.User.id);
+    foreach (var examiner in course.examiner)
+      await DbNotify.Create(Layout.Company.id, 601, examLesson.id, examiner, Layout.User.id);
   }
 
   private async Task SendQuiz()

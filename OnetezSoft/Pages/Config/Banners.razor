@@ -443,14 +443,11 @@ else
 
   private async Task OnItemDragdrop(BannerModel item)
   {
-    Console.WriteLine(item.pos);
     for (int pos = 0; pos < dataList.Count; pos++)
     {
       var banner = dataList[pos];
       banner.pos = pos;
-      Console.WriteLine(dataList[pos].pos);
       await DbBanner.Update(Layout.Company.id, banner);
-      Console.WriteLine(item.pos);
     }
     Search();
   }
