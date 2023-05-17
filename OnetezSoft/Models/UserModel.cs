@@ -93,6 +93,9 @@ namespace OnetezSoft.Models
 
     /// <summary>Trang mặc định khi vào phần mềm</summary>
     public string page_default { get; set; }
+    
+    /// <summary>Không thống kê: CFRs</summary>
+    public bool no_report_cfr { get; set; }
 
     /// <summary>Sản phẩm được sử dụng</summary>
     public List<string> products { get; set; } = new();
