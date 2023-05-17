@@ -1,0 +1,99 @@
+@inject IJSRuntime JSRuntime
+
+@if (model != null)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card">
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          Phân ca làm việc
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body">
+        <ul class="columns is-multiline is-variable is-2">
+          @foreach (var item in model.shifts)
+          {
+            <li class="column is-full has-text-weight-semibold pb-0">
+              @(item.day == 0 ? "Chủ nhật" : string.Format("Thứ {0}", item.day + 1))
+            </li>
+            <li class="column is-half">
+              <div class="field">
+                <label class="label has-text-grey">Ca sáng</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select @bind="item.morning">
+                      <option value="">Không có ca làm</option>
+                      @foreach (var sl in shifts)
+                      {
+                        <option value="@sl.id">@sl.name</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li class="column is-half">
+              <div class="field">
+                <label class="label has-text-grey">Ca chiều</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select @bind="item.afternoon">
+                      <option value="">Không có ca làm</option>
+                      @foreach (var sl in shifts)
+                      {
+                        <option value="@sl.id">@sl.name</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+      <section class="modal-card-foot is-right">
+        <div style="flex-grow: 1;">
+          <label class="checkbox has-text-link">
+            <input type="checkbox" @bind="model.is_flexible">
+            <span>Chế độ linh động</span>
+          </label>
+        </div>
+        <a class="button" @onclick="Cancel">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">close</i>
+          </span>
+          <span>Hủy</span>
+        </a>
+        <a class="button is-link" @onclick="Update">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">done</i>
+          </span>
+          <span>Cập nhật</span>
+        </a>
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public HrmUserShiftModel model { get; set; }
+  [Parameter]
+  public List<HrmWorkShiftModel> shifts { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+  }
+
+  private async Task Update()
+  {
+    await OnUpdate.InvokeAsync(true);
+  }
+}

@@ -360,6 +360,36 @@ namespace OnetezSoft.Data
         name = $"Bài thi của bạn ở Khoá học '{current.course_name}' đã được chấm.";
         link = "/educate/course/list/learn/" + current.lesson;
       }
+      else if (type == 800)
+      {
+        name = $"{creator} đã tạo ca làm <b>{key}</b>";
+        link = $"/hrm/setup/work-shift";
+      }
+      else if (type == 801)
+      {
+        name = $"{creator} đã chỉnh sửa thông tin ca làm <b>{key}</b>";
+        link = $"/hrm/setup/work-shift";
+      }
+      else if (type == 802)
+      {
+        name = $"{creator} đã xóa ca làm <b>{key}</b>";
+        link = $"/hrm/setup/work-shift";
+      }
+      else if (type == 803)
+      {
+        name = $"{creator} đã tạo địa điểm chấm công <b>{key}</b>";
+        link = $"/hrm/setup/locations";
+      }
+      else if (type == 804)
+      {
+        name = $"{creator} đã chỉnh sửa thông tin của <b>{key}</b>";
+        link = $"/hrm/setup/locations";
+      }
+      else if (type == 805)
+      {
+        name = $"{creator} đã xóa địa điểm chấm công <b>{key}</b>";
+        link = $"/hrm/setup/locations";
+      }
 
       #endregion
 
@@ -531,6 +561,11 @@ namespace OnetezSoft.Data
       var result = new StaticModel();
       result.id = type;
 
+      if (0 < type && type < 100)
+      {
+        result.name = "Khác";
+        result.color = "is-dark";
+      }
       if (100 <= type && type < 200)
       {
         result.name = "Kaizen";
@@ -561,10 +596,15 @@ namespace OnetezSoft.Data
         result.name = "Đào Tạo";
         result.color = "is-warning";
       }
-      else if (0 < type && type < 100)
+      else if (700 <= type && type < 800)
       {
-        result.name = "Khác";
-        result.color = "is-dark";
+        result.name = "Kế hoạch";
+        result.color = "is-link";
+      }
+      else if (800 <= type && type < 900)
+      {
+        result.name = "HRM";
+        result.color = "is-link";
       }
 
 

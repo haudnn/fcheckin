@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using HtmlAgilityPack;
 using OnetezSoft.Models;
 using Newtonsoft.Json;
+using System.Reflection;
 
 namespace OnetezSoft.Handled
 {
@@ -292,6 +293,17 @@ namespace OnetezSoft.Handled
     }
 
     /// <summary>
+    /// Chuyển string thành số thập phân
+    /// </summary>
+    public static double ConvertToDouble(string text)
+    {
+      if ((0.1).ToString().Contains("."))
+        return Convert.ToDouble(text.Replace(",", "."));
+      else
+        return Convert.ToDouble(text.Replace(".", ","));
+    }
+
+    /// <summary>
     /// Tính % tiến độ
     /// </summary>
     public static double Progress(double result, double target)
@@ -388,6 +400,16 @@ namespace OnetezSoft.Handled
     }
 
     /// <summary>
+    /// Tính số phút chênh lệnh giũa 2 mốc thời gian
+    /// </summary>
+    /// <returns>Lớn 0: date2 > datet1</returns>
+    public static long CompareTime(DateTime date1, DateTime date2)
+    {
+      TimeSpan spanMe = date2.Subtract(date1);
+      return Convert.ToInt64(spanMe.TotalMinutes);
+    }
+
+    /// <summary>
     /// Đổi cách hiển thị thời gian
     /// </summary>
     public static string ConvertDate(DateTime? date)
@@ -468,11 +490,11 @@ namespace OnetezSoft.Handled
     }
 
     /// <summary>
-    /// Đổi cách hiển thị thời gian, có tuần
+    /// Chuyển thời gian thành thứ trong tuần bằng tiếng Việt
     /// </summary>
-    public static string ConvertDateWeek(long tick)
+    public static string ConvertWeekdays(DateTime value)
     {
-      var date = new DateTime(tick).ToString("ddd - dd/MM/yyyy");
+      var date = value.ToString("ddd");
 
       if (date.Contains("Mon"))
         return date.Replace("Mon", "T2");
@@ -488,6 +510,15 @@ namespace OnetezSoft.Handled
         return date.Replace("Sat", "T7");
       else
         return date.Replace("Sun", "CN");
+    }
+
+    /// <summary>
+    /// Đổi cách hiển thị thời gian, có tuần
+    /// </summary>
+    public static string ConvertDateWeek(long tick)
+    {
+      var value = new DateTime(tick);
+      return string.Format("{0} - {1:dd/MM/yyyy}", ConvertWeekdays(value), value);
     }
 
 
@@ -693,6 +724,30 @@ namespace OnetezSoft.Handled
       return isMobile;
     }
 
+    private static double Deg2rad(double deg)
+    {
+      return deg * (Math.PI / 180);
+    }
+
+    /// <summary>Lấy khoản cách giữa 2 điểm trả về mét</summary>
+    public static long GetDistanceFromLatLon(double lat1, double lon1, double lat2, double lon2)
+    {
+      // Equatorial radius: a = (6378.1370 km)
+      // Polar radius: b = (6356.7523 km)
+      //var R = 6378.16; // Radius of the earth in km
+      //var R = 6378.1370; // Radius of the earth in km
+      var R = 6378137; // Radius of the earth in met
+      var dLat = Deg2rad(lat2 - lat1); // deg2rad below
+      var dLon = Deg2rad(lon2 - lon1);
+      var a =
+        Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+        Math.Cos(Deg2rad(lat1)) * Math.Cos(Deg2rad(lat2)) * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+      var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+      var d = R * c; // Distance in met
+
+      return Convert.ToInt64(d);
+    }
+
     #endregion
 
 
@@ -702,6 +757,18 @@ namespace OnetezSoft.Handled
     {
       var serialized = JsonConvert.SerializeObject(self);
       return JsonConvert.DeserializeObject<T>(serialized);
+    }
+
+    public static void PrintObject(Object obj)
+    {
+      Type t = obj.GetType();
+      Console.WriteLine("Type is: {0}", t.Name);
+      PropertyInfo[] props = t.GetProperties();
+      foreach (var prop in props)
+      {
+        if (prop.GetIndexParameters().Length == 0)
+          Console.WriteLine("{0, 20} = {2, -40} ({1})", prop.Name, prop.PropertyType.Name, prop.GetValue(obj));
+      }
     }
 
     #endregion

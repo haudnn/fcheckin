@@ -1,0 +1,77 @@
+@page "/hrm/setup/options"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (_access)
+{
+  <section class="p-4">
+    <div class="card p-5">
+      <h1 class="title is-5 has-text-info mb-4">
+        QUẢN LÝ HẠNG MỤC
+      </h1>
+      <div class="is-size-6 has-text-weight-medium mb-5">
+        Hạng mục hồ sơ nhân sự
+      </div>
+      <ul class="tree_views">
+        @foreach (var item in mainList)
+        {
+          var childs = dataList.Where(x => x.type == item.type).Count();
+          <li>
+            <div class="icon-text">
+              <a class="icon">
+                <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+              </a>
+              <a class="has-text-weight-medium" @onclick="() => EditItem(item)">@item.name</a>
+              <a class="has-text-grey" @onclick="() => EditItem(item)">@childs lựa chọn</a>
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+  <OptionPopup model="editItem" data="editList" OnUpdate="OnUpdate" />
+}
+else
+{
+  <PopupNoRole />
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  private string _title = "Quản lý hạng mục";
+  private bool _access = false;
+  private List<HrmOptionModel> mainList = new();
+  private List<HrmOptionModel> dataList = new();
+  private HrmOptionModel editItem = null;
+  private List<HrmOptionModel> editList = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    // Quyền truy cập trang
+    _access = Layout.User.role == 1 || Layout.User.role_manage.timekeeping || Layout.User.role_manage.hrrecords;
+
+    mainList = HrmService.Options();
+    dataList = await DbHrmOption.GetAll(Layout.Company.id);
+  }
+
+  private async Task EditItem(HrmOptionModel item)
+  {
+    if(Layout.User.role == 1)
+    {
+      editItem = item;
+      editList = await DbHrmOption.GetList(Layout.Company.id, item.type);
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có quyền xem dữ liệu này!");
+  }
+
+  private async Task OnUpdate(bool isUpdate)
+  {
+    editItem = null;
+    dataList = await DbHrmOption.GetAll(Layout.Company.id);
+    StateHasChanged();
+  }
+}

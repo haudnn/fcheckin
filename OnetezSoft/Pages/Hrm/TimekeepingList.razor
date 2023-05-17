@@ -1,0 +1,358 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="card p-5">
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
+    <li class="column">
+      <div class="title is-5 has-text-info is-uppercase">
+        Lịch sử chấm công
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <div class="select is-fullwidth">
+        <select @onchange="ChangeDate">
+          <option value="1">Tuần này</option>
+          <option value="11">Tuần trước</option>
+          <option value="2">Tháng này</option>
+          <option value="22">Tháng trước</option>
+        </select>
+      </div>
+    </li>
+    <li class="column is-narrow is-hidden-mobile">
+      <div class="field has-addons">
+        <div class="control">
+          <span class="button is-link">
+            <i class="material-icons-outlined">calendar_today</i>
+          </span>
+        </div>
+        <div class="control is-expanded">
+          <div class="input" style="width: 190px;">
+            <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE" OnRangeSelect="ChangePicker" />
+          </div>
+        </div>
+      </div>
+    </li>
+  </ul>
+
+  <table class="table is-fullwidth is-vcentered is-responsive mt-5">
+    <thead class="is-hidden-mobile">
+      <tr class="has-background-info has-text-weight-medium">
+        <th class="has-text-dark pl-2">Thời gian</th>
+        <th class="has-text-dark" width="15%" align="center">Công hợp lệ</th>
+        <th class="has-text-dark" width="18%" align="center">Check-in Ca sáng</th>
+        <th class="has-text-dark" width="18%" align="center">Check-out Ca sáng</th>
+        <th class="has-text-dark" width="18%" align="center">Check-in Ca chiều</th>
+        <th class="has-text-dark" width="18%" align="center">Check-out Ca chiều</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (DateTime date = filterDateE.Value.DateTime; date >= filterDateS.Value.DateTime; date = date.AddDays(-1))
+      {
+        DateTime day = date;
+        if(userShift != null)
+        {
+          // Dữ liệu chấm công
+          var timekeeping = dataList.FirstOrDefault(x => x.date == day.Ticks);
+          // Thời gian ca sáng
+          var moringShift = HrmService.GetWorkShiftInDay(shiftList, userShift, day, true);
+          // Thời gian ca chiều
+          var afternoonShift = HrmService.GetWorkShiftInDay(shiftList, userShift, day, false);
+          if(timekeeping != null)
+          {
+            <tr>
+              <td class="pl-2">
+                <label class="td-label">Thời gian</label>
+                <div class="td-value">
+                  <a class="has-text-weight-semibold" @onclick="() => ShowPopup(day.Ticks, timekeeping)">
+                    @Shared.ConvertDateWeek(day.Ticks)
+                  </a>
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Số công</label>
+                <div class="td-value">
+                  @GetTimeRecord(timekeeping)
+                </div>
+              </td>
+              <TimekeepingItem shift="moringShift" checkin="timekeeping.morning_checkin"
+                checkout="timekeeping.morning_checkout" />
+              <TimekeepingItem shift="afternoonShift" checkin="timekeeping.afternoon_checkin"
+                checkout="timekeeping.afternoon_checkout" />
+            </tr>
+          }
+          else if(day <= DateTime.Today)
+          {
+            // Kiểm tra ngày nghỉ
+            var hasSalary = false;
+            var dayOff = DbDayOff.CheckOff(Layout.DaysOff, day, out hasSalary);
+            if(dayOff)
+            {
+              <tr class="has-background-primary">
+                <td class="pl-2">
+                  <label class="td-label">Thời gian</label>
+                  <div class="td-value">
+                    <a class="has-text-weight-semibold" @onclick="() => ShowPopup(day.Ticks, timekeeping)">
+                      @Shared.ConvertDateWeek(day.Ticks)
+                    </a>
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Số công</label>
+                  <div class="td-value">
+                    @if(hasSalary)
+                    {
+                      <span>@GetTotalTimeWorkInDay(moringShift, afternoonShift)</span>
+                    }
+                    else
+                    {
+                      <span>0</span>
+                    }
+                  </div>
+                </td>
+                @if(dayOff)
+                {
+                  <td align="center" colspan="4">
+                    @(hasSalary ? "Ngày lễ" : "Ngày nghỉ")
+                  </td>
+                }
+              </tr>
+            }
+            else if(userShift.is_flexible)
+            {
+              <tr>
+                <td class="pl-2">
+                  <label class="td-label">Thời gian</label>
+                  <div class="td-value">
+                    <a class="has-text-weight-semibold" @onclick="() => ShowPopup(day.Ticks, timekeeping)">
+                      @Shared.ConvertDateWeek(day.Ticks)
+                    </a>
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Số công</label>
+                  <div class="td-value">
+                    <span>@GetTotalTimeWorkInDay(moringShift, afternoonShift)</span>
+                  </div>
+                </td>
+                <td align="center" colspan="4">
+                  Chế độ linh động
+                </td>
+              </tr>
+            }
+            else
+            {
+              <tr>
+                <td class="pl-2">
+                  <label class="td-label">Thời gian</label>
+                  <div class="td-value">
+                    <a class="has-text-weight-semibold" @onclick="() => ShowPopup(day.Ticks, timekeeping)">
+                      @Shared.ConvertDateWeek(day.Ticks)
+                    </a>
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Số công</label>
+                  <div class="td-value">0</div>
+                </td>
+                @if(moringShift != null)
+                {
+                  <td align="center">
+                    <label class="td-label">Check-in</label>
+                    <div class="td-value">
+                      <span class="icon-text has-text-danger">
+                        <span class="icon">
+                          <i class="material-icons is-size-6">error_outline</i>
+                        </span>
+                        <span>Không có dữ liệu</span>
+                      </span>
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Check-out</label>
+                    <div class="td-value">
+                      <span class="icon-text has-text-danger">
+                        <span class="icon">
+                          <i class="material-icons is-size-6">error_outline</i>
+                        </span>
+                        <span>Không có dữ liệu</span>
+                      </span>
+                    </div>
+                  </td>
+                }
+                else
+                {
+                  <td class="has-background-primary" align="center" colspan="2">
+                    Không có ca làm
+                  </td>
+                }
+                @if(afternoonShift != null)
+                {
+                  <td align="center">
+                    <label class="td-label">Check-in</label>
+                    <div class="td-value">
+                      <span class="icon-text has-text-danger">
+                        <span class="icon">
+                          <i class="material-icons is-size-6">error_outline</i>
+                        </span>
+                        <span>Không có dữ liệu</span>
+                      </span>
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Check-out</label>
+                    <div class="td-value">
+                      <span class="icon-text has-text-danger">
+                        <span class="icon">
+                          <i class="material-icons is-size-6">error_outline</i>
+                        </span>
+                        <span>Không có dữ liệu</span>
+                      </span>
+                    </div>
+                  </td>
+                }
+                else
+                {
+                  <td class="has-background-primary" align="center" colspan="2">
+                    Không có ca làm
+                  </td>
+                }
+              </tr>
+            }
+          }
+        }
+        else if(day <= DateTime.Today)
+        {
+          <tr class="has-background-primary">
+            <td class="pl-2">
+              <label class="td-label">Thời gian</label>
+              <div class="td-value">
+                @Shared.ConvertDateWeek(day.Ticks)
+              </div>
+            </td>
+            <td align="center" class="td-hide"></td>
+            <td align="center" colspan="4">
+              Không có ca làm
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+<TimekeepingPopup day="@popupDay" data="popupData" 
+  shifts="shiftList" shift="userShift" OnClose="() => popupDay = 0" />
+
+@if(!CheckAccess())
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-content" style="max-width: 360px;">
+      <div class="box has-text-centered pt-5">
+        <span class="icon is-large has-text-danger">
+          <i class="material-icons-outlined is-size-1">error_outline</i>
+        </span>
+        <div class="is-size-6 py-4 has-text-weight-semibold">
+          @msgAccess
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  private List<HrmTimekeepingModel> dataList = new();
+  private List<HrmWorkShiftModel> shiftList = new();
+  private HrmUserShiftModel userShift = new();
+  private DateTimeOffset? filterDateS = DateTime.Today;
+  private DateTimeOffset? filterDateE = DateTime.Today;
+  private long popupDay = 0;
+  private HrmTimekeepingModel popupData = null;
+
+  private string msgAccess = string.Empty;
+  private bool CheckAccess()
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, "timekeeping", out msgAccess);
+  }
+
+  protected override async Task OnInitializedAsync()
+  {
+    Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
+    filterDateS = start;
+    filterDateE = end;
+
+    // Dữ liệu phân ca
+    shiftList = await DbHrmWorkShift.GetList(Layout.Company.id);
+
+    // Phân ca của nhân sự
+    userShift = await DbHrmUserShift.Get(Layout.Company.id, Layout.User.id);
+
+    await GetData();
+  }
+
+  public async Task ChangePicker(DateRange range)
+  {
+    filterDateS = Convert.ToDateTime(range.Start.DateTime.ToString("yyyy-MM-dd"));
+    filterDateE = Convert.ToDateTime(range.End.DateTime.ToString("yyyy-MM-dd"));
+    await GetData();
+  }
+
+  private async Task ChangeDate(ChangeEventArgs e)
+  {
+    var type = Convert.ToInt32(e.Value);
+    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
+    filterDateS = start;
+    filterDateE = end;
+    await GetData();
+  }
+
+  private async Task GetData()
+  {
+    dataList = await DbHrmTimekeeping.GetList(Layout.Company.id, Layout.User.id, 
+      filterDateS.Value.Ticks, filterDateE.Value.Ticks);
+  }
+
+  /// <summary>
+  /// Lấy tổng số công theo cấu hình trong ngày
+  /// </summary>
+  private double GetTotalTimeWorkInDay(HrmWorkShiftModel morningShift, HrmWorkShiftModel afternoonShift)
+  {
+    if(morningShift != null && afternoonShift != null)
+      return morningShift.value + afternoonShift.value;
+    else if(morningShift != null)
+      return morningShift.value;
+    else if(afternoonShift != null)
+      return afternoonShift.value;
+    return 0;
+  }
+
+  /// <summary>
+  /// Lấy tổng số công thực tế ghi nhận trong ngày
+  /// </summary>
+  private double GetTimeRecord(HrmTimekeepingModel timekeeping)
+  {
+    double result = 0;
+    if(timekeeping.morning_checkout != null)
+    {
+      if (timekeeping.morning_checkin.is_valid && timekeeping.morning_checkout.is_valid)
+        result += timekeeping.morning_checkin.time_work;
+    }
+    if(timekeeping.afternoon_checkout != null)
+    {
+      if (timekeeping.afternoon_checkin.is_valid && timekeeping.afternoon_checkout.is_valid)
+        result += timekeeping.afternoon_checkin.time_work;
+    }
+    return result;
+  }
+
+  /// <summary>
+  /// Hiện popup chi tiết chấm công
+  /// </summary>
+  private void ShowPopup(long day, HrmTimekeepingModel item)
+  {
+    popupDay = day;
+    popupData = item;
+  }
+}

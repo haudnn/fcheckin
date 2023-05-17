@@ -8,18 +8,27 @@ namespace OnetezSoft.Models
   {
     [BsonId]
     public string id { get; set; }
-    // Tên ngày nghỉ
+
+    /// <summary>Tên ngày nghỉ</summary>
     public string name { get; set; }
-    // Ngày bắt đầu
+
+    /// <summary>Ngày bắt đầu</summary>
     public long start { get; set; }
-    // Ngày kết thúc
+
+    /// <summary>Ngày kết thúc</summary>
     public long end { get; set; }
-    // Ngày tạo
+
+    /// <summary>Ngày tạo</summary>
     public long create { get; set; }
-    // Lặp: 1. Một lần | 2. Hàng tuần
+
+    /// <summary>Lặp: 1. Một lần | 2. Hàng tuần</summary>
     public int loop { get; set; }
-    // Lặp ngày trong tuần
+
+    /// <summary>Lặp ngày trong tuần</summary>
     public Week loop_week { get; set; }
+
+    /// <summary>Ngảy nghỉ tính lương</summary>
+    public bool has_salary { get; set; }
 
     public class Week
     {

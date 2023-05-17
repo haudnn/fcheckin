@@ -1,0 +1,220 @@
+@inject IJSRuntime JSRuntime
+
+@if (day > 0)
+{
+  // Thời gian ca sáng
+  var morningShift = HrmService.GetWorkShiftInDay(shifts, shift, new DateTime(day), true);
+  // Thời gian ca chiều
+  var afternoonShift = HrmService.GetWorkShiftInDay(shifts, shift, new DateTime(day), false);
+
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card">
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          Chi tiết chấm công
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body">
+        <ul class="columns is-multiline is-variable is-2">
+          <li class="column is-half">
+            <span class="has-text-weight-semibold">Ngày:</span>
+            <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(day))</span>
+          </li>
+          <li class="column is-half">
+            <span class="has-text-weight-semibold">Công hợp lệ: </span>
+            <span>@GetTotalTimeWorkInDay(data, morningShift, afternoonShift)</span>
+          </li>
+          <li class="column is-full">
+            <div class="has-text-weight-semibold mb-1">Ca làm việc</div>
+            @if(shift == null)
+            {
+              <div>Không có ca làm</div>
+            }
+            else if(shift.is_flexible)
+            {
+              <div>Chế độ linh đồng</div>
+            }
+            else
+            {
+              if(morningShift == null && afternoonShift == null)
+              {
+                <div>Không có ca làm</div>
+              }
+              else
+              {
+                if(morningShift != null)
+                {
+                  <div>Ca sáng: @morningShift.checkin - @morningShift.checkout</div>
+                }
+                if(afternoonShift != null)
+                {
+                  <div>Ca chiều: @afternoonShift.checkin - @afternoonShift.checkout</div>
+                }
+              }
+            }
+          </li>
+          @if(data != null)
+          {
+            var dataList = ConvertToList(data);
+            foreach (var item in dataList)
+            {
+              if(string.IsNullOrEmpty(item.time_active))
+                continue;
+              bool isValid = HrmService.TimekeepingIsValid(item);
+              <li class="column is-full">
+                <div class="has-text-weight-semibold">
+                  Giờ @(item.time_type == null ? "chấm công" : item.time_type):
+                </div>
+                <div class="field is-grouped mb-0">
+                  <div class="control" style="width: 25%;">
+                    <span class="icon-text">
+                      <span class="icon is-small">
+                        @if(isValid)
+                        {
+                          <i class="material-icons is-size-6 has-text-success">done</i>
+                        }
+                        else
+                        {
+                          <i class="material-icons is-size-6 has-text-danger">error_outline</i>
+                        }
+                      </span>
+                      <span class="has-text-weight-medium">@item.time_active</span>
+                    </span>
+                  </div>
+                  @if(!item.in_company)
+                  {
+                    <div class="control" style="width: 25%;">
+                      <span class="icon-text has-text-link">
+                        <span class="icon is-small">
+                          <i class="material-icons-outlined">map</i>
+                        </span>
+                        <span>Ngoài công ty</span>
+                      </span>
+                    </div>
+                  }
+                  @if(item.time_difference > 0)
+                  {
+                    <div class="control" style="width: 25%;">
+                      <span class="has-text-danger">
+                        @(item.time_type == "Check-out" ? "Sớm" : "Trễ")
+                        @item.time_difference phút
+                      </span>
+                    </div>
+                  }
+                </div>
+                @if(!Shared.IsEmpty(item.reason))
+                {
+                  <div class="pl-5 mt-1">
+                    <span class="has-text-weight-medium">Lý do:</span>
+                    <span>@item.reason</span>
+                  </div>
+                }
+                @if(!Shared.IsEmpty(item.note))
+                {
+                  <div class="pl-5 mt-1">
+                    <span class="has-text-weight-medium">Ghi chú:</span>
+                    <span>@item.note</span>
+                  </div>
+                }
+                @if(item.images.Count > 0)
+                {
+                  <div class="pl-5 mt-2">
+                    <ul class="columns is-multiline is-variable is-1 is-mobile">
+                      @foreach (var image in item.images)
+                      {
+                        <li class="column is-one-third">
+                          <div class="image is-4by3 is-radius">
+                            <img src="@image" alt="IMG">
+                          </div>
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </li>
+            }
+          }
+        </ul>
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public long day { get; set; } // Ngày cần xem
+  [Parameter]
+  public HrmTimekeepingModel data { get; set; } // Dữ liệu chấm công
+  [Parameter]
+  public List<HrmWorkShiftModel> shifts { get; set; } // Danh sách cấu hình ca
+  [Parameter]
+  public HrmUserShiftModel shift { get; set; } // Phân ca của tài khoản
+  [Parameter]
+  public EventCallback OnClose { get; set; }
+
+  private async Task Cancel()
+  {
+    await OnClose.InvokeAsync();
+  }
+
+  /// <summary>
+  /// Lấy tổng số công hợp lệ trong ngày
+  /// </summary>
+  private double GetTotalTimeWorkInDay(HrmTimekeepingModel timekeeping, 
+    HrmWorkShiftModel morningShift, HrmWorkShiftModel afternoonShift)
+  {
+    double result = 0;
+    if(timekeeping != null)
+    {
+      if(timekeeping.morning_checkout != null)
+      {
+        if (timekeeping.morning_checkin.is_valid && timekeeping.morning_checkout.is_valid)
+          result += timekeeping.morning_checkin.time_work;
+      }
+      if(timekeeping.afternoon_checkout != null)
+      {
+        if (timekeeping.afternoon_checkin.is_valid && timekeeping.afternoon_checkout.is_valid)
+          result += timekeeping.afternoon_checkin.time_work;
+      }
+    }
+    else
+    {
+      if(morningShift != null)
+        result += morningShift.value;
+      if(afternoonShift != null)
+        result += afternoonShift.value;
+
+      // Kiểm tra ngày nghỉ
+      var dayOff = DbDayOff.CheckOff(Layout.DaysOff, new DateTime(day), out bool hasSalary);
+      Console.WriteLine($"{dayOff} | {hasSalary}");
+      if(hasSalary)
+        return result;
+
+      // Không có ca hoặc không phải chế độ linh động
+      if(shift == null || !shift.is_flexible)
+        return 0;
+    }
+    return result;
+  }
+
+  /// <summary>
+  /// Chuyển dữ liệu chấm công thành List
+  /// </summary>
+  private List<HrmTimekeepingModel.TimeData> ConvertToList(HrmTimekeepingModel timekeeping)
+  {
+    var results = new List<HrmTimekeepingModel.TimeData>();
+    if(timekeeping.morning_checkin != null)
+      results.Add(timekeeping.morning_checkin);
+    if(timekeeping.morning_checkout != null)
+      results.Add(timekeeping.morning_checkout);
+    if(timekeeping.afternoon_checkin != null)
+      results.Add(timekeeping.afternoon_checkin);
+    if(timekeeping.afternoon_checkout != null)
+      results.Add(timekeeping.afternoon_checkout);
+    return results;
+  }
+}

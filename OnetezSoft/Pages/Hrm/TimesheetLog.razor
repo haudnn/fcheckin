@@ -1,0 +1,82 @@
+@inject IJSRuntime JSRuntime
+
+@if (data != null)
+{
+  string titleLast = string.Empty;
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card is-medium">
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          Lịch sử chỉnh sửa
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body">
+        <ul class="columns is-multiline is-variable is-2">
+          <li class="column is-full">
+            <span class="has-text-weight-semibold">Nhân viên:</span>
+            <span>@staff</span>
+          </li>
+          @for (int i = 0; i < data.Count; i++)
+          {
+            var item = data[i];
+            var user = UserService.GetUser(Layout.UserList, item.editor);
+            var type = item.is_morning ? "sáng" : "chiều";
+            var title = string.Format("Ca {0} - Ngày {1:dd/MM/yyyy}", type, new DateTime(item.day));
+            if(titleLast != title)
+            {
+              titleLast = title;
+              <li class="column is-full">
+                <div class="has_bg has-text-weight-semibold px-3 py-2">
+                  @title
+                </div>
+              </li>
+            }
+            <li class="column is-one-quarter">
+              <div class="has-text-weight-medium pb-2">Thời gian chỉnh sửa</div>
+              <div class="has-text-grey">
+                @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.edit_date))
+              </div>
+            </li>
+            <li class="column is-one-quarter">
+              <div class="has-text-weight-medium pb-2">Nội dung cũ</div>
+              <div class="has-text-grey">
+                @item.old_content
+              </div>
+            </li>
+            <li class="column is-one-quarter">
+              <div class="has-text-weight-medium pb-2">Nội dung mới</div>
+              <div class="has-text-grey">
+                @item.edit_content
+              </div>
+            </li>
+            <li class="column is-one-quarter">
+              <div class="has-text-weight-medium pb-2">Người thực hiện</div>
+              <div class="user_item has-text-grey">
+                <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                <span class="text_1_line">@user.FullName</span>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string staff { get; set; } // Họ tên nhân viên
+  [Parameter]
+  public List<HrmTimesheetLogModel> data { get; set; }
+  [Parameter]
+  public EventCallback OnClose { get; set; }
+
+  private async Task Cancel()
+  {
+    await OnClose.InvokeAsync(null);
+  }
+}

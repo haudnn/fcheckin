@@ -84,64 +84,91 @@
   private async Task GetList()
   {
     dataList = await DbMainProduct.GetAll();
-    if (dataList.Count == 0)
-    {
-      var okrs = new ProductModel()
-        {
-          id = "okrs",
-          title = "fOKRs",
-          color = "#c4e6ff",
-          icon = "/images/icon/fOKRs.png",
-          cover = "/images/illustrations/fokrs.png"
-        };
-      var work = new ProductModel()
-        {
-          id = "work",
-          title = "fWork",
-          color = "#ffb852",
-          icon = "/images/icon/fWork.png",
-          cover = "/images/illustrations/fwork.png"
-        };
-      var space = new ProductModel()
-        {
-          id = "space",
-          title = "fSpace",
-          color = "#83fac1",
-          icon = "/images/icon/fSpace.png",
-          cover = "/images/illustrations/fspace.png"
-        };
-      var todolist = new ProductModel()
-        {
-          id = "todolist",
-          title = "fTodolist",
-          color = "#fdb7af",
-          icon = "/images/icon/fTodo.png",
-          cover = "/images/illustrations/ftodolist.png"
-        };
-      var train = new ProductModel()
-        {
-          id = "train",
-          title = "fTrain",
-          color = "#94b7ff",
-          icon = "/images/icon/fEdu.png",
-          cover = "/images/illustrations/ftodolist.png"
-        };
-      var kaizen = new ProductModel()
-        {
-          id = "kaizen",
-          title = "fKaizen",
-          color = "#ffc4c4",
-          icon = "/images/icon/fKaizen.png",
-          cover = "/images/illustrations/fkaizen.png"
-        };
+    await CreateData();
+  }
 
+  /// <summary>
+  /// Tạo dữ liệu ban đầu
+  /// </summary>
+  private async Task CreateData()
+  {
+    var okrs = new ProductModel()
+      {
+        id = "okrs",
+        title = "fOKRs",
+        color = "#c4e6ff",
+        icon = "/images/icon/fOKRs.png",
+        cover = "/images/illustrations/fokrs.png"
+      };
+    var work = new ProductModel()
+      {
+        id = "work",
+        title = "fWork",
+        color = "#ffb852",
+        icon = "/images/icon/fWork.png",
+        cover = "/images/illustrations/fwork.png"
+      };
+    var todolist = new ProductModel()
+      {
+        id = "todolist",
+        title = "fTodolist",
+        color = "#fdb7af",
+        icon = "/images/icon/fTodo.png",
+        cover = "/images/illustrations/ftodolist.png"
+      };
+    var train = new ProductModel()
+      {
+        id = "train",
+        title = "fTrain",
+        color = "#94b7ff",
+        icon = "/images/icon/fEdu.png",
+        cover = "/images/illustrations/ftodolist.png"
+      };
+    var kaizen = new ProductModel()
+      {
+        id = "kaizen",
+        title = "fKaizen",
+        color = "#ffc4c4",
+        icon = "/images/icon/fKaizen.png",
+        cover = "/images/illustrations/fkaizen.png"
+      };
+    var space = new ProductModel()
+      {
+        id = "space",
+        title = "fSpace",
+        color = "#83fac1",
+        icon = "/images/icon/fSpace.png",
+        cover = "/images/illustrations/fspace.png"
+      };
+    var timekeeping = new ProductModel()
+      {
+        id = "timekeeping",
+        title = "Chấm công",
+        color = "#01c3dc",
+        icon = "/images/icon/fTimekeeping.png",
+        cover = "/images/illustrations/ftimekeeping.png"
+      };
+
+    if(!dataList.Any(x => x.id == "okrs"))
       await DbMainProduct.Create(okrs);
+
+    if(!dataList.Any(x => x.id == "work"))
       await DbMainProduct.Create(work);
-      await DbMainProduct.Create(space);
+    
+    if(!dataList.Any(x => x.id == "todolist"))
       await DbMainProduct.Create(todolist);
+    
+    if(!dataList.Any(x => x.id == "train"))
       await DbMainProduct.Create(train);
+    
+    if(!dataList.Any(x => x.id == "kaizen"))
       await DbMainProduct.Create(kaizen);
-    }
+    
+    if(!dataList.Any(x => x.id == "space"))
+      await DbMainProduct.Create(space);
+    
+    if(!dataList.Any(x => x.id == "timekeeping"))
+      await DbMainProduct.Create(timekeeping);
   }
 
   private async Task EditItem(ProductModel item)

@@ -1,0 +1,61 @@
+@inject IJSRuntime JSRuntime
+
+<section class="modal is-active">
+  <div class="modal-background"></div>
+  <section class="modal-card">
+    <section class="modal-card-head">
+      <div class="modal-card-title">
+        Thiết lập công chuẩn
+      </div>
+      <a class="delete is-medium" @onclick="Cancel"></a>
+    </section>
+    <section class="modal-card-body">
+      <div class="field">
+        <label class="label">Bảng công tháng</label>
+        <div class="control">
+          <div class="input">
+            Tháng @month.ToString("MM/yyyy")
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="label">Công chuẩn</label>
+        <div class="control">
+          <input @bind="total" class="input" type="number" min="0" step="0.5">
+        </div>
+      </div>
+    </section>
+    <section class="modal-card-foot is-right">
+      <a class="button" @onclick="Cancel">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">close</i>
+        </span>
+        <span>Hủy</span>
+      </a>
+      <a class="button is-link" @onclick="Update">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">done</i>
+        </span>
+        <span>Cập nhật</span>
+      </a>
+    </section>
+  </section>
+</section>
+
+@code {
+  [Parameter]
+  public DateTime month { get; set; }
+  [Parameter]
+  public EventCallback<double> OnUpdate { get; set; }
+  private double total = 0;
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(0);
+  }
+
+  private async Task Update()
+  {
+    await OnUpdate.InvokeAsync(total);
+  }
+}

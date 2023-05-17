@@ -109,5 +109,43 @@ namespace OnetezSoft.Data
 
       return false;
     }
+
+    /// <summary>
+    /// Kiểm tra có phải ngày nghỉ không
+    /// </summary>
+    public static bool CheckOff(List<DayOffModel> list, DateTime day, out bool has_salary)
+    {
+      has_salary = false;
+
+      // Kiểm tra ngày nghỉ 1 lần
+      var dayOff = list.Where(x => x.start <= day.Ticks && day.Ticks <= x.end && x.loop == 1).FirstOrDefault();
+      if (dayOff != null)
+      {
+        has_salary = dayOff.has_salary;
+        return true;
+      }
+
+      // Kiểm tra ngày nghỉ hàng tuần
+      var week = list.Where(x => x.start <= day.Ticks && day.Ticks <= x.end && x.loop == 2).ToList();
+      foreach (var item in week)
+      {
+        if (day.DayOfWeek == DayOfWeek.Monday && item.loop_week.mon)
+          return true;
+        else if (day.DayOfWeek == DayOfWeek.Tuesday && item.loop_week.tue)
+          return true;
+        else if (day.DayOfWeek == DayOfWeek.Wednesday && item.loop_week.wed)
+          return true;
+        else if (day.DayOfWeek == DayOfWeek.Thursday && item.loop_week.thu)
+          return true;
+        else if (day.DayOfWeek == DayOfWeek.Friday && item.loop_week.fri)
+          return true;
+        else if (day.DayOfWeek == DayOfWeek.Saturday && item.loop_week.sat)
+          return true;
+        else if (day.DayOfWeek == DayOfWeek.Sunday && item.loop_week.sun)
+          return true;
+      }
+
+      return false;
+    }
   }
 }

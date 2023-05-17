@@ -1,0 +1,831 @@
+@page "/hrm/timekeeping"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="p-4">
+  <div class="columns is-multiline is-mobile">
+    @if(Layout.IsMobile)
+    {
+      <div class="column is-full">
+        <div class="card p-2">
+          <ul class="columns is-mobile is-variable is-1">
+            <li class="column is-one-third">
+              <a class="button is-fullwidth @(tab == 1 ? "has-text-link is_bg" : "is-white")" 
+                style="height: auto;" @onclick="() => tab = 1">
+                <div>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6">timelapse</i>
+                  </span>
+                  <p>Lịch sử</p>
+                </div>
+              </a>
+            </li>
+            <li class="column is-one-third">
+              <a class="button is-fullwidth @(tab == 2 ? "has-text-link is_bg" : "is-white")"
+                style="height: auto;" @onclick="() => tab = 2">
+                <div>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6">timer</i>
+                  </span>
+                  <p>Chấm công</p>
+                </div>
+              </a>
+            </li>
+            <li class="column is-one-third">
+              <a class="button is-fullwidth @(tab == 3 ? "has-text-link is_bg" : "is-white")"
+                style="height: auto;" @onclick="() => tab = 3">
+                <div>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6">flight</i>
+                  </span>
+                  <p>Đơn từ</p>
+                </div>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="@(tab == 2 ? "column is-full" : "is-hidden")">
+        <div class="card p-5 has-text-centered">
+          <div class="pb-2">
+            @companyName
+          </div>
+          <div class="pb-2">
+            <span class="has-text-black">Địa chỉ:</span>
+            <span>@companyAddress</span>
+          </div>
+          <div>
+            <span class="has-text-black mr-2">Vị trí hiện tại:</span>
+            @if(inCompany == null)
+            {
+              <span>đang kiểm tra...</span>
+            }
+            else if(inCompany.Value)
+            {
+              <span class="icon-text has-text-success">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">done</i>
+                </span>
+                <span>Hợp lệ</span>
+              </span>
+            }
+            else
+            {
+              <span class="icon-text has-text-danger">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">error_outline</i>
+                </span>
+                <span>Ngoài công ty</span>
+              </span>
+            }
+          </div>
+          <div class="py-5">
+            @if(userShift == null || isNoShift)
+            {
+              <div class="btn_timekeeping is_grey">
+                <div class="is_bg animated infinite pulse"></div>
+                <div class="is_btn is-uppercase">
+                  Không có ca làm
+                </div>
+              </div>
+            }
+            else if(userShift.is_flexible)
+            {
+              <div class="btn_timekeeping is_grey">
+                <div class="is_bg animated infinite pulse"></div>
+                <div class="is_btn is-uppercase">
+                  Chế độ linh động
+                </div>
+              </div>
+            }
+            else
+            {
+              <div class="btn_timekeeping @(isOnTime ? (isCheckin ? "" : "is_green") : "is_red")">
+                <div class="is_bg animated infinite pulse"></div>
+                @if(!isLoading)
+                {
+                  if(isCheckin)
+                  {
+                    <a class="is_btn" @onclick="Checkin">CHECK-IN</a>
+                  }
+                  else
+                  {
+                    <a class="is_btn" @onclick="Checkout">CHECK-OUT</a>
+                  }
+                }
+              </div>
+            }
+          </div>
+          <div class="has-text-weight-medium mb-1">
+            <span id="clock" class="is-family-code">@DateTime.Now.ToString("HH:mm:ss")</span>
+            <span>•</span>
+            @DateTime.Today.ToString("dddd, dd/MM/yyyy",
+              System.Globalization.CultureInfo.CreateSpecificCulture("vi-VN"))
+          </div>
+          <div class="is-family-code @(inCompany == true ? "has-text-success" : "has-text-danger")"
+            @onclick="CheckLocation">
+            @((MarkupString)logs)
+          </div>
+        </div>
+        
+        <div class="card p-5">
+          <div class="has-text-weight-medium is-size-6 mb-3">
+            Lịch sử chấm công
+          </div>
+          @if(timekeeping != null)
+          {
+            <ul class="columns is-mobile is-multiline is-variable is-1" style="line-height: 1.5rem;">
+              @if(moringShift != null)
+              {
+                <TimekeepingLog title="ca sáng" shift="moringShift"
+                  checkin="timekeeping.morning_checkin" 
+                  checkout="timekeeping.morning_checkout" />
+              }
+
+              @if(moringShift != null && afternoonShift != null)
+              {
+                <li class="column is-full">
+                  <hr class="my-2" />
+                </li>
+              }
+
+              @if(afternoonShift != null)
+              {
+                <TimekeepingLog title="ca chiều" shift="afternoonShift"
+                  checkin="timekeeping.afternoon_checkin" 
+                  checkout="timekeeping.afternoon_checkout" />
+              }
+            </ul>
+          }
+          else if(moringShift != null || afternoonShift != null)
+          {
+            <ul class="columns is-mobile is-multiline is-variable is-1" style="line-height: 1.5rem;">
+              @if(moringShift != null)
+              {
+                <li class="column is-one-third has-text-grey">
+                  <span class="icon-text">
+                    <span class="icon is-small">
+                      <i class="material-icons is-size-6">flag</i>
+                    </span>
+                    <span class="pr-2">@moringShift.checkin:00</span>
+                  </span>
+                </li>
+                <li class="column is-two-thirds has-text-grey is-italic">
+                  Bắt đầu: ca sáng
+                </li>
+              }
+              @if(moringShift != null && afternoonShift != null)
+              {
+                <li class="column is-full">
+                  <hr class="my-2" />
+                </li>
+              }
+              @if(afternoonShift != null)
+              {
+                <li class="column is-one-third has-text-grey">
+                  <span class="icon-text">
+                    <span class="icon is-small">
+                      <i class="material-icons is-size-6">flag</i>
+                    </span>
+                    <span class="pr-2">@afternoonShift.checkin:00</span>
+                  </span>
+                </li>
+                <li class="column is-two-thirds has-text-grey is-italic">
+                  Bắt đầu: ca chiều
+                </li>
+              }
+            </ul>
+          }
+          else
+          {
+            <div>Hôm nay không có ca làm việc</div>
+          }
+        </div>
+      </div>
+
+      @if(tab == 1)
+      {
+        <div class="column is-full">
+          <TimekeepingList />
+        </div>
+      }
+    }
+    else
+    {
+      <div class="column is-half">
+        <div class="card p-5">
+          <div class="py-1">
+            <div class="has-text-grey">Phòng ban</div>
+            <div class="has-text-black">@companyName</div>
+          </div>
+        </div>
+      </div>
+      <div class="column is-half">
+        <div class="card p-5">
+          <div class="icon-text">
+            @if(timekeeping != null)
+            {
+              <span class="icon is-large">
+                <i class="material-icons-outlined is-size-1">done</i>
+              </span>
+              <div class="ml-4">
+                @if(timekeeping.afternoon_checkout != null)
+                {
+                  if(!string.IsNullOrEmpty(timekeeping.afternoon_checkout.time_active))
+                  {
+                    <p class="is-size-5">
+                      Đã check-out ca chiều
+                    </p>
+                    <p>
+                      @timekeeping.afternoon_checkout.time_active
+                      •
+                      @DateTime.Today.ToString("dddd, dd/MM/yyyy", System.Globalization.CultureInfo.CreateSpecificCulture("vi-VN"))
+                    </p>
+                  }
+                  else
+                  {
+                    <p class="is-size-5">
+                      Đã check-in ca chiều
+                    </p>
+                    <p>
+                      @timekeeping.afternoon_checkin.time_active
+                      •
+                      @DateTime.Today.ToString("dddd, dd/MM/yyyy", System.Globalization.CultureInfo.CreateSpecificCulture("vi-VN"))
+                    </p>
+                  }
+                }
+                else if(timekeeping.morning_checkout != null)
+                {
+                  if(!string.IsNullOrEmpty(timekeeping.morning_checkout.time_active))
+                  {
+                    <p class="is-size-5">
+                      Đã check-out ca sáng
+                    </p>
+                    <p>
+                      @timekeeping.morning_checkout.time_active
+                      •
+                      @DateTime.Today.ToString("dddd, dd/MM/yyyy", System.Globalization.CultureInfo.CreateSpecificCulture("vi-VN"))
+                    </p>
+                  }
+                  else
+                  {
+                    <p class="is-size-5">
+                      Đã check-in ca sáng
+                    </p>
+                    <p>
+                      @timekeeping.morning_checkin.time_active
+                      •
+                      @DateTime.Today.ToString("dddd, dd/MM/yyyy", System.Globalization.CultureInfo.CreateSpecificCulture("vi-VN"))
+                    </p>
+                  }
+                }
+              </div>
+            }
+            else
+            {
+              <span class="icon is-large">
+                <i class="material-icons is-size-1">error_outline</i>
+              </span>
+              <div class="ml-4">
+                <p class="is-size-5">
+                  Chưa Check-in
+                </p>
+                <p>
+                  @DateTime.Today.ToString("dddd, dd/MM/yyyy", System.Globalization.CultureInfo.CreateSpecificCulture("vi-VN"))
+                </p>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+      <div class="column is-full">
+        <TimekeepingList />
+      </div>
+    }
+    
+  </div>
+</section>
+
+@if(outsideConfirm == false)
+{
+  <TimekeepingOutside time="earlyTime" checkin="isCheckin" OnConfirm="ConfirmOutside" />
+}
+@if(earlyConfirm == false)
+{
+  <TimekeepingEarly time="earlyTime" OnConfirm="ConfirmEarly" />
+}
+
+@if(!CheckAccess())
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-content" style="max-width: 360px;">
+      <div class="box has-text-centered pt-5">
+        <span class="icon is-large has-text-danger">
+          <i class="material-icons-outlined is-size-1">error_outline</i>
+        </span>
+        <div class="is-size-6 py-4 has-text-weight-semibold">
+          @msgAccess
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  private string _title = "Chấm công";
+  private string companyName = "Chưa có công ty, phòng ban";
+  private string companyAddress = string.Empty;
+  private string companyId = string.Empty;
+  private string userId = string.Empty;
+  private HrmTimekeepingModel timekeeping = null;
+  private List<HrmLocationModel> locations = new();
+  private List<HrmWorkShiftModel> shiftList = new();
+  private HrmUserShiftModel userShift = null;
+  private HrmWorkShiftModel moringShift = null;
+  private HrmWorkShiftModel afternoonShift = null;
+  private bool? inCompany = null;
+  private bool isCheckin = true;
+  private bool isOnTime = true;
+  private bool isNoShift = false;
+  private bool isLoading = false;
+  private bool? outsideConfirm = null;
+  private HrmTimekeepingModel.TimeData outsideReason = null;
+  private bool? earlyConfirm = null;
+  private long earlyTime = 0;
+  private string logs = string.Empty;
+  private int tab = 2;
+  private int nextTime = 1; // Thời gian checkin -> checkout
+
+  private string msgAccess = string.Empty;
+  private bool CheckAccess()
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, "timekeeping", out msgAccess);
+  }
+
+  protected override async Task OnInitializedAsync()
+  {
+    userId = Layout.User.id;
+    companyId = Layout.Company.id;
+
+    var company = await DbHrmOption.Get(companyId, Layout.User.company_id);
+    if(company != null)
+    {
+      var department = await DbHrmOption.Get(companyId, Layout.User.department_id);
+      if(department != null)
+        companyName = company.name + " • " + department.name;
+      else
+        companyName = company.name;
+    }
+    
+    // Địa điểm chấm công
+    locations = await DbHrmLocation.GetListForCompany(companyId, Layout.User.company_id);
+    companyAddress = string.Join(". ", locations.Select(x => x.name));
+
+    // Dữ liệu phân ca
+    shiftList = await DbHrmWorkShift.GetList(companyId);
+
+    // Phân ca của nhân sự
+    userShift = await DbHrmUserShift.Get(companyId, userId);
+
+    // Lịch phân ca hôm nay
+    if(userShift != null && shiftList.Count > 0)
+    {
+      var dayShift = userShift.shifts.FirstOrDefault(x => x.day == (int)DateTime.Today.DayOfWeek);
+      if(dayShift != null)
+      {
+        // Thời gian ca sáng
+        moringShift = shiftList.FirstOrDefault(x => x.id == dayShift.morning);
+        // Thời gian ca chiều
+        afternoonShift = shiftList.FirstOrDefault(x => x.id == dayShift.afternoon);
+      }
+    }
+
+    // Lấy dữ liệu chấm công hôm nay
+    timekeeping = await DbHrmTimekeeping.Get(companyId, DateTime.Today.ToString("yyMMdd") + userId);
+
+    // Hiện thị nút checkin/checkout
+    RenderButtonStatus();
+
+    // Tự dộng cập nhật trạng thái nút
+    if(userShift != null && Layout.IsMobile)
+      StartTimer();
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if(firstRender && Layout.IsMobile)
+    {
+      inCompany = await CheckLocation();
+      await JSRuntime.InvokeVoidAsync("showClock");
+      StateHasChanged();
+    }
+  }
+
+  private System.Threading.Timer timer;
+  public void StartTimer()
+  {
+    timer = new System.Threading.Timer((object stateInfo) =>
+    {
+      //Console.WriteLine("RenderButton at " + DateTime.Now.ToLongTimeString());
+      RenderButtonStatus();
+      InvokeAsync(StateHasChanged);
+      if(isNoShift)
+      {
+        //Console.WriteLine("RenderButton stop " + DateTime.Now.ToLongTimeString());
+        timer.Dispose();
+      }
+    }, new System.Threading.AutoResetEvent(false), 10000, 10000);
+  }
+
+  private void RenderButtonStatus()
+  {
+    // Thời gian hiện tại
+    string timeNow = DateTime.Now.ToString("HH:mm");
+    // Ca làm việc hiện tại
+    var currentShift = GetCurrentShift();
+    //if(currentShift != null)
+    //  Console.WriteLine("Ca làm việc: " + currentShift.checkin + " => " + currentShift.checkout);
+
+    // Kiểm tra các trường hợp để hiển thị nút chấm công
+    if(timekeeping == null)
+    {
+      // Chấm công lần đầu trong ngày
+      if(currentShift != null)
+      {
+        // Hiện nút checkin ca sáng
+        isCheckin = true;
+        // Kiểm tra checkin có trễ hay ko?
+        isOnTime = CompareTime(timeNow, currentShift.checkin) >= 0;
+      }
+      else
+      {
+        // Không có ca làm phù hợp
+        isNoShift = true;
+      }
+    }
+    else
+    {
+      // Đã có dữ liệu chấm công
+      if(timekeeping.morning_checkin != null)
+      {
+        // Đã checkin ca sáng rồi
+        // Kiểm tra checkout ca sáng chưa
+        if(string.IsNullOrEmpty(timekeeping.morning_checkout.time_active))
+        {
+          // Hiện nút checkout ca sáng
+          isCheckin = false;
+          // Kiểm tra checkout có trễ hay ko?
+          isOnTime = CompareTime(timeNow, timekeeping.morning_checkout.time_shift) <= 0;
+          return;
+        }
+        else if(currentShift != null && currentShift.checkout == timekeeping.morning_checkout.time_shift)
+        {
+          // Không có ca làm phù hợp
+          isNoShift = true;
+        }
+      }
+      if(timekeeping.afternoon_checkin == null)
+      {
+        // Chưa checkin ca chiều
+        if(currentShift != null)
+        {
+          // Hiện nút checkin ca chiều
+          isCheckin = true;
+          // Kiểm tra checkin có trễ hay ko?
+          isOnTime = CompareTime(timeNow, currentShift.checkin) >= 0;
+        }
+        else
+        {
+          // Không có ca làm phù hợp
+          isNoShift = true;
+        }
+      }
+      else
+      {
+        // Đã checkin ca chiều
+        // Kiểm tra checkout ca chiều chưa
+        if(string.IsNullOrEmpty(timekeeping.afternoon_checkout.time_active))
+        {
+          // Hiện nút checkout ca chiều
+          isCheckin = false;
+          // Kiểm tra checkout có trễ hay ko?
+          isOnTime = CompareTime(timeNow, timekeeping.afternoon_checkout.time_shift) <= 0;
+          return;
+        }
+        else
+        {
+          // Không có ca làm phù hợp
+          isNoShift = true;
+        }
+      }
+    }
+  }
+
+  private async Task Checkin()
+  {
+    isLoading = true;
+    inCompany = null;
+
+    inCompany = await CheckLocation();
+    var timeNow = DateTime.Now.ToString("HH:mm:00");
+    var currentShift = GetCurrentShift();
+    if(currentShift == null)
+    {
+      RenderButtonStatus();
+      isLoading = false;
+      return;
+    }
+
+    // Kiểm tra đang chấm công ở đâu
+    if(inCompany != true && outsideConfirm != true)
+    {
+      // Chấm công ngoài công ty => Hiện popup xác nhận
+      outsideConfirm = false;
+    }
+    else
+    {
+      // Tính thời gian chênh lệch giữa cấu hình và thức tế
+      var timeDifference = CompareTime(currentShift.checkin, timeNow);
+
+      // Dữ liệu check-in
+      var checkin = new HrmTimekeepingModel.TimeData()
+      {
+        time_type = "Check-in",
+        time_active = timeNow,
+        time_shift = currentShift.checkin,
+        time_work = currentShift.value,
+        time_difference = timeDifference,
+        in_company = inCompany.Value,
+        is_valid = timeDifference <= HrmService.AllowedTimeDifference
+      };
+      // Dữ liệu checkout
+      var checkout = new HrmTimekeepingModel.TimeData()
+      {
+        time_type = "Check-out",
+        time_shift = currentShift.checkout,
+        time_work = currentShift.value
+      };
+
+      // Chấm công ngoài công ty
+      if(inCompany == false && outsideReason != null)
+      {
+        checkin.reason = outsideReason.reason;
+        checkin.note = outsideReason.note;
+        checkin.images = outsideReason.images;
+      }
+
+      if(timekeeping == null)
+      {
+        // Chấm công lần đầu trong ngày
+        timekeeping = new() { user = userId };
+      }
+      else if(timekeeping.date != DateTime.Today.Ticks)
+      {
+        // Ngày chấm công khác ngày hiện tại
+        timekeeping = await DbHrmTimekeeping.Get(companyId, DateTime.Today.ToString("yyMMdd") + userId);
+        RenderButtonStatus();
+        isLoading = false;
+        return;
+      }
+
+      // Kiểm tra ca sáng hay ca chiều
+      if(moringShift != null && moringShift.id == currentShift.id)
+      {
+        // Checkin ca sáng
+        timekeeping.morning_checkin = checkin;
+        timekeeping.morning_checkout = checkout;
+      }
+      else if(afternoonShift != null && afternoonShift.id == currentShift.id)
+      {
+        // Checkin ca chiều
+        timekeeping.afternoon_checkin = checkin;
+        timekeeping.afternoon_checkout = checkout;
+      }
+
+      if(Shared.IsEmpty(timekeeping.id))
+        // Tạo dữ liệu chấm công
+        await DbHrmTimekeeping.Create(companyId, timekeeping);
+      else
+        // Cập nhật dữ liệu chấm công
+        await DbHrmTimekeeping.Update(companyId, timekeeping);
+    }
+
+    RenderButtonStatus();
+    isLoading = false;
+  }
+
+  private async Task Checkout()
+  {
+    // Ngày chấm công khác ngày hiện tại
+    if(timekeeping.date != DateTime.Today.Ticks)
+    {
+      timekeeping = await DbHrmTimekeeping.Get(companyId, DateTime.Today.ToString("yyMMdd") + userId);
+      RenderButtonStatus();
+      return;
+    }
+
+    isLoading = true;
+    inCompany = null;
+    var timeNow = DateTime.Now.ToString("HH:mm:00");
+
+    // Dữ liệu chấm công
+    bool isMorning = true;
+    HrmTimekeepingModel.TimeData checkin = null;
+    HrmTimekeepingModel.TimeData checkout = null;
+
+    if(timekeeping.morning_checkout != null && string.IsNullOrEmpty(timekeeping.morning_checkout.time_active))
+    {
+      // Xử lý ca sáng
+      isMorning = true;
+      checkin = timekeeping.morning_checkin;
+      checkout = timekeeping.morning_checkout;
+    }
+    else if(timekeeping.afternoon_checkout != null && string.IsNullOrEmpty(timekeeping.afternoon_checkout.time_active))
+    {
+      // Xử lý ca chiều
+      isMorning = false;
+      checkin = timekeeping.afternoon_checkin;
+      checkout = timekeeping.afternoon_checkout;
+    }
+    
+    if(checkin != null && checkout != null)
+    {
+      // Checkin + Checkout dưới 15 phút thì không cho
+      if(CompareTime(checkin.time_active, timeNow) <= nextTime)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể checkout khi ca làm dưới 15 phút");
+        isLoading = false;
+        return;
+      }
+
+      // Kiểm tra lượt chấm công có thuộc ca nào không?
+      if(CompareTime(timeNow, checkin.time_shift) > 0)
+      {
+        // Không thuộc ca nào thì xóa dữ liệu lượt đó
+        if(isMorning)
+        {
+          // Ca sáng thì xóa dữ liệu chấm công
+          await DbHrmTimekeeping.Delete(companyId, timekeeping.id);
+          timekeeping = null;
+        }
+        else
+        {
+          // Ca chiều thì hủy dữ liệu ca chiều
+          timekeeping.afternoon_checkin = null;
+          timekeeping.afternoon_checkout = null;
+          await DbHrmTimekeeping.Update(companyId, timekeeping);
+        }
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Lượt chấm công đã bị xóa do thời gian chấm công không phù hợp với bất kỳ ca làm việc nào!");
+      }
+      else
+      {
+        // Lấy vị trí
+        inCompany = await CheckLocation();
+
+        // Tính thời gian chênh lệch giữa cấu hình và thức tế
+        var timeDifference = CompareTime(timeNow, checkout.time_shift);
+
+        // Kiểm tra đang chấm công ở đâu
+        if(inCompany != true && outsideConfirm != true)
+        {
+          // Chấm công ngoài công ty => Hiện popup xác nhận
+          outsideConfirm = false;
+          // Nếu checkout sốm thì gán thời gian checkout sớm
+          earlyTime = timeDifference > 0 ? timeDifference : 0;
+        }
+        else
+        {
+          // Kiểm tra có checkout sớm không?
+          if(timeDifference > 0 && earlyConfirm != true)
+          {
+            // Đang checkout sớm => Hiện popup xác nhận
+            earlyTime = timeDifference;
+            earlyConfirm = false;
+          }
+          else
+          {
+            // Chấm công ngoài công ty
+            if(inCompany == false && outsideReason != null)
+            {
+              checkout.reason = outsideReason.reason;
+              checkout.note = outsideReason.note;
+              checkout.images = outsideReason.images;
+            }
+
+            // Checkout
+            checkout.time_active = timeNow;
+            checkout.time_difference = timeDifference;
+            checkout.in_company = inCompany.Value;
+            checkout.is_valid = timeDifference <= HrmService.AllowedTimeDifference;
+            // Cập nhật database
+            await DbHrmTimekeeping.Update(companyId, timekeeping);
+            // Đồng bộ dữ liệu qua bảng công
+            await HrmService.UpdateTimeSheet(companyId, userId, DateTime.Today, Layout.DaysOff);
+          }
+        }
+
+      }
+    }
+
+    RenderButtonStatus();
+    isLoading = false; 
+  }
+
+  private async Task ConfirmOutside(HrmTimekeepingModel.TimeData data)
+  {
+    if(data != null)
+    {
+      // Đã xác nhận chấm công ngoài
+      outsideConfirm = true;
+      outsideReason = data;
+      earlyConfirm = true;
+      if(isCheckin)
+        await Checkin();
+      else
+        await Checkout();
+    }
+    outsideConfirm = null;
+    outsideReason = null;
+    earlyConfirm = null;
+    earlyTime = 0;
+  }
+
+  private async Task ConfirmEarly(bool isConfirm)
+  {
+    if(isConfirm)
+    {
+      // Đã xác nhận checkout sớm
+      earlyConfirm = true;
+      await Checkout();
+    }
+    earlyConfirm = null;
+    earlyTime = 0;
+  }
+
+  private HrmWorkShiftModel GetCurrentShift()
+  {
+    string timeNow = DateTime.Now.ToString("HH:mm");
+    if(moringShift != null)
+    {
+      if(CompareTime(timeNow, moringShift.checkout) >= 0)
+        return moringShift;
+    }
+    if(afternoonShift != null)
+    {
+      if(CompareTime(timeNow, afternoonShift.checkout) >= 0)
+        return afternoonShift;
+    }
+    return null;
+  }
+
+  /// <summary>
+  /// Tính số phút chênh lệnh giũa 2 mốc thời gian
+  /// </summary>
+  /// <returns>Lớn 0: date2 > datet1</returns>
+  private long CompareTime(string time1, string time2)
+  {
+    var date1 = Convert.ToDateTime(DateTime.Now.ToString("yyyy-MM-dd, " + time1));
+    var date2 = Convert.ToDateTime(DateTime.Now.ToString("yyyy-MM-dd, " + time2));
+    return Shared.CompareTime(date1, date2);
+  }
+
+  private async Task<double[]> GetLocation()
+  {
+    try
+    {
+      var results = await JSRuntime.InvokeAsync<double[]>("getLocation").ConfigureAwait(true);
+      if(results != null)
+        return results;
+    }
+    catch (System.Exception ex)
+    {
+      Console.WriteLine("GetLocation: " + ex.Message);
+    }
+    await JSRuntime.InvokeVoidAsync("tagline", false, 
+      "Vui lòng cấp quyền truy cập vị trí cho app Workdo và bật vị trí trên điện thoại của bạn.");
+    return null;
+  }
+
+  private async Task<bool> CheckLocation()
+  {
+    inCompany = null;
+    var location = await GetLocation();
+    if(location != null)
+    {
+      foreach (var item in locations)
+      {
+        inCompany = HrmService.CompareLocation(item, location[0], location[1], out string message);
+        logs = $"<div>{message}</div>";
+        if(inCompany.Value)
+          return true;
+      }
+    }
+    return false;
+  }
+}

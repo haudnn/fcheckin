@@ -1,0 +1,147 @@
+@page "/hrm/setup/locations"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (_access)
+{
+  <section class="p-4">
+    <div class="card p-5">
+      <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
+        <li class="column">
+          <h1 class="title is-5 has-text-info is-uppercase">
+            @_title
+          </h1>
+        </li>
+        <li class="column is-narrow">
+          <a class="button is-link" @onclick="() => EditItem(null)">
+            <span class="icon">
+              <span class="material-icons-outlined is-size-6">add</span>
+            </span>
+            <span>Thêm mới</span>
+          </a>
+        </li>
+      </ul>
+      <table class="table is-fullwidth is-vcentered is-responsive mt-5">
+        <thead>
+          <tr>
+            <th>Tiêu đề</th>
+            <th width="30%">Vị trí Google Map</th>
+            <th width="25%">Công ty áp dụng</th>
+            <th width="12%">Ngày tạo</th>
+            <th width="70px" align="center">Xử lý</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var item in dataList)
+          {
+            var companys = companyOptions.Where(x => item.companys.Contains(x.id)).Select(x => x.name);
+            <tr>
+              <td>
+                <a class="has-text-dark" @onclick="() => EditItem(item)">
+                  @item.name
+                </a>
+              </td>
+              <td>
+                <a class="has-text-weight-medium" target="_blank"
+                  href="https://www.google.com/maps/place/@item.latitude+@item.longitude/@item.latitude,@item.longitude">
+                  @item.latitude, @item.longitude
+                </a> 
+              </td>
+              <td>
+                <span class="has-text-dark">@string.Join(", ", companys)</span>
+              </td>
+              <td>
+                @string.Format("{0:dd/MM/yyyy}", new DateTime(item.created))
+              </td>
+              <td>
+                <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    edit
+                  </i>
+                </a>
+                <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    delete
+                  </i>
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <LocationPopup model="editItem" companys="companyOptions" OnUpdate="OnUpdate" />
+}
+else
+{
+  <PopupNoRole />
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  private string _title = "Địa điểm chấm công";
+  private bool _access = false;
+  private List<HrmLocationModel> dataList = new();
+  private HrmLocationModel editItem = null;
+  private List<HrmOptionModel> companyOptions = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    // Quyền truy cập trang
+    _access = Layout.User.role == 1 || Layout.User.role_manage.timekeeping;
+
+    companyOptions = await DbHrmOption.GetList(Layout.Company.id, "company");
+    dataList = await DbHrmLocation.GetList(Layout.Company.id);
+  }
+
+  private async Task EditItem(HrmLocationModel item)
+  {
+    if(Layout.User.role == 1)
+    {
+      if(item == null)
+        editItem = new();
+      else
+        editItem = item;
+    }
+    else
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có quyền chỉnh sửa dữ liệu này!");
+    }
+  }
+
+  private async Task DeleteItem(HrmLocationModel item)
+  {
+    if(Layout.User.role == 1)
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+        return;
+
+      dataList.Remove(item);
+      await SendNotify(item);
+      await DbHrmLocation.Delete(Layout.Company.id, item.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa địa điểm thành công.");
+    }
+    else
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có quyền xóa dữ liệu này!");
+    }
+  }
+
+  private async Task OnUpdate(bool isUpdate)
+  {
+    editItem = null;
+    dataList = await DbHrmLocation.GetList(Layout.Company.id);
+  }
+
+  private async Task SendNotify(HrmLocationModel item)
+  {
+    // Gủi thông báo chuông
+    var targetList = Layout.UserList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
+    foreach (var user in targetList)
+      await DbNotify.Create(Layout.Company.id, 805, item.name, user.id, Layout.User.id);
+  }
+}

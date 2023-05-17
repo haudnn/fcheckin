@@ -1,0 +1,146 @@
+@inject IJSRuntime JSRuntime
+
+<section class="modal is-active">
+  <div class="modal-background"></div>
+  <section class="modal-card is-small">
+    <section class="modal-card-head">
+      <div class="modal-card-title">Chấm công ngoài vị trí</div>
+      <a class="delete is-medium" @onclick="Cancel"></a>
+    </section>
+    <section class="modal-card-body">
+      @if(time > 0 && !checkin)
+      {
+        <p class="mb-2 has-text-danger">
+          Bạn đang check-out trước giờ kết thúc ca.
+        </p>
+        <p class="mb-5">
+          Về sớm: <strong>@time phút</strong>
+        </p>
+      }
+      <div class="mb-2 has-text-danger">
+        Bạn đang chấm công ngoài vị trí, hãy chọn hình thức và nhập lý do
+      </div>
+      <div class="mb-3 buttons">
+        @foreach (var item in Reasons())
+        {
+          <a class="button @(item == model.reason ? "is-link" : "is_bg")"
+            @onclick="() => model.reason = item">
+            @item
+          </a>
+        }
+      </div>
+      <div class="mb-2 has-text-weight-semibold">
+        Ghi chú
+      </div>
+      <div class="mb-5">
+        <textarea @bind="model.note" class="textarea is_bg mb-5" rows="3" placeholder="Nhập ghi chú..." />
+      </div>
+
+      <div class="mb-2 has-text-weight-semibold">
+        Đính kèm hình ảnh
+      </div>
+      <div class="control has-icons-left mb-3">
+        <InputFile OnChange="Upload" class="input" accept="image/*" multiple />
+        <span class="icon is-left">
+          <i class="material-icons is-size-5">photo_camera</i>
+        </span>
+      </div>
+      <ul class="columns is-multiline is-variable is-1 is-mobile">
+        @foreach (var image in model.images)
+        {
+          <li class="column is-one-third">
+            <div class="image is-4by3 is-radius">
+              <img src="@image" alt="IMG">
+              <a class="delete" @onclick="() => DeleteImage(image)"></a>
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
+    <section class="modal-card-foot is-right">
+      <a class="button is-white has-text-link" @onclick="Cancel">
+        <span>Hủy</span>
+      </a>
+      <a class="button is-danger" @onclick="Update">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">send</i>
+        </span>
+        <span>@(checkin ? "Check-in" : "Check-out")</span>
+      </a>
+    </section>
+  </section>
+</section>
+
+@code {
+  [Parameter]
+  public bool checkin { get; set; }
+  [Parameter]
+  public long time { get; set; }
+  [Parameter]
+  public EventCallback<HrmTimekeepingModel.TimeData> OnConfirm { get; set; }
+
+  private HrmTimekeepingModel.TimeData model = new();
+
+  private async Task Cancel()
+  {
+    await OnConfirm.InvokeAsync(null);
+  }
+
+  private async Task Update()
+  {
+    if(Shared.IsEmpty(model.reason))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn lý do vì sao chấm công ngoài vị trí!");
+    else
+    {
+      await OnConfirm.InvokeAsync(model);
+      model = new();
+    }
+  }
+  
+  private async Task Upload(InputFileChangeEventArgs e)
+  {
+    int maxSize = 10;
+    try
+    {  
+      foreach (var file in e.GetMultipleFiles())
+      {
+        if(model.images.Count == 3)
+        {
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Chỉ cho phép đính kèm tối đa 3 hình!");
+          break;
+        }
+        else
+        {
+          if (file.Size <= maxSize * 1024000)
+          {
+            var fileContent = new StreamContent(file.OpenReadStream(maxSize * 1024000));
+            var fileLink = await Files.SaveFileAsync(fileContent, file.Name);
+            model.images.Add(fileLink);
+          }
+          else
+          {
+            await JSRuntime.InvokeVoidAsync("tagline", false, $"Chỉ cho phép file tối đa {maxSize} MB");
+          }
+        }
+      }
+    }
+    catch (System.Exception ex)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Lỗi khi upload: {ex.Message}");
+    }
+  }
+
+  private async Task DeleteImage(string image)
+  {
+    string name = Files.FileName(image);
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa hình {name}?"))
+      return;
+    model.images.Remove(image);
+  }
+
+  private List<string> Reasons()
+  {
+    var results = "Làm online,Đi công tác,Khác";
+    return results.Split(",").ToList();
+  }
+}

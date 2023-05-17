@@ -1,0 +1,221 @@
+@page "/hrm/setup/work-shift"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (_access)
+{
+  <section class="p-4">
+    <div class="card p-5">
+      <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
+        <li class="column">
+          <h1 class="title is-5 has-text-info is-uppercase">
+            @_title
+          </h1>
+        </li>
+        <li class="column is-narrow">
+          <a class="button is-link" @onclick="() => EditItem(null)">
+            <span class="icon">
+              <span class="material-icons-outlined is-size-6">add</span>
+            </span>
+            <span>Thêm mới</span>
+          </a>
+        </li>
+      </ul>
+      <table class="table is-fullwidth is-vcentered is-responsive mt-5">
+        <thead>
+          <tr>
+            <th>Tên ca làm việc</th>
+            <th width="20%" align="center">Giờ bắt đầu</th>
+            <th width="20%" align="center">Giờ kết thúc</th>
+            <th width="20%" align="center">Số công</th>
+            <th width="12%">Ngày tạo</th>
+            <th width="70px" align="center">Xử lý</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var item in dataList)
+          {
+            <tr>
+              <td>
+                <a class="has-text-dark" @onclick="() => EditItem(item)">
+                  @item.name
+                </a>
+              </td>
+              <td align="center">
+                @item.checkin
+              </td>
+              <td align="center">
+                @item.checkout
+              </td>
+              <td align="center">
+                @item.value
+              </td>
+              <td>
+                @string.Format("{0:dd/MM/yyyy}", new DateTime(item.created))
+              </td>
+              <td>
+                <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    edit
+                  </i>
+                </a>
+                <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    delete
+                  </i>
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <WorkShiftPopup model="editItem" OnUpdate="OnUpdate" />
+}
+else
+{
+  <PopupNoRole />
+}
+
+@if(useList != null && useList.Count > 0)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card">
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          Xóa ca làm việc
+        </div>
+        <a class="delete is-medium" @onclick="() => useList = null"></a>
+      </section>
+      <section class="modal-card-body">
+        <div class="pb-2">
+          Ca làm việc <strong>“@deleteItem”</strong> đang được áp dụng cho <strong>@useList.Count</strong> nhân sự.
+        </div>
+        <div class="pb-5 has-text-danger">
+          Bạn cần cập nhật ca làm @useList.Count nhân sự trước khi xóa!
+        </div>
+        <ul class="columns is-multiline is-vcentered is-variable is-1">
+          @foreach (var item in useList)
+          {
+            var user = UserService.GetUser(Layout.UserList, item.id);
+            if(user != null)
+            {
+              var company = companys.FirstOrDefault(x => x.id == user.company_id);
+              var department = departments.FirstOrDefault(x => x.id == user.department_id);
+              <li class="column is-2">
+                @user.id
+              </li>
+              <li class="column is-5">
+                <div class="user_item">
+                  <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                  <span class="text_1_line">@user.FullName</span>
+                </div>
+              </li>
+              <li class="column is-5 is-size-7">
+                <div class="text_1_line">
+                  <span>@(company != null ? company.name : user.company_id)</span>
+                  <span>/</span>
+                  <span>@(department != null ? department.name : user.department_id)</span>
+                </div>
+              </li>
+              <li class="column is-full">
+                <hr class="m-0">
+              </li>
+            }
+          }
+        </ul>
+      </section>
+      <section class="modal-card-foot is-right">
+        <a class="button is-white has-text-link" @onclick="() => useList = null">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">close</i>
+          </span>
+          <span>Hủy</span>
+        </a>
+        <a class="button is-static">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">delete</i>
+          </span>
+          <span>Xóa</span>
+        </a>
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  private string _title = "Thiết lập ca làm việc";
+  private bool _access = false;
+  private List<HrmWorkShiftModel> dataList = new();
+  private HrmWorkShiftModel editItem = null;
+  private List<HrmUserShiftModel> useList = null;
+  private string deleteItem = string.Empty;
+  private List<HrmOptionModel> companys = new();
+  private List<HrmOptionModel> departments = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    // Quyền truy cập trang
+    _access = Layout.User.role == 1 || Layout.User.role_manage.timekeeping;
+
+    dataList = await DbHrmWorkShift.GetList(Layout.Company.id);
+
+    companys = await DbHrmOption.GetList(Layout.Company.id, "company");
+    departments = await DbHrmOption.GetList(Layout.Company.id, "department");    
+  }
+
+  private async Task EditItem(HrmWorkShiftModel item)
+  {
+    if(Layout.User.role == 1)
+    {
+      if(item == null)
+        editItem = new();
+      else
+        editItem = item;
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có quyền chỉnh sửa dữ liệu này!");
+  }
+
+  private async Task DeleteItem(HrmWorkShiftModel item)
+  {
+    if(Layout.User.role == 1)
+    {
+      deleteItem = item.name;
+      // Kiểm tra các tài khoản đang sử dụng
+      useList = await HrmService.GetWorkShiftsUse(Layout.Company.id, item.id);
+      if(useList.Count == 0)
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+          return;
+
+        dataList.Remove(item);
+        await SendNotify(item);
+        await DbHrmWorkShift.Delete(Layout.Company.id, item.id);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa ca làm việc thành công.");
+      }
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có quyền xóa dữ liệu này!");
+  }
+
+  private async Task OnUpdate(bool isUpdate)
+  {
+    editItem = null;
+    dataList = await DbHrmWorkShift.GetList(Layout.Company.id);
+  }
+
+  private async Task SendNotify(HrmWorkShiftModel item)
+  {
+    // Gủi thông báo chuông
+    var targetList = Layout.UserList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
+    foreach (var user in targetList)
+      await DbNotify.Create(Layout.Company.id, 802, item.name, user.id, Layout.User.id);
+  }
+}

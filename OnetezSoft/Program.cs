@@ -14,8 +14,7 @@ builder.Services.AddBlazorDragDrop();
 builder.Services.AddWMBSC(); // Don't using Jquery
 builder.Services.AddDateRangePicker(config =>
 {
-  config.Culture = System.Globalization.CultureInfo.GetCultureInfo("en-US");
-  //config.Culture = System.Globalization.CultureInfo.GetCultureInfo("vi-VN");
+  config.Culture = System.Globalization.CultureInfo.GetCultureInfo("vi-VN");
   config.DateFormat = "dd/MM/yyyy";
   config.TimePicker24Hour = true;
   config.TimePickerIncrement = 5;
@@ -38,12 +37,6 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
-app.UseCors(MyAllowSpecificOrigins);
-
-// Minimal APIs
-app.MapGet("/hello", () => "Hello, Minimal APIs!");
-app.MapGet("/hello/{name}", (string name) => $"Hello, {name}");
-//app.MapGet("/banner", async () => await OnetezSoft.Data.DbMainBanner.GetList());
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

@@ -4,23 +4,13 @@
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
 @if (Layout.User.role != 1 && !Layout.User.role_manage.system)
 {
   <PopupNoRole />
 }
 else
 {
-  <section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+  <section class="columns is-gapless has_menu_left">
     <div class="column is-narrow">
       <div class="card p-3 menu_left">
         <a href="/config/system/department/list">
@@ -54,11 +44,12 @@ else
         <table class="table is-fullwidth is-vcentered is-responsive mt-5">
           <thead>
             <tr>
-              <th width="20%">Tên ngày nghỉ</th>
+              <th width="18%">Tên ngày nghỉ</th>
               <th align="center">Ngày nghỉ</th>
-              <th width="15%" align="center">Kết thúc</th>
-              <th width="15%" align="center">Ngày tạo</th>
-              <th width="15%" align="center">Lặp lại</th>
+              <th width="12%" align="center">Kết thúc</th>
+              <th width="12%" align="center">Ngày tạo</th>
+              <th width="12%" align="center">Tính lương</th>
+              <th width="12%" align="center">Lặp lại</th>
               <th width="70px" align="center">Xử lý</th>
             </tr>
           </thead>
@@ -123,6 +114,17 @@ else
                   <label class="td-label">Ngày tạo</label>
                   <div class="td-value">
                     @string.Format("{0:dd/MM/yyyy}", new DateTime(item.create))
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Tính lương</label>
+                  <div class="td-value">
+                    @if(item.has_salary)
+                    {
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">done</i>
+                      </span>
+                    }
                   </div>
                 </td>
                 <td align="center">
@@ -274,11 +276,19 @@ else
               </div>
             </div>
           }
-          <div class="field mt-5">
-            <div class="buttons is-right">
+          <div class="field is-grouped mt-5">
+            <div class="control is-expanded">
+               <label class="checkbox has-text-link">
+                 <input @bind="current.has_salary" type="checkbox">
+                 <span class="has-text-weight-medium">Ngày nghỉ tính lương</span>
+               </label>
+            </div>
+            <div class="control"> 
               <a class="button" @onclick="() => current = null">
                 Hủy
               </a>
+            </div>
+            <div class="control">
               <a class="button is-link" @onclick="Update">
                 <span class="icon">
                   <span class="material-icons-outlined is-size-6">
@@ -298,13 +308,6 @@ else
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
-  [Parameter]
-  public string Id { get; set; }
-
-  private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
   private string _title = "Cấu hình ngày nghỉ";
 
   private List<DayOffModel> dataList = new();
@@ -312,16 +315,14 @@ else
   DateTimeOffset? StartDate { get; set; }
   DateTimeOffset? EndDate { get; set; }
 
-  protected override async Task OnInitializedAsync()
+  protected override void OnInitialized()
   {
-    await OnLoad();
-    _loaded = true;
+    GetData();
   }
 
-  private async Task OnLoad()
+  private void GetData()
   {
     dataList = DbDayOff.GetAll(Layout.Company.id);
-    await Layout.RefreshData();
   }
 
   private async Task DeleteItem(DayOffModel item)
@@ -360,43 +361,23 @@ else
 
   private async Task Update()
   {
-    _success = false;
-    _message = string.Empty;
-
-    if (string.IsNullOrEmpty(current.name))
-    {
-      _message = "Bạn cần nhập tên ngày nghỉ !";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
+    if (Shared.IsEmpty(current.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần nhập tên ngày nghỉ!");
     else if(StartDate == null || EndDate == null)
-    {
-      _message = "Bạn cần chọn ngày bắt đầu và kết thúc";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần chọn ngày bắt đầu và kết thúc!");
     else if (StartDate.Value.DateTime.Ticks > EndDate.Value.DateTime.Ticks)
-    {
-      _message = "Ngày bắt đầu không thể lớn hơn ngày kết thúc !";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày bắt đầu không thể lớn hơn ngày kết thúc !");
     else
     {
       current.start = StartDate.Value.DateTime.Ticks;
       current.end = EndDate.Value.DateTime.Ticks;
-
       if (string.IsNullOrEmpty(current.id))
-      {
-        current = await DbDayOff.Create(Layout.Company.id, current);
-      }
+        await DbDayOff.Create(Layout.Company.id, current);
       else
-      {
-        current = await DbDayOff.Update(Layout.Company.id, current);
-      }
+        await DbDayOff.Update(Layout.Company.id, current);
 
       current = null;
-      await OnLoad();
+      GetData();
     }
   }
 }

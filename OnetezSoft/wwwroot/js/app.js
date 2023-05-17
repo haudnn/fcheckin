@@ -61,14 +61,6 @@
   "#6666FF",
 ];
 
-window.SetFocusToElement = (element) => {
-  element.focus();
-};
-
-window.getUserAgent = () => {
-  return navigator.userAgent;
-};
-
 function setCookie(key, value) {
   let expires = new Date();
   expires.setTime(expires.getTime() + 1 * 24 * 60 * 60 * 1000);
@@ -84,6 +76,44 @@ function deleteCookie(key) {
   document.cookie = key + "=;expires=Thu, 01 Jan 1970 00:00:00;path=/";
 }
 
+window.SetFocusToElement = (element) => {
+  element.focus();
+};
+
+window.getUserAgent = () => {
+  return navigator.userAgent;
+};
+
+window.getIpAddress = () => {
+  return fetch("https://api.ipify.org/")
+    .then((response) => response.text())
+    .then((data) => {
+      return data;
+    });
+};
+
+window.getLocation = () => {
+  return getLocationPromise()
+    .then((res) => {
+      // If promise get resolved
+      const { coords } = res;
+      return [coords.latitude, coords.longitude];
+    })
+    .catch((error) => {
+      return null;
+    });
+};
+
+let getLocationPromise = () => {
+  return new Promise(function (resolve, reject) {
+    // Promisifying the geolocation API
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve(position),
+      (error) => reject(error)
+    );
+  });
+};
+
 function setFocus(id) {
   setTimeout(function () {
     const element = document.getElementById(id);
@@ -92,6 +122,24 @@ function setFocus(id) {
       element.focus();
     }
   }, 100);
+}
+
+function showClock() {
+  const clock = document.getElementById("clock");
+  if (clock !== null) {
+    const date = new Date();
+    let h = date.getHours(); // 0 - 23
+    let m = date.getMinutes(); // 0 - 59
+    let s = date.getSeconds(); // 0 - 59
+
+    h = h < 10 ? "0" + h : h;
+    m = m < 10 ? "0" + m : m;
+    s = s < 10 ? "0" + s : s;
+
+    var time = h + ":" + m + ":" + s;
+    clock.innerText = time;
+    setTimeout(showClock, 1000);
+  }
 }
 
 function scrollDiv(id, top) {
@@ -164,6 +212,48 @@ function dragScroll(elementId) {
     // Attach the handler
     element.addEventListener("mousedown", mouseDownHandler);
   }, 500);
+}
+
+function dragScrollX() {
+  const ele = document.getElementById("scrollbox");
+  ele.style.cursor = "grab";
+
+  let pos = { top: 0, left: 0, x: 0, y: 0 };
+
+  const mouseDownHandler = function (e) {
+    ele.style.cursor = "grabbing";
+    ele.style.userSelect = "none";
+
+    pos = {
+      left: ele.scrollLeft,
+      top: ele.scrollTop,
+      // Get the current mouse position
+      x: e.clientX,
+      y: e.clientY,
+    };
+
+    document.addEventListener("mousemove", mouseMoveHandler);
+    document.addEventListener("mouseup", mouseUpHandler);
+  };
+
+  const mouseMoveHandler = function (e) {
+    // How far the mouse has been moved
+    const dx = e.clientX - pos.x;
+
+    // Scroll the element
+    ele.scrollLeft = pos.left - dx;
+  };
+
+  const mouseUpHandler = function () {
+    ele.style.cursor = "grab";
+    ele.style.removeProperty("user-select");
+
+    document.removeEventListener("mousemove", mouseMoveHandler);
+    document.removeEventListener("mouseup", mouseUpHandler);
+  };
+
+  // Attach the handler
+  ele.addEventListener("mousedown", mouseDownHandler);
 }
 
 function toggleText(item) {
@@ -358,7 +448,6 @@ function taglineHide() {
   if (notify !== null) notify.remove();
 }
 
-//notification("Workdo", "Đây là đoạn nội dung mẫu để kiểm tra giao diện", '/reports')
 function notification(title, content, link) {
   if ("Notification" in window) {
     let ask = Notification.requestPermission();

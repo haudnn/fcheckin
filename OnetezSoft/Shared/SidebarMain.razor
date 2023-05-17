@@ -315,23 +315,49 @@
           new NavModel { name = "Lịch sử đổi quà", link = "gift/exchange" }
         }
       });
+    
+    if(CheckAccess("timekeeping"))
+    {
+      var hrmChilds = new List<NavModel>();
+      if(Layout.User.role == 1 || Layout.User.role_manage.timekeeping || Layout.User.role_manage.hrrecords)
+      {
+        hrmChilds.Add(new() { name = "Thiết lập", link = "#hrm/setup", childs = new() });
+        hrmChilds[0].childs.Add(new() { name = "Hạng mục", link = "hrm/setup/options" });
+        if (Layout.User.role == 1 || Layout.User.role_manage.timekeeping)
+        {
+          hrmChilds[0].childs.Add(new() { name = "Địa điểm", link = "hrm/setup/locations" });
+          hrmChilds[0].childs.Add(new() { name = "Ca làm", link = "hrm/setup/work-shift" });
+          hrmChilds[0].childs.Add(new() { name = "Phân ca", link = "hrm/setup/user-shift" });
+        }
+      }
+      hrmChilds.Add(new() { name = "Chấm công", link = "hrm/timekeeping" });
+      hrmChilds.Add(new() { name = "Bảng công", link = "hrm/timesheets" });
+
+      ListNav.Add(new NavModel
+        {
+          name = "HRM",
+          link = "#hrm",
+          icon = "person_search",
+          childs = hrmChilds
+        });
+    }
 
     if (CheckAccess("train"))
     {
       ListNav.Add(new NavModel
+      {
+        name = "Đào tạo",
+        link = "#educate",
+        icon = "book",
+        childs = new List<NavModel>
         {
-          name = "Đào tạo",
-          link = "#educate",
-          icon = "book",
-          childs = new List<NavModel>
-          {
-            new NavModel { name = "Khóa học", link = "educate/course/list" },
-            new NavModel { name = "Quản lý khóa học", link = "educate/course/manager" },
-            new NavModel { name = "Chấm bài thi", link = "educate/exam/manager" },
-            new NavModel { name = "Cấp chứng chỉ", link = "educate/certificate/manager" },
-            new NavModel { name = "Chứng chỉ đạt được", link = "educate/certificate/list" },
-          }
-        });
+          new NavModel { name = "Khóa học", link = "educate/course/list" },
+          new NavModel { name = "Quản lý khóa học", link = "educate/course/manager" },
+          new NavModel { name = "Chấm bài thi", link = "educate/exam/manager" },
+          new NavModel { name = "Cấp chứng chỉ", link = "educate/certificate/manager" },
+          new NavModel { name = "Chứng chỉ đạt được", link = "educate/certificate/list" },
+        }
+      });
     }
 
     if (Layout.User.role < 3)
@@ -359,12 +385,12 @@
         configChilds.Add(new NavModel { name = "Tiện ích", link = "config/other" });
 
       ListNav.Add(new NavModel
-        {
-          name = "Cấu hình",
-          link = "#config",
-          icon = "settings",
-          childs = configChilds
-        });
+      {
+        name = "Cấu hình",
+        link = "#config",
+        icon = "settings",
+        childs = configChilds
+      });
     }
 
     ListNav.Add(new NavModel

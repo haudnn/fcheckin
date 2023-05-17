@@ -1,0 +1,48 @@
+
+<section class="modal is-active">
+  <div class="modal-background"></div>
+  <section class="modal-card">
+    <section class="modal-card-head">
+      <div class="modal-card-title has-text-danger">Check-out sớm</div>
+      <a class="delete is-medium" @onclick="Cancel"></a>
+    </section>
+    <section class="modal-card-body">
+      <p class="mb-2">
+        Bạn đang check-out trước giờ kết thúc ca.
+      </p>
+      <p class="mb-2">
+        Về sớm: <strong>@time phút</strong>
+      </p>
+      <p class="mb-5 has-text-weight-bold">
+        Bạn có chắc muốn thực hiện?
+      </p>
+    </section>
+    <section class="modal-card-foot is-right">
+      <a class="button is-white has-text-link" @onclick="Cancel">
+        <span>Hủy</span>
+      </a>
+      <a class="button is-danger" @onclick="Update">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">done</i>
+        </span>
+        <span>Tôi đã hiểu, check-out!</span>
+      </a>
+    </section>
+  </section>
+</section>
+
+@code {
+  [Parameter]
+  public long time { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnConfirm { get; set; }
+
+  private async Task Cancel()
+  {
+    await OnConfirm.InvokeAsync(false);
+  }
+  private async Task Update()
+  {
+    await OnConfirm.InvokeAsync(true);
+  }
+}

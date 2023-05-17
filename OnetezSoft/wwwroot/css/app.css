@@ -998,7 +998,6 @@ a.tag:hover {
 }
 
 .columns.is-striped > .column:nth-child(2n) {
-  _background: #f7f8fc;
   background: #f1f7f7;
   border-radius: 10px;
 }
@@ -1007,7 +1006,7 @@ a.tag:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #7a7a7a !important;
+  color: #7a7a7a;
   border-bottom-width: 1px;
 }
 
@@ -1110,6 +1109,34 @@ a.tag:hover {
 
 .table tr.tr_striped > td:not(.td-hide) {
   background: #f1f7f7;
+}
+
+.table .has-background-info {
+  background: #aec6ff !important;
+}
+.table .has-background-primary {
+  background: #b6ebf5 !important;
+}
+
+.table.sticky {
+  width: max-content;
+  min-width: 100%;
+}
+
+.table.sticky > thead {
+  position: sticky;
+  z-index: 10;
+  top: 0px;
+  background: #fff;
+}
+
+.table.sticky .sticky {
+  position: sticky;
+  z-index: 8;
+  background: #fff;
+}
+.table.sticky .sticky.last {
+  box-shadow: inset -2px 0px 0px 0px #635d57;
 }
 
 .td-label {
@@ -3418,4 +3445,94 @@ button.dropdown-item {
   padding: 10px;
   padding-top: 40px;
   overflow-x: hidden;
+}
+
+/* CSS for HRM */
+
+.tree_views {
+  position: relative;
+  margin: 10px;
+}
+
+.tree_views::before {
+  content: "";
+  position: absolute;
+  left: 0px;
+  top: -10px;
+  width: 8px;
+  height: calc(100% - 8px);
+  border-left: 1px solid #b2aaa2;
+}
+
+.tree_views li {
+  position: relative;
+  padding-left: 10px;
+  padding-top: 4px;
+}
+
+.tree_views li::before {
+  content: "";
+  position: absolute;
+  left: 0px;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  border-left: 1px solid #b2aaa2;
+  border-bottom: 1px solid #b2aaa2;
+  border-radius: 0px 0px 0px 8px;
+}
+
+.tree_views .icon-text a {
+  color: #34302a;
+}
+
+.tree_views .icon-text a:nth-child(2) {
+  width: 250px;
+  flex: none;
+}
+
+.tree_views .icon-text a:nth-child(3) {
+  flex-grow: 0;
+}
+
+.btn_timekeeping {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.btn_timekeeping .is_bg {
+  width: 120px;
+  height: 120px;
+  background: #8dabf2;
+  border-radius: 50%;
+  opacity: 0.7;
+}
+.btn_timekeeping .is_btn {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: #8dabf2;
+  position: absolute;
+  top: 0px;
+  left: calc(50% - 60px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+  font-size: 16px;
+  padding: 10px;
+}
+.btn_timekeeping.is_red .is_bg,
+.btn_timekeeping.is_red .is_btn {
+  background: #ba1b1b;
+}
+.btn_timekeeping.is_green .is_bg,
+.btn_timekeeping.is_green .is_btn {
+  background: #0f913d;
+}
+.btn_timekeeping.is_grey .is_bg,
+.btn_timekeeping.is_grey .is_btn {
+  background: #666;
 }

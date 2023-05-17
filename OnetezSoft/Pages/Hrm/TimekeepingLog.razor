@@ -1,0 +1,163 @@
+
+@if(checkin != null)
+{
+  if(checkin.time_difference <= 0)
+  {
+    <li class="column is-one-third">
+      <span class="icon-text">
+        <span class="icon is-small has-text-success">
+          <i class="material-icons is-size-6">done</i>
+        </span>
+        <span class="pr-2">@checkin.time_active</span>
+      </span>
+    </li>
+    <li class="column is-two-thirds">
+      <div>Check-in: @title</div>
+      @if(!checkin.in_company)
+      {
+        <div>Check-in ngoài: @checkin.reason</div>
+      }
+    </li>
+
+    <li class="column is-one-third has-text-grey">
+      <span class="icon-text">
+        <span class="icon is-small">
+          <i class="material-icons is-size-6">flag</i>
+        </span>
+        <span class="pr-2">@checkin.time_shift:00</span>
+      </span>
+    </li>
+    <li class="column is-two-thirds has-text-grey is-italic">
+      Bắt đầu: @title
+    </li>
+  }
+  else
+  {
+    <li class="column is-one-third has-text-grey">
+      <span class="icon-text">
+        <span class="icon is-small">
+          <i class="material-icons is-size-6">flag</i>
+        </span>
+        <span class="pr-2">@checkin.time_shift:00</span>
+      </span>
+    </li>
+    <li class="column is-two-thirds has-text-grey is-italic">
+      Bắt đầu: @title
+    </li>
+
+    <li class="column is-one-third has-text-danger">
+      <span class="icon-text">
+        <span class="icon is-small">
+          <i class="material-icons is-size-6">error_outline</i>
+        </span>
+        <span class="pr-2">@checkin.time_active</span>
+      </span>
+    </li>
+    <li class="column is-two-thirds">
+      <div class="has-text-danger">Check-in: @title</div>
+      <div>Trễ @checkin.time_difference phút</div>
+      @if(!checkin.in_company)
+      {
+        <div>Check-in ngoài: @checkin.reason</div>
+      }
+    </li>
+  }
+
+  @if(checkout.time_difference <= 0)
+  {
+    <li class="column is-one-third has-text-grey">
+      <span class="icon-text">
+        <span class="icon is-small">
+          <i class="material-icons is-size-6">flag</i>
+        </span>
+        <span class="pr-2">@checkout.time_shift:00</span>
+      </span>
+    </li>
+    <li class="column is-two-thirds has-text-grey is-italic">
+      Kết thúc: @title
+    </li>
+
+    @if(!string.IsNullOrEmpty(checkout.time_active))
+    {
+      <li class="column is-one-third">
+        <span class="icon-text">
+          <span class="icon is-small has-text-success">
+            <i class="material-icons is-size-6">done</i>
+          </span>
+          <span class="pr-2">@checkout.time_active</span>
+        </span>
+      </li>
+      <li class="column is-two-thirds">
+        <div>Check-out: @title</div>
+        @if(!checkout.in_company)
+        {
+          <div>Check-out ngoài: @checkin.reason</div>
+        }
+      </li>
+    }
+  }
+  else
+  {
+    <li class="column is-one-third has-text-danger">
+      <span class="icon-text">
+        <span class="icon is-small">
+          <i class="material-icons is-size-6">error_outline</i>
+        </span>
+        <span class="pr-2">@checkout.time_active</span>
+      </span>
+    </li>
+    <li class="column is-two-thirds">
+      <div class="has-text-danger">Check-out: @title</div>
+      <div>Sớm @checkout.time_difference phút</div>
+      @if(!checkout.in_company)
+      {
+        <div>Check-out ngoài: @checkin.reason</div>
+      }
+    </li>
+
+    <li class="column is-one-third has-text-grey">
+      <span class="icon-text">
+        <span class="icon is-small">
+          <i class="material-icons is-size-6">flag</i>
+        </span>
+        <span class="pr-2">@checkout.time_shift:00</span>
+      </span>
+    </li>
+    <li class="column is-two-thirds has-text-grey is-italic">
+      Kết thúc: @title
+    </li>
+  }
+}
+else
+{
+  <li class="column is-one-third has-text-grey">
+    <span class="icon-text">
+      <span class="icon is-small">
+        <i class="material-icons is-size-6">flag</i>
+      </span>
+      <span class="pr-2">@shift.checkin:00</span>
+    </span>
+  </li>
+  <li class="column is-two-thirds has-text-grey is-italic">
+    Bắt đầu: @title
+  </li>
+
+  <li class="column is-one-third">
+  </li>
+  <li class="column is-two-thirds has-text-danger">
+    <span>Chưa chấm công</span>
+  </li>
+}
+
+
+
+@code {
+  [Parameter]
+  public string title { get; set; }
+  [Parameter]
+  public HrmWorkShiftModel shift { get; set; }
+  [Parameter]
+  public HrmTimekeepingModel.TimeData checkin { get; set; }
+  [Parameter]
+  public HrmTimekeepingModel.TimeData checkout { get; set; }
+}

@@ -76,6 +76,12 @@ namespace OnetezSoft.Models
     /// <summary>Phòng ban mặc định cho các bộ lọc</summary>
     public string department_default { get; set; }
 
+    /// <summary>Trực thuộc công ty</summary>
+    public string company_id { get; set; }
+
+    /// <summary>Trực thuộc phòng ban</summary>
+    public string department_id { get; set; }
+
     /// <summary>Tổng số sao đang có</summary>
     public int star_total { get; set; }
 
@@ -85,8 +91,26 @@ namespace OnetezSoft.Models
     /// <summary>Tổng số sao nhận được </summary>
     public int star_receive { get; set; }
 
+    /// <summary>Tổng sao cho đi</summary>
+    public int star_give { get; set; }
+
     /// <summary>Trang mặc định khi vào phần mềm</summary>
     public string page_default { get; set; }
+
+    /// <summary>Không thống kê: OKRs</summary>
+    public bool no_report_okr { get; set; }
+
+    /// <summary>Không thống kê: CFRs</summary>
+    public bool no_report_cfr { get; set; }
+
+    /// <summary>Không thống kê: Todolist</summary>
+    public bool no_report_todolist { get; set; }
+
+    /// <summary>Không thống kê: Kaizen</summary>
+    public bool no_report_kaizen { get; set; }
+
+    /// <summary>Không thống kê: Thành tựu</summary>
+    public bool no_report_achievement { get; set; }
 
     /// <summary>Sản phẩm được sử dụng</summary>
     public List<string> products { get; set; } = new();
@@ -117,16 +141,27 @@ namespace OnetezSoft.Models
     {
       /// <summary>Cơ cấu</summary>
       public bool system { get; set; }
+
       /// <summary>OKRs - CFRs</summary>
       public bool okrs { get; set; }
+
       /// <summary>Kaizen</summary>
       public bool kaizen { get; set; }
+
       /// <summary>Đào tạo</summary>
       public bool educate { get; set; }
+
       /// <summary>Đổi quà</summary>
       public bool store { get; set; }
+
       /// <summary>Tiện ích</summary>
       public bool other { get; set; }
+
+      /// <summary>Hồ sơ nhân sự</summary>
+      public bool hrrecords { get; set; }
+
+      /// <summary>Chấm công</summary>
+      public bool timekeeping { get; set; }
     }
 
     public string FullName

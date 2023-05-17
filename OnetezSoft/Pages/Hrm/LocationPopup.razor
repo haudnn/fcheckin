@@ -1,0 +1,161 @@
+@inject IJSRuntime JSRuntime
+
+@if (model != null)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card">
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          @(string.IsNullOrEmpty(model.id) ? "Tạo mới" : "Chỉnh sửa") địa điểm chấm công
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body">
+        <ul class="columns is-multiline is-variable is-2">
+          <li class="column is-full">
+            <div class="field">
+              <label class="label">Tiêu đề địa điểm</label>
+              <div class="control">
+                <input @bind="model.name" class="input" type="text">
+              </div>
+            </div>
+          </li>
+          <li class="column is-half">
+            <div class="field">
+              <label class="label">Vĩ độ</label>
+              <div class="control">
+                <input @bind="model.latitude" class="input" type="text">
+              </div>
+            </div>
+          </li>
+          <li class="column is-half">
+            <div class="field">
+              <label class="label">Kinh độ</label>
+              <div class="control">
+                <input @bind="model.longitude" class="input" type="text">
+              </div>
+            </div>
+          </li>
+          <li class="column is-full">
+            <div class="field">
+              <label class="label">Bán kính chấm công</label>
+              <div class="control">
+                <input @bind="model.radius" class="input" type="number" min="0">
+              </div>
+            </div>
+            <div class="field">
+              <label class="label">Công ty áp dụng</label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select @onchange="ChangeCompany">
+                    <option value="">- chọn công ty -</option>
+                    @foreach (var item in companys)
+                    {
+                      <option value="@item.id">@item.name</option>
+                    }
+                  </select>
+              </div>
+              </div>
+            </div>
+          </li>
+          @foreach (var item in model.companys)
+          {
+            var company = companys.FirstOrDefault(x => x.id == item);
+            <li class="column is-half">
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input type="text" value="@(company != null ? company.name : item)" class="input is_bg" readonly />
+                </div>
+                <div class="control">
+                  <a class="button is_bg has-text-danger" @onclick="() => model.companys.Remove(item)">
+                    <span class="icon">
+                      <i class="material-icons is-size-6">close</i>
+                    </span>
+                  </a>
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+      <section class="modal-card-foot is-right">
+        <a class="button" @onclick="Cancel">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">close</i>
+          </span>
+          <span>Hủy</span>
+        </a>
+        <a class="button is-link" @onclick="Update">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">done</i>
+          </span>
+          <span>Cập nhật</span>
+        </a>
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public HrmLocationModel model { get; set; }
+  [Parameter]
+  public List<HrmOptionModel> companys { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+  }
+
+  private void ChangeCompany(ChangeEventArgs e)
+  {
+    var key = e.Value.ToString();
+    if(!string.IsNullOrEmpty(key) && !model.companys.Contains(key))
+      model.companys.Add(key);
+  }
+
+  private async Task Update()
+  {
+    if(Shared.IsEmpty(model.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề địa điểm!");
+    else if(Shared.IsEmpty(model.latitude))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập vĩ độ!");
+    else if(Shared.IsEmpty(model.longitude))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập kinh độ!");
+    else if(model.radius <= 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập bán kính chấm công!");
+    else if(model.companys.Count == 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn công ty áp dụng!");
+    else
+    {
+      model.latitude = model.latitude.Trim();
+      model.longitude = model.longitude.Trim();
+      if(string.IsNullOrEmpty(model.id))
+      {
+        await DbHrmLocation.Create(Layout.Company.id, model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo địa điểm chấm công thành công!");
+        await SendNotify(803);
+      }
+      else
+      {
+        await DbHrmLocation.Update(Layout.Company.id, model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Chỉnh sửa địa điểm chấm công thành công!");
+        await SendNotify(804);
+      }
+      await OnUpdate.InvokeAsync(true);
+    }
+  }
+
+  private async Task SendNotify(int notifyType)
+  {
+    // Gủi thông báo chuông
+    var targetList = Layout.UserList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
+    foreach (var user in targetList)
+      await DbNotify.Create(Layout.Company.id, notifyType, model.name, user.id, Layout.User.id);
+  }
+}

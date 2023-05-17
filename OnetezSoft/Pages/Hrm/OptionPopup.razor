@@ -1,0 +1,399 @@
+@inject IJSRuntime JSRuntime
+
+@if (model != null)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card is_visible @(model.type == "company" ? "is-medium" : "")">
+      <section class="modal-card-head">
+        <div class="modal-card-title">Thông tin hạng mục</div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body">
+        <ul class="columns is-multiline is-vcentered is-variable is-1">
+          <li class="column is-full">
+            <span class="has-text-weight-semibold is-size-6">Thông tin chung</span>
+          </li>
+          <li class="column is-half">
+            <div class="has-text-weight-medium mb-1">
+              Hạng mục
+            </div>
+            <div class="has-text-grey">
+              @model.name
+            </div>
+          </li>
+          <li class="column is-half">
+            <div class="has-text-weight-medium mb-1">
+              Số lượng lựa chọn
+            </div>
+            <div class="has-text-grey">
+              @data.Count
+            </div>
+          </li>
+          <li class="column is-full">
+            <span class="has-text-weight-semibold is-size-6">Chi tiết hạng mục</span>
+          </li>
+          <li class="column is-full">
+            @if(editMode)
+            {
+              if(model.type == "company")
+              {
+                <ul class="columns is-multiline is-vcentered is-variable is-1 has-text-weight-medium">
+                  <li class="column is-3">
+                    Tiêu đề
+                  </li>
+                  <li class="column is-3">
+                    Cơ cấu phòng ban
+                  </li>
+                  <li class="column is-6">
+                    Quyền truy cập
+                  </li>
+                </ul>
+                <Dropzone Items="data" TItem="HrmOptionModel" InstantReplace="true" OnItemDrop="x => OnItemDragdrop(x)">
+                  @{
+                    var company = departments.SingleOrDefault(x => x.id == context.company);
+                    var managers = Layout.UserList.Where(x => context.managers.Contains(x.id)).Select(x => x.FullName);
+                  }
+                  <ul class="columns is-multiline is-vcentered is-variable is-1" data-id="@context.id">
+                    <li class="column is-3">
+                      <a class="icon-text" @onclick="() => EditItem(context)">
+                        <span class="icon is-small has-text-grey">
+                          <i class="material-icons-outlined is-size-6">drag_indicator</i>
+                        </span>
+                        <span>@context.name</span>
+                      </a>
+                    </li>
+                    <li class="column is-3">
+                      @(company != null ? company.name.Replace("└─", "") : context.company)
+                    </li>
+                    <li class="column is-5">
+                      @string.Join(", ", managers)
+                    </li>
+                    <li class="column is-1 has-text-right">
+                      <a class="icon is-small has-text-danger" @onclick="() => DeleteItem(context)">
+                        <i class="material-icons-outlined is-size-6">close</i>
+                      </a>
+                    </li>
+                  </ul>
+                </Dropzone>
+                <div class="has-text-weight-medium my-3">
+                  Thêm lựa chọn
+                </div>
+                <ul class="columns is-multiline is-vcentered is-variable is-1 has-text-weight-medium">
+                  <li class="column is-3">
+                    <input id="option_name" @bind="editItem.name" class="input" type="text"
+                      placeholder="Tên hạng mục...">
+                  </li>
+                  <li class="column is-3">
+                    <div class="select is-fullwidth">
+                      <select @bind="editItem.company" class="is-family-code">
+                        <option value="">Phòng ban</option>
+                        @foreach (var item in departments)
+                        {
+                          <option value="@item.id">@item.name</option>
+                        }
+                      </select>
+                    </div>
+                  </li>
+                  <li class="column is-4">
+                    <MemberDropdown members="editItem.managers" sources="managerList"
+                      department="@editItem.company" isEdit="true" isUp="true" OnUpdate="OnUpdateMember" />
+                  </li>
+                  <li class="column is-2 has-text-right">
+                    <a class="button is-white has-text-link" @onclick="UpdateItem">
+                      @if (string.IsNullOrEmpty(editItem.id))
+                      {
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">add</i>
+                        </span>
+                        <span>Thêm</span>
+                      }
+                      else
+                      {
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">save</i>
+                        </span>
+                        <span>Lưu</span>
+                      }
+                    </a>
+                  </li>
+                </ul>
+              }
+              else
+              {
+                <div class="has-text-weight-medium mb-2">
+                  Lựa chọn
+                </div>
+                <Dropzone Items="data" TItem="HrmOptionModel" InstantReplace="true" OnItemDrop="x => OnItemDragdrop(x)">
+                  <ul class="columns is-multiline is-vcentered is-variable is-1" data-id="@context.id">
+                    <li class="column is-four-fifths">
+                      <a class="icon-text" @onclick="() => EditItem(context)">
+                        <span class="icon is-small has-text-grey">
+                          <i class="material-icons-outlined is-size-6">drag_indicator</i>
+                        </span>
+                        <span>@context.name</span>
+                      </a>
+                    </li>
+                    <li class="column is-one-fifth has-text-right">
+                      <a class="icon is-small has-text-danger" @onclick="() => DeleteItem(context)">
+                        <i class="material-icons-outlined is-size-6">close</i>
+                      </a>
+                    </li>
+                  </ul>
+                </Dropzone>
+                <div class="has-text-weight-medium my-3">
+                  Thêm lựa chọn
+                </div>
+                <div class="field is-grouped">
+                  <div class="control is-expanded">
+                    <input id="option_name" @bind="editItem.name" class="input" type="text"
+                      placeholder="Tên hạng mục...">
+                  </div>
+                  <div class="control">
+                    <a class="button is-white has-text-link" @onclick="UpdateItem">
+                      @if (string.IsNullOrEmpty(editItem.id))
+                      {
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">add</i>
+                        </span>
+                        <span>Thêm</span>
+                      }
+                      else
+                      {
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">save</i>
+                        </span>
+                        <span>Lưu</span>
+                      }
+                    </a>
+                  </div>
+                </div>
+              }
+            }
+            else
+            {
+              if(model.type == "company")
+              {
+                <ul class="columns is-multiline is-vcentered is-variable is-1 has-text-weight-medium">
+                  <li class="column is-3">
+                    Tiêu đề
+                  </li>
+                  <li class="column is-3">
+                    Cơ cấu phòng ban
+                  </li>
+                  <li class="column is-6">
+                    Quyền truy cập
+                  </li>
+                </ul>
+                @foreach (var item in data)
+                {
+                  var company = departments.SingleOrDefault(x => x.id == item.company);
+                  var managers = Layout.UserList.Where(x => item.managers.Contains(x.id)).Select(x => x.FullName);
+
+                  <ul data-id="@item.id" class="columns is-multiline is-vcentered is-variable is-1 has-text-grey">
+                    <li class="column is-3">
+                      @item.name
+                    </li>
+                    <li class="column is-3">
+                      @(company != null ? company.name.Replace("└─", "") : item.company)
+                    </li>
+                    <li class="column is-6">
+                      @string.Join(", ", managers)
+                    </li>
+                  </ul>
+                }
+              }
+              else
+              {
+                <div class="has-text-weight-medium mb-2">
+                  Lựa chọn
+                </div>
+                foreach (var item in data)
+                {                
+                  <div class="py-1" data-id="@item.id">
+                    @item.name
+                  </div>
+                }
+              }
+            }
+          </li>
+        </ul>
+      </section>
+      <section class="modal-card-foot is-right">
+        <a class="button" @onclick="Cancel">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">close</i>
+          </span>
+          <span>Hủy</span>
+        </a>
+        @if(editMode)
+        {
+          <a class="button is-link" @onclick="Update">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">done</i>
+            </span>
+            <span>Cập nhật</span>
+          </a>
+        }
+        else
+        {
+          <a class="button is-link" @onclick="Edit">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">edit</i>
+            </span>
+            <span>Chỉnh sửa</span>
+          </a>
+        }
+      </section>
+    </section>
+  </section>
+}
+
+@if(deleteUse > 0)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card">
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          Xóa hạng mục
+        </div>
+        <a class="delete is-medium" @onclick="() => deleteUse = 0"></a>
+      </section>
+      <section class="modal-card-body">
+        <div class="pb-2">
+          Lựa chọn <strong>“@deleteItem”</strong> đang được áp dụng cho <strong>@deleteUse</strong> hồ sơ nhân sự. 
+        </div>
+        <div class="has-text-danger">
+          Bạn cần thay đổi @deleteUse hồ sơ nhân sự trước khi xóa!
+        </div>
+      </section>
+      <section class="modal-card-foot is-right">
+        <a class="button is-white has-text-link" @onclick="() => deleteUse = 0">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">close</i>
+          </span>
+          <span>Hủy</span>
+        </a>
+        <a class="button is-static">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">delete</i>
+          </span>
+          <span>Xóa</span>
+        </a>
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public HrmOptionModel model { get; set; }
+  [Parameter]
+  public List<HrmOptionModel> data { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+  private bool editMode = false;
+  private HrmOptionModel editItem = null;
+  private List<DepartmentModel.SelectList> departments = new();
+  private List<UserModel> managerList = new();
+  private string deleteItem = string.Empty;
+  private int deleteUse = 0;
+
+  protected override void OnInitialized()
+  {
+    departments = DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+    departments.RemoveAll(x => x.level > 1);
+    // Danh sách tài khoản có quyền QLHT - Chấm công
+    managerList = Layout.UserList.Where(x => x.role == 2 && x.role_manage.timekeeping).ToList();
+  }
+
+  private async Task Cancel()
+  {
+    editMode = false;
+    await OnUpdate.InvokeAsync(false);
+  }
+
+  private async Task Edit()
+  {
+    editMode = true;
+    editItem = new() { type = model.type };
+    await JSRuntime.InvokeVoidAsync("setFocus", "option_name");
+  }
+
+  private async Task Update()
+  {
+    editMode = false;
+    await OnUpdate.InvokeAsync(true);
+  }
+
+  private async Task EditItem(HrmOptionModel item)
+  {
+    editItem = item;
+    await JSRuntime.InvokeVoidAsync("setFocus", "option_name");
+  }
+
+  private async Task UpdateItem()
+  {
+    if(Shared.IsEmpty(editItem.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên hạng mục!");
+    else if(model.type == "company" && Shared.IsEmpty(editItem.company))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn phòng ban!");
+    else if(model.type == "company" && editItem.managers.Count == 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa thêm quyền truy cập!");
+    else if(Shared.IsEmpty(editItem.id) && data.Any(x => x.name == editItem.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Lựa chọn đã tồn tại!");
+    else
+    {
+      if(Shared.IsEmpty(editItem.id))
+      {
+        editItem.pos = data.Count;
+        await DbHrmOption.Create(Layout.Company.id, editItem);
+        data.Add(editItem);
+      }
+      else
+      {
+        await DbHrmOption.Update(Layout.Company.id, editItem);
+      }
+      data = data.OrderBy(x => x.pos).ToList();
+      editItem = new() { type = model.type };
+      await JSRuntime.InvokeVoidAsync("setFocus", "option_name");
+    }
+  }
+
+  private async Task DeleteItem(HrmOptionModel item)
+  {
+    deleteItem = item.name;
+    if(model.type == "company")
+      deleteUse = Layout.UserList.Count(x => x.company_id == item.id);
+    else
+      deleteUse = Layout.UserList.Count(x => x.department_id == item.id);
+
+    // Kiểm tra tài khoản đang sử dụng
+    if(deleteUse == 0)
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn xóa hạng mục này?"))
+        return;
+      await DbHrmOption.Delete(Layout.Company.id, item.id);
+      data.Remove(item);
+    }
+  }
+
+  private async Task OnItemDragdrop(HrmOptionModel item)
+  {
+    for (int pos = 0; pos < data.Count; pos++)
+    {
+      var option = data[pos];
+      option.pos = pos;
+      await DbHrmOption.Update(Layout.Company.id, option);
+      Console.WriteLine($"{option.name} = {option.pos}");
+    }
+  }
+
+  private void OnUpdateMember()
+  {
+    Console.WriteLine(string.Join(", ", editItem.managers));
+  }
+}

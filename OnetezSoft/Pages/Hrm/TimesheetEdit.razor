@@ -1,0 +1,240 @@
+@inject IJSRuntime JSRuntime
+
+@if (day > 0)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card">
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          Chi tiết chấm công
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body">
+        <ul class="columns is-multiline is-variable is-2">
+          <li class="column is-full">
+            <span class="has-text-weight-semibold">Nhân viên:</span>
+            <span>@staff</span>
+          </li>
+          <li class="column is-half">
+            <span class="has-text-weight-semibold">Ngày:</span>
+            <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(day))</span>
+          </li>
+          <li class="column is-half">
+            <span class="has-text-weight-semibold">Công ghi nhận: </span>
+            @if(data.type == "V" || data.type == "K" || data.type == "0")
+            {
+              <span>0</span>
+            }
+            else
+            {
+              <span>@data.time</span>
+            }
+          </li>
+          <li class="column is-full">
+            <span class="has-text-weight-semibold">Ca làm việc</span>
+            <span>@(workshift != null ? workshift.checkin + " - " + workshift.checkout : "Không có ca làm")</span>
+          </li>
+
+          @foreach (var item in ConvertToList())
+          {
+            if(string.IsNullOrEmpty(item.time_active))
+                continue;
+            bool isValid = HrmService.TimekeepingIsValid(item);
+            <li class="column is-full">
+              <div class="has-text-weight-semibold">
+                Giờ @(item.time_type == null ? "chấm công" : item.time_type):
+              </div>
+              <div class="field is-grouped mb-0">
+                <div class="control" style="width: 25%;">
+                  <span class="icon-text">
+                    <span class="icon is-small">
+                      @if(isValid)
+                      {
+                        <i class="material-icons is-size-6 has-text-success">done</i>
+                      }
+                      else
+                      {
+                        <i class="material-icons is-size-6 has-text-danger">error_outline</i>
+                      }
+                    </span>
+                    <span class="has-text-weight-medium">@item.time_active</span>
+                  </span>
+                </div>
+                @if(!item.in_company)
+                {
+                  <div class="control" style="width: 25%;">
+                    <span class="icon-text has-text-link">
+                      <span class="icon is-small">
+                        <i class="material-icons-outlined">map</i>
+                      </span>
+                      <span>Ngoài công ty</span>
+                    </span>
+                  </div>
+                }
+                @if(item.time_difference > 0)
+                {
+                  <div class="control" style="width: 25%;">
+                    <span class="has-text-danger">
+                      @(item.time_type == "Check-out" ? "Sớm" : "Trễ")
+                      @item.time_difference phút
+                    </span>
+                  </div>
+                }
+              </div>
+              @if(!Shared.IsEmpty(item.reason))
+              {
+                <div class="pl-5 mt-1">
+                  <span class="has-text-weight-medium">Lý do:</span>
+                  <span>@item.reason</span>
+                </div>
+              }
+              @if(!Shared.IsEmpty(item.note))
+              {
+                <div class="pl-5 mt-1">
+                  <span class="has-text-weight-medium">Ghi chú:</span>
+                  <span>@item.note</span>
+                </div>
+              }
+              @if(item.images.Count > 0)
+              {
+                <div class="pl-5 mt-2">
+                  <ul class="columns is-multiline is-variable is-1 is-mobile">
+                    @foreach (var image in item.images)
+                    {
+                      <li class="column is-one-third">
+                        <div class="image is-4by3 is-radius">
+                          <img src="@image" alt="IMG">
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+            </li>
+          }
+
+          @if(edit)
+          {
+            <li class="column is-full">
+              <div class="has-text-weight-semibold mb-2">Thiết lập công</div>
+              <div class="select is-fullwidth">
+                <select @bind="data.type">
+                  <option value="">Công tính lương</option>
+                  @foreach (var type in HrmService.TimeType())
+                  {
+                    <option value="@type.icon">@(type.icon != null ? type.icon + " - " : "") @type.name</option>
+                  }
+                </select>
+              </div>
+            </li>
+            <li class="column is-full">
+              <div class="has-text-weight-semibold mb-2">Lý do</div>
+              <textarea @bind="data.note" class="textarea" rows="3" maxlength="250"
+                placeholder="Nhập lý do chỉnh sửa..." />
+            </li>
+          }
+          else
+          {
+            if(data.edited)
+            {
+              var typeOld = HrmService.TimeType(data.type_old);
+              <li class="column is-full">
+                <div class="has-text-weight-semibold mb-2">Lịch sử chỉnh sửa</div>
+                <div>
+                  <span class="icon-text">
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-6">history</i>
+                    </span>
+                    <span class="mr-2">Ngày công gốc:</span>
+                    <span>@(typeOld.icon != null ? typeOld.icon + " - " : "") @typeOld.name</span>
+                  </span>
+                </div>
+              </li>
+            }
+            <li class="column is-full">
+              <div class="has-text-weight-semibold mb-2">Thiết lập công</div>
+              <div>
+                @(data.type_model.icon != null ? data.type_model.icon + " - " : "") @data.type_model.name
+              </div>
+            </li>
+            @if(!string.IsNullOrEmpty(data.note))
+            {
+              <li class="column is-full">
+                <div class="has-text-weight-semibold mb-2">Lý do</div>
+                <div>@((MarkupString)data.note.Replace("\n", "<br>"))</div>
+              </li> 
+            }
+          }
+        </ul>
+      </section>
+      <section class="modal-card-foot is-right">
+        <a class="button" @onclick="Cancel">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">close</i>
+          </span>
+          <span>Hủy</span>
+        </a>
+        @if(edit)
+        {  
+          <a class="button is-link" @onclick="Update">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">done</i>
+            </span>
+            <span>Cập nhật</span>
+          </a>
+        }
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [Parameter]
+  public bool edit { get; set; }
+  [Parameter]
+  public long day { get; set; } // Ngày cần sửa
+  [Parameter]
+  public string staff { get; set; } // Họ tên nhân viên
+  [Parameter]
+  public HrmTimesheetModel.TimeData data { get; set; } // Bảng công của ca cần sửa
+  [Parameter]
+  public HrmTimekeepingModel.TimeData checkin { get; set; } // Dữ liệu checkin chấm công
+  [Parameter]
+  public HrmTimekeepingModel.TimeData checkout { get; set; } // Dữ liệu checkout chấm công
+  [Parameter]
+  public HrmWorkShiftModel workshift { get; set; } // Cấu hình ca làm việc của ngày cần sửa
+  [Parameter]
+  public EventCallback<HrmTimesheetModel.TimeData> OnUpdate { get; set; }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(null);
+  }
+
+  private async Task Update()
+  {
+    if(Shared.IsEmpty(data.note))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập lý do chỉnh sửa!");
+    else
+    {
+      data.edited = true;
+      data.type = string.IsNullOrEmpty(data.type) ? null: data.type;
+      await OnUpdate.InvokeAsync(data);
+    }
+  }
+
+  /// <summary>
+  /// Chuyển dữ liệu chấm công thành List
+  /// </summary>
+  private List<HrmTimekeepingModel.TimeData> ConvertToList()
+  {
+    var results = new List<HrmTimekeepingModel.TimeData>();
+    if(checkin != null)
+      results.Add(checkin);
+    if(checkout != null)
+      results.Add(checkout);
+    return results;
+  }
+}
