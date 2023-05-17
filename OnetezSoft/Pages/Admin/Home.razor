@@ -51,8 +51,8 @@
         <a class="button is-primary" @onclick="GetUserList">
           Lấy danh sách tài khoản
         </a>
-        <a class="button is-primary" @onclick="RestoreCompnay">
-          Cứu DB TP Bank
+        <a class="button is-primary" @onclick="ResetUsersStart">
+          Đồng bộ dữ liệu ví sao
         </a>
       </div>
 
@@ -335,22 +335,19 @@
     await JSRuntime.InvokeVoidAsync("console.log",$".....{table_name} => done {count}/{data.Count} item");
   }
 
-
-  private async Task RestoreCompnay()
+  private async Task GetCompanyList()
   {
-    var companyId = "22AEB3FA5B";
-    // Tạo tổ chức TP Bank
-    var company = new CompanyModel() {
-      id = companyId,
-      name = "TPBank Quận 3",
-      status = true, 
-      admin_id = Layout.User.id
-    };
-    await DbMainCompany.Create(company);
-    await JSRuntime.InvokeVoidAsync("console.log",$"Tạo tổ chức xong: {company.id} - {company.name}");
-    // Sao chép tài khoản
-    await MoveDataUser("fastdo_" + companyId, "fastdo", "users");
-    await JSRuntime.InvokeVoidAsync("console.log",$"Sao chép tài khoản xong");
+    var data = await BackupData.GetList<CompanyModel>("fastdo", "companys");
+    await JSRuntime.InvokeVoidAsync("console.warn", "Danh sách tổ chức");
+    await JSRuntime.InvokeVoidAsync("tagline", true, $"Có {data.Count} tổ chức trong database");
+    foreach (var item in data)
+    {
+      if(item.status && !item.delete)
+      {
+        await CompanyService.UpdateProductAccess(item.id);
+        await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.name + " => members: " + item.members);
+      }
+    }
   }
 
   private async Task GetUserList()
@@ -370,17 +367,20 @@
     await JSRuntime.InvokeVoidAsync("console.table", members);
   }
 
-  private async Task GetCompanyList()
+  private async Task ResetUsersStart()
   {
-    var data = await BackupData.GetList<CompanyModel>("fastdo", "companys");
-    await JSRuntime.InvokeVoidAsync("console.warn", "Danh sách tổ chức");
-    await JSRuntime.InvokeVoidAsync("tagline", true, $"Có {data.Count} tổ chức trong database");
-    foreach (var item in data)
+    var companys = await BackupData.GetList<CompanyModel>("fastdo", "companys");
+    foreach (var company in companys)
     {
-      if(item.status && !item.delete)
+      var userList = await DbUser.GetList(company.id, null, null, 0);
+      var cftList = await DbOkrCfr.GetList(company.id, null, null);
+      await JSRuntime.InvokeVoidAsync("console.warn", $"Công ty: {company.name} | Nhân viên: {userList.Count}");
+      foreach (var item in userList)
       {
-        await CompanyService.UpdateProductAccess(item.id);
-        await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.name + " => members: " + item.members);
+        item.star_distribute = 0;
+        item.star_receive = cftList.Where(x => x.user_receive == item.id).Sum(x => x.star);
+        item.star_give = cftList.Where(x => x.user_create == item.id).Sum(x => x.star);
+        await DbUser.Update(company.id, item);
       }
     }
   }
