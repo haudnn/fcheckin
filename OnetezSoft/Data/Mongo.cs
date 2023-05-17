@@ -9,12 +9,10 @@ namespace OnetezSoft.Data
     private static readonly string ConnectionString =
       "mongodb+srv://conando_test:ueczFaZcPqvMYdsv@conandotest.eei9mbf.mongodb.net/?retryWrites=true&w=majority";
 
-      private static readonly string LocalConnectionString = "mongodb://localhost:27017";
-
     public static IMongoDatabase DbConnect(string name)
     {
-      //var client = new MongoClient();
-      var client = new MongoClient(LocalConnectionString);
+      var client = new MongoClient();
+      //var client = new MongoClient(ConnectionString);
       return client.GetDatabase(name);
     }
 

@@ -2,7 +2,7 @@
 @inject NavigationManager navigation
 
 <section id="slider" class="@(count > 0 ? "py-4 px-4" : "")">
-  <div class="banner_main @(count > 0 ? "card" : "")">
+  <div class="banner_main">
     <div class="carousel">
       <BlazorSlickCarousel @ref="banner" Configurations="configurations">
         <BlazorSlickCarouselContent>
@@ -34,7 +34,6 @@
   protected override void OnInitialized()
   {
     database = DbBanner.GetList(Layout.Company.id);
-    database = (from x in database orderby x.pos ascending, x select x).ToList();
     ConfigSlide();
     SlideFirst();
   }
@@ -50,6 +49,7 @@
         useCSS = false,
         slidesToShow = 1,
         slidesToScroll = 1,
+        autoplaySpeed = 5000,
         appendDots = ".dots",
         appendArrows = ".arrows",
         prevArrow = "<a class='material-icons-round'>chevron_left</a>",
@@ -66,22 +66,7 @@
   {
     var url = navigation.Uri.Replace(navigation.BaseUri, "/");
     if (!url.StartsWith("/config/"))
-    {
-      foreach (var item in database)
-      {
-        if (Layout.User.departments_id.Contains(item.department))
-        {
-          foreach (var page in item.pages)
-          {
-            if (url.Contains(page.Key))
-            {
-              dataList.Add(item);
-              break;
-            }
-          }
-        }
-      }
-    }
+      dataList = GetList();
     count = dataList.Count;
   }
 
@@ -94,16 +79,37 @@
         for (int i = 0; i < count; i++)
           await banner.Remove(0, false);
 
-      var list = new List<BannerModel>();
-      if (!url.StartsWith("/config/"))
+      var list = GetList();
+      foreach (var item in list)
       {
-        foreach (var item in database)
+        var html = $"<a class=\"image\" href=\"{item.link}\" target=\"_blank\" title=\"{item.name}\">";
+        html += $"<img src=\"{item.image}\" alt=\"img\" />";
+        html += "</a>";
+        await banner.Add(html);
+      }
+      count = list.Count;
+    }
+  }
+
+  private List<BannerModel> GetList()
+  {
+    var url = navigation.Uri.Replace(navigation.BaseUri, "/");
+    var list = new List<BannerModel>();
+    if (!url.StartsWith("/config/"))
+    {
+      foreach (var item in database)
+      {
+        if (Layout.User.departments_id.Contains(item.department) || string.IsNullOrEmpty(item.department))
         {
-          if (Layout.User.departments_id.Contains(item.department))
+          if(item.pages.Count == 0)
+          {
+            list.Add(item);
+          }
+          else
           {
             foreach (var page in item.pages)
             {
-              if (url.Contains(page.Key))
+              if (url.StartsWith(page.Key))
               {
                 list.Add(item);
                 break;
@@ -111,16 +117,8 @@
             }
           }
         }
-
-        foreach (var item in list)
-        {
-          var html = $"<a class=\"image\" href=\"{item.link}\" target=\"_blank\" title=\"{item.name}\">";
-          html += $"<img src=\"{item.image}\" alt=\"img\" />";
-          html += "</a>";
-          await banner.Add(html);
-        }
-        count = list.Count;
       }
     }
+    return list;
   }
 }
