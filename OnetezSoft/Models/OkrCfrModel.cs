@@ -32,5 +32,8 @@ namespace OnetezSoft.Models
     public bool special { get; set; } 
     // Riêng tư
     public bool privacy { get; set; }
+    
+    /// <summary>Thả tim</summary>
+    public bool like { get; set; }
   }
 }

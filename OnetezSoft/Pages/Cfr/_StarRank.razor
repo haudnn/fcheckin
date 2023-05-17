@@ -112,19 +112,30 @@
                 </div>
               </div>
             }
-
             @if (!string.IsNullOrEmpty(item.evaluate_name))
             {
               <h3 class="title is-6 has-text-info mb-2">
                 @item.evaluate_name
               </h3>
             }
-            <div class="text_3_line mb-2" onclick="toggleText(this)">
-              @((MarkupString)Shared.GetLinks(item.content))
-            </div>
+            @if (!item.privacy || item.user_create == Layout.User.id || item.user_receive == Layout.User.id)
+            {
+              <div class="text_3_line mb-2" onclick="toggleText(this)">
+                @((MarkupString)Shared.GetLinks(item.content))
+              </div>
+            }
+            else
+            {
+              <div class="mb-2 is-italic">
+                Nội dung lời nhắn không được công khai!
+              </div>
+            }
             <div class="field is-grouped">
               <div class="control">
                 <span class="icon-text">
+                  <span class="icon is-small" title="@(item.privacy ? "Riêng tư" : "Công khai")">
+                    <i class="material-icons-round">@(item.privacy ? "lock" : "public")</i>
+                  </span>
                   <span class="has-text-weight-semibold">@item.star</span>
                   <span class="icon">
                     <i class="material-icons-outlined has-text-warning">star</i>
@@ -132,7 +143,7 @@
                 </span>
               </div>
               <div class="control">•</div>
-              <div class="control has-text-weight-semibold text_1_line" style="max-width: 280px;">
+              <div class="control has-text-weight-medium text_1_line" style="max-width: 280px;">
                 @if (string.IsNullOrEmpty(item.okr_name))
                 {
                   <span>Tất cả OKRs</span>
