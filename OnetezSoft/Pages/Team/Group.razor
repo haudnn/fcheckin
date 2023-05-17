@@ -624,89 +624,100 @@
             </li>
             <li class="column is-full">
               <div class="scrolly" style="max-height: 390px;">
-                <ul class="columns is-multiline is-variable is-2 my-0">
-                  @foreach (var item in cftList)
-                  {
-                    var create = Layout.UserList.SingleOrDefault(x => x.id == item.user_create);
-                    var receive = Layout.UserList.SingleOrDefault(x => x.id == item.user_receive);
+              <ul class="columns is-multiline is-variable is-2 my-0">
+                    @foreach (var item in cftList)
+                    {
+                      var create = Layout.UserList.SingleOrDefault(x => x.id == item.user_create);
+                      var receive = Layout.UserList.SingleOrDefault(x => x.id == item.user_receive);
 
-                    <li class="column is-full">
-                      <hr class="mt-0 mb-3" />
-                      @if (create != null)
-                      {
-                        <div class="user_item mb-2">
-                          <img class="image is-36x36 mr-2" src="@create.avatar" alt="IMG">
-                          <div>
-                            <p class="has-text-weight-medium has-text-info">
-                              <span class="mr-2">@create.FullName</span>
-                            </p>
-                            <p class="text_1_line is-size-7" style="width: 250px;">
-                              @create.departments_name
-                            </p>
-                          </div>
-                        </div>
-                      }
-                      @if (receive != null)
-                      {
-                        <div class="user_item mb-3 pl-6" style="background: url(/images/arrow_sub.png) 20px 0px no-repeat;">
-                          <img class="image is-36x36 mr-2" src="@receive.avatar" alt="IMG">
-                          <div>
-                            <p class="has-text-weight-medium has-text-info">@receive.FullName</p>
-                            <p class="text_1_line is-size-7" style="width: 250px;">
-                              @receive.departments_name
-                            </p>
-                          </div>
-                        </div>
-                      }
-
-                      @if (!string.IsNullOrEmpty(item.evaluate_name))
-                      {
-                        <h3 class="title is-6 has-text-info mb-2">
-                          @item.evaluate_name
-                        </h3>
-                      }
-                      <div class="text_3_line mb-2" onclick="toggleText(this)">
-                        @((MarkupString)Shared.GetLinks(item.content))
-                      </div>
-                      <div class="field is-grouped">
-                        <div class="control">
-                          <span class="icon-text">
-                            <span class="has-text-weight-semibold">@item.star</span>
-                            <span class="icon">
-                              <i class="material-icons-outlined has-text-warning">star</i>
-                            </span>
-                          </span>
-                        </div>
-                        @if (tabStar == 2)
+                      <li class="column is-full">
+                        <hr class="mt-0 mb-3" />
+                        @if (create != null)
                         {
-                          <div class="control">•</div>
-                          <div class="control has-text-weight-semibold text_1_line" style="max-width: 280px;">
-                            @if (string.IsNullOrEmpty(item.okr_name))
-                            {
-                              <span>Tất cả OKRs</span>
-                            }
-                            else
-                            {
-                              <span>@item.okr_name</span>
-                            }
+                          <div class="user_item mb-2">
+                            <img class="image is-36x36 mr-2" src="@create.avatar" alt="IMG">
+                            <div>
+                              <p class="has-text-weight-medium has-text-info">
+                                <span class="mr-2">@create.FullName</span>
+                              </p>
+                              <p class="text_1_line is-size-7" style="width: 250px;">
+                                @create.departments_name
+                              </p>
+                            </div>
                           </div>
                         }
-                        <div class="control">•</div>
-                        <div class="control">
-                          @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date_create))
+                        @if (receive != null)
+                        {
+                          <div class="user_item mb-3 pl-6" style="background: url('/images/arrow_sub.png') 20px 0px no-repeat;">
+                            <img class="image is-36x36 mr-2" src="@receive.avatar" alt="IMG">
+                            <div>
+                              <p class="has-text-weight-medium has-text-info">@receive.FullName</p>
+                              <p class="text_1_line is-size-7" style="width: 250px;">
+                                @receive.departments_name
+                              </p>
+                            </div>
+                          </div>
+                        }
+                        @if (!string.IsNullOrEmpty(item.evaluate_name))
+                        {
+                          <h3 class="title is-6 has-text-info mb-2">
+                            @item.evaluate_name
+                          </h3>
+                        }
+                        @if (!item.privacy || item.user_create == Layout.User.id || item.user_receive == Layout.User.id)
+                        {
+                          <div class="text_3_line mb-2" onclick="toggleText(this)">
+                            @((MarkupString)Shared.GetLinks(item.content))
+                          </div>
+                        }
+                        else
+                        {
+                          <div class="mb-2 is-italic">
+                            Nội dung lời nhắn không được công khai!
+                          </div>
+                        }
+                        <div class="field is-grouped">
+                          <div class="control">
+                            <span class="icon-text">
+                              <span class="icon is-small" title="@(item.privacy ? "Riêng tư" : "Công khai")">
+                                <i class="material-icons-round">@(item.privacy ? "lock" : "public")</i>
+                              </span>
+                              <span class="has-text-weight-semibold">@item.star</span>
+                              <span class="icon">
+                                <i class="material-icons-outlined has-text-warning">star</i>
+                              </span>
+                            </span>
+                          </div>
+                          @if (tabStar == 2)
+                          {
+                            <div class="control">•</div>
+                            <div class="control has-text-weight-medium text_1_line" style="max-width: 280px;">
+                              @if (string.IsNullOrEmpty(item.okr_name))
+                              {
+                                <span>Tất cả OKRs</span>
+                              }
+                              else
+                              {
+                                <span>@item.okr_name</span>
+                              }
+                            </div>
+                          }
+                          <div class="control">•</div>
+                          <div class="control">
+                            @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date_create))
+                          </div>
                         </div>
-                      </div>
-                    </li>
-                  }
-                  @if (cftList.Count == 0)
-                  {
-                    <li class="column is-full">
-                      <div class="has-text-grey py-5">
-                        Không có dữ liệu !
-                      </div>
-                    </li>
-                  }
-                </ul>
+                      </li>
+                    }
+                    @if (cftList.Count == 0)
+                    {
+                      <li class="column is-full">
+                        <div class="has-text-grey py-5">
+                          Không có dữ liệu !
+                        </div>
+                      </li>
+                    }
+                  </ul>
               </div>
             </li>
           </ul>
@@ -969,12 +980,14 @@
     dateStar = type;
     Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
     var data = await DbOkrCfr.GetList(Layout.Company.id, start, end);
+    var members = Layout.UserList.Where(x => !x.no_report_cfr 
+      && department.members_id.Contains(x.id)).Select(x => x.id).ToList();
     if (string.IsNullOrEmpty(cfrsUserId))
     {
       cftList = (from x in data
                  where x.type == tabStar
                  && (department.members_id.Contains(x.user_create)
-                 || department.members_id.Contains(x.user_receive))
+                 || members.Contains(x.user_receive))
                  orderby x.date_create descending
                  select x).ToList();
     }

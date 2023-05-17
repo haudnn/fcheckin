@@ -8,11 +8,10 @@ namespace OnetezSoft.Data
   {
     private static readonly string ConnectionString =
       "mongodb+srv://conando_test:ueczFaZcPqvMYdsv@conandotest.eei9mbf.mongodb.net/?retryWrites=true&w=majority";
-
     public static IMongoDatabase DbConnect(string name)
     {
-      var client = new MongoClient();
-      //var client = new MongoClient(ConnectionString);
+      // var client = new MongoClient();
+      var client = new MongoClient(ConnectionString);
       return client.GetDatabase(name);
     }
 
