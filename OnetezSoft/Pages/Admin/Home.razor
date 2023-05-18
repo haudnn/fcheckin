@@ -381,6 +381,8 @@
         item.star_receive = cftList.Where(x => x.user_receive == item.id).Sum(x => x.star);
         item.star_give = cftList.Where(x => x.user_create == item.id).Sum(x => x.star);
         await DbUser.Update(company.id, item);
+        await JSRuntime.InvokeVoidAsync("console.log", 
+          $"{item.FullName} | Của bạn: {item.star_total} | được cấp: {item.star_distribute} | Nhận được: {item.star_receive} | Cho đi: {item.star_give}");
       }
     }
   }
