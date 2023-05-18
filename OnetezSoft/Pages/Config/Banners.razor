@@ -34,28 +34,6 @@ else
             </h1>
           </li>
           <li class="column is-narrow">
-            <div class="select is-fullwidth">
-              <select @onchange="ChangePage">
-                <option value="">Trang hiển thị</option>
-                @foreach (var sl in pageList)
-                {
-                  <option value="@sl.Key">@sl.Value</option>
-                }
-              </select>
-            </div>
-          </li>
-          <li class="column is-narrow">
-            <div class="select is-fullwidth">
-              <select @onchange="ChangeDepartment" class="is-family-code">
-                <option value="">Phòng ban</option>
-                @foreach (var item in departments)
-                {
-                  <option value="@item.id">@item.name</option>
-                }
-              </select>
-            </div>
-          </li>
-          <li class="column is-narrow">
             <a class="button is-link" @onclick="() => EditItem(null)">
               <span class="icon">
                 <span class="material-icons-outlined is-size-6">add</span>
@@ -64,97 +42,6 @@ else
             </a>
           </li>
         </ul>
-        @* <table class="table is-fullwidth is-vcentered is-responsive mt-5">
-          <thead>
-            <tr>
-              <th width="120px">Hình ảnh</th>
-              <th width="20%">Tiêu đề</th>
-              <th>Liên kết</th>
-              <th width="15%">Phòng ban</th>
-              <th width="18%">Trang hiển thị</th>
-              <th width="80px" align="center">Ghim</th>
-              <th width="70px" align="center">Xử lý</th>
-            </tr>
-          </thead>
-          <tbody>
-            @foreach (var item in dataList)
-            {
-              var department = departmentAll.SingleOrDefault(x => x.id == item.department);
-
-              <tr>
-                <td align="center">
-                  <a class="image" href="@item.image" target="_blank">
-                    <img src="@item.image" alt="IMG" />
-                  </a>
-                </td>
-                <td>
-                  <label class="td-label">Tiêu đề</label>
-                  <div class="td-value">
-                    <a class="has-text-weight-semibold" @onclick="() => EditItem(item)">
-                      @item.name
-                    </a>
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Liên kết</label>
-                  <div class="td-value">
-                    <a class="text_1_line" href="@item.link" target="_blank">
-                      @item.link
-                    </a>
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Phòng ban</label>
-                  <div class="td-value has-text-weight-semibold">
-                    @(department != null ? department.name : "")
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Trang hiển thị</label>
-                  <div class="td-value">
-                    <div class="text_3_line" onclick="toggleText(this)">
-                      @foreach (var p in item.pages)
-                      {
-                        <p>@p.Value</p>
-                      }
-                    </div>
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Ghim</label>
-                  <div class="td-value">
-                    <a class="icon" @onclick="() => ToggleItem(item)">
-                      @if (item.pin)
-                      {
-                        <span class="material-icons-outlined is-size-4 has-text-success">
-                          toggle_on
-                        </span>
-                      }
-                      else
-                      {
-                        <span class="material-icons-outlined is-size-4 has-text-black">
-                          toggle_off
-                        </span>
-                      }
-                    </a>
-                  </div>
-                </td>
-                <td>
-                  <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
-                    <i class="material-icons-outlined is-size-5">
-                      edit
-                    </i>
-                  </a>
-                  <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
-                    <i class="material-icons-outlined is-size-5">
-                      delete
-                    </i>
-                  </a>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table> *@
         <ul class="columns is-vcentered is-variable is-1 has-text-grey is-table">
           <li class="column is-narrow" style="width: 4%;"></li>
           <li class="column is-narrow" style="width: 10%;">Hình ảnh</li>
@@ -389,10 +276,10 @@ else
     departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
     pageList = PageList();
 
-    Search();
+    GetList();
   }
 
-  private void Search()
+  private void GetList()
   {
     dataList = DbBanner.GetList(Layout.Company.id);
     if (!string.IsNullOrEmpty(filterDepartment))
@@ -400,18 +287,6 @@ else
     if (!string.IsNullOrEmpty(filterPage))
       dataList = dataList.Where(x => x.pages.Keys.Contains(filterPage)).ToList();
     dataList = (from x in dataList orderby x.pin descending, x.pos select x).ToList();
-  }
-
-  private void ChangePage(ChangeEventArgs e)
-  {
-    filterPage = e.Value.ToString();
-    Search();
-  }
-
-  private void ChangeDepartment(ChangeEventArgs e)
-  {
-    filterDepartment = e.Value.ToString();
-    Search();
   }
 
   private async Task DeleteItem(BannerModel item)
@@ -449,7 +324,7 @@ else
       banner.pos = pos;
       await DbBanner.Update(Layout.Company.id, banner);
     }
-    Search();
+    GetList();
   }
 
   private void SelectPage(ChangeEventArgs e)
@@ -497,15 +372,11 @@ else
     else
     {
       if (string.IsNullOrEmpty(current.id))
-      {
-        current = await DbBanner.Create(Layout.Company.id, current);
-        dataList.Insert(0, current);
-      }
+        await DbBanner.Create(Layout.Company.id, current);
       else
-      {
-        current = await DbBanner.Update(Layout.Company.id, current);
-      }
+        await DbBanner.Update(Layout.Company.id, current);
       current = null;
+      GetList();
       await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật banner thành công!");
     }
   }
@@ -518,10 +389,9 @@ else
     results.Add("/teams", "Đội nhóm");
     results.Add("/todolist", "Todolist");
     results.Add("/okr/setup", "OKRs / Thiết lập");
-    results.Add("/okr/tasks", "OKRs / Hành động");
     results.Add("/okr/overview", "OKRs / Tổng quan");
-    results.Add("/cfr/checkin", "CFRs / Check-in");
-    results.Add("/cfr/star", "CFRs / Ghi nhận - tặng sao");
+    results.Add("/okr/checkin", "OKRs / Check-in");
+    results.Add("/cfr", "Ghi nhận - tặng sao");
     results.Add("/kaizen", "Kaizen");
     results.Add("/gift", "Đổi quà");
     results.Add("/educate", "Đào tạo");

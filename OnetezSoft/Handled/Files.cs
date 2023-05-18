@@ -213,32 +213,40 @@ namespace OnetezSoft.Handled
     public static string ExportExcel(List<List<string>> list)
     {
       // Folder lưu file
-      string file = string.Format("{0:yyy-MM-dd-HH-mm}.csv", DateTime.Now);
+      string file = string.Format("{0:yyy-MM-dd-HH-mm}.xlsx", DateTime.Now);
       string folder = "upload\\export";
       string path = Environment.CurrentDirectory + "\\wwwroot\\" + folder;
 
-      if (isMacOS) path = path.Replace("\\", "/");
+      if (isMacOS)
+        path = path.Replace("\\", "/");
 
       if (!Directory.Exists(path))
         Directory.CreateDirectory(path);
       string filePath = Path.Combine(path, file);
 
-      // Tạo file
-      var csv = new StreamWriter(filePath, false, Encoding.UTF8);
-      foreach (var rows in list)
+      try
       {
-        foreach (var item in rows)
+        using (var workbook = new XLWorkbook())
         {
-          if (string.IsNullOrEmpty(item))
-            csv.Write(" ,");
-          else
-            csv.Write($"{item.Replace(",", ".").Replace("\n", ". ")},");
+          IXLWorksheet worksheet = workbook.Worksheets.Add("Export");
+          for (int r = 0; r < list.Count; r++)
+          {
+            var rows = list[r];
+            for (int c = 0; c < rows.Count; c++)
+            {
+              var col = rows[c] != null ? rows[c] : "";
+              worksheet.Cell(r + 1, c + 1).Value = col;
+            }
+          }
+          workbook.SaveAs(filePath);
         }
-        csv.Write(csv.NewLine);
-      }
-      csv.Close();
 
-      return $"/{folder.Replace("\\", "/")}/{file}";
+        return $"/{folder.Replace("\\", "/")}/{file}";
+      }
+      catch (System.Exception ex)
+      {
+        return ex.Message;
+      }
     }
   }
 }
