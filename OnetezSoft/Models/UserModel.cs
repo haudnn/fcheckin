@@ -44,6 +44,9 @@ namespace OnetezSoft.Models
     /// <summary>Không thống kê</summary>
     public bool no_report { get; set; }
 
+    /// <summary>Không thống kê: Todolist</summary>
+    public bool no_report_todolist { get; set; }
+
     /// <summary>Tự checkin OKRs</summary>
     public bool okr_checkin { get; set; }
 
@@ -96,6 +99,9 @@ namespace OnetezSoft.Models
 
     /// <summary>Trang mặc định khi vào phần mềm</summary>
     public string page_default { get; set; }
+    
+    /// <summary>Không thống kê: CFRs</summary>
+    public bool no_report_cfr { get; set; }
 
     /// <summary>Không thống kê: OKRs</summary>
     public bool no_report_okr { get; set; }

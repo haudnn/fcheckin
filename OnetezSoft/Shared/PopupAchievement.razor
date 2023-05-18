@@ -1,0 +1,116 @@
+@inject NavigationManager navigation
+
+@if (productGift != null)
+{
+  var buyer = Layout.UserList.SingleOrDefault(x => x.id == productGift.user_buy);
+
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card is_radius" style="width: 550px;">
+      <div class="modal-card-body has-text-centered gift_or_achi">
+        @if (!productGift.view)
+        {
+          <div class="image">
+            <img src="/images/gift.gif" style="width: 250px; margin: 0px auto;" />
+          </div>
+          <div class="has-text-weight-bold">
+            Bạn đã nhận được một món quà từ
+            <span class="has-text-danger">
+              @(buyer != null ? buyer.FullName : "Tài khoản đã xóa")
+            </span>
+            <br />
+            Hãy khám phá xem đây là món quà gì nào?
+          </div>
+          <div class="py-3">
+            <a class="is-underlined has-text-black" @onclick="ViewGift">
+              Mở quà ngay
+            </a>
+          </div>
+        }
+        else
+        {
+          <div class="image">
+            <img src="@productGift.image" style="width: 250px; margin: 0px auto;" />
+          </div>
+          <div class="has-text-weight-bold">
+            Thật tuyệt vời!
+            <br />
+            <span class="has-text-danger">
+              @(buyer != null ? buyer.FullName : "Tài khoản đã xóa")
+            </span>
+            đã tặng bạn
+            <span class="has-text-danger">@productGift.quantity @productGift.name</span>
+          </div>
+          <div class="py-3">
+            <a class="is-underlined has-text-black" @onclick="() => productGift = null">
+              Tuyệt
+            </a>
+          </div>
+        }
+      </div>
+    </div>
+    <a class="modal-close is-large" @onclick="() => productGift = null"></a>
+  </div>
+}
+
+@if (achievement != null)
+{
+  var image = $"/images/achievement/{Shared.RandomInt(1, 17)}.gif";
+
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card is_radius" style="width: 550px;">
+      <div class="modal-card-body has-text-centered gift_or_achi">
+        <div class="image">
+          <img src="@image" style="width: 150px; margin: 0px auto;" />
+        </div>
+        <div class="has-text-grey has-text-weight-medium pt-3">
+          <p class="pb-2">Thật tuyệt vời! Bạn đã đạt được thành tựu mới trong tháng</p>
+          <p class="pb-2 is-size-6 has-text-weight-bold has-text-link">@achievement.name</p>
+          <div class="achi_@achievement.type">@achievement.star</div>
+          <p class="pb-2">@achievement.desc</p>
+          <p class="pb-2 has-text-warning">
+            <span class="icon-text">
+              <span class="is-size-6">+ @achievement.star</span>
+              <span class="icon">
+                <i class="material-icons-outlined is-size-5">star_outline</i>
+              </span>
+            </span>
+          </p>
+          <a class="button is-link is-outlined" @onclick="() => ViewAchievement(true)">
+            Xem thành tựu
+          </a>
+        </div>
+      </div>
+    </div>
+    <a class="modal-close is-large" @onclick="() => ViewAchievement(false)"></a>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  private GiftExchangeModel productGift = null;
+  private AchievementModel achievement = null;
+
+  protected override async Task OnParametersSetAsync()
+  {
+    productGift = await DbGiftExchange.GetGiveNew(Layout.Company.id, Layout.User.id);
+    achievement = await DbAchievement.GetNew(Layout.Company.id, Layout.User.id);
+  }
+
+  private async Task ViewGift()
+  {
+    productGift.view = true;
+    await DbGiftExchange.Update(Layout.Company.id, productGift);
+  }
+
+  private async Task ViewAchievement(bool view)
+  {
+    achievement.view = true;
+    await DbAchievement.Update(Layout.Company.id, achievement);
+    achievement = null;
+    if (view)
+      navigation.NavigateTo($"/teams/personal/{Layout.User.id}?tab=3", false);
+  }
+}

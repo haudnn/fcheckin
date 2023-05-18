@@ -44,13 +44,13 @@
             CỬA HÀNG ĐỔI SAO
           </h2>
         </li>
-        @foreach (var item in DbGiftProduct.Category())
+        @foreach (var item in Layout.Company.gift_category)
         {
-          <li class="column is-one-quarter-tablet is-half-mobile">
+          <li class="column is-narrow">
             <a class="category_item py-5 px-3 is-block @(filterCategory == item.id ? "is-active" : "")"
-             @onclick="() => CategoryClick(item.id)">
+              style="width: 144px;" @onclick="() => CategoryClick(item.id)">
               <div class="is-flex is-vcentered is-centered" style="height: 64px;">
-                <img src="@item.icon" alt="IMG">
+                <img src="@item.icon" alt="IMG" style="max-height: 100%;">
               </div>
               <div class="mt-2 is-size-6 has-text-dark has-text-centered text_1_line">
                 @item.name
@@ -577,10 +577,14 @@
     if (buyCheck.Count == 0)
     {
       _message = "Bạn chưa chọn sản phẩm nào để đổi sao!";
+      await Task.Delay(5000);
+      _message = string.Empty;
     }
     else if (total > User.star_total)
     {
       _message = "Bạn không đủ sao để đổi các quà này!";
+      await Task.Delay(5000);
+      _message = string.Empty;
     }
     else
     {
@@ -613,8 +617,5 @@
       _message = "Bạn đã đổi quà thành công, vui lòng chờ quản lý duyệt. Bạn có thể kiểm tra trạng thái trong mục Lịch sử đổi quà.";
       _success = true;
     }
-
-    await Task.Delay(10000);
-    _message = string.Empty;
   }
 }

@@ -58,6 +58,13 @@ namespace OnetezSoft.Models
 
     /// <summary>Sản phẩm sở hữu</summary>
     public List<Product> products { get; set; }
+    
+    /// <summary>Danh mục tin tức</summary>
+    public List<Category> blog_category { get; set; } = new();
+
+
+    /// <summary>Danh mục cửa hàng</summary>
+    public List<StaticModel> gift_category { get; set; } = new();
 
 
 
@@ -80,6 +87,9 @@ namespace OnetezSoft.Models
       public string id { get; set; }
       public string name { get; set; }
       public string image { get; set; }
+      /// <summary>
+      /// Chứa id của cha 
+      /// </summary>
       public string parent { get; set; }
     }
 
@@ -118,5 +128,12 @@ namespace OnetezSoft.Models
       public bool kaizen { get; set; }
       public bool educate { get; set; }
     }
+
+      public class Category
+      {
+        public string id { get; set; }
+        public string name { get; set; }
+        public string color { get; set; }
+      }
   }
 }

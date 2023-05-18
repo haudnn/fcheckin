@@ -1,18 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
-using System.Net;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using OnetezSoft.Models;
-using SkiaSharp;
 using Excel;
 using System.Text;
-using System.Data;
 using OnetezSoft.Data;
+using ClosedXML.Excel;
 
 namespace OnetezSoft.Handled
 {
@@ -68,9 +64,9 @@ namespace OnetezSoft.Handled
     public static string FileName(string link)
     {
       var filePath = Environment.CurrentDirectory + "\\wwwroot" + link.Replace("/", "\\");
-      
+
       if (isMacOS) filePath = filePath.Replace("\\", "/");
-      
+
       if (File.Exists(filePath))
       {
         var fileInfo = new FileInfo(filePath);

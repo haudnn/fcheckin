@@ -211,6 +211,8 @@
       {
         current.point_exam = current.questions.Select(x => x.point_exam).Sum();
         current.check = true;
+        current.date_check = DateTime.Now.Ticks;
+        current.examiner = Layout.User.id;
         current = await DbEducateExam.Update(Layout.Company.id, current);
 
         // Cập nhật kỳ học

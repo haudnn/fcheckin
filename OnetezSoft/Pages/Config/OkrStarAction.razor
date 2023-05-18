@@ -175,7 +175,7 @@ else
       <div class="column has-text-right">
         @checkList.Count nhân viên được chọn
       </div>
-      <div class="column is-one-fifth pl-6">
+      <div class="column is-one-fifth pl-5">
         <div class="field is-grouped">
           <div class="control">
             @(isPlus ? "Cấp sao" : "Trừ sao")
@@ -193,6 +193,15 @@ else
       <div class="column is-one-fifth">
         <span>Tổng sao @(isPlus ? "cấp" : "trừ"):</span>
         <strong>@(checkList.Count * star)</strong>
+      </div>
+      <div class="column is-narrow pr-5">
+        <div class="select">
+          <select @bind="wallet">
+            <option value="0">Chọn ví</option>
+            <option value="1">Ghi nhận</option>
+            <option value="2">Cá nhân</option>
+          </select>
+        </div>
       </div>
       <div class="column is-narrow">
         <div class="buttons mr-6">
@@ -310,6 +319,7 @@ else
   private string filterUser = string.Empty;
   private int filterTitle = 0;
 
+  private int wallet = 0;
   private int star = 0;
   private bool preview = false;
   private bool isPlus = true;
@@ -409,6 +419,7 @@ else
         {
           user = user.id,
           star = isPlus ? star : -star,
+          wallet = wallet,
           create_id = Layout.User.id
         };
 
@@ -418,13 +429,17 @@ else
         // Update start of User
         if (isPlus)
         {
-          user.star_total += star;
-          user.star_distribute += star;
+          if(wallet == 2)
+            user.star_total += star;
+          else
+            user.star_distribute += star;
         }
         else
         {
-          user.star_total -= star;
-          user.star_distribute -= star;
+          if(wallet == 2)
+            user.star_total -= star;
+          else
+            user.star_distribute -= star;
         }
         await DbUser.Update(Layout.Company.id, user);
 

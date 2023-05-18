@@ -76,18 +76,32 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<BlogModel>(_collection);
 
-      var builder = Builders<BlogModel>.Filter;
+      var results = new List<BlogModel>();
 
-      var filtered = builder.Gt("date", 0);
+      if (string.IsNullOrEmpty(department))
+          results = await collection.Find(x => true).ToListAsync();
+      else
+          results = await collection.Find(x => x.department == department).ToListAsync();
 
-      if (!string.IsNullOrEmpty(department))
-        filtered = filtered & builder.Eq("department", department);
-
-      var sorted = Builders<BlogModel>.Sort.Descending("date");
-
-      var results = await collection.Find(filtered).Sort(sorted).ToListAsync();
-
-      return (from x in results orderby x.pin descending, x.date descending select x).ToList();
+      return (from x in results orderby x.pin descending, x.created descending, x.date descending select x).ToList();
     }
+
+      public static async Task<List<BlogModel>> GetListShow(string companyId, string department)
+        {
+            var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+            var collection = _db.GetCollection<BlogModel>(_collection);
+
+            var builder = Builders<BlogModel>.Filter;
+
+            var filtered = builder.Eq("is_show", true);
+
+            if (!string.IsNullOrEmpty(department))
+                filtered = filtered & builder.Eq("department", department);
+
+            var results = await collection.Find(filtered).ToListAsync();
+
+            return (from x in results orderby x.date descending select x).ToList();
+        }
   }
 }

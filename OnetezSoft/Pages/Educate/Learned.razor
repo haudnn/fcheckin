@@ -4,17 +4,7 @@
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<section class="p-4 @(_loaded ? "" : "is-loading")">
+<section class="p-4">
   @if (learned != null)
   {
     <ul class="columns is-multiline">
@@ -79,7 +69,9 @@
                 <li class="question_item">
                   <div class="has-text-info mb-2">
                     <span class="has-text-weight-semibold">@string.Format("Câu {0}", i + 1)</span>
-                    <span>(@(examLesson != null && examLesson.check ? item.point_exam + "/" : "")@item.point_max điểm)</span>
+                    <span>
+                      (@(examLesson != null && examLesson.check ? item.point_exam + "/" : "")@item.point_max điểm)
+                    </span>
                   </div>
                   <div class="has-text-weight-semibold has-text-info mb-3 has_link">
                     @((MarkupString)Shared.GetLinks(item.content))
@@ -295,24 +287,24 @@
                     @if(learn.done && item.type != 1)
                     {
                       // Bài đã thi
-                      examLesson = DbEducateExam.Get(Layout.Company.id, item.id, learned.id, Layout.User.id);
-                      if (examLesson != null && examLesson.check)
+                      var examItem = DbEducateExam.Get(Layout.Company.id, item.id, learned.id, Layout.User.id);
+                      if (examItem != null && examItem.check)
                       {
                         <div class="icon-text">
-                          <span>Kết quả bài thi: @examLesson.point_exam/@examLesson.point_max</span>
+                          <span>Kết quả bài thi: @examItem.point_exam/@examItem.point_max</span>
                           <span class="icon">
                             <i class="material-icons-outlined is-size-6">east</i>
                           </span>
-                          <span class="has-text-@(examLesson.point_exam >= examLesson.point_pass ? "success" : "danger")">
-                            @(examLesson.point_exam >= examLesson.point_pass ? "THI ĐẠT" : "KHÔNG ĐẠT")
+                          <span class="has-text-@(examItem.point_exam >= examItem.point_pass ? "success" : "danger")">
+                            @(examItem.point_exam >= examItem.point_pass ? "THI ĐẠT" : "KHÔNG ĐẠT")
                           </span>
                         </div>
                         if (!learn.pass)
                         {
-                          <a class="button is-small is-link is-outlined" @onclick="() => Retest(examLesson)">Thi lại</a>
+                          <a class="button is-small is-link is-outlined" @onclick="() => Retest(examItem)">Thi lại</a>
                         }
                       }
-                      else if(examLesson != null && !examLesson.check)
+                      else if(examItem != null && !examItem.check)
                       {
                         <div class="has-text-danger is-italic">
                           Đang chờ giảng viên chấm bài !
@@ -341,33 +333,11 @@
   }
 </section>
 
-@if(!CheckAccess())
-{
-  <div class="modal is-active">
-    <div class="modal-background"></div>
-    <div class="modal-content" style="max-width: 360px;">
-      <div class="box has-text-centered pt-5">
-        <span class="icon is-large has-text-danger">
-          <i class="material-icons-outlined is-size-1">error_outline</i>
-        </span>
-        <div class="is-size-6 py-4 has-text-weight-semibold">
-          @msgAccess
-        </div>
-      </div>
-    </div>
-  </div>
-}
-
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
   [Parameter]
   public string LessonId { get; set; }
-
-  private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
   private string _title = "Khóa học";
 
   private EducateLearnedModel learned = null;
@@ -420,18 +390,6 @@
           showList.Add(lesson.id);
       }
     }
-    _loaded = true;
-  }
-
-  protected override void OnAfterRender(bool firstRender)
-  {
-    _message = string.Empty;
-  }
-
-  private string msgAccess = string.Empty;
-  private bool CheckAccess()
-  {
-    return ProductService.CheckAccess(Layout.Company, Layout.User, "train", out msgAccess);
   }
 
   private void ToogleItem(string id)
@@ -453,10 +411,8 @@
       learned = await DbEducateLearned.Update(Layout.Company.id, learned);
     }
     else
-    {
-      _message = "Đối với các bài thi bạn phải làm bài thi trước khi tick hoàn thành bài !";
-      _success = false;
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, 
+        "Đối với các bài thi bạn phải làm bài thi trước khi tick hoàn thành bài !");
   }
 
   private async Task SendEssay()
@@ -486,11 +442,12 @@
     learn.date = DateTime.Now.Ticks;
     learned = await DbEducateLearned.Update(Layout.Company.id, learned);
 
-    _message = "Bạn đã nộp bài thi thành công, đang chờ giảng viên chấm bài !";
-    _success = true;
+    await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đã nộp bài thi thành công, đang chờ giảng viên chấm bài !");
 
-    // Gửi thông báo chuông
+    // Gửi thông báo chuông cho người chấm bài
     await DbNotify.Create(Layout.Company.id, 601, examLesson.id, examLesson.teacher, Layout.User.id);
+    foreach (var examiner in course.examiner)
+      await DbNotify.Create(Layout.Company.id, 601, examLesson.id, examiner, Layout.User.id);
   }
 
   private async Task SendQuiz()
@@ -498,7 +455,7 @@
     if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn nộp bài thi trắc nghiệm ?"))
       return;
 
-    // Chấp bài thi
+    // Chấm bài thi
     foreach (var item in questions)
     {
       var question = lesson.questions.SingleOrDefault(x => x.id == item.id);
@@ -530,25 +487,25 @@
     learn.date = DateTime.Now.Ticks;
     learned = await DbEducateLearned.Update(Layout.Company.id, learned);
 
-    _message = "Bạn đã nộp bài thi thành công, đang chờ giảng viên chấm bài !";
-    _success = true;
+    await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đã nộp bài thi thành công !");
   }
 
   private async Task Retest(EducateExamModel exam)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", "Kết quả bài thi của bạn sẽ bị hủy, bạn có chắc muốn thi lại không ?"))
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", 
+        "Kết quả bài thi của bạn sẽ bị hủy, bạn có chắc muốn thi lại không ?"))
       return;
 
     // Xóa bài thi cũ
     await DbEducateExam.Delete(Layout.Company.id, exam.id);
 
     // Cập nhật kỳ học
-    var learn = learned.lessons.SingleOrDefault(x => x.id == lesson.id);
+    var learn = learned.lessons.SingleOrDefault(x => x.id == exam.lesson);
     learn.done = false;
     learn.pass = false;
     learn.date = 0;
     learned = await DbEducateLearned.Update(Layout.Company.id, learned);
 
-    navigation.NavigateTo(navigation.Uri, true);
+    navigation.NavigateTo("/educate/course/list/learn/" + exam.lesson, true);
   }
 }

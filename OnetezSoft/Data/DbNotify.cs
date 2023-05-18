@@ -126,6 +126,12 @@ namespace OnetezSoft.Data
 
       #region Các loại thông tạo
 
+      if (type == 9)
+      {
+        var current = await DbBlog.Get(companyId, key);
+        name = $"{creator} đã đăng một tin tức mới";
+        link = string.IsNullOrEmpty(current.link) ? $"/blogs/{key}" : current.link;
+      }
       if (type == 10)
       {
         var current = await DbDepartment.Get(companyId, key);
@@ -283,6 +289,12 @@ namespace OnetezSoft.Data
         name = $"{creator} đã tặng cho bạn {key} sao.";
         link = "/cfr";
       }
+      else if (type == 512)
+      {
+        var cfrType = key == "2" ? "ghi nhận" : "tặng sao";
+        name = $"{creator} đã thả tim cho hành động {cfrType} của bạn.";
+        link = $"/cfr?type={key}&send=true";
+      }
       else if (type == 503)
       {
         var current = await DbOkrCheckin.Get(companyId, key);
@@ -335,6 +347,7 @@ namespace OnetezSoft.Data
         name = $"{creator} đã gửi đánh giá OKR. Bạn hãy xem đánh giá nhé!";
         link = $"/okr/review/{current.user_create}/{key}";
       }
+
       // ĐÀO TẠO
       else if (type == 600)
       {

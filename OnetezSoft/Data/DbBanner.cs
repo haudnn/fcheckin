@@ -78,7 +78,7 @@ namespace OnetezSoft.Data
 
       var results = collection.Find(new BsonDocument()).ToList();
 
-      return (from x in results orderby x.pin descending, x.date descending select x).ToList();
+      return (from x in results orderby x.pin descending, x.pos select x).ToList();
     }
   }
 }
