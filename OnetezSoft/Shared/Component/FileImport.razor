@@ -1,0 +1,65 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<a class="@css @(isLoading ? "is-loading" : "")"
+  onclick="document.getElementById('file_import').click()">
+  <span class="icon">
+    <i class="material-icons-outlined is-size-6">file_upload</i>
+  </span>
+  <span class="is-size-7">Nhập Excel</span>
+</a>
+<InputFile id="file_import" class="is-hidden" OnChange="Upload" accept=".xls,.xlsx" />
+
+@code {
+  [Parameter]
+  public string css { get; set; } = "button is-link is-outlined";
+  [Parameter]
+  public EventCallback<List<List<string>>> OnUpdate { get; set; }
+  private bool isLoading = false;
+  private long MaxSize = 10 * 1024000;
+
+  private async Task Upload(InputFileChangeEventArgs e)
+  {
+    if (e.GetMultipleFiles().Count > 0)
+    {
+      isLoading = true;
+      try
+      {
+        var file = e.GetMultipleFiles()[0];
+        if (file.Size <= MaxSize * 1024000)
+        {
+          var fileStream = new StreamContent(file.OpenReadStream(MaxSize * 1024000));
+          var link = await Files.SaveFileAsync(fileStream, file.Name);
+          await ReadData(link);
+        }
+        else
+          await JSRuntime.InvokeVoidAsync("tagline", false, $"Chỉ cho phép file tối đa {MaxSize} MB");
+      }
+      catch (Exception ex)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Lỗi khi tải file: {ex.Message}");
+      }
+      isLoading = false;
+    }
+  }
+
+  private async Task ReadData(string link)
+  {
+    var results = Files.ReadExcel(link, out string error);
+
+    Console.WriteLine("------------------------");
+    foreach (var row in results)
+    {
+      foreach (var item in row)
+      {
+        Console.Write(item + " | ");
+      } 
+      Console.WriteLine();
+      Console.WriteLine("------------------------");
+    } 
+
+    await OnUpdate.InvokeAsync(results);
+    if(!string.IsNullOrEmpty(error))
+      await JSRuntime.InvokeVoidAsync("tagline", false, error);
+  }
+}

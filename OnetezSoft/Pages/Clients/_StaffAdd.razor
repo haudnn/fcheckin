@@ -18,106 +18,173 @@
         </div>
         <a class="delete is-medium" @onclick="Cancel"></a>
       </section>
-      <section class="modal-card-body">
-        <form class="columns" autocomplete="off">
-          <div class="column is-one-quarter">
-            <div class="image is-128x128 is-radius mb-3">
-              <img src="@model.avatar" />
+      @if(isImport)
+      {
+        <section class="modal-card-body">
+          <table class="table is-fullwidth">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th width="20%">Họ</th>
+                <th width="20%">Tên</th>
+                <th width="20%">Mật khẩu</th>
+              </tr>
+            </thead>
+            <tbody>
+              @foreach (var item in dataImport)
+              {
+                <tr>
+                  <td>@item[0]</td>
+                  <td>@item[1]</td>
+                  <td>@item[2]</td>
+                  <td>@item[3]</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+        <section class="modal-card-foot">
+          <div class="field is-grouped is-fullwidth">
+            <div class="control is-expanded">
+              <FileImport OnUpdate="ImportExcel" />
             </div>
-            <a class="button is-white is-small is-fullwidth @(uploading ? "is-loading" : "")"
-                onclick="document.getElementById('file').click()">
-              <span class="icon">
-                <i class="material-icons-sharp is-size-6">file_upload</i>
-              </span>
-              <span>Tải ảnh lên</span>
-            </a>
-            <InputFile OnChange="Upload" accept="image/*" class="is-hidden" id="file" />
-          </div>
-
-          <div class="column is-three-quarters">
-            <div class="field has-text-weight-bold">
-              Thông tin tài khoản
-            </div>
-            <ul class="columns is-multiline is-variable is-2">
-              <li class="column is-full">
-                <div class="field">
-                  <div class="control has-icons-left">
-                    <input @onchange="ChangeEmail" value="@model.email" type="email" class="input is_line"
-                        placeholder="Nhập địa chỉ email của người dùng..." />
-                    <span class="icon is-left has-text-black">
-                      <i class="material-icons-round is-size-6">account_circle</i>
-                    </span>
-                  </div>
-                </div>
-              </li>
-              <li class="column is-half">
-                <div class="field">
-                  <div class="control has-icons-left">
-                    <input @bind="model.last_name" type="text" class="input is_line" placeholder="Nhập họ" />
-                    <span class="icon is-left has-text-black">
-                      <i class="material-icons-round is-size-6">person</i>
-                    </span>
-                  </div>
-                </div>
-              </li>
-              <li class="column is-half">
-                <div class="field">
-                  <div class="control has-icons-left">
-                    <input @bind="model.first_name" type="text" class="input is_line" placeholder="Nhập tên" />
-                    <span class="icon is-left has-text-black">
-                      <i class="material-icons-round is-size-6">person</i>
-                    </span>
-                  </div>
-                </div>
-              </li>
-            </ul>
-
-            <div class="field has-text-weight-bold mt-5">
-              Sản phẩm được quyền truy cập
-            </div>
-            @foreach (var product in company.products.Where(x => x.active))
-            {
-              var access = ProductService.CheckAccess(products, product.id);
-              <div class="icon-text mb-3 @(product.used == product.total && !access ? "is_opacity" : "")">
-                <a class="icon is-small mr-2" @onclick="() => AccessProduct(product)">
-                  <i class="material-icons-round is-size-5 has-text-@(access ? "success" : "grey")">
-                    toggle_@(access ? "on" : "off")
-                  </i>
-                </a>
-                <span class="has-text-weight-semibold is-size-7">
-                  @product.title - @product.used/@product.total
+            <div class="control">
+              <a class="button" @onclick="Cancel">
+                <span class="icon">
+                  <i class="material-icons-round is-size-6">chevron_left</i>
                 </span>
-              </div>
-            }
-            <label class="checkbox is-size-7">
-              <input type="checkbox" @onchange="AccessAllProduct" />
-              <span class="has-text-weight-semibold">Kích hoạt tất cả bộ giải pháp</span>
-            </label>
-
-            <div class="field has-text-weight-bold mt-5">
-              Trạng thái
+                <span class="is-size-7">Trở về</span>
+              </a>
             </div>
-            <label class="checkbox is-size-7">
-              <input @bind="model.active" type="checkbox" />
-              <span class="has-text-weight-semibold">Kích hoạt</span>
-            </label>
+            <div class="control">
+              <a class="button is-link @(isLoading ? "is-loading" : "")" @onclick="StartImport">
+                <span class="icon">
+                  <i class="material-icons-round is-size-6">add</i>
+                </span>
+                <span class="is-size-7">Thêm người dùng</span>
+              </a>
+            </div>
           </div>
-        </form>
-      </section>
-      <section class="modal-card-foot is-right">
-        <a class="button" @onclick="Cancel">
-          <span class="icon">
-            <i class="material-icons-round is-size-6">chevron_left</i>
-          </span>
-          <span class="is-size-7">Trở về</span>
-        </a>
-        <a class="button @(string.IsNullOrEmpty(model.id) ? "is-link" : "is-static")" @onclick="Update">
-          <span class="icon">
-            <i class="material-icons-round is-size-6">done</i>
-          </span>
-          <span class="is-size-7">Xác nhận</span>
-        </a>
-      </section>
+        </section>
+      }
+      else
+      {
+        <section class="modal-card-body">
+          <form class="columns" autocomplete="off">
+            <div class="column is-one-quarter">
+              <div class="image is-128x128 is-radius mb-3">
+                <img src="@model.avatar" />
+              </div>
+              <a class="button is-white is-small is-fullwidth @(uploading ? "is-loading" : "")"
+                  onclick="document.getElementById('file').click()">
+                <span class="icon">
+                  <i class="material-icons-sharp is-size-6">file_upload</i>
+                </span>
+                <span>Tải ảnh lên</span>
+              </a>
+              <InputFile OnChange="Upload" accept="image/*" class="is-hidden" id="file" />
+            </div>
+
+            <div class="column is-three-quarters">
+              <div class="field has-text-weight-bold">
+                Thông tin tài khoản
+              </div>
+              <ul class="columns is-multiline is-variable is-2">
+                <li class="column is-full">
+                  <div class="field">
+                    <div class="control has-icons-left">
+                      <input @onchange="ChangeEmail" value="@model.email" type="email" class="input is_line"
+                          placeholder="Nhập địa chỉ email của người dùng..." />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">account_circle</i>
+                      </span>
+                    </div>
+                  </div>
+                </li>
+                <li class="column is-half">
+                  <div class="field">
+                    <div class="control has-icons-left">
+                      <input @bind="model.last_name" type="text" class="input is_line" placeholder="Nhập họ" />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">person</i>
+                      </span>
+                    </div>
+                  </div>
+                </li>
+                <li class="column is-half">
+                  <div class="field">
+                    <div class="control has-icons-left">
+                      <input @bind="model.first_name" type="text" class="input is_line" placeholder="Nhập tên" />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons-round is-size-6">person</i>
+                      </span>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+
+              <div class="field has-text-weight-bold mt-5">
+                Sản phẩm được quyền truy cập
+              </div>
+
+              <ul class="columns is-multiline is-variable is-1">
+                @foreach (var product in company.products.Where(x => x.active))
+                {
+                  var access = ProductService.CheckAccess(products, product.id);
+                  <li class="column is-half">
+                    <div class="icon-text @(product.used == product.total && !access ? "is_opacity" : "")">
+                      <a class="icon is-small mr-2" @onclick="() => AccessProduct(product)">
+                        <i class="material-icons-round is-size-5 has-text-@(access ? "success" : "grey")">
+                          toggle_@(access ? "on" : "off")
+                        </i>
+                      </a>
+                      <span class="has-text-weight-semibold is-size-7">
+                        @product.title - @product.used/@product.total
+                      </span>
+                    </div>
+                  </li>
+                }
+              </ul>
+
+              <label class="checkbox is-size-7 mt-3">
+                <input type="checkbox" @onchange="AccessAllProduct" />
+                <span class="has-text-weight-semibold">Kích hoạt tất cả bộ giải pháp</span>
+              </label>
+
+              <div class="field has-text-weight-bold mt-5">
+                Trạng thái
+              </div>
+              <label class="checkbox is-size-7">
+                <input @bind="model.active" type="checkbox" />
+                <span class="has-text-weight-semibold">Kích hoạt</span>
+              </label>
+            </div>
+          </form>
+        </section>
+        <section class="modal-card-foot">
+          <div class="field is-grouped is-fullwidth">
+            <div class="control is-expanded">
+              <FileImport OnUpdate="ImportExcel" />
+            </div>
+            <div class="control">
+              <a class="button" @onclick="Cancel">
+                <span class="icon">
+                  <i class="material-icons-round is-size-6">chevron_left</i>
+                </span>
+                <span class="is-size-7">Trở về</span>
+              </a>
+            </div>
+            <div class="control">
+              <a class="button @(string.IsNullOrEmpty(model.id) ? "is-link" : "is-static")" @onclick="Update">
+                <span class="icon">
+                  <i class="material-icons-round is-size-6">done</i>
+                </span>
+                <span class="is-size-7">Xác nhận</span>
+              </a>
+            </div>
+          </div>
+        </section>
+      }
     </section>
   </section>
 }
@@ -131,11 +198,15 @@
   public CompanyModel company { get; set; }
   [Parameter]
   public EventCallback<bool> OnUpdate { get; set; }
+  private bool isLoading = false;
+  private bool isImport = false;
+  private List<List<string>> dataImport = new();
 
   private List<string> products = new();
 
   private async Task Cancel()
   {
+    isImport = false;
     products = new();
     await OnUpdate.InvokeAsync(false);
   }
@@ -193,9 +264,10 @@
 
       // Thêm tài khoản vào tổ chức
       await CompanyService.AddStaff(company, model);
-      
-      products = new();
       await OnUpdate.InvokeAsync(true);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm tài khoản người dùng sản phẩm!");
+      products = new();
+      isImport = false;
     }
   }
 
@@ -260,5 +332,57 @@
   private async Task Tagline(string message)
   {
     await JSRuntime.InvokeVoidAsync("tagline", false, message);
+  }
+
+  private void ImportExcel(List<List<string>> data)
+  {
+    isImport = true;
+    dataImport = new();
+    foreach (var item in data)
+    {
+      if(item.Count > 3)
+        dataImport.Add(item);
+    }
+  }
+
+  private async Task StartImport()
+  {
+    isLoading = true;
+    foreach (var item in dataImport)
+    {
+      if(!string.IsNullOrEmpty(item[0]))
+      {
+        var email = item[0].ToLower();
+        var user = await DbMainUser.GetbyEmail(email);
+        if (user == null)
+        {
+          user = new UserModel()
+          {
+            email = email,
+            first_name = item[1],
+            last_name = item[2],
+            password = item[3],
+            products = new(),
+            companys = new(),
+            role_manage = new(),
+            role = 3,
+          };
+          await DbMainUser.Create(user);
+          Console.WriteLine("Add user " + email);
+        }
+        else
+        {
+          Console.WriteLine("Get user " + email);
+        }
+        // Set quyền truy cập sản phẩm
+        user.products = company.products.Where(x => x.active).Select(x => x.id).ToList();
+        // Thêm tài khoản vào tổ chức
+        await CompanyService.AddStaff(company, user);
+      }
+    }
+    await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã thêm {dataImport.Count} người dùng vào tổ chức.");
+    await OnUpdate.InvokeAsync(true);
+    isLoading = false;
+    isImport = false;
   }
 }

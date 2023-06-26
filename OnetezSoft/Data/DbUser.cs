@@ -79,6 +79,9 @@ namespace OnetezSoft.Data
     }
 
 
+    /// <summary>
+    /// Lấy thông tin tài khoản, không lấy tài khoản đã xóa
+    /// </summary>
     public static async Task<UserModel> Get(string companyId, string id)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
@@ -109,16 +112,19 @@ namespace OnetezSoft.Data
     }
 
 
-    public static async Task<UserModel> GetDelete(string companyId, string id, string email)
+    /// <summary>
+    /// Lấy thông tin tài khoản, kể cả tài khoản đã xóa
+    /// </summary>
+    public static async Task<UserModel> GetDelete(string companyId, string userId, string email)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<UserModel>(_collection);
 
-      if (!string.IsNullOrEmpty(id))
-        return await collection.Find(x => x.delete && x.id == id).FirstOrDefaultAsync();
+      if (!string.IsNullOrEmpty(userId))
+        return await collection.Find(x => x.id == userId).FirstOrDefaultAsync();
       else if (!string.IsNullOrEmpty(email))
-        return await collection.Find(x => x.delete && x.email == email.Trim()).FirstOrDefaultAsync();
+        return await collection.Find(x => x.email == email.Trim()).FirstOrDefaultAsync();
       return null;
     }
 

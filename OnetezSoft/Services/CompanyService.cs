@@ -16,11 +16,11 @@ namespace OnetezSoft.Services
     public static async Task<CompanyModel> UpdateProductAccess(string companyId)
     {
       var company = await DbMainCompany.Get(companyId);
-      if(company != null)
+      if (company != null)
       {
         var members = DbUser.GetAll(company.id);
 
-        foreach(var product in company.products)
+        foreach (var product in company.products)
         {
           product.used = members.Where(x => x.products.Contains(product.id)).Count();
         }
@@ -39,38 +39,45 @@ namespace OnetezSoft.Services
     public static async Task AddStaff(CompanyModel company, UserModel user)
     {
       // Liên kết tài khoản với công ty
-      if(user.companys == null)
+      if (user.companys == null)
         user.companys = new();
-      if(user.companys.Where(x => x.id == company.id).Count() == 0)
+      if (user.companys.Any(x => x.id == company.id) == false)
         user.companys.Add(new UserModel.Company { id = company.id, name = company.name });
 
       // Tạo User của công ty
       var checkEmail = await DbUser.GetDelete(company.id, null, user.email);
-      if (checkEmail != null) // Có rồi nhưng bị xóa
+      if (checkEmail != null)
       {
-        if(checkEmail.id == user.id)
+        // Có rồi nhưng bị xóa
+        if (checkEmail.delete)
         {
-          checkEmail.products = user.products;
-          checkEmail.active = true;
-          checkEmail.delete = false;
-          await DbUser.Update(company.id, checkEmail);
-          //user = checkEmail;
-          //user.active = true;
-          //user.delete = false;
+          if (checkEmail.id == user.id)
+          {
+            checkEmail.products = user.products;
+            checkEmail.active = true;
+            checkEmail.delete = false;
+            await DbUser.Update(company.id, checkEmail);
+          }
+          else
+          {
+            // Xóa tài khoản trùng
+            await DbUser.Delete(company.id, checkEmail.id);
+            // Tạo lại tài khoản
+            await DbUser.Create(company.id, user);
+          }
         }
         else
         {
-          // Xóa tài khoản trùng
-          await DbUser.Delete(company.id, checkEmail.id);
-          // Tạo lại tài khoản
-          await DbUser.Create(company.id, user);
+          // Có tài khoản rồi
+          return;
         }
       }
-      else // Chưa có tài khoản trong tổ chức
+      else
       {
+        // Chưa có tài khoản trong tổ chức
         await DbUser.Create(company.id, user);
       }
-      
+      // Cập nhật dữ liệu chính
       await DbMainUser.Update(user);
     }
   }
