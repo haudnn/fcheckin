@@ -208,6 +208,30 @@ namespace OnetezSoft.Data
     }
 
 
+    /// <summary>
+    /// Lần lần online gần nhất của người dùng trong tổ chức
+    /// </summary>
+    public static long GetOnline(string companyId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<UserModel>(_collection);
+
+      var builder = Builders<UserModel>.Filter;
+
+      var filtered = builder.Eq("delete", false);
+
+      var sorted = Builders<UserModel>.Sort.Descending("online");
+
+      var result = collection.Find(filtered).Sort(sorted).FirstOrDefault();
+
+      if (result != null)
+        return result.online;
+      else
+        return 0;
+    }
+
+
     #region Dữ liệu cố định
 
     public static List<StaticModel> Role()
