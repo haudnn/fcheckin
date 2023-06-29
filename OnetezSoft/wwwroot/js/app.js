@@ -480,13 +480,6 @@ function stickyHeaderMobile() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  if ("Notification" in window) {
-    let ask = Notification.requestPermission();
-    console.log(ask);
-  }
-});
-
 window.addEventListener("keydown", function (e) {
   if (e.code === "F8") {
     console.log("F8 = Draft");
@@ -506,3 +499,31 @@ window.addEventListener("keydown", function (e) {
     if (btn != null) btn.click();
   }
 });
+
+document.addEventListener("DOMContentLoaded", () => {
+  setInterval(checkConnect, 5000);
+  if ("Notification" in window) {
+    let ask = Notification.requestPermission();
+    console.log(ask);
+  }
+});
+
+function checkConnect() {
+  const reconnect = document.querySelector("#components-reconnect-modal button");
+  if (reconnect != null)
+  {
+    const title = document.querySelector("#components-reconnect-modal h5").textContent;
+    console.warn("Reconnect failed, page reloading...");
+    console.log(title);
+    if(title.search('3') > 0)
+      location.reload();
+  }
+  else
+  {
+    const error = document.querySelector("#blazor-error-ui");
+    if (error != null && error.style.display === "block") {
+      console.warn("Server disconnected , page reloading....");
+      location.reload();
+    }
+  }
+}
