@@ -185,7 +185,7 @@ else
                     </div>
                     <div class="control has-text-grey mt-2">
                       Truy cập tất cả chức năng trong trang <b>Cấu hình / OKRs - Ghi nhận</b> bao gồm:
-                      <b>Đơn vị tính, Chu kỳ OKRs, Phiếu góp ý, Tiêu chí đánh giá, Cấp sao</b>
+                      <b>Đơn vị tính, Chu kỳ OKRs, Phiếu góp ý, Tiêu chí đánh giá, Cấp sao, Trừ sao</b>
                     </div>
                   </div>
                 }
@@ -223,6 +223,20 @@ else
                     </div>
                   </div>
                 }
+                if (CheckAccess("timekeeping"))
+                {
+                  <div class="field">
+                    <div class="control">
+                      <label class="checkbox">
+                        <input type="checkbox" @bind="user.role_manage.timekeeping" />
+                        <span class="has-text-weight-bold has-text-link">CHẤM CÔNG</span>
+                      </label>
+                    </div>
+                    <div class="control has-text-grey mt-2">
+                      Truy cập tất cả chức năng trong trang <b>Chấm công</b>
+                    </div>
+                  </div>
+                }
                 <div class="field">
                   <div class="control">
                     <label class="checkbox">
@@ -245,28 +259,6 @@ else
                   <div class="control has-text-grey mt-2">
                     Truy cập tất cả chức năng trong trang <b>Cấu hình / Tiện ích</b> bao gồm:
                     <b>Banner, Điểm tin, Châm ngôn, Thành tựu</b>
-                  </div>
-                </div>
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.role_manage.timekeeping" />
-                      <span class="has-text-weight-bold has-text-link">CHẤM CÔNG</span>
-                    </label>
-                  </div>
-                  <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Chấm công</b>
-                  </div>
-                </div>
-                <div class="field is-hidden">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.role_manage.hrrecords" />
-                      <span class="has-text-weight-bold has-text-link">HỒ SƠ NHÂN SỰ</span>
-                    </label>
-                  </div>
-                  <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Hồ sơ nhân sự</b>
                   </div>
                 </div>
                 <hr class="mb-0" />

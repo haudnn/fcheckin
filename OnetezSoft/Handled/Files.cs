@@ -157,6 +157,7 @@ namespace OnetezSoft.Handled
     {
       try
       {
+        error = string.Empty;
         var results = new List<List<string>>();
 
         // Đọc file Excel
@@ -185,13 +186,12 @@ namespace OnetezSoft.Handled
             }
             catch (Exception)
             {
-              error = "row error";
-              return null;
+              error = $"{r}, ";
             }
           }
 
-          //error = worksheet.NumberOfColumns.ToString();
-          error = string.Empty;
+          if (!string.IsNullOrEmpty(error))
+            error = "Error rows: " + error;
 
           return results;
         }

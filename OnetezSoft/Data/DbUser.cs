@@ -79,6 +79,9 @@ namespace OnetezSoft.Data
     }
 
 
+    /// <summary>
+    /// Lấy thông tin tài khoản, không lấy tài khoản đã xóa
+    /// </summary>
     public static async Task<UserModel> Get(string companyId, string id)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
@@ -109,16 +112,19 @@ namespace OnetezSoft.Data
     }
 
 
-    public static async Task<UserModel> GetDelete(string companyId, string id, string email)
+    /// <summary>
+    /// Lấy thông tin tài khoản, kể cả tài khoản đã xóa
+    /// </summary>
+    public static async Task<UserModel> GetDelete(string companyId, string userId, string email)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<UserModel>(_collection);
 
-      if (!string.IsNullOrEmpty(id))
-        return await collection.Find(x => x.delete && x.id == id).FirstOrDefaultAsync();
+      if (!string.IsNullOrEmpty(userId))
+        return await collection.Find(x => x.id == userId).FirstOrDefaultAsync();
       else if (!string.IsNullOrEmpty(email))
-        return await collection.Find(x => x.delete && x.email == email.Trim()).FirstOrDefaultAsync();
+        return await collection.Find(x => x.email == email.Trim()).FirstOrDefaultAsync();
       return null;
     }
 
@@ -199,6 +205,30 @@ namespace OnetezSoft.Data
         return await collection.Find(x => !x.delete && x.role == 1).ToListAsync();
       else
         return await collection.Find(x => !x.delete && x.role >= 1 && x.role <= 2).ToListAsync();
+    }
+
+
+    /// <summary>
+    /// Lần lần online gần nhất của người dùng trong tổ chức
+    /// </summary>
+    public static long GetOnline(string companyId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<UserModel>(_collection);
+
+      var builder = Builders<UserModel>.Filter;
+
+      var filtered = builder.Eq("delete", false);
+
+      var sorted = Builders<UserModel>.Sort.Descending("online");
+
+      var result = collection.Find(filtered).Sort(sorted).FirstOrDefault();
+
+      if (result != null)
+        return result.online;
+      else
+        return 0;
     }
 
 

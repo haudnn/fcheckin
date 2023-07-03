@@ -21,36 +21,39 @@
         <img src="/images/logo-white.png" alt="logo" style="height: 26px;" />
       </div>
     </div>
-    <div class="column is-narrow hide_less">
-      <div class="dropdown is-hoverable is-right">
-        <div class="dropdown-trigger">
-          <a class="button is-white p-0 pr-2 font_13">
-            <span class="text_1_line" style="max-width: 100px;">
-              @cycleName
-            </span>
-            <span class="icon is-small">
-              <span class="material-icons-outlined">
-                arrow_drop_down
+    @if (CheckAccess("okrs"))
+    {
+      <div class="column is-narrow hide_less">
+        <div class="dropdown is-hoverable is-right">
+          <div class="dropdown-trigger">
+            <a class="button is-white p-0 pr-2 font_13">
+              <span class="text_1_line" style="max-width: 100px;">
+                @cycleName
               </span>
-            </span>
-          </a>
-        </div>
-        <div class="dropdown-menu font_13">
-          <div class="dropdown-content">
-            @foreach (var item in Layout.OkrConfig.cycles)
-            {
-              <a class="dropdown-item" @onclick="() => ChangeCycle(item.id)">
-                @item.name
-              </a>
-            }
-            @if (Layout.OkrConfig.cycles.Count == 0)
-            {
-              <a class="dropdown-item">Chưa có chu kỳ</a>
-            }
+              <span class="icon is-small">
+                <span class="material-icons-outlined">
+                  arrow_drop_down
+                </span>
+              </span>
+            </a>
+          </div>
+          <div class="dropdown-menu font_13">
+            <div class="dropdown-content">
+              @foreach (var item in Layout.OkrConfig.cycles)
+              {
+                <a class="dropdown-item" @onclick="() => ChangeCycle(item.id)">
+                  @item.name
+                </a>
+              }
+              @if (Layout.OkrConfig.cycles.Count == 0)
+              {
+                <a class="dropdown-item">Chưa có chu kỳ</a>
+              }
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    }
     <div class="column is-narrow is-hidden-tablet">
       <div class="image is-32x32 is-rounded" title="Hi, @Layout.User.FullName">
         <img src="@Layout.User.avatar" alt="IMG" />

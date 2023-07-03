@@ -17,25 +17,6 @@
       </div>
     </li>
     <li class="column is-narrow">
-      @* <div class="is-noti dropdown is-right @(toggleActive == "mail" ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="button is-white" @onclick='() => Toggle("mail")'>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-6">email</i>
-            </span>
-            @if(count_mail > 0)
-            {
-              <span>@count_mail</span>
-            }
-          </a>
-        </div>
-        @if(toggleActive == "mail")
-        {
-          <PopupNoti model="dataList" type="mail" OnClose="Close" />
-        }
-      </div> *@
-    </li>
-    <li class="column is-narrow">
       <div class="is-noti dropdown is-right @(toggleActive == "blogs" ? "is-active" : "")">
         <div class="dropdown-trigger">
           <a class="button is-white" @onclick='() => Toggle("blogs")'>
@@ -156,7 +137,6 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   private string toggleActive = string.Empty;
-  private int count_mail = 0;
   private int count_blogs = 0;
   private int count_okrs = 0;
   private int count_plan = 0;
@@ -180,7 +160,6 @@
   private async Task GetNoti()
   {
     database = await DbNotify.GetList(Layout.Company.id, Layout.User.id);
-    count_mail = 0;
     count_blogs = database.Where(x => !x.read && x.type == 9).Count();;
     count_other = database.Where(x => !x.read && x.type >= 10 && x.type <= 350).Count();
     count_okrs = database.Where(x => !x.read && x.type >= 500 && x.type <= 550).Count();
