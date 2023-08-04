@@ -1,0 +1,215 @@
+﻿<div class="modal is-active">
+  <div class="modal-background"></div>
+  <div class="modal-card is-medium">
+    <div class="modal-card-head">
+      <div class="modal-card-title">Chi tiết ca làm ngày @date.ToString("dd/MM/yyyy")</div>
+      <a class="delete is-medium" @onclick="Close"></a>
+    </div>
+    <div class="modal-card-body">
+      <div class="has-text-weight-semibold mb-3">
+        <span>
+          Ca làm: @selectShift.GetType().GetProperty("name").GetValue(selectShift).
+        </span>
+        @if (selectShift.GetType().GetProperty("check_in") != null && selectShift.GetType().GetProperty("check_out") != null)
+        {
+          <span class="ml-2">
+            Giờ bắt đầu ca: @selectShift.GetType().GetProperty("check_in").GetValue(selectShift).
+          </span>
+          <span class="ml-2">
+            Giờ kết thúc ca: @selectShift.GetType().GetProperty("check_out").GetValue(selectShift).
+          </span>
+        }
+      </div>
+      @if (userSelect.Count == 0 || timekeepingList.Count == 0)
+      {
+        <div class="mb-3">
+          Không có nhân viên chấm công
+        </div>
+      }
+      else
+      {
+        <ul class="columns is-variable is-1 mb-3">
+          <li class="column is-narrow">
+            Số nhân viên chấm công: @userSelect.Count
+          </li>
+        </ul>
+        <table class="table is-vcentered is-fullwidth is-noborder">
+          <thead>
+            <tr style="background: #B6EBF5;" class="has-text-weight-semibold">
+              <th width="100px" class="pl-1">Nhân viên</th>
+              <th width="170px">Check-in</th>
+              <th width="150px">Check-out</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var user in userSelect)
+            {
+              <tr>
+                <td colspan="3" class="p-0">
+                  <hr class="m-0" />
+                </td>
+              </tr>
+
+              var timekeeping = timekeepingList.Find(x => x.user == user.id);
+              if (timekeeping != null)
+              {
+                //TH không phải ca OT
+                var in_out = timekeeping.time_tracking.Where(x => !x.is_ot && selectShift.GetType().GetProperty("id") != null
+                && x.time_id == selectShift.GetType().GetProperty("id").GetValue(selectShift).ToString()).ToList();
+                if (in_out.Count > 0)
+                {
+                  var _in = in_out.Find(i => i.time_type == "Check-in");
+                  var _out = in_out.Find(i => i.time_type == "Check-out");
+                  <tr>
+                    <td>
+                      <div class="user_item">
+                        <img class="image is-36x36 mr-2" src="@user.avatar" alt="IMG">
+                        <div>
+                          <p class="has-text-weight-semibold has-text-info is-size-6">
+                            @user.FullName
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="icon-text">
+                        <span class="@(_in.time_difference > 0 ? "has-text-danger" : "")">
+                          @_in.time_active
+                        </span>
+                        <span class="icon has-text-danger">
+                          @if (!string.IsNullOrEmpty(_in.time_active) && !_in.in_company)
+                          {
+                            <span class="material-icons-outlined">
+                              place
+                            </span>
+                          }
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="icon-text">
+                        <span class="@(_out.time_difference > 0 ? "has-text-danger" : "")">
+                          @_out.time_active
+                        </span>
+                        <span class="icon has-text-danger">
+                          @if (!string.IsNullOrEmpty(_out.time_active) && !_out.in_company)
+                          {
+                            <span class="material-icons-outlined">
+                              place
+                            </span>
+                          }
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                }
+                else
+                {
+                  // TH: ca OT
+                  var in_out_ot = timekeeping.time_tracking.Where(x => x.is_ot).GroupBy(i => i.checkin_id);
+                  var avatarCheck = true;
+                  foreach (var item in in_out_ot)
+                  {
+                    var _in = item.ToList().Find(i => i.time_type == "Check-in");
+                    var _out = item.ToList().Find(i => i.time_type == "Check-out");
+
+                    if (item.Key != in_out_ot.FirstOrDefault().Key)
+                    {
+                      <tr>
+                        <td></td>
+                        <td colspan="2" class="p-0">
+                          <hr class="m-0" />
+                        </td>
+                      </tr>
+                    }
+
+                    <tr>
+                      @if (avatarCheck)
+                      {
+                        <td>
+                          <div class="user_item">
+                            <img class="image is-36x36 mr-2" src="@user.avatar" alt="IMG">
+                            <div>
+                              <p class="has-text-weight-semibold has-text-info is-size-6">
+                                @user.FullName
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        avatarCheck = false;
+                      }
+                      else
+                      {
+                        <td></td>
+                      }
+                      <td>
+                        <div class="icon-text">
+                          <span class="@(_in.time_difference > 0 ? "has-text-danger" : "")">
+                            @_in.time_active
+                          </span>
+                          <span class="icon has-text-danger">
+                            @if (!string.IsNullOrEmpty(_in.time_active) && !_in.in_company)
+                            {
+                              <span class="material-icons-outlined">
+                                place
+                              </span>
+                            }
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="icon-text">
+                          <span class="@(_out.time_difference > 0 ? "has-text-danger" : "")">
+                            @_out.time_active
+                          </span>
+                          <span class="icon has-text-danger">
+                            @if (!string.IsNullOrEmpty(_out.time_active) && !_out.in_company)
+                            {
+                              <span class="material-icons-outlined">
+                                place
+                              </span>
+                            }
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              }
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </div>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<HrmTimekeepingModel> timekeepingList { get; set; }
+  [Parameter]
+  public DateTime date { get; set; }
+  [Parameter]
+  public object selectShift { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnClose { get; set; }
+  [Parameter]
+  public List<UserModel> users { get; set; } = new();
+
+  private List<UserModel> userSelect = new();
+  private List<HrmTimekeepingModel.TimeData> in_outs = new();
+
+
+  protected override void OnInitialized()
+  {
+    var users_id = timekeepingList.GroupBy(x => x.user).Select(x => x.Key).ToList();
+    userSelect = users.Where(x => users_id.Contains(x.id)).ToList();
+  }
+
+  private async Task Close()
+  {
+    await OnClose.InvokeAsync(false);
+  }
+}

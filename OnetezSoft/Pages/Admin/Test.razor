@@ -3,66 +3,131 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<PageTitle>@_title</PageTitle>
+<PageTitle>Test chức năng</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<div class="card p-5">
+<div class="p-5">
   <div class="field is-grouped">
-    <div class="control">
-      <input @bind="count" type="number" class="input" />
+    <div class="control" style="width: 130px;">
+      <span class="button is-link is-fullwidth @(loading1 ? "is-loading" : "")">UploadStream</span>
     </div>
     <div class="control">
-      <a class="button" @onclick="Testing">Testing</a>
+      <InputFile class="input" OnChange="UploadStream" accept="*" />
     </div>
     <div class="control">
-      ERROR: @error
+      <strong>@time1</strong>
+    </div>
+    <div class="control is-expanded">
+      <a href="@link1" target="_blank">@Files.FileName(link1)</a>
     </div>
   </div>
-  <ul class="columns is-multiline">
-    @foreach (var id in list)
-    {
-      var check = list.Where(x => x == id).Count() > 1;
-      <li class="column is-1 has-text-@(check ? "danger" : "success")">
-        @id
-      </li>
-    }
-  </ul>
+  <div class="field is-grouped">
+    <div class="control" style="width: 130px;">
+      <span class="button is-link is-fullwidth @(loading2 ? "is-loading" : "")">UploadFiles</span>
+    </div>
+    <div class="control">
+      <InputFile class="input" OnChange="UploadFiles" accept="*" />
+    </div>
+    <div class="control">
+      <strong>@time2</strong>
+    </div>
+    <div class="control is-expanded">
+      <a href="@link2" target="_blank">@Files.FileName(link2)</a>
+    </div>
+  </div>
 </div>
 
 @code {
   [CascadingParameter]
   public LayoutAdmin Layout { get; set; }
+  private int maxSize = 100 * 1024000;
+  private bool loading1 = false;
+  private string time1 = string.Empty;
+  private string link1 = string.Empty;
+  private bool loading2 = false;
+  private string time2 = string.Empty;
+  private string link2 = string.Empty;
 
-  private bool _success = false;
-  private string _message = string.Empty;
-  private string _title = "Admin - Test chức năng";
-
-  private List<string> list = new();
-  private int count = 100;
-  private int error = 0;
-
-  private void Testing()
+  private async Task UploadStream(InputFileChangeEventArgs e)
   {
-    error = 0;
-    list.Clear();
-    for (var i = 0; i < count; i++)
+    if (e.GetMultipleFiles().Count > 0)
     {
-      list.Add(Mongo.RandomId());
+      loading1 = true;
+      var time = DateTime.Now;
+      foreach (var file in e.GetMultipleFiles())
+      {
+        try
+        {
+          if (file.Size <= maxSize)
+          {
+            await JSRuntime.InvokeVoidAsync("console.log", "UploadStream: " + file.Name);
+            var stream = file.OpenReadStream(file.Size);
+            link1 = await StorageService.UploadStream(file.Name, null, stream);
+
+            time1 = string.Format("{1:0,0} KB / {0:0.0} giây",
+              DateTime.Now.Subtract(time).TotalSeconds, file.Size / 1000);
+            await JSRuntime.InvokeVoidAsync("console.log", $"UploadStream: {Files.FileName(link1)} - {time1}");
+
+            if(!string.IsNullOrEmpty(link1))
+              await JSRuntime.InvokeVoidAsync("tagline", true, "Đã tải lên thành công!");
+            else
+              await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể upload file!");
+          }
+          else
+          {
+            await JSRuntime.InvokeVoidAsync("tagline", false, "Dung lượng file quá lớn");
+          }
+        }
+        catch (Exception ex)
+        {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Lỗi khi upload file: " + ex.Message);
+        }
+      }
+      loading1 = false;
     }
-    foreach (var id in list)
+  }
+
+  private async Task UploadFiles(InputFileChangeEventArgs e)
+  {
+    if (e.GetMultipleFiles().Count > 0)
     {
-      var check = list.Where(x => x == id).Count() > 1;
-      if (check)
-        error++;
+      loading2 = true;
+      var time = DateTime.Now;
+      foreach (var file in e.GetMultipleFiles())
+      {
+        try
+        {
+          if (file.Size <= maxSize)
+          {
+            await JSRuntime.InvokeVoidAsync("console.log", "UploadFiles: " + file.Name);
+            var stream = new StreamContent(file.OpenReadStream(file.Size));
+            var link = await Files.UploadFile(stream, file.Name, 0);
+
+            await JSRuntime.InvokeVoidAsync("console.log", "UploadFiles: moving Server to Storage");
+            link2 = await StorageService.UploadAsync(link, null);
+
+            time2 = string.Format("{1:0,0} KB / {0:0.0} giây",
+              DateTime.Now.Subtract(time).TotalSeconds, file.Size / 1000);
+            await JSRuntime.InvokeVoidAsync("console.log", $"UploadFiles: {Files.FileName(link2)} - {time2}");
+
+            if(!string.IsNullOrEmpty(link2))
+            {
+              Files.DeleteFile(link);
+              await JSRuntime.InvokeVoidAsync("tagline", true, "Đã tải lên thành công!");
+            }
+            else
+              await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể upload file!");
+          }
+          else
+          {
+            await JSRuntime.InvokeVoidAsync("tagline", false, "Dung lượng file quá lớn");
+          }
+        }
+        catch (Exception ex)
+        {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Lỗi khi upload file: " + ex.Message);
+        }
+      }
+      loading2 = false;
     }
   }
 }

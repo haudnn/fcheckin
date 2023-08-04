@@ -1,0 +1,84 @@
+@inject IJSRuntime JSRuntime
+
+<section class="modal is-active">
+		<div class="modal-background"></div>
+		<div class="modal-card p-4">
+				<div class="modal-card-head">
+						<div class="modal-card-title has-text-danger">Phát hiện thiết bị lạ</div>
+						<a class="delete is-medium" @onclick="Cancel"></a>
+				</div>
+				<div class="modal-card-body">
+						<p class="mb-2 has-text-weight-medium">
+								Đã phát hiện có sự thay đổi về thiết bị chấm công.
+						</p>
+						@if (timeNearest > 0)
+						{
+							var formattedDateTime = new DateTime(timeNearest).ToString("HH:mm:ss (dd/MM/yyyy)");
+							<p class="mb-2 has-text-weight-medium">
+									Thời gian ghi nhận thiết bị chấm công hợp lệ gần nhất:
+								<span class="mb-2 has-text-weight-medium has-text-link">
+										@formattedDateTime
+								</span>
+							</p>
+
+						}
+						<p class="mb-2">
+								Mã thiết bị mới: 
+						</p>
+						<div class="mb-2 is-flex is-align-items-center has-text-weight-medium " title="Copy mã thiết bị">
+							<span>@FormatDeviceCode()</span>
+					</div>
+				</div>
+				<div class="modal-card-foot is-right">
+						<a class="button is-white has-text-link" @onclick="Cancel">
+								<span>Hủy</span>
+						</a>
+						<a class="button is-link" @onclick="Update">
+								<span class="icon">
+										<i class="material-icons-round is-size-6">done</i>
+								</span>
+								<span>Yêu cầu cập nhật thiết bị mới</span>
+						</a>
+				</div>
+		</div>
+</section>
+
+@code {
+
+	[Parameter]
+	public EventCallback<bool> OnConfirm { get; set; }
+	
+	[Parameter]
+	public string deviceCode { get; set; }
+
+	[Parameter]
+	public long timeNearest { get; set; }
+
+	private async Task Cancel()
+	{ 
+		await OnConfirm.InvokeAsync(false); 
+	}
+
+	private async Task Update()
+	{ 
+		await OnConfirm.InvokeAsync(true);
+	}
+
+	private string FormatDeviceCode()
+	{
+		if (deviceCode.Length > 10)
+		{ 
+			string code = deviceCode.Substring(0, 10);
+			string asterisks = new string('*', deviceCode.Length - 10);
+			return code + asterisks;
+		}
+		else
+			return deviceCode;
+	}
+
+	private async void CopyCode()
+ {
+  await JSRuntime.InvokeVoidAsync("copyToClipboard", deviceCode);
+  await JSRuntime.InvokeVoidAsync("tagline", true, "Đã copy mã thiết bị vào clipboard!");
+ }
+} 

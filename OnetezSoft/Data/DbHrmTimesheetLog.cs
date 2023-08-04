@@ -26,15 +26,14 @@ public class DbHrmTimesheetLog
     return model;
   }
 
-
-  public static async Task<List<HrmTimesheetLogModel>> GetList(string companyId, string timesheetId)
+  public static async Task<List<HrmTimesheetLogModel>> GetList(string companyId, string userId, long from, long to)
   {
     var _db = Mongo.DbConnect("fastdo_" + companyId);
 
     var collection = _db.GetCollection<HrmTimesheetLogModel>(_collection);
 
-    var results = await collection.Find(x => x.timesheet == timesheetId).ToListAsync();
+    var results = await collection.Find(x => x.user == userId && x.day >= from && x.day <= to).ToListAsync();
 
-    return (from x in results orderby x.day, x.is_morning descending, x.edit_date select x).ToList();
+    return (from x in results orderby x.day descending, x.edit_date select x).ToList();
   }
 }

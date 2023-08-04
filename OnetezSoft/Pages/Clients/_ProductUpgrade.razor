@@ -2,6 +2,9 @@
 
 @if (model != null)
 {
+  if(quantity == 0)
+    quantity = model.total;
+
   <section class="modal is-active">
     <div class="modal-background"></div>
     <section class="modal-card has_bg">
@@ -83,51 +86,88 @@
               </div>
 
               <div class="field mb-4">
-                <label class="label">
-                  <span class="mr-2">Số lượng người dùng</span>
-                  @if(quantity > model.total)
-                  {
-                    <span class="has-text-success">(+@(quantity - model.total))</span>
-                  }
-                </label>
-                @if(step == 1)
+                @if(product.id == "storage")
                 {
-                  <div class="control has-icons-left">
-                    <div class="dropdown is-fullwidth @(toggle ? "is-active" : "")">
-                      <div class="dropdown-trigger" @onclick="() => toggle = !toggle">
-                        <input value="@quantity" @onchange="ChangeQuantity" type="number" 
-                            class="input is_line font_14" min="1" />
-                        <span class="icon is-left has-text-black">
-                          <i class="material-icons-round is-size-6">person_add</i>
+                  <label class="label">
+                    <span class="mr-2">Dung lượng lưu trữ <i>(Đơn vị: GB)</i></span>
+                    @if(quantity > model.total)
+                    {
+                      <span class="has-text-success">(+@(quantity - model.total))</span>
+                    }
+                  </label>
+                  @if(step == 1)
+                  {
+                    <div class="control has-icons-left">
+                      <input value="@quantity" @onchange="ChangeQuantity" type="number" 
+                          class="input is_line font_14" min="@model.total" />
+                      <span class="icon is-left has-text-black">
+                        <i class="material-icons is-size-6">cloud</i>
+                      </span>
+                    </div>
+                  }
+                  else 
+                  {
+                    <div class="control py-2">
+                      <div class="icon-text">
+                        <span class="icon is-small has-text-black mr-2">
+                          <i class="material-icons-round is-size-6">cloud</i>
                         </span>
+                        <span class="has-text-weight-medium">@quantity</span>
                       </div>
-                      <div class="dropdown-menu">
-                        <div class="dropdown-content">
-                          @foreach (var item in promotions)
-                          {
-                            <a class="dropdown-item" @onclick="() => ChangePromotion(item.condition + model.total)">
-                              +@item.condition người (ưu đãi @item.discount%)
-                            </a>
-                          }
+                    </div>
+                  }
+                  <div class="has-text-grey has-text-weight-medium is-size-7 pt-2 is-italic">
+                    Gói hiện tại: @model.total GB
+                  </div>
+                }
+                else
+                {
+                  <label class="label">
+                    <span class="mr-2">Số lượng người dùng</span>
+                    @if(quantity > model.total)
+                    {
+                      <span class="has-text-success">(+@(quantity - model.total))</span>
+                    }
+                  </label>
+                  @if(step == 1)
+                  {
+                    <div class="control has-icons-left">
+                      <div class="dropdown is-fullwidth @(toggle ? "is-active" : "")">
+                        <div class="dropdown-trigger" @onclick="() => toggle = !toggle">
+                          <input value="@quantity" @onchange="ChangeQuantity" type="number" 
+                              class="input is_line font_14" min="1" />
+                          <span class="icon is-left has-text-black">
+                            <i class="material-icons-round is-size-6">person_add</i>
+                          </span>
+                        </div>
+                        <div class="dropdown-menu">
+                          <div class="dropdown-content">
+                            @foreach (var item in promotions)
+                            {
+                              <a class="dropdown-item" @onclick="() => ChangePromotion(item.condition + model.total)">
+                                +@item.condition người (ưu đãi @item.discount%)
+                              </a>
+                            }
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                }
-                else 
-                {
-                  <div class="control py-2">
-                    <div class="icon-text">
-                      <span class="icon is-small has-text-black mr-2">
-                        <i class="material-icons-round is-size-6">person_add</i>
-                      </span>
-                      <span class="has-text-weight-medium">@quantity</span>
+                  }
+                  else 
+                  {
+                    <div class="control py-2">
+                      <div class="icon-text">
+                        <span class="icon is-small has-text-black mr-2">
+                          <i class="material-icons-round is-size-6">person_add</i>
+                        </span>
+                        <span class="has-text-weight-medium">@quantity</span>
+                      </div>
                     </div>
+                  }
+                  <div class="has-text-grey has-text-weight-medium is-size-7 pt-2 is-italic">
+                    Số lượng nhân sự của tổ chức: @company.members (gói hiện tại: @model.total người dùng)
                   </div>
                 }
-                <div class="has-text-grey has-text-weight-medium is-size-7 pt-2 is-italic">
-                  Số lượng nhân sự của tổ chức: @company.members (gói hiện tại: @model.total người dùng)
-                </div>
               </div>
 
               <div class="field">
@@ -168,9 +208,18 @@
               <div class="has-text-weight-bold">
                 Nâng cấp sản phẩm thành công.
               </div>
-              <div class="has-text-weight-bold">
-                Số lượng người dùng: @model.used/@model.total
-              </div>
+              @if(product.id == "storage")
+              {
+                <div class="has-text-weight-bold">
+                  Dung lượng lưu trữ: @model.total GB
+                </div>
+              }
+              else
+              {
+                <div class="has-text-weight-bold">
+                  Số lượng người dùng: @model.used/@model.total
+                </div>
+              }
             }
           </li>
         </ul>
@@ -265,7 +314,10 @@
     {
       if(quantity <= model.total)
       {
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Số lượng người dùng phải lớn hơn gói hiện tại.");
+        if(product.id == "storage")
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Dung lượng lưu trữ phải lớn hơn gói hiện tại.");
+        else
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Số lượng người dùng phải lớn hơn gói hiện tại.");
         step = 1;
       }
       else if(money > Int32.MaxValue)
@@ -290,7 +342,12 @@
       // Số tiền cần thanh toán
       int price = Convert.ToInt32(discount > 0 ? money - (money * discount / 100) : money);
       if(quantity < model.total)
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Số lượng người dùng đang ít hơn trước khi nâng cấp");
+      {
+        if(product.id == "storage")
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Dung lượng lưu trữ đang ít hơn trước khi nâng cấp");
+        else
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Số lượng người dùng đang ít hơn trước khi nâng cấp");
+      }
       else if(customer.balance < price)
         await JSRuntime.InvokeVoidAsync("tagline", false, "Số dư của bạn không đủ để thanh toán, vui lòng nạp thêm.");
       else

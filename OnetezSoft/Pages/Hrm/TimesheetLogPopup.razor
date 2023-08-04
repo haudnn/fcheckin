@@ -22,9 +22,8 @@
           {
             var item = data[i];
             var user = UserService.GetUser(Layout.UserList, item.editor);
-            var type = item.is_morning ? "sáng" : "chiều";
-            var title = string.Format("Ca {0} - Ngày {1:dd/MM/yyyy}", type, new DateTime(item.day));
-            if(titleLast != title)
+            var title = string.Format("Ca {0} - Ngày {1:dd/MM/yyyy}", item.shift_name, new DateTime(item.day));
+            if (titleLast != title)
             {
               titleLast = title;
               <li class="column is-full">
@@ -42,13 +41,37 @@
             <li class="column is-one-quarter">
               <div class="has-text-weight-medium pb-2">Nội dung cũ</div>
               <div class="has-text-grey">
-                @item.old_content
+                @if (item.old_content.Contains("-"))
+                {
+                  var index = item.old_content.IndexOf("-");
+                  <div class="is-flex">
+                    <span style="max-width: 155px;" class="text_1_line">@item.old_content.Substring(0, index)</span>
+                    <span class="mx-1">-</span>
+                    <span>@item.old_content.Substring(index + 1, item.old_content.Count() - index - 1)</span>
+                  </div>
+                }
+                else
+                {
+                  <span class="text_1_line">@item.old_content</span>
+                }
               </div>
             </li>
             <li class="column is-one-quarter">
               <div class="has-text-weight-medium pb-2">Nội dung mới</div>
               <div class="has-text-grey">
-                @item.edit_content
+                @if (item.edit_content.Contains("-"))
+                {
+                  var index = item.edit_content.IndexOf("-");
+                  <div class="is-flex">
+                    <span style="max-width: 155px;" class="text_1_line">@item.edit_content.Substring(0, index)</span>
+                    <span class="mx-1">-</span>
+                    <span>@item.edit_content.Substring(index + 1, item.edit_content.Count() - index - 1)</span>
+                  </div>
+                }
+                else
+                {
+                  <span class="text_1_line">@item.edit_content</span>
+                }
               </div>
             </li>
             <li class="column is-one-quarter">

@@ -1,0 +1,91 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<section class="modal is-active">
+  <div class="modal-background"></div>
+  <section class="modal-card is-medium">
+    <section class="modal-card-head is-flex is-justify-content-end" style="background: none; border: none;">
+      <a class="modal-close is-large" @onclick="Cancel"></a>
+    </section>
+      <section id="slider" class="@(count > 0 ? "py-4 px-4" : "")" style="display: block !important;">
+        <div class="banner_main" >
+          <div class="carousel" style="padding: 0 40px;">
+            <BlazorSlickCarousel @ref="imageForm" Configurations="configurations">
+              <BlazorSlickCarouselContent>
+                @foreach (var item in dataList)
+                {
+                <a class="is-flex is-justify-content-center is-align-items-center" style="height: 650px;" href="@(item)" target="_blank">
+                  <img style="object-fit: contain; max-height: 650px;" src="@item" alt="img" />
+                </a>
+                }
+              </BlazorSlickCarouselContent>
+            </BlazorSlickCarousel>
+            <div class="dots"></div>
+            <div class="arrows"></div>
+          </div>
+        </div>
+    </section>
+  </section>
+</section>
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+  [Parameter]
+  public List<string> dataList { get; set; } = new();
+
+  public BlazorSlickCarousel imageForm;
+  public WMBSCInitialSettings configurations;
+
+  private int count = 0;
+
+
+  protected override void OnInitialized()
+  {
+    ConfigSlide();
+  }
+
+  private void ConfigSlide()
+  {
+    configurations = new WMBSCInitialSettings
+      {
+        arrows = true,
+        dots = true,
+        autoplay = true,
+        infinite = true,
+        useCSS = false,
+        slidesToShow = 1,
+        slidesToScroll = 1,
+        autoplaySpeed = 5000,
+        appendDots = ".dots",
+        appendArrows = ".arrows",
+        prevArrow = "<a class='material-icons-round'>chevron_left</a>",
+        nextArrow = "<span class='material-icons-round'>chevron_right</span>"
+      };
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    await SlideChange();
+  }
+
+  private async Task SlideChange()
+  {
+    if (imageForm != null)
+    {
+      var url = navigation.Uri.Replace(navigation.BaseUri, "/");
+      if (count > 0)
+        for (int i = 0; i < count; i++)
+          await imageForm.Remove(0, false);
+      count = dataList.Count;
+    }
+  }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+  }
+}

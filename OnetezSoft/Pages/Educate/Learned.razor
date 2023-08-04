@@ -52,57 +52,103 @@
         else if (lesson.type == 2)
         {
           <div class="card p-5">
-            <h2 class="is-size-5 has-text-weight-bold has-text-info mb-4">
-              BÀI TỰ LUẬN
-            </h2>
-            <h3 class="is-size-6 has-text-weight-bold has-text-info mb-3">
-              @lesson.name
-            </h3>
-            <div class="mb-4">
-              Mức điểm đạt: @lesson.point điểm
-            </div>
-            <hr />
+            <h2 class="is-size-5 has-text-weight-bold has-text-info mb-4">BÀI TỰ LUẬN</h2>
+            <h3 class="is-size-6 has-text-weight-bold has-text-info mb-3">@lesson.name</h3>
+            <div>Mức điểm đạt: @lesson.point điểm</div>
+            <hr class="my-2" />
             <ul class="lesson_question">
-              @for (int i = 0; i < questions.Count; i++)
+              @foreach (var item in questions)
               {
-                var item = questions[i];
-                <li class="question_item">
-                  <div class="has-text-info mb-2">
-                    <span class="has-text-weight-semibold">@string.Format("Câu {0}", i + 1)</span>
-                    <span>
-                      (@(examLesson != null && examLesson.check ? item.point_exam + "/" : "")@item.point_max điểm)
-                    </span>
-                  </div>
-                  <div class="has-text-weight-semibold has-text-info mb-3 has_link">
-                    @((MarkupString)Shared.GetLinks(item.content))
-                  </div>
-                  @if (examLesson != null && examLesson.check)
-                  {
-                    <div class="mb-2">
-                      <span class="has-text-info has-text-weight-semibold mr-2">Trả lời:</span>
-                      @if (!string.IsNullOrEmpty(item.answer))
-                      {
-                        <span>@((MarkupString)item.answer.Replace("\n", "<br />"))</span>
-                      }
-                      else
-                      {
-                        <i>Không có câu trả lời</i>
-                      }
+                int index = questions.IndexOf(item) + 1;
+                var question = lesson.questions.SingleOrDefault(x => x.id == item.id);
+                if(question != null)
+                {
+                  <li class="question_item">
+                    <div class="has-text-info mb-2 mt-3">
+                      <span class="has-text-weight-semibold">Câu @index</span>
+                      <span>
+                        (@(examLesson != null && examLesson.check ? item.point_exam + "/" : "")@item.point_max điểm)
+                      </span>
                     </div>
-                    @if (!string.IsNullOrEmpty(item.comment))
+                    <div class="has-text-weight-medium mb-3 has_link">
+                      @((MarkupString)Shared.GetLinks(question.content))
+                    </div>
+                    @if(question.files.Count > 0)
                     {
-                      <div>
-                        <span class="has-text-grey">Giảng viên nhận xét:</span>
-                        <span>@item.comment</span>
+                      <div class="field">
+                        <label class="label">File đính kèm của câu hỏi</label>
+                        <div class="control">
+                          <FileViews Values="question.files" />
+                        </div>
                       </div>
                     }
-                  }
-                  else
-                  {
-                    <textarea @bind="item.answer" class="textarea is_bg font_14" rows="3" placeholder="Nhập câu trả lời" />
-                  }
-                  <hr class="has-background-grey-lighter" />
-                </li>
+                    @if (examLesson != null && examLesson.check)
+                    {
+                      <div class="mb-2">
+                        <span class="has-text-info has-text-weight-semibold mr-2">Trả lời:</span>
+                        @if (!string.IsNullOrEmpty(item.answer))
+                        {
+                          <span>@((MarkupString)item.answer.Replace("\n", "<br />"))</span>
+                        }
+                        else
+                        {
+                          <div class="is-italic">Không có câu trả lời</div>
+                        }
+                      </div>
+                      @if (!string.IsNullOrEmpty(item.comment))
+                      {
+                        <div>
+                          <span class="has-text-grey">Giảng viên nhận xét:</span>
+                          <span>@item.comment</span>
+                        </div>
+                      }
+                    }
+                    else if (examLesson == null)
+                    {
+                      <InputArea Class="textarea is_bg font_14" Title="Nhập câu trả lời"
+                        Value="@item.answer" OnInput="x => item.answer = x" />
+                      if(ProductService.CheckStorage(Layout.Company))
+                      {
+                        <div class="field is-grouped mt-2">
+                          <div class="control has-text-grey">File đính kèm của câu trả lời</div>
+                          <div class="control">
+                            <FileUpload Multiple="true" Small="true" Cloud="true"
+                              OnUpload="x => item.files.AddRange(x)" />
+                          </div>
+                        </div>
+                        <FileViews Delete="true" Values="item.files" />
+                      }
+                    }
+                    else
+                    {
+                      <InputArea Class="textarea is_bg font_14" Title="Nhập câu trả lời"
+                        Value="@item.answer" OnInput="x => item.answer = x" />
+                      if(item.files.Count > 0)
+                      {
+                        <div class="field mt-2">
+                          <div class="has-text-grey">File đính kèm của câu trả lời</div>
+                          <FileViews Values="item.files" />
+                        </div>
+                      }
+                    }
+                    <hr class="my-3" />
+                  </li>
+                }
+                else
+                {
+                  <li class="question_item">
+                    <div class="has-text-info mb-2 mt-3">
+                      <span class="has-text-weight-semibold">Câu @index</span>
+                      <span>
+                        (@(examLesson != null && examLesson.check ? item.point_exam + "/" : "")@item.point_max điểm)
+                      </span>
+                    </div>
+                    <div class="has-text-weight-medium is-italic">
+                      Câu hỏi đã bị xóa
+                    </div>
+                    <hr class="my-3" />
+                  </li>
+                }
               }
             </ul>
             <div class="field is-grouped">
@@ -159,26 +205,20 @@
         else if (lesson.type == 3)
         {
           <div class="card p-5">
-            <h2 class="is-size-5 has-text-weight-bold has-text-info mb-4">
-              BÀI TRẮC NGHIỆM
-            </h2>
-            <h3 class="is-size-6 has-text-weight-bold has-text-info mb-3">
-              @lesson.name
-            </h3>
-            <div class="mb-4">
-              Mức điểm đạt: @lesson.point điểm
-            </div>
-            <hr />
+            <h2 class="is-size-5 has-text-weight-bold has-text-info mb-4">BÀI TRẮC NGHIỆM</h2>
+            <h3 class="is-size-6 has-text-weight-bold has-text-info mb-3">@lesson.name</h3>
+            <div>Mức điểm đạt: @lesson.point điểm</div>
+            <hr class="my-2" />
             <ul class="lesson_question">
-              @for (int i = 0; i < questions.Count; i++)
+              @foreach (var item in questions)
               {
-                var item = questions[i];
+                int index = questions.IndexOf(item) + 1;
                 var question = lesson.questions.SingleOrDefault(x => x.id == item.id);
-                @if (question != null)
+                if (question != null)
                 {
                   <li class="question_item">
-                    <div class="has-text-info mb-2">
-                      <span class="has-text-weight-semibold">@string.Format("Câu {0}", i + 1)</span>
+                    <div class="has-text-info mb-2 mt-3">
+                      <span class="has-text-weight-semibold">Câu @index</span>
                       <span>@string.Format("({0} điểm)", item.point_max)</span>
                     </div>
                     <div class="has-text-weight-semibold has-text-info mb-3 has_link">
@@ -202,7 +242,18 @@
                         </p>
                       }
                     </div>
-                    <hr class="has-background-grey-lighter" />
+                  </li>
+                }
+                else
+                {
+                  <li class="question_item">
+                    <div class="has-text-info mb-2 mt-3">
+                      <span class="has-text-weight-semibold">Câu @index</span>
+                      <span>@string.Format("({0} điểm)", item.point_max)</span>
+                    </div>
+                    <div class="has-text-weight-medium is-italic">
+                      Câu hỏi đã bị xóa
+                    </div>
                   </li>
                 }
               }
@@ -230,7 +281,7 @@
               }
               else
               {
-                <div class="control">
+                <div class="control pt-4">
                   <a class="button is-link" @onclick="SendQuiz">
                     <span class="icon">
                       <i class="material-icons-outlined is-size-6">done</i>
@@ -340,8 +391,8 @@
   public string LessonId { get; set; }
   private string _title = "Khóa học";
 
-  private EducateLearnedModel learned = null;
   private EducateCourseModel course = null;
+  private EducateLearnedModel learned = null;
   private EducateLessonModel lesson = null;
   private EducateCategoryModel category = null;
   private List<EducateLessonModel> lessons = new();

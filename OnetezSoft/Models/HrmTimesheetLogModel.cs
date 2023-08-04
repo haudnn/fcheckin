@@ -8,14 +8,14 @@ public class HrmTimesheetLogModel
   [BsonId]
   public string id { get; set; }
 
-  /// <summary>Timesheet ID</summary>
-  public string timesheet { get; set; }
+  /// <summary>id user</summary>
+  public string user { get; set; }
 
   /// <summary>Ngày chấm công</summary>
   public long day { get; set; }
 
-  /// <summary>Ca chỉnh sửa</summary>
-  public bool is_morning { get; set; }
+  /// <summary>Tên ca</summary>
+  public string shift_name { get; set; }
 
   /// <summary>Thời gian chỉnh sửa</summary>
   public long edit_date { get; set; }

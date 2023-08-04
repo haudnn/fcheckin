@@ -22,4 +22,12 @@ public class HrmWorkShiftModel
 
   /// <summary>Số công</summary>
   public double value { get; set; }
+
+	/// <summary>Kiểm tra ca làm kéo qua ngày</summary>
+	public bool is_overday { get; set; }
+	/// <summary>Kiểm tra đã xoá </summary>
+	public bool is_deleted { get; set; }
+
+  /// <summary>Thời gian xoá ca</summary>
+  public long time_delete { get; set; }
 }

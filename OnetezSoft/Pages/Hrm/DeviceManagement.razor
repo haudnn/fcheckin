@@ -1,0 +1,317 @@
+@page "/hrm/setup/device"
+
+@inject IJSRuntime JSRuntime
+
+<PageTitle>@_title</PageTitle>
+
+@if (_access && rules.is_check_device)
+{
+	 <section class="p-4">
+    <div class="card p-5">
+      <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
+        <li class="column">
+          <h1 class="title is-5 has-text-info is-uppercase">
+            @_title
+          </h1>
+        </li>
+								<li style="width: 200px;" class="column is-narrow">
+									<div class="select is-fullwidth">
+										<select @onchange="FilterStatus">
+											@foreach (var item in DbHrmDevice.Status())
+											{
+											<option value="@item.id" selected=@item.isDefault>@item.name</option>
+											}
+										</select>
+									</div>
+								</li>
+								<li class="column is-narrow">
+          <form class="control has-icons-right" @onsubmit="GetList">
+            <input @bind="filterKeyword" class="input" type="text" placeholder="Nhập tên nhân viên...">
+            <span class="icon is-right">
+              <i class="material-icons-outlined is-size-5">search</i>
+            </span>
+          </form>
+        </li>
+      </ul>
+      <table class="table is-fullwidth is-vcentered is-responsive mt-5">
+        <thead>
+          <tr>
+            <th width="10%" class="has-text-weight-semibold has-text-link is-hidden-mobile">Người yêu cầu</th>
+            <th width="20%" class="has-text-weight-semibold has-text-link">Mã thiết bị cũ</th>
+            <th width="20%" class="has-text-weight-semibold has-text-link">Mã thiết bị mới</th>
+            <th width="10%" align="center" class="has-text-weight-semibold has-text-link">Ngày yêu cầu</th>
+            <th width="10%" align="center" class="has-text-weight-semibold has-text-link">Ngày phê duyệt</th>
+            <th width="10%" align="center" class="has-text-weight-semibold has-text-link">Trạng thái</th>
+            <th width="10%" class="has-text-weight-semibold has-text-link">Người thực hiện</th>
+												<th width="10%" class="has-text-weight-semibold has-text-link">Xử lý</th>
+          </tr>
+        </thead>
+        <tbody>
+										@if (dataList.Any())
+										{
+											@foreach (var item in dataList)
+											{
+													var userRequest = UserService.GetMember(Layout.UserList, item.user_request);
+													var userApprove = UserService.GetMember(Layout.UserList, item.user_approve);
+													var status = DbHrmDevice.Status(item.status);
+													<tr>
+															<td>
+																<label class="td-label">Người yêu cầu</label>
+																<div class="td-value">
+																		<div class="is-flex is-align-items-center">
+																			<figure class="image is-24x24 mr-2 is-rounded">
+																				<img src="@userRequest.avatar" alt="@userRequest.name" />
+																			</figure>
+																			<span class="text_1_line has-text-weight-semibold">@userRequest.name</span>
+																		</div>
+																</div>
+															</td>
+															<td>
+																<label class="td-label">Mã thiết bị cũ</label>
+																<div class="td-value text_1_line">
+																	@item.old_code
+																</div>
+															</td>
+															<td>
+																<label class="td-label">Mã thiết bị mới</label>
+																<div class="td-value text_1_line">
+																	@item.new_code
+																</div>
+															</td>
+															<td align="center">
+																<label class="td-label">Ngày yêu cầu</label>
+																<div class="td-value">
+																	@string.Format("{0:dd/MM/yyyy}", new DateTime(item.date_request))
+																</div>
+															</td>
+															<td align="center">
+																	<label class="td-label">Ngày phê duyệt</label>
+																	<div class="td-value">
+																			@if (item.date_approve > 0)
+																			{
+																				<span>@string.Format("{0:dd/MM/yyyy}", new DateTime(item.date_approve))</span>
+																			}
+																	</div>
+															</td>
+															<td align="center">
+																<label class="td-label">Trạng thái</label>
+																	@if(item.is_updated)
+																	{
+																		<div class="td-value">
+																			<div class="dropdown" style="min-width: 150px;">
+																				<div class="dropdown-trigger" style="width: 100%;">
+																					<div class="icon-text @status.color button is-small is-rounded">
+																					<div style="gap: 10px; flex: 1" class="is-flex is-align-items-center is-justify-content-center">
+																							<div class="icon-wrapper @status.color">
+																								<span class="icon">
+																									<i class="material-icons-outlined is-size-7 has-text-white">@status.icon</i>
+																								</span>
+																							</div>
+																							<span style="flex: 1" class="@status.color">@status.name</span>
+																						</div>
+																					</div>
+																				</div>
+																			</div>
+
+																		</div>	
+																	}
+																	else
+																	{
+																		<div class="td-value">
+																			<div class="dropdown @(currentItem == item.id ? "is-active" : "") " style="min-width: 150px;">
+																					<div class="dropdown-trigger" style="width: 100%;">
+																							<div class="icon-text @status.color button is-small is-rounded"  @onclick="() => ToggleShift(item.id)">
+																								<div style="gap: 10px; flex: 1" class="is-flex is-align-items-center is-justify-content-center">
+																									<div class="icon-wrapper @status.color">
+																										<span class="icon">
+																											<i class="material-icons-outlined is-size-7 has-text-white">@status.icon</i>
+																										</span>
+																									</div>
+																									<span  style="flex: 1" class="@status.color ml-4">@status.name</span>
+																								</div>
+																								<span class="icon">
+																									<i class="material-icons-outlined is-size-5 has-text-black">arrow_drop_down</i>
+																								</span>
+																							</div>
+																					</div>
+																					<div class="dropdown-menu">
+																						<div class="dropdown-content">
+																							<a class="dropdown-item is-flex is-align-items-center" @onclick="() => ChangeStatus(item, 2)">
+																									<span class="icon">
+																									<i class="material-icons-outlined is-size-6 has-text-black">done</i>
+																								</span>
+																								<span class="has-text-weight-semibold is-size-7">Phê duyệt</span>
+																							</a>
+																							<a class="dropdown-item is-flex is-align-items-center mt-0" @onclick="() => ChangeStatus(item, 3)">
+																									<span class="icon">
+																									<i class="material-icons-outlined is-size-6 has-text-black">close</i>
+																								</span>
+																								<span class="has-text-weight-semibold is-size-7">Từ chối</span>
+																							</a>
+																						</div>
+																					</div>
+																			</div>
+																		</div>
+																	}
+															</td>
+															<td>
+																<label class="td-label">Người thực hiện</label>
+																	@if (!Shared.IsEmpty(userApprove.id))
+																	{
+																		<div class="td-value">
+																				<div class="is-flex is-align-items-center">
+																				<figure class="image is-24x24 mr-2 is-rounded">
+																						<img src="@userApprove.avatar" alt="@userApprove.name" />
+																				</figure>
+																				<span class="text_1_line has-text-weight-semibold">@userApprove.name</span>
+																			</div>
+																		</div>
+																	}
+															</td>
+															<td>
+																<label class="td-label">Xử lý</label>
+																	@if (item.status != 1)
+																	{
+																		<div class="td-value" @onclick="() => Delete(item)">
+																		<a class="icon has-text-danger" title="Xóa thiết bị">
+																				<i class="material-icons-outlined is-size-5">delete</i>
+																		</a>
+																	</div>
+																	}
+															</td>
+													</tr>
+											}
+										}
+										else
+										{
+											if (Shared.IsEmpty(filterKeyword))
+											{
+											<tr>
+													<td colspan="7" align="center">
+															<span class="mt-5 is-block">Không có yêu cầu thay đổi thiết bị chấm công!</span>
+													</td>
+											</tr>
+											}
+											else
+											{
+											<tr>
+													<td colspan="7" align="center">
+															<span class="mt-5 is-block">Không tìm thấy dữ liệu phù hợp!</span>
+													</td>
+											</tr>
+											}
+										}
+        </tbody>
+      </table>
+    </div>
+  </section>
+}
+else
+{
+  <PopupNoRole />
+}
+
+
+@code  {
+		[CascadingParameter]
+  public LayoutMain Layout { get; set; }
+		private bool _access = false;
+	 private string _title = "Quản lý thiết bị";
+  private List<HrmDeviceModel> dataList = new();
+		private string currentItem = string.Empty;
+
+		private HrmRulesModel rules = null;
+		private string filterKeyword = string.Empty;
+		private List<UserModel> userList = new();
+
+		protected override async Task OnInitializedAsync()
+  {
+			 rules = await DbHrmRules.Get(Layout.Company.id, Layout.Company.id);
+    // Quyền truy cập trang
+    _access = Layout.User.role == 1 || (Layout.User.role == 2 && Layout.User.role_manage.timekeeping);
+				dataList = await DbHrmDevice.GetList(Layout.Company.id);   
+				userList = Layout.UserList;
+  }
+
+		private async Task ChangeStatus(HrmDeviceModel item, int status)
+  {
+				if (!await JSRuntime.InvokeAsync<bool>("confirm", "Sau khi thay đổi sẽ không thể hoàn tác, vui lòng kiểm tra kỹ trước khi xác nhận!"))
+				{
+					currentItem = string.Empty;
+     return;
+				}
+
+				item.status = status;
+				item.user_approve = Layout.User.id;
+				item.date_approve = DateTime.Now.Ticks;
+				item.is_updated	= true;
+
+				if (status == 2)
+				{
+					var user = await DbUser.Get(Layout.Company.id, item.user_request);
+					if (user != null)
+					{
+						user.device_id = item.new_code;
+						await DbUser.Update(Layout.Company.id, user);
+					}
+					// Gửi thông báo chuông phê duyệt
+     await DbNotify.Create(Layout.Company.id, 817, item.id, item.user_request, Layout.User.id);
+				}
+				// Gửi thông báo chuông từ	chối
+				else
+					await DbNotify.Create(Layout.Company.id, 818, item.id, item.user_request, Layout.User.id);
+
+    await DbHrmDevice.Update(Layout.Company.id, item);
+				await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thay đổi trạng thái thành công!");
+				dataList = await DbHrmDevice.GetList(Layout.Company.id);
+				currentItem = string.Empty;
+  }
+
+		private async Task ToggleShift(string id)
+  {
+    await JSRuntime.InvokeVoidAsync("dropdownClose");
+				
+				if (currentItem == string.Empty)
+					currentItem = id;
+				else
+					currentItem = string.Empty;
+  }
+
+		private async Task FilterStatus(ChangeEventArgs e)
+  {
+			if (int.Parse(e.Value.ToString()) == 4)
+			{
+				dataList = await DbHrmDevice.GetList(Layout.Company.id);
+				return;
+			}
+			
+			dataList = dataList.Where(x => x.status == int.Parse(e.Value.ToString())).ToList();
+  }
+
+		private async Task GetList()
+		{
+			if (string.IsNullOrEmpty(filterKeyword))
+			{
+				dataList = await DbHrmDevice.GetList(Layout.Company.id);
+				return;
+			}
+
+			dataList = dataList.Where(data => userList.Any(user => user.id == data.user_request && Shared.SearchKeyword(filterKeyword, user.FullName))).ToList();
+		}
+
+		private async Task Delete(HrmDeviceModel item)
+		{
+			if	(!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc chắn muốn xóa thiết bị này không?"))
+				return;
+			
+			if (item.status == 1)
+			{
+				await JSRuntime.InvokeVoidAsync("alert", "Bạn không thể xoá thiết bị đang chờ phê duyệt!");
+				return;
+			}
+
+			await DbHrmDevice.Delete(Layout.Company.id, item.id);
+			await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa thiết bị thành công!");
+			dataList = await DbHrmDevice.GetList(Layout.Company.id);
+		}
+}

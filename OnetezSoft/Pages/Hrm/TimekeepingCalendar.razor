@@ -1,0 +1,444 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@using System;
+
+<div class="is-flex card p-5" style="height:100%;flex-direction:column;">
+	<ul class="columns is-vcentered is-multiline is-variable is-2 mb-3" style="z-index:10">
+		<li class="column">
+					<div class="title is-5 has-text-info is-uppercase">
+						Lịch sử chấm công
+					</div>
+		</li>
+		<li class="column is-narrow">
+			<div class="select is-fullwidth">
+				<select @onchange="ChangeShiftType">
+					@foreach (var item in HrmService.FilterStatus())
+					{
+							<option value="@item.id" selected=@item.isDefault>@item.name</option>
+					}
+				</select>
+			</div>
+		</li>
+		<li class="column is-narrow">
+			<div class="select is-fullwidth">
+				<select @onchange="ChangeTimeDropdown">
+					@foreach (var item in HrmService.FilterTime())
+					{
+							<option value="@item.id" selected=@item.isDefault>@item.name</option>
+					}
+				</select>
+			</div>
+		</li>
+		<li class="column is-narrow is-hidden-mobile">
+			<div class="field has-addons">
+				<div class="control">
+					<span class="button is-link">
+								<i class="material-icons-outlined">calendar_today</i>
+					</span>
+				</div>
+				<div class="control is-expanded">
+					<div class="input" style="width: 190px;">
+							<DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE" OnRangeSelect="() => ChangeTimeDatepicker()" />
+					</div>
+				</div>
+			</div>
+		</li>
+	</ul>
+
+	<div class="custom-calendar">
+		<ul class="columns is-vcentered is-variable is-2 mb-1 calendar-note">
+			<li class="column is-narrow">
+				<span class="is_valid"></span>
+				<span>Ca đúng giờ</span>
+			</li>
+			<li class="column is-narrow">
+					<span class="is_error"></span>
+					<span>Ca đi trễ - về sớm</span>
+			</li>
+			<li class="column is-narrow">
+				<span class="is_ovt"></span>
+				<span>Ca làm ngoài giờ</span>
+			</li>
+			<li class="column is-narrow">
+				<span class="outside_sign"></span>
+				<span>Chấm công ngoài vị trí</span>
+			</li>
+			@if (isCheckDevice)
+			{
+			<li class="column is-narrow icon-text">
+					<span class="icon mr-0 has-text-danger">
+						<span class="material-icons-outlined">app_blocking</span>
+					</span>
+					<span>Thiết bị không hợp lệ</span>
+			</li>
+			}
+			<li class="column is-narrow">
+				<span style="display:none"></span>
+				<span>
+					<span class="has-text-weight-medium">Tổng số công <span style=" text-transform: lowercase">@currentFilter: </span> </span> @GetSumShifts(dataList)
+				</span>
+			</li>
+		</ul>
+
+		<ul class="calendar-header">
+			@for (int i = 2; i <= 8; i++)
+			{
+				var dayOfWeek = (int)DateTime.Today.DayOfWeek == 0 ? 8 : (int)DateTime.Today.DayOfWeek + 1;
+					<li>
+						<p class="@(dayOfWeek == i ? "is_today" : "" )">
+						@(i == 8 ? "Chủ nhật" : "Thứ " + i)
+						</p>
+					</li>
+			}
+		</ul>
+
+		<div id="scroll-calendar" class="calendar-body">
+			@foreach (var row in dateRange)
+			{
+				<ul>
+					@foreach (var col in row)
+					{
+						var date_shift = dataList.FirstOrDefault(x => x.date == col.Ticks);
+						if (date_shift == null)
+						{
+							<li class="@(CheckOutOfRange(col) ? "out" : "") @((int)col.DayOfWeek == 0 ? "is_sun" : "") @(col == DateTime.Today ? "is_today" : "")">
+							@if (CheckOutOfRange(col))
+							{
+								<p class="calendar-day">
+									@(col.Day)/@(col.Month)
+								</p>
+							}
+							else
+							{
+								<p class="calendar-day">
+									@col.Day
+							</p>
+							}
+							</li>
+						}
+						else
+						{
+							<li class="@(CheckOutOfRange(col) ? "out" : "") @(col.DayOfWeek == DayOfWeek.Sunday ? "is_sun" : "") @(col == DateTime.Today ? "is_today" : "")">
+							<p class="calendar-day">@col.Day
+							@if (date_shift != null)
+							{
+								<p style="color: #333;" class="calendar-total">
+									<span class="has-text-weight-medium">
+										Số công ngày: @GetTimeRecord(date_shift)
+									</span>
+								</p>
+							}
+							</p>
+							@foreach (var shift in date_shift.time_tracking.Where(s => s.time_type == "Check-in" && CheckShiftType(date_shift, s)))
+							{
+								var checkoutLog = date_shift.time_tracking.FirstOrDefault(l => l.time_type == "Check-out" && l.checkin_id == shift.checkin_id);
+								if (checkoutLog != null && checkoutLog.time_active != null)
+								{
+									@if (shift.time_difference > 0 || checkoutLog.time_difference > 0)
+									{
+									<a @onclick="() => ShowPopup(date_shift.date, date_shift, shift.checkin_id)" class="calendar-shift is_error @(shift.is_ot ? "is_ovt" : "")">
+										<span class="tag">
+											@shift.time_active
+										<span> - </span>
+										@if (shift.is_overday)
+										{
+											<span class="is-underlined has-text-weight-semibold">@checkoutLog.time_active</span>
+										}
+										else
+										{
+											<span>@checkoutLog.time_active</span>
+										}
+										@if (isCheckDevice)
+										{
+											if (!shift.is_valid_device || !checkoutLog.is_valid_device)
+											{
+												<span class="icon mx-0 has-text-danger">
+													<span class="material-icons-outlined is-size-6">app_blocking</span>
+												</span>
+											}
+										}
+										</span>
+										@if (!shift.in_company || !checkoutLog.in_company)
+										{
+											<span class="outside_sign"></span>
+										}
+									</a>
+									}
+									else
+									{
+									<a @onclick="() => ShowPopup(date_shift.date, date_shift, shift.checkin_id)" class="calendar-shift @(shift.is_ot ? "is_ovt" : "")">
+										<span class="tag">
+											@shift.time_active
+										<span> - </span>
+										@if (shift.is_overday)
+										{
+											<span class="is-underlined has-text-weight-semibold">@checkoutLog.time_active</span>
+										}
+										else
+										{
+											<span>@checkoutLog.time_active</span>
+										}
+										@if (isCheckDevice)
+										{
+											if (!shift.is_valid_device || !checkoutLog.is_valid_device)
+											{
+												<span class="icon mx-0 has-text-danger">
+													<span class="material-icons-outlined is-size-6">app_blocking</span>
+												</span>
+											}
+										}
+										</span>
+										@if (!shift.in_company || !checkoutLog.in_company)
+										{
+											<span class="outside_sign"></span>
+										}
+									</a>
+									}
+									}
+									else
+									{
+										<a @onclick="() => ShowPopup(date_shift.date, date_shift, shift.checkin_id)" class="calendar-shift @(shift.time_difference < 0 ? "" : "is_error") @(shift.is_ot ? "is_ovt" : "")">
+											<span class="tag">@shift.time_active - ...
+											@if (isCheckDevice)
+											{
+												if (!shift.is_valid_device)
+												{
+													<span class="icon mx-0 has-text-danger">
+														<span class="material-icons-outlined is-size-6">app_blocking</span>
+													</span>
+												}
+											}
+											</span>			
+											@if (!shift.in_company)
+											{
+												<span class="outside_sign">
+												</span>
+											}
+										</a>
+									}
+								}
+							</li>
+						}
+					}
+				</ul>
+			}
+		</div>
+	</div>
+</div>
+
+<TimekeepingPopup 
+	day="@popupDay" 
+	data="popupData" 
+	shifts="shiftList" 
+	model = "@currentShift" 
+	OnClose="() => popupDay = 0"
+	isCheckDevice="isCheckDevice"
+/>
+
+
+@code {
+	[CascadingParameter]
+	public LayoutMain Layout { get; set; }
+	private string companyId = "";
+	private UserModel user;
+
+	private DateTimeOffset? filterDateS = DateTime.Today;
+	private DateTimeOffset? filterDateE = DateTime.Today;
+	private List<List<DateTime>> dateRange = new();
+	private List<HrmTimekeepingModel> dataList = new();
+	private List<HrmWorkShiftModel> shiftList = new();
+	private long popupDay = 0;
+	private HrmTimekeepingModel popupData = null;
+	private HrmTimekeepingModel.TimeData currentShift = null;
+	private string type = "";
+	private string currentFilter = "Tháng này";
+	private bool isCheckDevice = false;
+
+	protected override async Task OnInitializedAsync()
+	{
+		user = Layout.User;
+		companyId = Layout.Company.id;
+
+		shiftList = await DbHrmWorkShift.GetListWithoutDelete(Layout.Company.id);
+		isCheckDevice = await DbHrmRules.IsCheckDevice(Layout.Company.id);
+
+		Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
+		filterDateS = start;
+		filterDateE = end;
+
+		if (filterDateS != null && filterDateE != null)
+		{
+			SetupDateRange();
+			await GetData();
+		}
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await JSRuntime.InvokeVoidAsync("dragScroll", "scroll-calendar");
+		}
+	}
+	private void SetupDateRange()
+	{
+		if (filterDateS == null || filterDateE == null)
+			return;
+
+		dateRange = new();
+		var startDate = new DateTime(filterDateS.Value.Ticks);
+		var endDate = new DateTime(filterDateE.Value.Ticks);
+		int totalDays = (int)Math.Round((endDate - startDate).TotalDays, 0);
+
+		List<DateTime> row = new();
+		var startDayOfWeek = (int)startDate.DayOfWeek == 0 ? 7 : (int)startDate.DayOfWeek;
+		var enddayOfWeek = (int)endDate.DayOfWeek == 0 ? 7 : (int)endDate.DayOfWeek;
+
+		if (startDayOfWeek > 1)
+		{
+			startDate = startDate.AddDays(-startDayOfWeek + 1);
+		}
+		if (enddayOfWeek < 7)
+		{
+			endDate = endDate.AddDays(7 - enddayOfWeek);
+		}
+
+		var date = startDate;
+
+		while (date.Ticks <= endDate.Ticks)
+		{
+			if (row.Count < 7)
+			{
+				row.Add(date);
+			}
+			if (row.Count == 7)
+			{
+				dateRange.Add(row);
+				row = new();
+			}
+			date = date.AddDays(1);
+		}
+	}
+
+	private async Task GetData()
+	{
+		dataList = await DbHrmTimekeeping.GetList(Layout.Company.id, Layout.User.id, filterDateS.Value.Ticks, filterDateE.Value.Ticks);
+
+	}
+
+	private async Task ChangeTimeDropdown(ChangeEventArgs e)
+	{
+		currentFilter = HrmService.FilterTime().FirstOrDefault(x => x.id == int.Parse(e.Value.ToString())).name;
+		Shared.GetTimeSpan(int.Parse(e.Value.ToString()), out DateTime start, out DateTime end);
+		filterDateS = start;
+		filterDateE = end;
+		SetupDateRange();
+		await GetData();
+	}
+
+	private async Task ChangeTimeDatepicker()
+	{
+		currentFilter = String.Empty;
+		SetupDateRange();
+		await GetData();
+	}
+
+	private bool CheckOutOfRange(DateTime date)
+	{
+		if (date.Ticks < filterDateS.Value.Ticks || date.Ticks > filterDateE.Value.Ticks)
+			return true;
+		else
+			return false;
+	}
+
+
+	/// <summary>
+	/// Lấy tổng số công thực tế ghi nhận trong ngày
+	/// </summary>
+	private double GetTimeRecord(HrmTimekeepingModel timekeeping)
+	{
+		double sum = timekeeping.time_tracking
+			.Where(x => x.time_type == "Check-out"
+				&& x.is_valid
+				&& timekeeping.time_tracking.Any(y => y.time_type == "Check-in"
+				&& y.checkin_id == x.checkin_id
+				&& y.is_valid))
+			.Sum(x => x.time_work);
+		return Math.Round(sum, 2);
+	}
+
+	private double GetSumShifts(List<HrmTimekeepingModel> timekeepings)
+	{
+		double sum = timekeepings
+			.SelectMany(x => x.time_tracking)
+			.Where(x => x.time_type == "Check-out"
+				&& x.is_valid
+				&& timekeepings.Any(y => y.time_tracking.Any(z => z.time_type == "Check-in"
+				&& z.checkin_id == x.checkin_id && z.is_valid)))
+			.GroupBy(x => x.checkin_id)
+			.Sum(g => g.Sum(x => x.time_work));
+		return Math.Round(sum, 2);
+	}
+
+	private void ShowPopup(long day, HrmTimekeepingModel item, string checkin_id)
+	{
+		popupDay = day;
+		popupData = item;
+		currentShift = item.time_tracking.FirstOrDefault(x => x.checkin_id == checkin_id && x.time_type == "Check-in");
+	}
+
+	private void ChangeShiftType(ChangeEventArgs e)
+	{
+		type = e.Value.ToString();
+	}
+
+	/// <summary>
+	/// Hàm dùng để lọc ca làm
+	/// </summary>
+	/// <param name="data">Dữ liệu tât cả ca làm</param>
+	/// <param name="shift">Dữ liệu ca làm checkin</param>
+
+	private bool CheckShiftType(HrmTimekeepingModel data, HrmTimekeepingModel.TimeData shift)
+	{
+		// Ca tính lương: Checkin + checkout has is_valid = true
+		if (type == "1")
+		{
+			return data.time_tracking.Any(l => l.time_type == "Check-in" && l.is_valid && l.time_id == shift.time_id && !l.is_ot)
+				&& data.time_tracking.Any(co => co.time_type == "Check-out" && co.is_valid && co.checkin_id == shift.checkin_id && !co.is_ot);
+		}
+		// Ca không tính lương: Checkin + checkout has is_valid = false
+		else if (type == "7")
+		{
+			return data.time_tracking.Any(l => l.time_type == "Check-in" && !l.is_valid && l.time_id == shift.time_id && !l.is_ot)
+				|| data.time_tracking.Any(co => co.time_type == "Check-out" && !co.is_valid && co.checkin_id == shift.checkin_id && !co.is_ot);
+		}
+		// Ca checkin trễ
+		else if (type == "2")
+		{
+			return data.time_tracking.Any(l => l.time_type == "Check-in" && l.time_id == shift.time_id && l.time_difference > 0);
+		}
+		// Ca checkout sớm
+		else if (type == "3")
+		{
+			return data.time_tracking.Any(l => l.time_type == "Check-out" && l.time_id == shift.time_id && l.time_difference > 0);
+		}
+		// Ca qua ngày
+		else if (type == "4")
+		{
+			return data.time_tracking.Any(l => l.time_id == shift.time_id && l.is_overday);
+		}
+		// Ca ngoài vị trí
+		else if (type == "5")
+		{
+			return data.time_tracking.Any(l => l.time_type == "Check-in" && !l.in_company && l.time_id == shift.time_id)
+				&& data.time_tracking.Any(co => co.time_type == "Check-out" && !co.in_company && co.checkin_id == shift.checkin_id);
+		}
+		// Ca làm ngoài giờ
+		else if (type == "6")
+		{
+			return data.time_tracking.Any(l => l.time_id == shift.time_id && l.is_ot);
+		}
+
+		return true;
+	}
+}

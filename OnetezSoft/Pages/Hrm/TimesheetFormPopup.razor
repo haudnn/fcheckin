@@ -1,0 +1,235 @@
+﻿<div class="modal is-active">
+  <div class="modal-background"></div>
+  <div class="modal-card is-medium">
+    <div class="modal-card-head">
+      <div class="modal-card-title">Đơn từ: @form.name - @form.sign</div>
+      <a class="delete is-medium" @onclick="Close"></a>
+    </div>
+    <div class="modal-card-body">
+      @if (historyForm.Count == 0)
+      {
+        <div>
+          Không có sử dụng đơn từ
+        </div>
+      }
+      else
+      {
+        <ul class="columns is-variable is-1 mb-3">
+          <li class="column is-narrow">
+            Số lần sử dụng đơn từ: @(historyForm.Count)
+          </li>
+          <li class="column is-narrow">
+            Tổng công: @totalTimeForm
+          </li>
+        </ul>
+        <table class="table is-fullwidth is-noborder">
+          <thead>
+            <tr style="background: #B6EBF5;" class="has-text-weight-semibold">
+              <th class="pl-1">Ngày áp dụng</th>
+              <th>Ngày phê duyệt</th>
+              <th>Ca áp dụng</th>
+              <th>Lý do áp dụng</th>
+              <th align="center">Công ghi nhận</th>
+            </tr>
+          </thead>
+          <tbody>
+            @{long day = 0;}
+            @foreach (var item in historyForm)
+            {
+              <tr>
+                @if (item.GetType().GetProperty("dateShift") != null && day != Convert.ToInt64(item.GetType().GetProperty("dateShift").GetValue(item, null)))
+                {
+                  <td class="pl-1" style="width:120px">
+                    @(new DateTime(Convert.ToInt64(item.GetType().GetProperty("dateShift").GetValue(item, null))).ToString("dd'/'MM'/'yyyy"))
+                  </td>
+                  day = Convert.ToInt64(item.GetType().GetProperty("dateShift").GetValue(item, null));
+                }
+                else
+                {
+                  <td></td>
+                }
+
+                <td>
+                  @if (item.GetType().GetProperty("dateConfirm") != null && Convert.ToInt64(item.GetType().GetProperty("dateConfirm").GetValue(item, null)) > 0)
+                  {
+                    @(new DateTime(Convert.ToInt64(item.GetType().GetProperty("dateConfirm").GetValue(item, null))).ToString("dd'/'MM'/'yyyy"))
+                  }
+                </td>
+
+                <td>
+                  @if (item.GetType().GetProperty("nameShift") != null)
+                  {
+                    <span>@item.GetType().GetProperty("nameShift").GetValue(item, null)</span>
+                  }
+                </td>
+
+                <td>
+                  @if (item.GetType().GetProperty("reason") != null)
+                  {
+                    <span>@item.GetType().GetProperty("reason").GetValue(item, null)</span>
+                  }
+                </td>
+
+                <td align="center">
+                  @if (item.GetType().GetProperty("time") != null)
+                  {
+                    <span>@Math.Round(Convert.ToDouble(item.GetType().GetProperty("time").GetValue(item, null)) , 2)</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </div>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public UserModel user { get; set; }
+  [Parameter]
+  public HrmRulesModel.Form form { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnClose { get; set; }
+  [Parameter]
+  public List<HrmTimesheetUserModel> timeSheetUsers { get; set; } = new();
+  [Parameter]
+  public List<HrmTimekeepingModel> dataTimekeeping { get; set; } = new();
+  [Parameter]
+  public List<HrmTimeListModel> dataTimeList { get; set; } = new();
+  [Parameter]
+  public List<HrmWorkShiftModel> dataWorkShift { get; set; } = new();
+  [Parameter]
+  public List<HrmFormModel> dataFormsList { get; set; } = new();
+  [Parameter]
+  public double totalTimeForm { get; set; }
+  [Parameter]
+  public HrmTimesheetModel timeSheet { get; set; }
+
+  private HrmTimesheetUserModel timeSheetUser = null;
+  private List<HrmTimekeepingModel> timekeepingList = new();
+  private HrmTimeListModel timeList = new();
+  private List<object> historyForm = new();
+
+
+  protected override void OnInitialized()
+  {
+    timekeepingList = dataTimekeeping.Where(i => i.user == user.id).ToList();
+    timeList = dataTimeList.Find(i => i.id == user.id);
+
+    timeSheetUser = Shared.Clone(timeSheetUsers.Find(i => i.user == user.id));
+
+    var endDate = (timeSheet.to > DateTime.Today.Ticks) ? DateTime.Today.Ticks : timeSheet.to;
+    var timesheetDates = timeSheetUser.timesheet_dates.Where(i => i.date <= endDate).ToList();
+
+    foreach (var timesheetDate in timesheetDates)
+    {
+      // thông tin hiển thị
+      var dateShiftObject = timesheetDate.date;
+      long dateConfirmObject = 0;
+      var nameShiftObject = "";
+      var reasonObject = "";
+      double timeObject = 0;
+
+      var timeDateList = timeList.shifts.Find(i => i.day == timesheetDate.date);
+      if (timeDateList != null && string.IsNullOrEmpty(timeDateList.dayoff_id))
+      {
+        foreach (var shiftId in timeDateList.shifts_id)
+        {
+          var checkLoad = false;
+          var workShift = dataWorkShift.Find(i => i.id == shiftId);
+
+          if (timesheetDate.shifts_edit.ContainsKey(shiftId) && timesheetDate.shifts_form.ContainsKey(shiftId))
+          {
+            // kiểm tra cái nào nạp sau
+            if (timesheetDate.shifts_edit[shiftId].updated > timesheetDate.shifts_form[shiftId].updated)
+            {
+              if (timesheetDate.shifts_edit[shiftId].form_id == form.id)
+              {
+                nameShiftObject = dataWorkShift.Find(i => i.id == shiftId).name;
+                reasonObject = timesheetDate.shifts_edit[shiftId].reason;
+                timeObject = timesheetDate.shifts_edit[shiftId].time_edit;
+                checkLoad = true;
+              }
+            }
+            else
+            {
+              var formItem = dataFormsList.Find(i => i.id == timesheetDate.shifts_form[workShift.id].form_id);
+              if (formItem.form.id == form.id)
+              {
+                nameShiftObject = dataWorkShift.Find(i => i.id == shiftId).name;
+                reasonObject = formItem.reason;
+                dateConfirmObject = formItem.confirm_date;
+                timeObject = formItem.form.has_shift_work ? Math.Round(workShift.value, 2) : 0;
+                checkLoad = true;
+              }
+            }
+          }
+          else if (timesheetDate.shifts_edit.ContainsKey(shiftId) && timesheetDate.shifts_edit[shiftId].form_id == form.id)
+          {
+            if (timesheetDate.shifts_edit[shiftId].form_id == form.id)
+            {
+              nameShiftObject = dataWorkShift.Find(i => i.id == shiftId).name;
+              reasonObject = timesheetDate.shifts_edit[shiftId].reason;
+              timeObject = timesheetDate.shifts_edit[shiftId].time_edit;
+              checkLoad = true;
+            }
+          }
+          else if (timesheetDate.shifts_form.ContainsKey(shiftId))
+          {
+            var formItem = dataFormsList.Find(i => i.id == timesheetDate.shifts_form[workShift.id].form_id);
+            if (formItem.form.id == form.id)
+            {
+              nameShiftObject = dataWorkShift.Find(i => i.id == shiftId).name;
+              reasonObject = formItem.reason;
+              dateConfirmObject = formItem.confirm_date;
+              timeObject = formItem.form.has_shift_work ? Math.Round(workShift.value, 2) : 0;
+              checkLoad = true;
+            }
+          }
+
+          if (checkLoad)
+          {
+            object resultObject = new
+            {
+              dateShift = dateShiftObject,
+              dateConfirm = dateConfirmObject,
+              nameShift = nameShiftObject,
+              reason = reasonObject,
+              time = timeObject
+            };
+            historyForm.Add(resultObject);
+          }
+        }
+      }
+
+      // TH: ca làm tạo mới những ngày cũ
+      if (timesheetDate.shifts_edit.Any() && !string.IsNullOrEmpty(timesheetDate.shifts_edit.FirstOrDefault().Value.work_name)
+          && timesheetDate.shifts_edit.FirstOrDefault().Value.form_id == form.id)
+      {
+        nameShiftObject = timesheetDate.shifts_edit.FirstOrDefault().Value.work_name;
+        reasonObject = timesheetDate.shifts_edit.FirstOrDefault().Value.reason;
+        timeObject = timesheetDate.shifts_edit.FirstOrDefault().Value.time_edit;
+
+        object resultObject = new
+        {
+          dateShift = dateShiftObject,
+          dateConfirm = dateConfirmObject,
+          nameShift = nameShiftObject,
+          reason = reasonObject,
+          time = timeObject
+        };
+
+        historyForm.Add(resultObject);
+      }
+    }
+  }
+
+  private async Task Close()
+  {
+    await OnClose.InvokeAsync(false);
+  }
+}

@@ -1,71 +1,33 @@
 
-@if(shift != null)
-{
-  <td align="center">
-    <label class="td-label">Check-in</label>
-    <div class="td-value">
-      @if(checkin != null)
-      {
-        bool isValid = HrmService.TimekeepingIsValid(checkin);
-        <span class="icon-text">
-          <span class="icon has-text-@(isValid ? "success" : "danger")">
-            <i class="material-icons is-size-6">
-              @(isValid ? "done" : "error_outline")
-            </i>
-          </span>
-          <span>@checkin.time_active</span>
-        </span>
-      }
-      else
-      {
-        <span class="icon-text has-text-danger">
-          <span class="icon">
-            <i class="material-icons is-size-6">error_outline</i>
-          </span>
-          <span>Không có dữ liệu</span>
-        </span>
-      }
-    </div>
-  </td>
-  <td align="center">
-    <label class="td-label">Check-out</label>
-    <div class="td-value">
-      @if(checkout != null && !string.IsNullOrEmpty(checkout.time_active))
-      {
-        bool isValid = HrmService.TimekeepingIsValid(checkout);
-        <span class="icon-text">
-          <span class="icon has-text-@(isValid ? "success" : "danger")">
-            <i class="material-icons is-size-6">
-              @(isValid ? "done" : "error_outline")
-            </i>
-          </span>
-          <span>@checkout.time_active</span>
-        </span>
-      }
-      else
-      {
-        <span class="icon-text has-text-danger">
-          <span class="icon">
-            <i class="material-icons is-size-6">error_outline</i>
-          </span>
-          <span>Không có dữ liệu</span>
-        </span>
-      }
-    </div>
-  </td>
-}
-else
-{
-  <td class="has-background-primary" align="center" colspan="2">
-    Không có ca làm
-  </td>
-}
+	@if(data.time_active != null)
+		{
+			@if(data.time_type == "Check-in")
+			{
+				<label style="width: 33.33%;" class=" is-secondary-40">
+					<span class="icon-text">
+						<span class="@(data.time_difference > 0 && !data.is_ot ? "has-text-danger" : "has-text-success")">@data.time_active:00</span>
+					</span>
+				</label>
+			}
+			else
+			{
+				<label style="width: 33.33%;" class=" is-secondary-40">
+					<span class="icon-text">
+						<span class="@(data.time_difference > 0 && !data.is_ot ? "has-text-danger" : "has-text-success")">@data.time_active:00</span>
+					</span>
+				</label>
+			}
+		}
+		else
+		{
+			<label style="width: 33.33%;">
+				<span class="icon-text has-text-danger">
+					<span>Không có</span>
+				</span>
+			</label>
+		}
 
 @code {
   [Parameter]
-  public HrmWorkShiftModel shift { get; set; }
-  [Parameter]
-  public HrmTimekeepingModel.TimeData checkin { get; set; }
-  [Parameter]
-  public HrmTimekeepingModel.TimeData checkout { get; set; }
+  public HrmTimekeepingModel.TimeData data { get; set; }
 }

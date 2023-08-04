@@ -15,6 +15,9 @@ namespace OnetezSoft.Data
 
     public static async Task<TodolistModel.Todo> Create(string companyId, TodolistModel.Todo model)
     {
+       if (string.IsNullOrEmpty(model.id))
+        model.id = Mongo.RandomId();
+
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<TodolistModel.Todo>(_collection);

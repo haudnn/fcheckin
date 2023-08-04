@@ -1,0 +1,1106 @@
+﻿@using System.Globalization;
+@inject IJSRuntime JSRuntime
+
+<div class="columns is-variable is-0" style="height:100%">
+  @if (!string.IsNullOrEmpty(timeSheetEdit.work_name) || workShift.Count > 0)
+  {
+    <div class="column is-narrow" style="background:#fbfbfb">
+      <div class="columns is-multiline is-variable is-2 scrolly" style="height:100%">
+        <div class="column is-full">
+          @foreach (var shift in workShift)
+          {
+            if (edit || !string.IsNullOrEmpty(timeSheetEdit.work_name))
+            {
+              <div class="column is-narrow" style="width:200px" title="@((!string.IsNullOrEmpty(shift.checkin) && !string.IsNullOrEmpty(shift.checkout))
+                                                                          ? $": {shift.checkin} - {shift.checkout}" : "")">
+                <div class="button @(shift.id == selectShift.id ? "is-link is-light has-text-weight-semibold" : "is-transparent")"
+                     style="max-width:100%">
+                  <span class="text_1_line">
+                    @shift.name
+                  </span>
+                </div>
+              </div>
+            }
+            else
+            {
+              <div class="column is-narrow" style="width:200px" title="@((!string.IsNullOrEmpty(shift.checkin) && !string.IsNullOrEmpty(shift.checkout))
+                                                                          ? $"{shift.checkin} - {shift.checkout}" : "")">
+                <div class="button @(selectShift != null && shift.id == selectShift.id ? "is-link is-light has-text-weight-semibold" : "is-transparent")"
+                @onclick="() => ChangeWorkShift(shift)"
+                     style="max-width:100%">
+                  <span class="text_1_line">
+                    @shift.name
+                  </span>
+                </div>
+              </div>
+            }
+          }
+        </div>
+      </div>
+    </div>
+  }
+  <div class="column">
+    <div class="p-3 is-flex" style="height:100%;flex-direction:column">
+      @if (workShift.Count == 0)
+      {
+        <div class="mb-4">
+          Không có dữ liệu phân ca
+        </div>
+      }
+      <div class="mb-2">
+        <div class="columns is-mobile is-variable is-2">
+          <div class="column">
+            <span class="has-text-weight-medium">Họ và tên: </span>
+            <span>@user.FullName</span>
+          </div>
+          <div class="column">
+            <span class="has-text-weight-medium">Công ngày: </span>
+            <span>@timeSalary</span>
+          </div>
+        </div>
+      </div>
+      <div class="columns is-mobile is-variable is-2">
+        <div class="column">
+          <span class="has-text-weight-medium">Ngày: </span>
+          <span>@date.ToString("dd/MM/yyyy")</span>
+          @if (timeSheetDate.locked)
+          {
+            <span class="ml-1 has-text-danger">(Đã khoá)</span>
+          }
+          @if (checkDayOff)
+          {
+            <span class="ml-1 has-text-danger">(Ngày nghỉ)</span>
+          }
+        </div>
+      </div>
+      @if (selectShift != null)
+      {
+        <hr class="my-2" />
+        <div class="columns is-mobile is-variable is-2">
+          <div class="column">
+            <div class="mb-1">
+              <span class="has-text-weight-bold mr-2">
+                @selectShift.name @((!string.IsNullOrEmpty(selectShift.checkin) && !string.IsNullOrEmpty(selectShift.checkout))
+              ? $": {selectShift.checkin} - {selectShift.checkout}" : "")
+              </span>
+
+              @if (worksIdDelete.Contains(selectShift.id))
+              {
+                <span class="has-text-danger">
+                  (Đã xoá)
+                </span>
+              }
+            </div>
+          </div>
+          <div class="column">
+            @if (!checkDayOff || (inData != null && outData != null && inData.is_ot && outData.is_ot))
+            {
+              if (!string.IsNullOrEmpty(nameTime))
+              {
+                <span class="has-text-weight-medium">@nameTime: </span>
+                <span>@timeByShift</span>
+              }
+            }
+          </div>
+        </div>
+        <div class="mb-1 is-flex is-align-content-center" style="line-height:24px">
+          <span class="has-text-weight-medium" style="width: 120px;">
+            Giờ check-in:
+          </span>
+          @if (inData != null && !Shared.IsEmpty(inData.time_active))
+          {
+            <span class="@(inData.time_difference > 0 && !inData.is_ot ? "has-text-danger" : "")">
+              @inData.time_active @(inData.time_difference > 0 && !inData.is_ot ? $" - Đi trễ {inData.time_difference} phút" : "")
+            </span>
+            @if (!inData.in_company)
+            {
+              <span class="icon-text has-text-danger">
+                <span class="icon">
+                  <span class="material-icons-outlined">place</span>
+                </span>
+                <span class="">Ngoài vị trí</span>
+              </span>
+            }
+          }
+          else
+          {
+            <span class="">
+              Không có dữ liệu
+            </span>
+          }
+        </div>
+        @if (inData != null && !inData.in_company && !Shared.IsEmpty(inData.time_active))
+        {
+          <div class="pl-4 mb-2">
+            <div class="mb-1">
+              <span class="has-text-weight-medium">
+                Lý do:
+              </span>
+              <span>@inData.reason</span>
+            </div>
+            <div class="mb-1">
+              <span class="has-text-weight-medium">
+                Ghi chú:
+              </span>
+              <span>@inData.note</span>
+            </div>
+            @if (inData.images.Count > 0)
+            {
+              @foreach (var image in inData.images)
+              {
+                <div class="mb-1">
+                  <img src="@image" alt="In Outside" class="image" style="border-radius:5px;max-height:100px;object-fit:cover;" />
+                </div>
+              }
+            }
+          </div>
+        }
+
+        <div class="mb-1 is-flex is-align-content-center" style="line-height:24px;">
+          <span class="has-text-weight-medium" style="width: 120px;">
+            Giờ check-out:
+          </span>
+          @if (outData != null && !Shared.IsEmpty(outData.time_active))
+          {
+            <span class="@(outData.time_difference > 0 && !outData.is_ot ? "has-text-danger" : "")">
+              @outData.time_active @(outData.time_difference > 0 && !outData.is_ot ? $" - Về sớm {outData.time_difference} phút" : "")
+            </span>
+            @if (!outData.in_company)
+            {
+              <span class="icon-text has-text-danger">
+                <span class="icon">
+                  <span class="material-icons-outlined">place</span>
+                </span>
+                <span class="">Ngoài vị trí</span>
+              </span>
+            }
+          }
+          else
+          {
+            <span class="">
+              Không có dữ liệu
+            </span>
+          }
+        </div>
+
+        @if (outData != null && !outData.in_company && !Shared.IsEmpty(outData.time_active))
+        {
+          <div class="pl-4 mb-2">
+            <div class="mb-1">
+              <span class="has-text-weight-medium">
+                Lý do:
+              </span>
+              <span>@outData.reason</span>
+            </div>
+            <div class="mb-1">
+              <span class="has-text-weight-medium">
+                Ghi chú:
+              </span>
+              <span>@outData.note</span>
+            </div>
+            @if (outData.images.Count > 0)
+            {
+              @foreach (var image in outData.images)
+              {
+                <div class="mb-1">
+                  <img src="@image" alt="In Outside" class="image" style="border-radius:5px;max-height:100px;object-fit:cover;" />
+                </div>
+              }
+            }
+          </div>
+        }
+
+        @if (!checkDayOff && (inData != null && !inData.is_ot))
+        {
+          <div class="mb-2 is-flex is-align-items-center">
+            <span style="width: 120px;">Công ghi nhận:</span>
+            <span>@((inData == null && outData == null) || (!inData.is_valid || !outData.is_valid) ? 0 : Math.Round(inData.time_work, 2))</span>
+          </div>
+        }
+
+        // ca làm ngoài giờ
+        @if (inData != null && outData != null && !string.IsNullOrEmpty(inData.time_active) && !string.IsNullOrEmpty(outData.time_active) && inData.is_ot)
+        {
+          <div class="mb-1 is-flex is-align-content-center" style="line-height:24px;">
+            <span class="has-text-weight-medium" style="width: 120px;">
+              Tổng giờ làm:
+            </span>
+            <span>
+              @(timeDifference > 0 ? $"{timeDifference} phút" : "0 phút")
+            </span>
+          </div>
+        }
+
+        <!--Dữ liệu đơn từ-->
+        @if (formSelect != null)
+        {
+          <hr class="my-2" />
+          <div class="mb-2 has-text-weight-bold">
+            Dữ liệu đơn từ:
+          </div>
+          <div class="mb-2 is-flex is-align-items-center">
+            <span class="has-text-weight-medium" style="width:120px">
+              Ngày phê duyệt:
+            </span>
+            <span>@(new DateTime(formSelect.confirm_date).ToString("dd/MM/yyyy"))</span>
+          </div>
+
+          <div class="mb-2 is-flex is-align-items-center">
+            <span class="has-text-weight-medium" style="width:120px">
+              Đơn từ áp dụng:
+            </span>
+            <span>@formSelect.form.name</span>
+          </div>
+
+          <div class="mb-2 is-flex is-align-items-center">
+            <span class="has-text-weight-medium" style="width:120px">
+              Công đơn từ:
+            </span>
+            <span>@(formSelect.form.has_shift_work ? selectShift.value : "0")</span>
+          </div>
+        }
+      }
+      @if (canEdit)
+      {
+        if (edit)
+        {
+          <hr class="my-2" />
+          <div class="mb-2 has-text-weight-bold">
+            Chỉnh sửa ca làm:
+          </div>
+          @if (workShift.Count == 0 || !string.IsNullOrEmpty(timeSheetEdit.work_name))
+          {
+            <div class="mb-2 is-flex is-align-items-center">
+              <span class="has-text-weight-medium" style="width:120px">
+                Tên ca làm:
+              </span>
+              <input class="input" @bind="workName"
+                     type="text"
+                     style="flex: 1 1 0%;" />
+            </div>
+          }
+
+          @if (((inData != null || outData != null) && (!inData.is_ot)) || (inData == null && outData == null))
+          {
+            <div class="mb-2 is-flex is-align-items-center">
+              <span class="has-text-weight-medium" style="width:120px">
+                Thiết lập công:
+              </span>
+              <div class="select is-fullwidth" style="flex: 1 1 0%;">
+                <select @onchange="ChangeForm">
+                  <option value="1" selected="@(currentForm.id == "1")">Công tính lương</option>
+                  @foreach (var form in forms)
+                  {
+                    if (form.is_active)
+                    {
+                      <option value="@form.id" selected="@(form.id == timeSheetEdit.form_id)">@form.sign • @form.name</option>
+                    }
+                  }
+                  <option value="0" selected="@(currentForm.id == "0")">Công không tính lương</option>
+                </select>
+              </div>
+            </div>
+          }
+
+          <div class="mb-2 is-flex is-align-items-center">
+            <span class="has-text-weight-medium" style="width:120px">
+              Công chỉnh sửa:
+            </span>
+            @if (currentForm.has_shift_work || string.IsNullOrEmpty(currentForm.id))
+            {
+              <input class="input"
+                     type="number" @bind="timeSheetEdit.time_edit" min="0"
+                     style="flex: 1 1 0%;" />
+            }
+            else
+            {
+              <span class="input" style="flex: 1 1 0%;">0</span>
+            }
+          </div>
+          <div class="mb-2 is-flex">
+            <p class="has-text-weight-medium" style="width:120px;height:35px;line-height:35px">
+              Lý do chỉnh sửa
+            </p>
+            <textarea class="textarea has-fixed-size"
+                      rows="2" @bind="reason"
+                      style="min-width:auto;flex: 1 1 0%;" />
+          </div>
+        }
+        else
+        {
+          if (((inData != null || outData != null)
+          && (((!string.IsNullOrEmpty(inData.time_id) && timeSheetDate.shifts_edit.ContainsKey(inData.time_id)) || (inData.is_ot && timeSheetDate.shifts_edit.ContainsKey(inData.checkin_id))) && timeSheetEdit.updated > 0))
+          || !string.IsNullOrEmpty(timeSheetEdit.work_name)
+          || ((inData == null || outData == null) && selectShift != null && !string.IsNullOrEmpty(selectShift.id) && timeSheetDate.shifts_edit.ContainsKey(selectShift.id)))
+          {
+            <hr class="my-2" />
+            <div class="mb-2 has-text-weight-bold">
+              Dữ liệu chỉnh sửa:
+            </div>
+            @if (workShift.Count == 0)
+            {
+              <div class="mb-2 is-flex is-align-items-center">
+                <span class="has-text-weight-medium" style="width:120px">
+                  Tên ca làm:
+                </span>
+                <span>@workName</span>
+              </div>
+            }
+            <div class="mb-2 is-flex is-align-items-center">
+              <span class="has-text-weight-medium" style="width:120px">
+                Ngày chỉnh sửa:
+              </span>
+              <span>@(new DateTime(timeSheetEdit.updated).ToString("dd/MM/yyyy"))</span>
+            </div>
+            @if (((inData != null || outData != null) && (!inData.is_ot)) || (inData == null && outData == null))
+            {
+              <div class="mb-2 is-flex is-align-items-center">
+                <span class="has-text-weight-medium" style="width:120px">
+                  Thiết lập công:
+                </span>
+                <span>
+                  @(!string.IsNullOrEmpty(timeSheetEdit.form_sign) && (timeSheetEdit.form_id != "0" || timeSheetEdit.form_id != "1")
+                      ? $"{timeSheetEdit.form_sign} - " : "") @timeSheetEdit.form_name
+                </span>
+              </div>
+            }
+            <div class="mb-2 is-flex is-align-items-center">
+              <span class="has-text-weight-medium" style="width:120px">
+                Công chỉnh sửa:
+              </span>
+              <span>@Math.Round(timeSheetEdit.time_edit, 2)</span>
+            </div>
+            <div class="mb-2 is-flex">
+              <span class="has-text-weight-medium" style="width:120px">
+                Lý do chỉnh sửa:
+              </span>
+              <span>@timeSheetEdit.reason</span>
+            </div>
+          }
+        }
+        <hr class="my-4" />
+        @if ((date.Ticks < DateTime.Today.Ticks
+       || (date.Ticks == DateTime.Today.Ticks
+       && inData != null && outData != null
+       && !string.IsNullOrEmpty(inData.time_active)
+       && !string.IsNullOrEmpty(outData.time_active)))
+       && !timeSheetDate.locked && (!checkDayOff || (inData != null && outData != null && inData.is_ot && outData.is_ot)))
+        {
+          <div class="is-flex is-justify-content-flex-end mt-auto" style="gap:10px;">
+            <a class="button is-transparent has-text-link" @onclick="Cancel">
+              @(edit ? "Hủy" : "Đóng")
+            </a>
+            <a class="button is-link" @onclick="Update">
+              <span class="icon">
+                <span class="material-icons-outlined">
+                  @(edit ? "check" : "edit")
+                </span>
+              </span>
+              <span>
+                @(edit ? "Hoàn tất" : "Chỉnh sửa")
+              </span>
+            </a>
+          </div>
+        }
+      }
+      else
+      {
+        if (((inData != null || outData != null)
+               && (((!string.IsNullOrEmpty(inData.time_id) && timeSheetDate.shifts_edit.ContainsKey(inData.time_id)) || (inData.is_ot && timeSheetDate.shifts_edit.ContainsKey(inData.checkin_id))) && timeSheetEdit.updated > 0))
+            || !string.IsNullOrEmpty(timeSheetEdit.work_name)
+            || ((inData == null || outData == null) && selectShift != null && !string.IsNullOrEmpty(selectShift.id) && timeSheetDate.shifts_edit.ContainsKey(selectShift.id)))
+        {
+          <hr class="my-2" />
+          <div class="mb-2 has-text-weight-bold">
+            Dữ liệu chỉnh sửa:
+          </div>
+          @if (workShift.Count == 0)
+          {
+            <div class="mb-2 is-flex is-align-items-center">
+              <span class="has-text-weight-medium" style="width:120px">
+                Tên ca làm:
+              </span>
+              <span>@workName</span>
+            </div>
+          }
+          <div class="mb-2 is-flex is-align-items-center">
+            <span class="has-text-weight-medium" style="width:120px">
+              Ngày chỉnh sửa:
+            </span>
+            <span>@(new DateTime(timeSheetEdit.updated).ToString("dd/MM/yyyy"))</span>
+          </div>
+          @if (((inData != null || outData != null) && (!inData.is_ot)) || (inData == null && outData == null))
+          {
+            <div class="mb-2 is-flex is-align-items-center">
+              <span class="has-text-weight-medium" style="width:120px">
+                Thiết lập công:
+              </span>
+              <span>
+                @(!string.IsNullOrEmpty(timeSheetEdit.form_sign) && (timeSheetEdit.form_id != "0" || timeSheetEdit.form_id != "1")
+                    ? $"{timeSheetEdit.form_sign} - " : "") @timeSheetEdit.form_name
+              </span>
+            </div>
+          }
+          <div class="mb-2 is-flex is-align-items-center">
+            <span class="has-text-weight-medium" style="width:120px">
+              Công chỉnh sửa:
+            </span>
+            <span>@Math.Round(timeSheetEdit.time_edit, 2)</span>
+          </div>
+          <div class="mb-2 is-flex">
+            <span class="has-text-weight-medium" style="width:120px">
+              Lý do chỉnh sửa:
+            </span>
+            <span>@timeSheetEdit.reason</span>
+          </div>
+        }
+      }
+    </div>
+  </div>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public UserModel user { get; set; }
+  [Parameter]
+  public HrmTimekeepingModel.TimeData inData { get; set; } = null;
+  [Parameter]
+  public HrmTimekeepingModel.TimeData outData { get; set; } = null;
+  [Parameter]
+  public EventCallback<HrmTimekeepingModel.TimeData> inDataChanged { get; set; }
+  [Parameter]
+  public EventCallback<HrmTimekeepingModel.TimeData> outDataChanged { get; set; }
+  [Parameter]
+  public DateTime date { get; set; }
+  [Parameter]
+  public List<HrmRulesModel.Form> forms { get; set; }
+  [Parameter]
+  public bool canEdit { get; set; }
+  [Parameter]
+  public EventCallback<HrmTimesheetUserModel> OnUpdate { get; set; }
+  [Parameter]
+  public List<HrmTimesheetUserModel> timeSheetUsers { get; set; } = new();
+  [Parameter]
+  public List<HrmTimesheetLogModel> editLogs { get; set; }
+  [Parameter]
+  public HrmWorkShiftModel selectShiftDetail { get; set; }
+  [Parameter]
+  public double timeSalary { get; set; }
+  [Parameter]
+  public List<HrmWorkShiftModel> workShiftSelected { get; set; } = new();
+  [Parameter]
+  public HrmTimekeepingModel timekeeping { get; set; }
+  [Parameter]
+  public bool checkDayOff { get; set; }
+  [Parameter]
+  public List<HrmFormModel> dataFormsList { get; set; } = new();
+  [Parameter]
+  public List<string> worksIdDelete { get; set; } = new();
+
+  private HrmWorkShiftModel selectShift;
+
+  private HrmTimesheetUserModel timeSheetUser = null;
+  private HrmTimesheetUserModel.TimeSheetDate timeSheetDate;
+  private HrmTimesheetUserModel.TimeSheetEdit timeSheetEdit;
+  private HrmRulesModel.Form currentForm;
+  private bool edit;
+  private string nameTime;
+  private List<HrmFormModel> formsList = new();
+
+  private List<HrmWorkShiftModel> workShift = new();
+  private string workName;
+  private string reason;
+  private double timeDifference;
+  private string oldContentLog;
+  private HrmFormModel formSelect;
+  private double timeByShift;
+
+
+  protected override void OnInitialized()
+  {
+    timeSheetUser = Shared.Clone(timeSheetUsers.Find(i => i.user == user.id));
+    timeSheetDate = Shared.Clone(timeSheetUser.timesheet_dates.Find(i => i.date == date.Ticks));
+
+    formsList = dataFormsList.OrderBy(i => i.is_confirm).ToList();
+
+    #region Thêm tất cả ca làm đã chấm công, ca làm tự tạo, ca làm OT vào 1 danh sách
+    workShift.AddRange(workShiftSelected);
+
+    // Thêm những ca OT
+    // id ca là checkin_id
+    if (timekeeping != null)
+    {
+      var otShift = timekeeping.time_tracking.Where(i => i.is_ot).GroupBy(i => i.checkin_id);
+      if (otShift.Any())
+      {
+        foreach (var item in otShift)
+        {
+          var _in = timekeeping.time_tracking.Find(i => i.checkin_id == item.Key && i.time_type == "Check-in");
+          var _out = timekeeping.time_tracking.Find(i => i.checkin_id == item.Key && i.time_type == "Check-out");
+          workShift.Add(new()
+          {
+            id = _in.checkin_id,
+            name = _in.time_name,
+            value = 0
+          });
+        }
+      }
+    }
+
+    // Thêm những ca tự tạo
+    if (timeSheetDate != null)
+    {
+      var anotherShift = timeSheetDate.shifts_edit.Values.Where(i => !string.IsNullOrEmpty(i.work_name));
+      if (anotherShift.Any())
+      {
+        foreach (var item in anotherShift)
+        {
+          workShift.Add(new()
+          {
+            name = item.work_name,
+            value = Math.Round(item.time_edit, 2)
+          });
+        }
+      }
+    }
+    #endregion
+
+    #region Chọn ca làm, và lấy dữ liệu ca làm
+    // TH: bảng công tổng hợp, lấy cái mới chấm công gần nhất
+    if ((inData == null || outData == null) && selectShiftDetail == null && timekeeping != null)
+    {
+      if (workShift.Any())
+      {
+        var inOut = timekeeping.time_tracking.OrderBy(i => i.time_active_tick).ToList();
+        if (inOut.Any())
+        {
+          if (inOut.LastOrDefault().time_type == "Check-in")
+          {
+            inData = inOut.LastOrDefault();
+            outData = inOut.Find(i => i.checkin_id == inData.checkin_id && i.time_type == "Check-out");
+          }
+          else
+          {
+            outData = inOut.LastOrDefault();
+            inData = inOut.Find(i => i.checkin_id == outData.checkin_id && i.time_type == "Check-in");
+          }
+        }
+      }
+    }
+
+    // TH: đã có dữ liệu chấm công
+    if (inData != null || outData != null)
+    {
+      selectShift = workShift.Find(x => x.id == inData.time_id || x.id == outData.time_id || x.id == inData.checkin_id || x.id == outData.checkin_id);
+      if (inData.is_ot && outData.is_ot)
+      {
+        //TH: OT
+        if (timeSheetDate != null && timeSheetDate.shifts_edit.ContainsKey(inData.checkin_id))
+          timeSheetEdit = timeSheetDate.shifts_edit[inData.checkin_id];
+      }
+      else
+      {
+        if (timeSheetDate != null && !Shared.IsEmpty(inData.time_id) && timeSheetDate.shifts_edit.ContainsKey(inData.time_id))
+          timeSheetEdit = timeSheetDate.shifts_edit[inData.time_id];
+      }
+    }
+    else
+    {
+      //TH: những ca làm chưa chấm công nhưng đã được chỉnh sửa
+      if (selectShiftDetail != null)
+      {
+        selectShift = selectShiftDetail;
+        if (timeSheetDate.shifts_edit.ContainsKey(selectShift.id))
+          timeSheetEdit = timeSheetDate.shifts_edit[selectShift.id];
+      }
+      else
+      {
+        if (timeSheetDate != null)
+        {
+          foreach (var item in timeSheetDate.shifts_edit.Keys)
+          {
+            if (workShift.Select(i => i.id).Contains(item))
+            {
+              selectShift = workShift.FirstOrDefault(i => i.id == item);
+            }
+          }
+
+          //TH: ca làm đã chỉnh sửa nhưng chưa chấm công
+          if (selectShift != null && !string.IsNullOrEmpty(selectShift.id) && timeSheetDate.shifts_edit.ContainsKey(selectShift.id))
+            timeSheetEdit = timeSheetDate.shifts_edit[selectShift.id];
+
+          // TH: ca làm tự tạo
+          if (timeSheetDate.shifts_edit.Any() && !string.IsNullOrEmpty(timeSheetDate.shifts_edit.Values.FirstOrDefault().work_name))
+          {
+            selectShift = workShift.FirstOrDefault();
+            timeSheetEdit = timeSheetDate.shifts_edit.Values.FirstOrDefault();
+            workName = timeSheetEdit.work_name;
+          }
+        }
+      }
+    }
+    #endregion
+
+    //TH: có phân ca nhưng không có dữ liệu nào cả
+    if (selectShift == null && workShiftSelected.Any())
+    {
+      selectShift = workShiftSelected.FirstOrDefault();
+    }
+
+    GetFormSelect();
+
+    // TH chưa có dữ liệu
+    if (timeSheetEdit == null)
+      timeSheetEdit = new();
+
+    // Tính thời gian chênh lệch OT
+    GetDifferenceTimeOt();
+
+    // Ghi lịch sử chỉnh sửa
+    GetOldLog();
+
+    // tên kiểu công ghi nhận
+    if (selectShift != null)
+      GetNameTime();
+  }
+
+  /// <summary>Tính số giờ làm OT</summary>
+  private void GetDifferenceTimeOt()
+  {
+    if (timekeeping != null && selectShift != null && string.IsNullOrEmpty(selectShift.checkin) && string.IsNullOrEmpty(selectShift.checkout))
+    {
+      var otShift = timekeeping.time_tracking.Where(i => i.is_ot).GroupBy(i => i.checkin_id);
+      foreach (var item in otShift)
+      {
+        if (item.Key == selectShift.id)
+        {
+          var _in = timekeeping.time_tracking.Find(i => i.checkin_id == item.Key && i.time_type == "Check-in");
+          var _out = timekeeping.time_tracking.Find(i => i.checkin_id == item.Key && i.time_type == "Check-out");
+          TimeSpan timeSpan = TimeSpan.FromTicks(_out.time_active_tick - _in.time_active_tick);
+          timeDifference = Math.Round(timeSpan.TotalMinutes);
+        }
+      }
+    }
+  }
+
+  private void ChangeForm(ChangeEventArgs e)
+  {
+    var value = e.Value.ToString();
+    currentForm = forms.Find(x => x.id == value && x.is_active);
+
+    if (currentForm == null)
+    {
+      if (value == "1")
+        currentForm = new()
+        {
+          id = "1",
+          name = "Công tính lương",
+          has_shift_work = true
+        };
+
+      if (value == "0")
+        currentForm = new()
+        {
+          id = "0",
+          name = "Công không tính lương",
+          has_shift_work = false
+        };
+    }
+
+    if ((inData != null && ((timeSheetDate.shifts_edit.ContainsKey(inData.checkin_id) && inData.is_ot) || (!Shared.IsEmpty(inData.time_id) && timeSheetDate.shifts_edit.ContainsKey(inData.time_id))))
+         || !string.IsNullOrEmpty(timeSheetEdit.work_name)
+         || (inData == null && selectShift != null && !string.IsNullOrEmpty(selectShift.id) && timeSheetDate.shifts_edit.ContainsKey(selectShift.id)))
+    {
+      // cập nhật lại đơn từ
+      timeSheetEdit.form_id = value;
+      timeSheetEdit.form_name = currentForm.name;
+      timeSheetEdit.form_sign = currentForm.sign;
+
+      if (inData != null)
+        timeSheetEdit.is_ot = inData.is_ot;
+
+      if (inData != null && currentForm.has_shift_work)
+        timeSheetEdit.time_edit = Math.Round(inData.time_work, 2);
+      else
+        timeSheetEdit.time_edit = 0;
+    }
+    else
+    {
+      // tạo đơn từ mới
+      timeSheetEdit = new()
+      {
+        form_id = value,
+        form_name = currentForm.name,
+        form_sign = currentForm.sign,
+      };
+
+      if (inData != null && currentForm.has_shift_work)
+        timeSheetEdit.time_edit = Math.Round(inData.time_work, 2);
+      else
+        timeSheetEdit.time_edit = 0;
+    }
+  }
+
+  private async Task ChangeWorkShift(HrmWorkShiftModel inout)
+  {
+    selectShift = inout;
+
+    if (timekeeping != null)
+    {
+      var inOut = timekeeping.time_tracking.GroupBy(i => i.checkin_id);
+      inData = timekeeping.time_tracking.Find(x => (x.time_id == inout.id || x.checkin_id == inout.id) && x.time_type == "Check-in");
+      outData = timekeeping.time_tracking.Find(x => (x.time_id == inout.id || x.checkin_id == inout.id) && x.time_type == "Check-out");
+      await inDataChanged.InvokeAsync(inData);
+      await outDataChanged.InvokeAsync(outData);
+      if (inData == null || outData == null)
+      {
+        if (timeSheetDate != null && selectShift != null && !string.IsNullOrEmpty(selectShift.id) && timeSheetDate.shifts_edit.ContainsKey(selectShift.id))
+        {
+          timeSheetEdit = timeSheetDate.shifts_edit[selectShift.id];
+        }
+        else
+          timeSheetEdit = new();
+      }
+      else
+      {
+        if (timeSheetDate != null && ((timeSheetDate.shifts_edit.ContainsKey(inData.checkin_id) && inData.is_ot) || (!Shared.IsEmpty(inData.time_id) && timeSheetDate.shifts_edit.ContainsKey(inData.time_id))))
+        {
+          if (inData.is_ot)
+            timeSheetEdit = timeSheetDate.shifts_edit[inData.checkin_id];
+          else
+            timeSheetEdit = timeSheetDate.shifts_edit[inData.time_id];
+        }
+        else
+          timeSheetEdit = new();
+      }
+
+      reason = timeSheetEdit.reason;
+      GetDifferenceTimeOt();
+    }
+    else
+    {
+      //TH: ca làm đã chỉnh sửa nhưng chưa chấm công
+      if (selectShift != null && !string.IsNullOrEmpty(selectShift.id) && timeSheetDate.shifts_edit.ContainsKey(selectShift.id))
+        timeSheetEdit = timeSheetDate.shifts_edit[selectShift.id];
+      else
+        timeSheetEdit = new();
+    }
+    GetFormSelect();
+    GetNameTime();
+  }
+
+  private async Task Cancel()
+  {
+    if (edit)
+    {
+      edit = false;
+      //reset dữ liệu
+      workShift = new();
+      timeSheetEdit = null;
+      workName = string.Empty;
+      reason = string.Empty;
+      OnInitialized();
+    }
+    else
+      await OnUpdate.InvokeAsync(null);
+  }
+
+  private async Task Update()
+  {
+    if (edit == false)
+    {
+      // lấy dữ liệu trước khi chỉnh sửa
+      reason = string.Empty;
+      edit = true;
+      if (inData != null && !inData.is_ot && timeSheetDate != null && !Shared.IsEmpty(inData.time_id) && timeSheetDate.shifts_edit.ContainsKey(inData.time_id))
+      {
+        timeSheetEdit = timeSheetDate.shifts_edit[inData.time_id];
+        UpdateFormEdit();
+      }
+      else if (selectShift != null && !string.IsNullOrEmpty(selectShift.id) && timeSheetDate.shifts_edit.ContainsKey(selectShift.id))
+      {
+        timeSheetEdit = timeSheetDate.shifts_edit[selectShift.id];
+        UpdateFormEdit();
+      }
+      else if (inData == null && !string.IsNullOrEmpty(workName))
+      {
+        timeSheetEdit = timeSheetDate.shifts_edit.FirstOrDefault().Value;
+        UpdateFormEdit();
+      }
+      else
+      {
+        // chưa có dữ liệu chỉnh sửa
+        currentForm = new()
+        {
+          id = "1",
+          name = "Công tính lương",
+          has_shift_work = true
+        };
+      }
+    }
+    else
+    {
+      // Validate
+      if (workShift.Count == 0 && string.IsNullOrEmpty(workName))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên ca làm của bảng công!");
+      else if (Shared.IsEmpty(reason))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập lý do chỉnh sửa của bảng công!");
+      else if (timeSheetEdit.time_edit < 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập công ghi nhận của bảng công!");
+      else
+      {
+        edit = false;
+        if (!string.IsNullOrEmpty(workName))
+        {
+          // Tạo ca làm mới
+          timeSheetEdit.updated = DateTime.Now.Ticks;
+          timeSheetEdit.work_name = workName;
+          timeSheetEdit.reason = reason;
+          timeSheetEdit.form_id = currentForm.id;
+          timeSheetEdit.form_name = currentForm.name;
+          timeSheetEdit.form_sign = currentForm.sign;
+          timeSheetEdit.time_edit = Math.Round(timeSheetEdit.time_edit, 2);
+
+          if (!currentForm.has_shift_work)
+            timeSheetEdit.time_edit = 0;
+
+          timeSheetUser.timesheet_dates.RemoveAll(i => i.date == timeSheetDate.date);
+
+          // chỉnh sửa ca làm mới
+          if (timeSheetDate.shifts_edit.Any())
+            timeSheetDate.shifts_edit[timeSheetDate.shifts_edit.FirstOrDefault().Key] = timeSheetEdit;
+          else
+            timeSheetDate.shifts_edit.Add(Guid.NewGuid().ToString(), timeSheetEdit);
+
+          timeSheetDate.date = date.Ticks;
+
+          timeSheetUser.timesheet_dates.Add(timeSheetDate);
+        }
+        else
+        {
+          //TH: ca làm OT (Không áp dụng đơn từ)
+          if (inData != null && outData != null && (inData.is_ot || outData.is_ot))
+            currentForm = new();
+
+          timeSheetEdit.updated = DateTime.Now.Ticks;
+          timeSheetEdit.form_id = currentForm.id;
+          timeSheetEdit.form_name = currentForm.name;
+          timeSheetEdit.form_sign = currentForm.sign;
+          timeSheetEdit.reason = reason;
+          timeSheetEdit.time_edit = Math.Round(timeSheetEdit.time_edit, 2);
+
+          if (!currentForm.has_shift_work && !string.IsNullOrEmpty(currentForm.id))
+            timeSheetEdit.time_edit = 0;
+
+          if (inData != null && outData != null)
+          {
+            timeSheetEdit.is_ot = inData.is_ot;
+            if (inData.is_ot)
+            {
+              // TH: OT
+              if (timeSheetDate.shifts_edit.ContainsKey(inData.checkin_id))
+                timeSheetDate.shifts_edit[inData.checkin_id] = timeSheetEdit;
+              else
+                timeSheetDate.shifts_edit.Add(inData.checkin_id, timeSheetEdit);
+            }
+            else
+            {
+              if (!Shared.IsEmpty(inData.time_id) && timeSheetDate.shifts_edit.ContainsKey(inData.time_id))
+                timeSheetDate.shifts_edit[inData.time_id] = timeSheetEdit;
+              else
+                timeSheetDate.shifts_edit.Add(inData.time_id, timeSheetEdit);
+            }
+          }
+          else if (selectShift != null && !string.IsNullOrEmpty(selectShift.id) && timeSheetDate.shifts_edit.ContainsKey(selectShift.id))
+            timeSheetDate.shifts_edit[selectShift.id] = timeSheetEdit;
+          else
+          {
+            // TH: ca làm chưa có chấm công của những ngày trước (TH chấm công 1 vài ca)
+            timeSheetDate.shifts_edit.Add(selectShift.id, timeSheetEdit);
+          }
+
+          timeSheetUser.timesheet_dates.RemoveAll(i => i.date == timeSheetDate.date);
+          timeSheetUser.timesheet_dates.Add(timeSheetDate);
+        }
+
+        // Lịch sử chỉnh sửa
+        var log = new HrmTimesheetLogModel()
+        {
+          day = date.Ticks,
+          editor = Layout.User.id,
+          user = user.id,
+          edit_date = DateTime.Now.Ticks,
+          old_content = oldContentLog
+        };
+
+        // Th ca OT thì không có áp dụng đơn từ hay công có lương
+        if (!timeSheetEdit.is_ot)
+          log.edit_content = $"{currentForm.name} - {Math.Round(timeSheetEdit.time_edit, 2)}";
+        else
+          log.edit_content = Math.Round(timeSheetEdit.time_edit, 2).ToString();
+
+        if (!string.IsNullOrEmpty(workName))
+          log.shift_name = workName;
+        else if (inData != null)
+          log.shift_name = inData.time_name;
+        else
+          log.shift_name = selectShift.name;
+
+        // Lưu lịch sử chính sửa
+        editLogs.Add(log);
+        await OnUpdate.InvokeAsync(timeSheetUser);
+      }
+
+      GetFormSelect();
+    }
+  }
+
+  /// <summary>Ghi log lịch sử chỉnh sửa</summary>
+  private void GetOldLog()
+  {
+    // lấy dữ liệu log cũ
+    if (inData != null || outData != null)
+    {
+      // TH: có dữ liệu chấm công
+      if ((!string.IsNullOrEmpty(inData.time_id) && timeSheetDate.shifts_edit.ContainsKey(inData.time_id)) || (inData.is_ot && timeSheetDate.shifts_edit.ContainsKey(inData.checkin_id)))
+      {
+        if (!inData.is_ot)
+        {
+          if (timeSheetDate.shifts_edit[inData.time_id].form_id != "0" || timeSheetDate.shifts_edit[inData.time_id].form_id != "1")
+            oldContentLog = $"{timeSheetDate.shifts_edit[inData.time_id].form_name} - {Math.Round(timeSheetDate.shifts_edit[inData.time_id].time_edit, 2)}";
+          else
+            oldContentLog = Math.Round(timeSheetDate.shifts_edit[inData.time_id].time_edit, 2).ToString();
+        }
+        else
+        {
+          //TH: OT
+          oldContentLog = Math.Round(timeSheetDate.shifts_edit[inData.checkin_id].time_edit, 2).ToString();
+        }
+      }
+      else
+      {
+        if (inData.is_valid && outData.is_valid)
+          oldContentLog = Math.Round(inData.time_work, 2).ToString();
+        else
+          oldContentLog = "0";
+      }
+    }
+    else if (selectShift != null && !string.IsNullOrEmpty(selectShift.id) && timeSheetDate.shifts_edit.ContainsKey(selectShift.id))
+    {
+      // TH: chưa chấm công mà chỉnh sửa
+      if (timeSheetDate.shifts_edit[selectShift.id].form_id != "0" || timeSheetDate.shifts_edit[selectShift.id].form_id != "1")
+        oldContentLog = $"{timeSheetDate.shifts_edit[selectShift.id].form_name} - {timeSheetDate.shifts_edit[selectShift.id].time_edit}";
+      else
+        oldContentLog = Math.Round(timeSheetDate.shifts_edit[selectShift.id].time_edit, 2).ToString();
+    }
+    else if (timeSheetDate.shifts_edit.FirstOrDefault().Value != null && !string.IsNullOrEmpty(timeSheetDate.shifts_edit.FirstOrDefault().Value.work_name))
+    {
+      // TH: ca làm tạo mới
+      if (timeSheetDate.shifts_edit.FirstOrDefault().Value.form_id != "0" || timeSheetDate.shifts_edit.FirstOrDefault().Value.form_id != "1")
+        oldContentLog = $"{timeSheetDate.shifts_edit.FirstOrDefault().Value.form_name} - {timeSheetDate.shifts_edit.FirstOrDefault().Value.time_edit}";
+      else
+        oldContentLog = timeSheetDate.shifts_edit.FirstOrDefault().Value.time_edit.ToString();
+    }
+    else
+      oldContentLog = "-";
+  }
+
+  /// <summary>Cập nhật đơn từ khi chỉnh sửa</summary>
+  private void UpdateFormEdit()
+  {
+    currentForm = new()
+    {
+      id = timeSheetEdit.form_id,
+      name = timeSheetEdit.form_name,
+      sign = timeSheetEdit.form_sign
+    };
+
+    foreach (var form in forms)
+    {
+      if (form.id == currentForm.id)
+        currentForm.has_shift_work = form.has_shift_work;
+    }
+
+    // TH công tính lương và công không tính lương
+    if (currentForm.id == "0")
+      currentForm.has_shift_work = false;
+
+    if (currentForm.id == "1")
+      currentForm.has_shift_work = true;
+  }
+
+  /// <summary>Dứ liệu đơn từ ca làm</summary>
+  private void GetFormSelect()
+  {
+    formSelect = null;
+    if (selectShift != null)
+    {
+      if (workShiftSelected.Select(i => i.id).Contains(selectShift.id))
+      {
+        if (timeSheetDate.shifts_form.ContainsKey(selectShift.id))
+          formSelect = formsList.LastOrDefault(i => i.id == timeSheetDate.shifts_form[selectShift.id].form_id);
+      }
+    }
+  }
+
+  private void GetNameTime()
+  {
+    if (!string.IsNullOrEmpty(selectShift.id))
+    {
+      if (timeSheetDate.shifts_edit.ContainsKey(selectShift.id) && timeSheetDate.shifts_form.ContainsKey(selectShift.id))
+      {
+        if (timeSheetDate.shifts_edit[selectShift.id].updated > timeSheetDate.shifts_form[selectShift.id].updated)
+        {
+          nameTime = "Công chỉnh sửa";
+          timeByShift = timeSheetDate.shifts_edit[selectShift.id].time_edit;
+        }
+        else
+        {
+          var formItem = dataFormsList.Find(i => i.id == timeSheetDate.shifts_form[selectShift.id].form_id);
+          if (formItem != null)
+          {
+            nameTime = "Công đơn từ";
+            if (formItem.form.has_shift_work)
+              timeByShift = selectShift.value;
+            else
+              timeByShift = 0;
+          }
+          else
+            nameTime = "";
+        }
+      }
+      else if (timeSheetDate.shifts_edit.ContainsKey(selectShift.id))
+      {
+        nameTime = "Công chỉnh sửa";
+        timeByShift = timeSheetDate.shifts_edit[selectShift.id].time_edit;
+      }
+      else if (timeSheetDate.shifts_form.ContainsKey(selectShift.id))
+      {
+        var formItem = dataFormsList.Find(i => i.id == timeSheetDate.shifts_form[selectShift.id].form_id);
+        if (formItem != null)
+        {
+          nameTime = "Công đơn từ";
+          if (formItem.form.has_shift_work)
+            timeByShift = selectShift.value;
+          else
+            timeByShift = 0;
+        }
+        else
+          nameTime = "";
+      }
+      else
+      {
+        nameTime = "";
+      }
+    }
+
+    // TH: ca làm tự tạo
+    if (timeSheetDate.shifts_edit.Any() && !string.IsNullOrEmpty(timeSheetDate.shifts_edit.Values.FirstOrDefault().work_name))
+    {
+      nameTime = "Công chỉnh sửa";
+      timeByShift = timeSheetDate.shifts_edit.Values.FirstOrDefault().time_edit;
+    }
+  }
+}

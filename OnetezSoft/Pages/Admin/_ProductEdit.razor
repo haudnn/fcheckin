@@ -46,13 +46,13 @@
             </div>
             <div class="column is-half">
               <div class="control has-icons-left has-icons-right">
-                <input @bind="model.price" type="text" class="input is_line font_14 has-text-weight-bold" 
-                    placeholder="Nhập mức giá" />
+                <InputInt64 Class="input is_line font_14 has-text-weight-bold"
+                  Text="Nhấp mức giá" Value="model.price" OnInput="x => model.price = (int)x" />
                 <span class="icon is-left has-text-black">
                   <i class="material-icons-round is-size-6">edit</i>
                 </span>
                 <span class="icon is-right has-text-grey" style="width: auto;">
-                  VNĐ/người/tháng
+                  @(model.id == "storage" ? "VNĐ/GB/tháng" : "VNĐ/người/tháng")
                 </span>
               </div>
             </div>
@@ -221,7 +221,7 @@
                   <img src="@item.image" />
                 </a>
                 <a class="button is-small is-white is-fullwidth has-text-link"
-             onclick="document.getElementById('@fileInput').click()">
+                  onclick="document.getElementById('@fileInput').click()">
                   <span class="icon">
                     <i class="material-icons-sharp is-size-6">file_upload</i>
                   </span>
@@ -372,7 +372,8 @@
                 <span class="item_desc">@model.desc</span>
                 <a class="button is-small is-link px-6">Mua ngay</a>
                 <span class="item_price">
-                  @model.price.ToString("0,0") VNĐ/người/tháng
+                  @model.price.ToString("0,0")
+                  @(model.id == "storage" ? "VNĐ/GB/tháng" : "VNĐ/người/tháng")
                 </span>
               </div>
             </li>
@@ -430,7 +431,10 @@
                 </div>
                 <div class="column is-5 has-text-centered">
                   <span class="has-text-weight-bold">Professional</span>
-                  <span class="is-block is-size-7">@model.price.ToString("0,0") VNĐ/người/tháng</span>
+                  <span class="is-block is-size-7">
+                    @model.price.ToString("0,0")
+                    @(model.id == "storage" ? "VNĐ/GB/tháng" : "VNĐ/người/tháng")
+                  </span>
                   <hr class="mt-2 mb-0" />
                 </div>
                 @foreach (var item in model.pricelist)

@@ -6,17 +6,20 @@
   border: 0px;
   position: relative;
 }
-.table > thead > tr > th::after {
-  content: "";
-  position: absolute;
-  right: 0px;
-  top: 0px;
-  bottom: 0px;
-  border-right: 1px dashed #8990a5;
-}
-.table > thead > tr > th[rowspan="2"]::after {
-  display: none;
-}
+
+  .table > thead > tr > th::after {
+    content: "";
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    bottom: 0px;
+    border-right: 1px dashed #8990a5;
+  }
+
+  .table > thead > tr > th[rowspan="2"]::after {
+    display: none;
+  }
+
 .table > thead > tr:nth-child(2) > th::before {
   content: "";
   position: absolute;
@@ -25,24 +28,67 @@
   top: 0px;
   border-top: 1px dashed #8990a5;
 }
+
 .table td.edited {
   position: relative;
 }
-.table td.edited::after {
-  content: "";
-  width: 0;
-  height: 0;
-  border-top: 14px solid #680003;
-  border-left: 14px solid transparent;
-  position: absolute;
-  top: 0px;
-  right: 0px;
-}
+
+  .table td.edited::after {
+    content: "";
+    width: 0;
+    height: 0;
+    border-top: 14px solid #680003;
+    border-left: 14px solid transparent;
+    position: absolute;
+    top: 0px;
+    right: 0px;
+  }
+
 .table td input {
   border: 0px;
   border-bottom: 1px solid #ddd;
   padding: 3px 0px;
 }
+
 .table td a {
   color: inherit;
+}
+
+.timesheet-note .note-color {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+}
+
+.timesheet-note .is_edited {
+  border-top-right-radius: 0;
+  position: relative;
+  overflow: hidden;
+  width: 12px;
+  height: 12px;
+}
+
+  .timesheet-note .is_edited::after {
+    content: "";
+    display: block;
+    position: absolute;
+    background: #680003;
+    transform: rotate(45deg);
+    top: -7px;
+    right: -7px;
+    width: 12px;
+    height: 12px;
+  }
+
+.input.is_underline {
+  border-top-width: 0;
+  border-left-width: 0;
+  border-right-width: 0;
+  border-radius: 0 !important;
+  box-shadow: none;
+  height: 24px;
+}
+
+.timesheet #scrollbox .table .user::after {
+  border-right: 1px solid #635d57;
 }

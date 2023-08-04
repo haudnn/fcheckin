@@ -448,5 +448,20 @@ namespace OnetezSoft.Data
 
       return false;
     }
+
+
+    /// <summary>
+    /// Danh sách phòng ban theo user cấp dưới của mình
+    /// </summary>
+    public static List<DepartmentModel> GetListByUser(string companyId, string userId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<DepartmentModel>(_collection);
+
+      var results = collection.Find(x => x.delete == false && x.members_list.Any(i => i.id == userId && (i.role == 1 || i.role == 2))).ToList();
+
+      return results;
+    }
   }
 }

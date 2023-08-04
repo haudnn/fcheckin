@@ -1,0 +1,141 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@using System.Diagnostics
+
+<div class="control">
+  @if(Small)
+  {
+    <a class="button is-outlined is-link @(isLoading ? "is-loading" : "")"
+      onclick="document.getElementById('@FileId').click()" title="Chọn file"
+      style="border-radius: 6px; width: 24px; height: 24px; padding: 0px;">
+      <span class="icon">
+        <i class="material-icons-outlined is-size-6">upload</i>
+      </span>
+    </a>
+  }
+  else
+  {
+    <a class="button is-outlined has-text-link @(isLoading ? "is-loading" : "")"
+      onclick="document.getElementById('@FileId').click()" title="Chọn file">
+      <span class="icon">
+        <i class="material-icons-outlined is-size-5">upload</i>
+      </span>
+    </a>
+  }
+  @if(Multiple)
+  {
+    <InputFile id="@FileId" class="is-hidden" OnChange="Upload" multiple accept="@Accept" />
+  }
+  else
+  {
+    <InputFile id="@FileId" class="is-hidden" OnChange="Upload" accept="@Accept" />
+  }
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string Accept { get; set; } = "*"; // image/*
+  [Parameter]
+  public bool Multiple { get; set; } = false;
+  [Parameter]
+  public bool Cloud { get; set; } = false;
+  [Parameter]
+  public bool Small { get; set; } = false;
+  [Parameter]
+  public int Size { get; set; } = 0;
+  [Parameter]
+  public string FileId { get; set; }
+  [Parameter]
+  public EventCallback<List<string>> OnUpload { get; set; }
+  private bool isLoading = false;
+  private long maxSize => Cloud ? 20 * 1024000 : 10 * 1024000;
+
+  protected override void OnInitialized()
+  {
+    if(string.IsNullOrEmpty(FileId))
+      FileId = "file_" + Mongo.RandomId();
+  }
+
+  private async Task Upload(InputFileChangeEventArgs e)
+  {
+    if (e.GetMultipleFiles().Count > 0)
+    {
+      isLoading = true;
+      //var results = new List<string>();
+      var folder = Layout.Company != null ? Layout.Company.id : null;
+      foreach (var file in e.GetMultipleFiles())
+      {
+        try
+        {
+          if (file.Size <= maxSize)
+          {
+            string link = string.Empty;
+            if(Cloud)
+            {
+              if(ProductService.CheckStorage(Layout.Company.id, out string message))
+              {
+                var stopWatch = new Stopwatch();
+                stopWatch.Start();
+                await JSRuntime.InvokeVoidAsync("console.log", $"Upload: {file.Name} ...");
+
+                if(file.Size <= 2 * 1024000)
+                  link = await UploadStream(file, folder);
+                else
+                  link = await UploadFiles(file, folder);
+
+                await JSRuntime.InvokeVoidAsync("console.log",
+                  string.Format("Upload: {0} {1:0,0} KB / {2:0.0} s", 
+                  file.Name, file.Size / 1000, stopWatch.Elapsed.TotalSeconds));
+              }
+              else
+              {
+                await JSRuntime.InvokeVoidAsync("tagline", false, message);
+                break; 
+              }
+            }
+            else
+            {
+              var stream = new StreamContent(file.OpenReadStream(file.Size));
+              link = await Files.UploadFile(stream, file.Name, Size);
+            }
+            if(!string.IsNullOrEmpty(link))
+            {
+              await OnUpload.InvokeAsync(new() { link });
+              //results.Add(link);
+            }
+            else
+              await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể upload file {file.Name}!");
+          }
+          else
+          {
+            await JSRuntime.InvokeVoidAsync("tagline", false, "Dung lượng file quá lớn");
+          }
+        }
+        catch (Exception ex)
+        {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Lỗi khi upload file: " + ex.Message);
+        }
+      }
+      isLoading = false;
+      //if(results.Count > 0)
+      //  await OnUpload.InvokeAsync(results);
+    }
+  }
+
+  private async Task<string> UploadStream(IBrowserFile file, string folder)
+  {
+    var stream = file.OpenReadStream(file.Size);
+    await JSRuntime.InvokeVoidAsync("console.log", " => streaming Client to Storage");
+    return await StorageService.UploadStream(file.Name, folder, stream);
+  }
+
+  private async Task<string> UploadFiles(IBrowserFile file, string folder)
+  {
+    var stream = new StreamContent(file.OpenReadStream(file.Size));
+    var linkFile = await Files.UploadFile(stream, file.Name, 0);
+    await JSRuntime.InvokeVoidAsync("console.log", " => moving Server to Storage");
+    return await StorageService.UploadAsync(linkFile, folder);
+  }
+}

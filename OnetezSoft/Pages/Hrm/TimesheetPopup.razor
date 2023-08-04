@@ -1,0 +1,419 @@
+﻿@inject IJSRuntime JSRuntime
+
+<section class="modal is-active">
+  <div class="modal-background"></div>
+  <section class="modal-card" style="height:calc(100vh - 40px)">
+    <section class="modal-card-head">
+      <div class="modal-card-title">
+        @(string.IsNullOrEmpty(sheet.id) ? "Tạo bảng công" : "Chỉnh sửa bảng công")
+      </div>
+      <a class="delete is-medium" @onclick="Cancel"></a>
+    </section>
+    <section class="modal-card-body">
+      <div class="field">
+        <label class="label">Tiêu đề</label>
+        <div class="control">
+          <input @bind="sheetName" class="input" type="text" placeholder="Nhập tiêu đề bảng công">
+        </div>
+      </div>
+      <div class="columns is-variable is-1 mb-2">
+        <div class="column">
+          <div class="field">
+            <label class="label">Ngày bắt đầu</label>
+            <div class="field has-addons">
+              <div class="control">
+                <span class="button is-link">
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6">event</i>
+                  </span>
+                </span>
+              </div>
+              <div class="control">
+                <DateRangePicker SingleDatePicker="true" @bind-StartDate="start">
+                  <PickerTemplate>
+                    <div class="input is-link is-family-code" id="@context.Id" @onclick="context.Toggle" title="Chọn ngày">
+                      @if (context.TStartDate != null)
+                      {
+                        <span>@start.Value.ToString("dd/MM/yyyy")</span>
+                      }
+                    </div>
+                  </PickerTemplate>
+                </DateRangePicker>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="column">
+          <div class="field">
+            <label class="label">Ngày kết thúc</label>
+            <div class="field has-addons">
+              <div class="control">
+                <span class="button is-link">
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6">event</i>
+                  </span>
+                </span>
+              </div>
+              <div class="control">
+                <DateRangePicker SingleDatePicker="true" @bind-StartDate="end">
+                  <PickerTemplate>
+                    <div class="input is-link is-family-code" id="@context.Id" @onclick="context.Toggle" title="Chọn ngày">
+                      @if (context.TStartDate != null)
+                      {
+                        <span>@end.Value.ToString("dd/MM/yyyy")</span>
+                      }
+                    </div>
+                  </PickerTemplate>
+                </DateRangePicker>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="column">
+          <div class="field">
+            <label class="label">Công chuẩn</label>
+            <div class="control">
+              <input @bind="timeTotal" class="input" type="number" min="0" step="0.5">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="label">Nhân viên áp dụng</label>
+        <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
+          <li class="column is-narrow">
+            <div class="select is-fullwidth">
+              <select @onchange="ChangeDepartment">
+                <option value="">Phòng ban</option>
+                @foreach (var item in departments)
+                {
+                  <option value="@item.id" selected="@(selectDepart == item.id)">@item.name</option>
+                }
+              </select>
+            </div>
+          </li>
+
+          <li class="column">
+            <form class="control is-expanded has-icons-right" @onsubmit="Search">
+              <input @bind="filterKeyword" class="input is-rounded" type="text" placeholder="Tìm tên nhân viên...">
+              <span class="icon is-right">
+                <i class="material-icons-outlined is-size-5">search</i>
+              </span>
+            </form>
+          </li>
+        </ul>
+        <div class="control is-expanded">
+          <div class="mb-3">
+            <a class="icon-text" @onclick="() => AddMember()">
+              <span class="icon">
+                @if (usersId.Count == Layout.UserList.Count)
+                {
+                  <span class="material-icons has-text-link">
+                    check_box
+                  </span>
+                }
+                else
+                {
+                  <span class="material-icons">
+                    check_box_outline_blank
+                  </span>
+                }
+              </span>
+              <span>
+                Chọn tất cả
+              </span>
+            </a>
+          </div>
+          @foreach (var user in selectUsers)
+          {
+            <div class="mb-3">
+              <span class="icon-text" @onclick="() => AddMember(user.id)">
+                <span class="icon">
+                  @if (usersId.Contains(user.id))
+                  {
+                    <span class="material-icons has-text-link">
+                      check_box
+                    </span>
+                  }
+                  else
+                  {
+                    <span class="material-icons">
+                      check_box_outline_blank
+                    </span>
+                  }
+                </span>
+                <span>
+                  <a class="user_item">
+                    <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                    <span class="text_1_line">@user.FullName</span>
+                  </a>
+                </span>
+              </span>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+    <section class="modal-card-foot is-right">
+      <a class="button" @onclick="Cancel">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">close</i>
+        </span>
+        <span>Hủy</span>
+      </a>
+      <a class="button is-link" @onclick="Update">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">done</i>
+        </span>
+        <span>Cập nhật</span>
+      </a>
+    </section>
+  </section>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public HrmTimesheetModel sheet { get; set; } = null;
+  [Parameter]
+  public List<HrmTimesheetModel> timeSheets { get; set; } = new();
+  [Parameter]
+  public string currentTimeSheet { get; set; }
+  [Parameter]
+  public EventCallback<string> currentTimeSheetChanged { get; set; }
+  [Parameter]
+  public List<DepartmentModel> departments { get; set; } = new();
+
+
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+
+  private string filterKeyword = "";
+  private DateTimeOffset? start;
+  private DateTimeOffset? end;
+  private double timeTotal = 0;
+  private List<string> usersId = new();
+  private string selectDepart = "";
+  private List<UserModel> selectUsers = new();
+  private List<UserModel> users = new();
+  private string sheetName;
+
+  protected override async Task OnInitializedAsync()
+  {
+    if (string.IsNullOrEmpty(sheet.id))
+      usersId = Layout.UserList.Select(x => x.id).ToList();
+    else
+    {
+      timeTotal = Math.Round(sheet.time_total, 2);
+      var timesheetUsers = await DbHrmTimesheetUser.GetAllShowByTimesheetId(Layout.Company.id, sheet.id);
+      usersId = timesheetUsers.Select(i => i.user).ToList();
+    }
+    users = Layout.UserList.Where(i => true).ToList();
+    selectUsers = Layout.UserList.Where(i => true).ToList();
+
+    if (sheet.from == 0)
+    {
+      sheet.from = DateTime.Today.Ticks;
+      start = DateTime.Today;
+    }
+    else
+    {
+      start = new DateTime(sheet.from);
+    }
+
+    if (sheet.to == 0)
+    {
+      sheet.to = DateTime.Today.AddMonths(1).Ticks;
+      end = DateTime.Today.AddMonths(1);
+    }
+    else
+    {
+      end = new DateTime(sheet.to);
+    }
+
+    sheetName = sheet.name;
+  }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+  }
+
+  private void AddMember(string id = null)
+  {
+    if (id == null)
+      if (usersId.Count >= 0 && usersId.Count < selectUsers.Count)
+        usersId = selectUsers.Select(x => x.id).ToList();
+      else
+        usersId = new();
+    else
+       if (usersId.Contains(id))
+      usersId.Remove(id);
+    else
+      usersId.Add(id);
+  }
+
+  /// <summary>Đổi phòng ban</summary>
+  private void ChangeDepartment(ChangeEventArgs e)
+  {
+    selectDepart = e.Value.ToString();
+    Filter();
+  }
+
+  /// <summary>Tìm kiếm</summary>
+  private void Search()
+  {
+    Filter();
+  }
+
+  /// <summary>Lọc kết quả tìm kiếm và phòng ban</summary>
+  private void Filter()
+  {
+    selectUsers = new();
+
+    selectUsers = users.Where(x =>
+    {
+      return (string.IsNullOrEmpty(selectDepart) ? true : x.departments_id.Contains(selectDepart)) &&
+             (string.IsNullOrEmpty(filterKeyword) ? true : Shared.SearchKeyword(filterKeyword, x.FullName));
+    }).ToList();
+
+    StateHasChanged();
+  }
+
+  private async Task Update()
+  {
+    // Validate
+    // tên bảng công để trống, tự động tạo tên theo cú pháp “Bảng công [Thời gian bắt đầu]- [Thời gian kết thúc]”
+    if (string.IsNullOrEmpty(sheetName))
+    {
+      sheetName = $"{start.Value.ToString("dd'/'MM'/'yyyy")} - {end.Value.ToString("dd'/'MM'/'yyyy")}";
+    }
+
+    if (start.Value.Ticks > end.Value.Ticks)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc phải lớn hơn ngày bắt đầu!");
+      return;
+    }
+    if (usersId.Count == 0)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bảng công phải có ít nhất 1 nhân viên!");
+      return;
+    }
+
+    var check = false;
+    // Tạo mới
+    if (string.IsNullOrEmpty(sheet.id))
+    {
+      sheet.updated = DateTime.Now.Ticks;
+      sheet.is_show = true;
+      sheet.from = start.Value.Ticks;
+      sheet.to = end.Value.Ticks;
+      sheet.time_total = Math.Round(timeTotal, 2);
+
+      // render name theo version
+      List<HrmTimesheetModel> timeSheetsName = timeSheets.Where(i => true).ToList();
+      sheet.name = RenderNameVersion(timeSheetsName);
+
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã tạo bảng công thành công!");
+      await SendNotify(sheet, 807);
+
+      await DbHrmTimesheet.Create(Layout.Company.id, sheet);
+    }
+    else
+    {
+      // Nếu đổi công chuẩn, reset toàn bộ thiết lập công chuẩn mỗi users
+      if (Math.Round(timeTotal, 2) != Math.Round(sheet.time_total, 2))
+      {
+        check = true;
+        sheet.time_total = Math.Round(timeTotal, 2);
+      }
+
+      sheet.updated = DateTime.Now.Ticks;
+      sheet.from = start.Value.Ticks;
+      sheet.to = end.Value.Ticks;
+      sheet.time_total = Math.Round(timeTotal, 2);
+
+      // render name theo version
+      List<HrmTimesheetModel> timeSheetsName = timeSheets.Where(i => i.name.Trim() != sheetName.Trim()).ToList();
+      sheet.name = RenderNameVersion(timeSheetsName);
+
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Chỉnh sửa bảng công thành công!");
+      await SendNotify(sheet, 808);
+
+      await DbHrmTimesheet.Update(Layout.Company.id, sheet);
+    }
+
+    // tất cả dữ liệu bảng công theo user thuộc bảng công đang chỉnh sửa
+    var timesheetUsers = await DbHrmTimesheetUser.GetAllByTimesheetId(Layout.Company.id, sheet.id);
+    var userTimesheet = timesheetUsers.Select(i => i.user).ToList();
+    var userTimesheetDelete = userTimesheet.Except(usersId).ToList();
+
+    if(userTimesheetDelete.Any())
+    {
+      foreach (var item in userTimesheetDelete)
+      {
+        await HrmService.UpdateTimeSheetUser(Layout.Company.id, item, sheet, check, true);
+      }
+    }
+
+    foreach (var item in usersId)
+    {
+      await HrmService.UpdateTimeSheetUser(Layout.Company.id, item, sheet, check, false);
+    }
+
+
+    await currentTimeSheetChanged.InvokeAsync(sheet.id);
+    await OnUpdate.InvokeAsync(true);
+  }
+
+  private async Task SendNotify(HrmTimesheetModel item, int type)
+  {
+    // Gủi thông báo chuông
+    var targetList = Layout.UserList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
+    foreach (var user in targetList)
+      await DbNotify.Create(Layout.Company.id, type, item.name, user.id, Layout.User.id);
+  }
+
+  /// <summary>Render name khi bị trùng lặp => tạo tên kèm số version</summary>
+  private string RenderNameVersion(List<HrmTimesheetModel> timeSheetsName)
+  {
+    // Tạo version khi trùng tên vd: Bảng công tháng 6 (1)
+    if (timeSheetsName.Any())
+    {
+      // danh sách tên không bao gồm version
+      var nameChecks = new List<string>();
+      foreach (var item in timeSheetsName)
+      {
+        var indexCheck = item.name.Trim().IndexOf("(");
+        if (indexCheck != -1)
+          nameChecks.Add(item.name.Trim().Substring(0, indexCheck - 1).Trim());
+        else
+          nameChecks.Add(item.name.Trim());
+      }
+
+      // có tìm thấy tên trùng lập
+      if (nameChecks.Find(i => i == sheetName.Trim()) != null)
+      {
+        var max = 1;
+        foreach (var item in timeSheetsName)
+        {
+          if (item.name.Trim().Contains(sheetName.Trim()))
+          {
+            var indexCheck = item.name.Trim().IndexOf("(");
+            if (indexCheck != -1)
+            {
+              var temp = Convert.ToInt32(item.name.Trim().Substring(indexCheck + 1, item.name.Trim().Count() - indexCheck - 2));
+              if (temp >= max)
+                max = temp + 1;
+            }
+          }
+        }
+        return sheet.name = $"{sheetName.Trim()} ({max})";
+      }
+    }
+
+    return sheetName.Trim();
+  }
+}

@@ -76,7 +76,7 @@
             </div>
 
             <ul class="columns is-multiline is-variable is-1">
-              @foreach (var product in company.products.Where(x => x.active))
+              @foreach (var product in company.products.Where(x => x.active && x.id != "storage"))
               {
                 var access = ProductService.CheckAccess(model.products, product.id);
                 <li class="column is-half">

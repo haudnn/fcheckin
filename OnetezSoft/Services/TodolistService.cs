@@ -63,10 +63,32 @@ namespace OnetezSoft.Services
 
       return todolist;
     }
+    
+    /// <summary>
+    /// Thêm công việc vào Todolist
+    /// </summary>
+    public static async Task<TodolistModel> AddTodoItem(string companyId, string userId, TodolistModel.Todo todo)
+    {
+      // Lấy Todolist
+      var todolist = await GetTodoList(companyId, userId, todo.date);
 
+      // Thêm công việc
+      todo.id = Mongo.RandomId();
+      todo.status = 1;
+      todo.confirm = false;
+      todo.date = todolist.date;
+      todo.user = todolist.user_create;
+      todo.todolist = todolist.id;
+      await DbTodoItem.Create(companyId, todo);
+
+      // Cập nhật Todolist
+      await DbTodolist.Update(companyId, todolist);
+
+      return todolist;
+    }
 
     /// <summary>
-    /// Thêm công việc vào trong Todolist
+    /// Chấp nhận công việc vào trong Todolist
     /// </summary>
     public static async Task<string> AddTodoItem(string companyId, string userId, long day, TodolistModel.Todo todo)
     {

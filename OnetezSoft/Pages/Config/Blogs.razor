@@ -4,23 +4,13 @@
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
 @if (Layout.User.role != 1 && !Layout.User.role_manage.other)
 {
   <PopupNoRole />
 }
 else
 {
-<section class="columns is-gapless has_menu_left  @(_loaded ? "" : "is-loading")">
+<section class="columns is-gapless has_menu_left">
   <div class="column is-narrow">
     <div class="card p-3 menu_left">
       <a href="/config/other/banner">
@@ -98,84 +88,84 @@ else
           {
             var department = departmentAll.SingleOrDefault(x => x.id == item.department);
 
-               <tr>
-                <td align="center">
-                  <a class="image is-square" href="@item.image" target="_blank">
-                    <img src="@item.image" alt="IMG" />
-                  </a>
-                </td>
-                <td>
-                  <label class="td-label">Tiêu đề</label>
-                  <div class="td-value">
-                    <a class="has-text-weight-semibold" @onclick="() => EditItem(item)">
-                      @item.name
-                    </a>
-                    <div class="text_1_line has-text-grey">@item.desc</div>
-                  </div>
-                </td>
-                <td>
-                    <label class="td-label">Danh mục</label>
-                    <div class="td-value">
-                      @if(!Shared.IsEmpty(item.category))
-                      {
-                        var cat = GetCategoryName(item.category);
-                        <span class="tag is-rounded" style="background: @cat.color; color: #fff">
-                          @cat.name
-                        </span>
-                      }
-                    </div>
-                </td>
-                <td>
-                  <label class="td-label">Loại tin</label>
-                  <div class="td-value">
-                    @if (string.IsNullOrEmpty(item.link))
-                    {
-                      <span class="tag is-info">Bài viết</span>
-                    }
-                    else
-                    {
-                      <a class="tag is-link" href="@item.link" target="_blank">Liên kết</a>
-                    }
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Phòng ban</label>
-                  <div class="td-value has-text-weight-semibold">
-                    @(department != null ? department.name : "Tất cả phòng ban")
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Ghim</label>
-                  <div class="td-value">
-                    <a class="icon" @onclick="() => ToggleShow(item)">
-                      @if (item.is_show)
-                      {
-                        <span class="material-icons-outlined is-size-5 has-text-;ink">
-                          check_box
-                        </span>
-                      }
-                      else
-                      {
-                        <span class="material-icons-outlined is-size-5 has-text-grey">
-                          check_box_outline_blank
-                        </span>
-                      }
-                    </a>
-                  </div>
-                </td>
-                <td>
-                  <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
-                    <i class="material-icons-outlined is-size-5">
-                      edit
-                    </i>
-                  </a>
-                  <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
-                    <i class="material-icons-outlined is-size-5">
-                      delete
-                    </i>
-                  </a>
-                </td>
-              </tr>
+            <tr>
+            <td align="center">
+              <a class="image is-square" href="@item.image" target="_blank">
+                <img src="@item.image" alt="IMG" />
+              </a>
+            </td>
+            <td>
+              <label class="td-label">Tiêu đề</label>
+              <div class="td-value">
+                <a class="text_1_line has-text-weight-semibold" @onclick="() => EditItem(item)">
+                  @item.name
+                </a>
+                <div class="text_1_line has-text-grey">@item.desc</div>
+              </div>
+            </td>
+            <td>
+                <label class="td-label">Danh mục</label>
+                <div class="td-value">
+                  @if(!Shared.IsEmpty(item.category))
+                  {
+                    var cat = GetCategoryName(item.category);
+                    <span class="tag is-rounded" style="background: @cat.color; color: #fff">
+                      @cat.name
+                    </span>
+                  }
+                </div>
+            </td>
+            <td>
+              <label class="td-label">Loại tin</label>
+              <div class="td-value">
+                @if (string.IsNullOrEmpty(item.link))
+                {
+                  <span class="tag is-info">Bài viết</span>
+                }
+                else
+                {
+                  <a class="tag is-link" href="@item.link" target="_blank">Liên kết</a>
+                }
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Phòng ban</label>
+              <div class="td-value has-text-weight-semibold">
+                @(department != null ? department.name : "Tất cả phòng ban")
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Ghim</label>
+              <div class="td-value">
+                <a class="icon" @onclick="() => ToggleShow(item)">
+                  @if (item.is_show)
+                  {
+                    <span class="material-icons-outlined is-size-5 has-text-;ink">
+                      check_box
+                    </span>
+                  }
+                  else
+                  {
+                    <span class="material-icons-outlined is-size-5 has-text-grey">
+                      check_box_outline_blank
+                    </span>
+                  }
+                </a>
+              </div>
+            </td>
+            <td>
+              <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                <i class="material-icons-outlined is-size-5">
+                  edit
+                </i>
+              </a>
+              <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                <i class="material-icons-outlined is-size-5">
+                  delete
+                </i>
+              </a>
+            </td>
+          </tr>
           }
         </tbody>
       </table>
@@ -204,31 +194,23 @@ else
             <div class="field">
               <label class="label">Tiêu đề (tối đa 100 ký tự) *</label>
               <div class="control">
-                <input @bind="model.name" type="text" class="input is_bg" maxlength="100" />
+                <input @bind="model.name" type="text" class="input is_bg" maxlength="100" placeholder="Nhập tiêu đề" />
               </div>
             </div>
           </li>
           <li class="column is-one-third">
             <div class="field">
               <label class="label">Hình ảnh *</label>
-              <div class="field is-grouped">
+              <div class="field has-addons">
                 <div class="control">
                   <a class="image is-square">
                     <img src="@model.image" />
                   </a>
                 </div>
-                <div class="control">
-                  <a class="button" onclick="document.getElementById('fileThumb').click()">
-                    <span class="icon">
-                      <i class="material-icons-outlined is-size-6">file_upload</i>
-                    </span>
-                    <span>Chọn hình</span>
-                  </a>
-                  <InputFile OnChange="Upload" accept="image/*" class="is-hidden" id="fileThumb" />
-                </div>
                 <div class="control is-expanded">
                   <input @bind="model.image" class="input" type="text" placeholder="Nhập link hình..." />
                 </div>
+                <FileUpload Accept="image/*" Size="1000" OnUpload="x => model.image = x[0]" />
               </div>
             </div>
           </li>
@@ -321,7 +303,8 @@ else
             <div class="field">
               <label class="label">Tóm tắt</label>
               <div class="control">
-                <textarea @bind="model.desc" class="textarea is_bg" rows="2" maxlength="200" />
+                <textarea @bind="model.desc" class="textarea" rows="3" maxlength="200"
+                  placeholder="Nhập nội dung tóm tắt" />
               </div>
             </div>
           </li>
@@ -415,7 +398,9 @@ else
                     @((MarkupString)model.content)
                   </EditorContent>
                 </BlazoredTextEditor>
-                <InputFile OnChange="UploadEditor" accept="image/*" class="is-hidden" id="fileEditor" />
+              </div>
+              <div class="is-hidden">
+                <FileUpload Accept="image/*" Multiple="true" Size="1000" FileId="fileEditor" OnUpload="UploadEditor" />
               </div>
             </div>
           </li>
@@ -439,12 +424,7 @@ else
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
-  private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
   private string _title = "Quản lý tin tức";
-
   private BlogModel model = null;
   private List<BlogModel> dataList = new();
   private List<DepartmentModel> departmentAll = new();
@@ -455,8 +435,8 @@ else
   private BlazoredTextEditor editor;
 
 
-  private List<BlogModel> pinList = null;
   private int mainPin = 0;
+  private List<BlogModel> pinList = null;
   private CompanyModel company = new();
 
   private bool toggleCategory = false;
@@ -473,15 +453,7 @@ else
     dataList = await DbBlog.GetList(Layout.Company.id, filterDepartment);
 
     mainPin = await GetDocorpPinCount();
-
-    _loaded = true;
   }
-
-  protected override void OnAfterRender(bool firstRender)
-  {
-    _message = string.Empty;
-  }
-
 
   /// <summary>
   /// Thay đổi phòng ban
@@ -505,6 +477,7 @@ else
     dataList.Remove(item);
     await DbBlog.Delete(Layout.Company.id, item.id);
     await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa bài viết thành công.");
+    Files.DeleteFile(item.image);
   }
 
   private async Task ToggleItem(BlogModel item)
@@ -527,61 +500,15 @@ else
     StateHasChanged();
   }
 
-  private async Task Upload(InputFileChangeEventArgs e)
-  {
-    _success = false;
-    foreach (var file in e.GetMultipleFiles())
-    {
-      _message = "Đang upload file lên...";
-      try
-      {
-        if (file.Size <= Layout.MaxFileSize)
-        {
-          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
-          model.image = await Files.SaveFileAsync(fileContent, file.Name);
-          _message = string.Empty;
-        }
-        else
-        {
-          _message = $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB";
-        }
-      }
-      catch (Exception ex)
-      {
-        _message = $"ERROR: {ex.Message}";
-      }
-    }
-  }
-
-
   /// <summary>
   /// Xử lý việc tải file
   /// </summary>
 
-  private async Task UploadEditor(InputFileChangeEventArgs e)
+  private async Task UploadEditor(List<string> files)
   {
-    _success = false;
-    foreach (var file in e.GetMultipleFiles())
+    foreach (var image in files)
     {
-      _message = "Đang upload file lên...";
-      try
-      {
-        if (file.Size <= Layout.MaxFileSize)
-        {
-          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
-          var image = await Files.SaveFileAsync(fileContent, file.Name);
-          await editor.InsertImage(image);
-          _message = string.Empty;
-        }
-        else
-        {
-          _message = $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB";
-        }
-      }
-      catch (Exception ex)
-      {
-        _message = $"ERROR: {ex.Message}";
-      }
+      await editor.InsertImage(image);
     }
   }
 
@@ -591,28 +518,14 @@ else
 
   private async Task Update()
   {
-    _success = false;
-    _message = string.Empty;
-
-    if (Shared.IsEmpty(model.name) || Shared.IsEmpty(model.image))
-    {
-       _message = "Bạn cần nhập nội dung và hình ảnh!";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
-
+    if (Shared.IsEmpty(model.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề!");
+    else if (Shared.IsEmpty(model.image))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn hình ảnh!");
     else if(isLink && Shared.IsEmpty(model.link))
-    {
-      _message = "Bạn chưa nhập liên kết của bài viết!";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập link!");
     else if(Shared.IsEmpty(model.department))
-    {
-      _message = "Bạn chưa chọn phòng ban!!";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn phòng ban!");
     else
     {
       var department = departments.SingleOrDefault(x => x.id == model.department);
@@ -660,8 +573,6 @@ else
     }
   }
 
- 
-
   // Search tin tức
   private async Task Search()
   {
@@ -669,7 +580,6 @@ else
     if(!Shared.IsEmpty(filterKeyword))
       dataList.RemoveAll(x => !Shared.SearchKeyword(filterKeyword, x.name));
   }
-  
 
   /// <summary>
   /// Lấy số lượng phòng ban đang được pin của docorp 

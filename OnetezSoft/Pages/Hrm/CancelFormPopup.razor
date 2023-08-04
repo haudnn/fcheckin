@@ -1,0 +1,45 @@
+﻿@inject IJSRuntime JSRuntime
+
+<section class="modal is-active">
+  <div class="modal-background"></div>
+  <section class="modal-card">
+    <section class="modal-card-head">
+      <div class="modal-card-title">
+        Thu hồi đơn từ
+      </div>
+      <a class="delete is-medium" @onclick="Cancel"></a>
+    </section>
+    <section class="modal-card-body">
+      Bạn có chắc muốn thu hồi đơn từ?
+    </section>
+    <section class="modal-card-foot is-right">
+      <a class="button" @onclick="Cancel">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">close</i>
+        </span>
+        <span>Hủy</span>
+      </a>
+      <a class="button is-danger" @onclick="Update">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">history</i>
+        </span>
+        <span>Thu hồi</span>
+      </a>
+    </section>
+  </section>
+</section>
+
+@code {
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+  }
+
+  private async Task Update()
+  {
+    await OnUpdate.InvokeAsync(true);
+  }
+}

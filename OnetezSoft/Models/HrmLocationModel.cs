@@ -18,11 +18,17 @@ public class HrmLocationModel
   public string longitude { get; set; }
 
   /// <summary>Bán kính châm công (mét)</summary>
-  public int radius { get; set; }
+  public long radius { get; set; }
 
-  /// <summary>Công ty áp dụng</summary>
+  /// <summary>Công ty áp dụng => bỏ</summary>
   public List<string> companys { get; set; } = new();
 
   /// <summary>Ngày tạo</summary>
   public long created { get; set; }
+
+  /// <summary>Danh sách id user áp dụng</summary>
+  public List<string> members_id { get; set; } = new();
+
+		/// <summary>Kiểm tra xoá</summary>
+		public bool is_deleted { get; set;} = false;
 }

@@ -403,6 +403,82 @@ namespace OnetezSoft.Data
         name = $"{creator} đã xóa địa điểm chấm công <b>{key}</b>";
         link = $"/hrm/setup/locations";
       }
+      else if (type == 806)
+      {
+        name = $"{creator} đã chỉnh sửa thông tin <b>{key}</b>";
+        link = $"/hrm/setup/rules";
+      }
+      else if (type == 807)
+      {
+        name = $"{creator} đã tạo bảng công <b>{key}</b>";
+        link = $"/hrm/timesheets";
+      }
+      else if (type == 808)
+      {
+        name = $"{creator} đã chỉnh sửa thông tin của bảng công <b>{key}</b>";
+        link = $"/hrm/timesheets";
+      }
+      else if (type == 809)
+      {
+        name = $"{creator} đã xóa bảng công <b>{key}</b>";
+        link = $"/hrm/timesheets";
+      }
+
+      // Ngày nghỉ - chấm công
+      else if (type == 810)
+      {
+        name = $"{creator} đã tạo mới ngày nghỉ <b>{key}</b>";
+        link = $"/hrm/setup/dayoff";
+      }
+      else if (type == 811)
+      {
+        name = $"{creator} đã chỉnh sửa ngày nghỉ <b>{key}</b>";
+        link = $"/hrm/setup/dayoff";
+      }
+      else if (type == 812)
+      {
+        name = $"{creator} đã xoá ngày nghỉ <b>{key}</b>";
+        link = $"/hrm/setup/dayoff";
+      }
+
+
+
+      // đơn từ
+      else if (type == 813)
+      {
+        name = $"{creator} đã đăng ký đơn từ";
+        link = $"/hrm/form/2";
+      }
+      else if (type == 814)
+      {
+        name = $"{creator} đã {key} đơn từ của bạn";
+        link = $"/hrm/form/1";
+      }
+      else if (type == 815)
+      {
+        name = $"{creator} đã {key} đơn từ của bạn nhưng có khoảng thời gian bị khoá bảng công";
+        link = $"/hrm/form/1";
+      }
+
+      // Đăng ký thiết bị
+      else if (type == 816)
+      {
+        name = $"{creator} đã yêu cầu đăng ký thiết bị mới";
+        link = $"/hrm/setup/device";
+      }
+      else if (type == 817)
+      {
+        name = $"{creator} đã phê duyệt yêu cầu đăng ký thiết bị mới của bạn";
+      }
+      else if (type == 818)
+      {
+        name = $"{creator} đã từ chối yêu cầu đăng ký thiết bị mới của bạn";
+      }
+      else if (type == 819)
+      {
+        name = $"{creator} đã phê duyệt bảng đăng ký ca làm {key}";
+        link = $"/hrm/timelist";
+      }
 
       #endregion
 
@@ -552,6 +628,13 @@ namespace OnetezSoft.Data
         name = $"Kế hoạch <b>{plan.name}</b> đã được chuyển trạng thái thành <b>{data.name}</b>.";
         link = $"/work/{planId}";
       }
+						// Tag tên kế hoạch
+						else if (type == 721)
+						{
+								var task = await DbWorkTask.Get(companyId, itemId);
+								name = $"<b>{creator}</b> đã nhắc đến bạn trong 1 bình luận tại kế hoạch <b>{plan.name}</b>!";
+								link = $"/work/{planId}/task?task={task.id}&tab=4";
+						}
 
       if (create != target)
       {

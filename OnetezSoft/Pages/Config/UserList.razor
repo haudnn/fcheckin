@@ -258,7 +258,7 @@ else
           await DbDepartment.Update(Layout.Company.id, department);
         }
       }
-      
+
       // Set trạng thái xóa tài khoản trong tổ chức
       item.delete = true;
       item.departments_id = new();
@@ -274,6 +274,23 @@ else
         user.companys.RemoveAll(x => x.id == Layout.Company.id);
         await DbMainUser.Update(user);
       }
+
+      // Xoá user bị xoá khỏi những địa điểm và ca làm đang được áp dụng
+      // Phần địa điểm
+      List<HrmLocationModel> locationsByUser = await DbHrmLocation.GetListForUser(Layout.Company.id, item.id);
+      if (locationsByUser.Any())
+      {
+        foreach (HrmLocationModel location in locationsByUser)
+        {
+          var locationTemp = location.members_id.Where(i => true).ToList();
+          locationTemp.RemoveAll(i => i == item.id);
+          location.members_id = locationTemp;
+          await DbHrmLocation.Update(Layout.Company.id, location);
+        }
+      }
+      //Phần ca làm
+      await DbHrmUserShift.Delete(Layout.Company.id, item.id);
+
     }
   }
 }

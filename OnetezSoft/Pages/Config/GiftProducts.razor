@@ -4,23 +4,13 @@
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
 @if (Layout.User.role != 1 && !Layout.User.role_manage.store)
 {
   <PopupNoRole />
 }
 else
 {
-  <section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
+  <section class="columns is-gapless has_menu_left">
     <div class="column is-narrow">
       <div class="card p-3 menu_left">
         <a class="is-active" href="/config/gift">
@@ -179,7 +169,6 @@ else
   </section>
 }
 
-
 @if (current != null)
 {
   <div class="modal is-active">
@@ -211,8 +200,9 @@ else
                   </a>
                 </div>
                 <div class="control is-expanded">
-                  <InputFile OnChange="Upload" accept="image/*" class="input" />
+                  <input @bind="current.image" class="input" type="text" placeholder="Nhập link hình..." />
                 </div>
+                <FileUpload Accept="image/*" Size="400" OnUpload="x => current.image = x[0]" />
               </div>
             </div>
           </li>
@@ -289,12 +279,7 @@ else
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
-  private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
   private string _title = "Quản lý cửa hàng";
-
   private List<GiftProductModel> dataList = new();
   private GiftProductModel current = null;
   private List<DepartmentModel> departments = new();
@@ -312,8 +297,6 @@ else
       filterDepartment = departments[0].id;
 
     await Search();
-
-    _loaded = true;
   }
 
   private async Task Search()
@@ -334,6 +317,7 @@ else
 
     dataList.Remove(item);
     await DbGiftProduct.Delete(Layout.Company.id, item.id);
+    Files.DeleteFile(item.image);
   }
 
   private async Task ToggleItem(GiftProductModel item)
@@ -359,37 +343,8 @@ else
     }
   }
 
-  private async Task Upload(InputFileChangeEventArgs e)
-  {
-    _success = false;
-    foreach (var file in e.GetMultipleFiles())
-    {
-      _message = "Đang upload file lên...";
-      try
-      {
-        if (file.Size <= Layout.MaxFileSize)
-        {
-          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
-          current.image = await Files.SaveFileAsync(fileContent, file.Name);
-          _message = string.Empty;
-        }
-        else
-        {
-          _message = $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB";
-        }
-      }
-      catch (Exception ex)
-      {
-        _message = $"ERROR: {ex.Message}";
-      }
-    }
-  }
-
   private async Task Update()
   {
-    _success = false;
-    _message = string.Empty;
-
     if (Shared.IsEmpty(current.name))
       await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa nhập tên sản phẩm!");
     else if(Shared.IsEmpty(current.image))

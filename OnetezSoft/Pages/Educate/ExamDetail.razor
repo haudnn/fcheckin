@@ -4,18 +4,8 @@
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<section class="p-4 @(_loaded ? "" : "is-loading")">
-  @if (current != null)
+<section class="p-4">
+  @if (model != null)
   {
     <div class="card p-5">
       <ul class="columns is-vcentered is-variable is-2 mb-3">
@@ -31,17 +21,17 @@
           </a>
         </li>
       </ul>
-      <ul class="columns is-multiline is-vcentered is-variable is-2">
+      <ul class="columns is-multiline is-vcentered is-variable is-1">
         <li class="column is-half">
           <div class="text_1_line">
             <span class="has-text-grey">Khóa học:</span>
-            <span class="has-text-weight-semibold">@current.course_name</span>
+            <span class="has-text-weight-semibold">@model.course_name</span>
           </div>
         </li>
         <li class="column is-half">
           <div class="text_1_line">
             <span class="has-text-grey">Bài thi:</span>
-            <span class="has-text-weight-semibold">@current.lesson_name</span>
+            <span class="has-text-weight-semibold">@model.lesson_name</span>
           </div>
         </li>
         <li class="column is-one-quarter">
@@ -54,38 +44,52 @@
             }
             else
             {
-              <span class="has-text-weight-semibold">@current.user</span>
+              <span class="has-text-weight-semibold">@model.user</span>
             }
           </div>
         </li>
         <li class="column is-one-quarter">
           <span class="has-text-grey">Ngày nộp bài:</span>
-          <span class="has-text-weight-semibold">@string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(current.date))</span>
+          <span class="has-text-weight-semibold">
+            @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(model.date))
+          </span>
         </li>
         <li class="column is-one-quarter">
           <span class="has-text-grey">Mức điểm đạt:</span>
-          <span class="has-text-weight-semibold">@current.point_pass</span>
+          <span class="has-text-weight-semibold">@model.point_pass</span>
         </li>
         <li class="column is-one-quarter">
-          @if (current.check)
+          @if (model.check)
           {
             <span class="has-text-grey">Kết quả:</span>
-            <span class="has-text-weight-semibold has-text-@(current.point_exam >= current.point_pass ? "success" : "danger")">
-              @(current.point_exam >= current.point_pass ? "THI ĐẠT" : "KHÔNG ĐẠT")
+            <span class="has-text-weight-semibold has-text-@(model.point_exam >= model.point_pass ? "success" : "danger")">
+              @(model.point_exam >= model.point_pass ? "THI ĐẠT" : "KHÔNG ĐẠT")
             </span>
           }
         </li>
       </ul>
       <hr />
       <ul class="lesson_question">
-        @for (int i = 0; i < current.questions.Count; i++)
+        @foreach (var item in model.questions)
         {
-          var item = current.questions[i];
+          var index = model.questions.IndexOf(item) + 1;
+
           <li class="question_item">
-            <div class="has-text-info has-text-weight-semibold mb-2">
-              <span>@string.Format("Câu {0}: ", i + 1)</span>
-              <span class="has_link">@((MarkupString)Shared.GetLinks(item.content))</span>
+            <div class="has-text-info mb-2">
+              <span class="has-text-weight-semibold">Câu @index:</span>
+              <span class="has-text-weight-medium has_link">@((MarkupString)Shared.GetLinks(item.content))</span>
             </div>
+            @if(lesson != null)
+            {
+              var question = lesson.questions.SingleOrDefault(x => x.id == item.id);
+              if(question != null && question.files.Count > 0)
+              {
+                <div class="field mb-2">
+                  <div class="has-text-grey">File đính kèm của câu hỏi</div>
+                  <FileViews Values="question.files" />
+                </div>
+              }
+            }
             <div class="mb-2">
               <span class="has-text-info has-text-weight-semibold mr-2">Trả lời:</span>
               @if (!string.IsNullOrEmpty(item.answer))
@@ -97,11 +101,19 @@
                 <i>Không có câu trả lời</i>
               }
             </div>
+            @if(item.files.Count > 0)
+            {
+              <div class="field mt-2">
+                <div class="has-text-grey">File đính kèm của câu trả lời</div>
+                <FileViews Values="item.files" />
+              </div>
+            }
             <div class="field is-grouped">
               <div class="control is-expanded">
                 <label class="label">Nhận xét câu trả lời</label>
                 <div class="control">
-                  <input @bind="item.comment" type="text" class="input is_bg" placeholder="Nhận xét của giảng viên về câu trả lời..." />
+                  <input @bind="item.comment" type="text" class="input is_bg"
+                    placeholder="Nhận xét của giảng viên về câu trả lời..." />
                 </div>
               </div>
               <div class="control" style="width: 120px;">
@@ -125,17 +137,17 @@
         <div class="control is-expanded">
           <label class="label">Nhận xét cả bài thi</label>
           <div class="control">
-            <textarea @bind="current.comment" class="textarea is_bg" rows="3" placeholder="Nhận xét của giảng viên về bài thi..." />
+            <textarea @bind="model.comment" class="textarea is_bg" rows="3" placeholder="Nhận xét của giảng viên về bài thi..." />
           </div>
         </div>
         <div class="control" style="width: 120px;">
           <label class="label">Điểm bài thi</label>
           <div class="field has-addons">
             <div class="control" style="width: 60px;">
-              <input value="@current.questions.Select(x => x.point_exam).Sum()" class="input has-text-centered" readonly />
+              <input value="@model.questions.Select(x => x.point_exam).Sum()" class="input has-text-centered" readonly />
             </div>
             <div class="control is-expanded">
-              <div class="button is-static is-fullwidth">/ @current.point_max</div>
+              <div class="button is-static is-fullwidth">/ @model.point_max</div>
             </div>
           </div>
           <div class="control">
@@ -166,73 +178,52 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
   [Parameter]
   public string Id { get; set; }
-
-  private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
   private string _title = "Chấm bài thi";
 
-  private EducateExamModel current = null;
+  private EducateExamModel model = null;
   private EducateLearnedModel learned = null;
+  private EducateLessonModel lesson = null;
   private UserModel student = null;
 
   protected override async Task OnInitializedAsync()
   {
-    current = await DbEducateExam.Get(Layout.Company.id, Id);
-    if (current != null)
+    model = await DbEducateExam.Get(Layout.Company.id, Id);
+    if (model != null)
     {
-      student = await DbUser.Get(Layout.Company.id, current.user);
-      learned = await DbEducateLearned.Get(Layout.Company.id, current.learned);
+      lesson = await DbEducateLesson.Get(Layout.Company.id, model.lesson);
+      student = await DbUser.Get(Layout.Company.id, model.user);
+      learned = await DbEducateLearned.Get(Layout.Company.id, model.learned);
     }
-
-    _loaded = true;
-  }
-
-  protected override void OnAfterRender(bool firstRender)
-  {
-    _message = string.Empty;
   }
 
   private async Task Update()
   {
-    _success = false;
     if (learned != null)
     {
-      if (current.questions.Where(x => x.point_exam > x.point_max).Count() > 0)
-      {
-        _message = "Điểm của câu hỏi không được cao hơn số điểm tối đa !";
-        await Task.Delay(5000);
-        _message = string.Empty;
-      }
+      if (model.questions.Where(x => x.point_exam > x.point_max).Count() > 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Điểm của câu hỏi không được cao hơn số điểm tối đa !");
       else
       {
-        current.point_exam = current.questions.Select(x => x.point_exam).Sum();
-        current.check = true;
-        current.date_check = DateTime.Now.Ticks;
-        current.examiner = Layout.User.id;
-        current = await DbEducateExam.Update(Layout.Company.id, current);
+        model.point_exam = model.questions.Select(x => x.point_exam).Sum();
+        model.check = true;
+        model.date_check = DateTime.Now.Ticks;
+        model.examiner = Layout.User.id;
+        model = await DbEducateExam.Update(Layout.Company.id, model);
 
         // Cập nhật kỳ học
-        var learn = learned.lessons.SingleOrDefault(x => x.id == current.lesson);
+        var learn = learned.lessons.SingleOrDefault(x => x.id == model.lesson);
         learn.done = true;
-        learn.pass = current.point_exam >= current.point_pass;
+        learn.pass = model.point_exam >= model.point_pass;
         learned = await DbEducateLearned.Update(Layout.Company.id, learned);
-
-        _message = "Đã lưu kết quả chấm bài thi";
-        _success = true;
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã lưu kết quả chấm bài thi");
 
         // Gửi thông báo chuông
-        await DbNotify.Create(Layout.Company.id, 603, current.id, current.user, Layout.User.id);
+        await DbNotify.Create(Layout.Company.id, 603, model.id, model.user, Layout.User.id);
       }
     }
     else
-    {
-      _message = "Không tìm thấy thông tin kỳ học của học viên !";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Không tìm thấy thông tin kỳ học của học viên !");
   }
 }

@@ -148,6 +148,14 @@
         icon = "/images/icon/fTimekeeping.png",
         cover = "/images/illustrations/ftimekeeping.png"
       };
+    var storage = new ProductModel()
+      {
+        id = "storage",
+        title = "fStorage",
+        color = "#B6EBF5",
+        icon = "/images/icon/fstorage.png",
+        cover = "/images/illustrations/fstorage.png"
+      };
 
     if(!dataList.Any(x => x.id == "okrs"))
       await DbMainProduct.Create(okrs);
@@ -169,6 +177,9 @@
     
     if(!dataList.Any(x => x.id == "timekeeping"))
       await DbMainProduct.Create(timekeeping);
+    
+    if(!dataList.Any(x => x.id == "storage"))
+      await DbMainProduct.Create(storage);
   }
 
   private async Task EditItem(ProductModel item)

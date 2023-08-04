@@ -1,7 +1,6 @@
 ﻿@page "/"
 @layout LayoutLogin
 @inject IJSRuntime JSRuntime
-@inject ProtectedLocalStorage storage
 @inject NavigationManager navigation
 
 <div class="login_form" style="opacity: @(_loaded ? "1" : "0")">
@@ -148,12 +147,12 @@
 
 @code {
   private bool _loaded = false;
+  private bool loading = false;
   private bool showpass = false;
   private string message = string.Empty;
   private string username = string.Empty;
   private string password = string.Empty;
   private UserModel user = null;
-  private bool loading = false;
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
@@ -161,33 +160,32 @@
     {
       try
       {
-        var userStorage = await storage.GetAsync<string>("user");
-        if (userStorage.Success && !string.IsNullOrEmpty(userStorage.Value))
+        var cookieUser = await JSRuntime.InvokeAsync<string>("getCookie", "_user");
+        if (!string.IsNullOrEmpty(cookieUser))
+          user = await DbMainUser.GetbySession(cookieUser);
+
+        if (user != null)
         {
-          user = await DbMainUser.GetbySession(userStorage.Value);
-          if (user != null)
+          if (!user.is_admin && !user.is_customer)
           {
-            if (!user.is_admin && !user.is_customer)
-            {
-              // Nếu không phải là admin thì chuyển đến tổ chức đầu tiên
-              if (user.companys != null && user.companys.Count == 1)
-                await GoCompany(user.companys[0].id);
-            }
-          }
-          else
-          {
-            await storage.DeleteAsync("user");
+            // Nếu không phải là admin thì chuyển đến tổ chức đầu tiên
+            if (user.companys != null && user.companys.Count == 1)
+              await GoCompany(user.companys[0].id);
           }
         }
-        _loaded = true;
-        StateHasChanged();
+        else
+        {
+          await JSRuntime.InvokeVoidAsync("deleteCookie", "_user");
+          await JSRuntime.InvokeVoidAsync("deleteCookie", "_cycle");
+          await JSRuntime.InvokeVoidAsync("deleteCookie", "_company");
+        }
       }
       catch (Exception ex)
       {
-        await JSRuntime.InvokeVoidAsync("localStorage.clear");
-        await JSRuntime.InvokeAsync<string>("console.log", "ERROR STORAGE: " + ex.Message);
-        navigation.NavigateTo("/", true);
+        await JSRuntime.InvokeAsync<string>("console.warn", "Login: " + ex.Message);
       }
+      _loaded = true;
+      StateHasChanged();
     }
   }
 
@@ -202,7 +200,8 @@
       user.online = DateTime.Now.Ticks;
       user.session = Handled.Shared.CreateMD5(user.id + DateTime.Now.Year + DateTime.Now.Month);
       await DbMainUser.Update(user);
-      await storage.SetAsync("user", user.session);
+
+      await JSRuntime.InvokeVoidAsync("setCookie", "_user", user.session);
 
       if (!user.is_admin && !user.is_customer)
       {
@@ -252,12 +251,10 @@
         var userInCompany = await DbUser.Get(company.id, user.id);
         if (userInCompany != null)
         {
-          await storage.SetAsync("company", companyId);
+          await JSRuntime.InvokeVoidAsync("setCookie", "_company", companyId);
 
           string link = string.IsNullOrEmpty(userInCompany.page_default) ? "/blogs" : userInCompany.page_default;
           navigation.NavigateTo(link, true);
-
-          return;
         }
         else
         {

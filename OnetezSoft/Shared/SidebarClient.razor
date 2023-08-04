@@ -1,5 +1,4 @@
 @inject IJSRuntime JSRuntime
-@inject ProtectedLocalStorage storage
 @inject NavigationManager navigation
 
 <section id="sidebar" class="@(navLess ? "is_less" : "") @(navMobile ? "is_expanded" : "")">
@@ -77,9 +76,9 @@
     {
       if (firstRender)
       {
-        var navStorage = await storage.GetAsync<string>("navLess");
-        if (navStorage.Success && !string.IsNullOrEmpty(navStorage.Value))
-          navLess = Convert.ToBoolean(navStorage.Value);
+        var cookieNav = await JSRuntime.InvokeAsync<string>("getCookie", "_nav");
+        if (!string.IsNullOrEmpty(cookieNav))
+          navLess = Convert.ToBoolean(cookieNav);
         StateHasChanged();
       }
     }
@@ -115,16 +114,10 @@
     }
   }
 
-  private async Task ChangeCycle(string id)
-  {
-    await storage.SetAsync("cycle", id);
-    navigation.NavigateTo(navigation.Uri, true);
-  }
-
   private async Task ToggleSidebar()
   {
     navLess = !navLess;
-    await storage.SetAsync("navLess", navLess.ToString());
+    await JSRuntime.InvokeVoidAsync("setCookie", "_nav", navLess);
   }
 
   private void ToogleMobile()

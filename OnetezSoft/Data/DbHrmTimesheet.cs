@@ -17,6 +17,9 @@ public class DbHrmTimesheet
   {
     var _db = Mongo.DbConnect("fastdo_" + companyId);
 
+    if (string.IsNullOrEmpty(model.id))
+      model.id = Mongo.RandomId();
+
     var collection = _db.GetCollection<HrmTimesheetModel>(_collection);
 
     await collection.InsertOneAsync(model);
@@ -53,6 +56,13 @@ public class DbHrmTimesheet
       return false;
   }
 
+  public static async Task<HrmTimesheetModel> Delete(string companyId, HrmTimesheetModel model)
+  {
+    model.is_delete = true;
+    await Update(companyId, model);
+    return model;
+  }
+
 
   public static async Task<HrmTimesheetModel> Get(string companyId, string id)
   {
@@ -64,12 +74,12 @@ public class DbHrmTimesheet
   }
 
 
-  public static async Task<List<HrmTimesheetModel>> GetList(string companyId, long month)
+  public static async Task<List<HrmTimesheetModel>> GetList(string companyId)
   {
     var _db = Mongo.DbConnect("fastdo_" + companyId);
 
     var collection = _db.GetCollection<HrmTimesheetModel>(_collection);
 
-    return await collection.Find(x => x.month == month).ToListAsync();
+    return await collection.Find(x => !x.is_delete).ToListAsync();
   }
 }

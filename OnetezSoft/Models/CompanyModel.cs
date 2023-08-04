@@ -71,6 +71,9 @@ namespace OnetezSoft.Models
     /// <summary>Cấu hình Todolist</summary>
     public class Todolist
     {
+      /// <summary>Check-in trước 1 ngày</summary>
+      public int day_checkin { get; set; } = -1;
+
       /// <summary>Thời gian nộp HH:mm</summary>
       public string time_checkin { get; set; }
 

@@ -23,12 +23,20 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
   public BlazorSlickCarousel banner;
   public WMBSCInitialSettings configurations;
   private List<BannerModel> database = new();
   private List<BannerModel> dataList = new();
   private int count = 0;
+  private List<string> hideList = new ()
+  {
+    "/config",
+    "/user",
+    "/feedback",
+    "/work",
+    "/hrm",
+    "/okr/overview",
+  };
 
 
   protected override void OnInitialized()
@@ -62,14 +70,6 @@
     await SlideChange();
   }
 
-  private void SlideFirst()
-  {
-    var url = navigation.Uri.Replace(navigation.BaseUri, "/");
-    if (!url.StartsWith("/config/"))
-      dataList = GetList();
-    count = dataList.Count;
-  }
-
   private async Task SlideChange()
   {
     if(banner != null)
@@ -91,11 +91,19 @@
     }
   }
 
-  private List<BannerModel> GetList()
+  private void SlideFirst()
   {
     var url = navigation.Uri.Replace(navigation.BaseUri, "/");
+    if (PageShows(url))
+      dataList = GetList();
+    count = dataList.Count;
+  }
+
+  private List<BannerModel> GetList()
+  {
     var list = new List<BannerModel>();
-    if (!url.StartsWith("/config/"))
+    var url = navigation.Uri.Replace(navigation.BaseUri, "/");
+    if (PageShows(url))
     {
       foreach (var item in database)
       {
@@ -120,5 +128,13 @@
       }
     }
     return list;
+  }
+
+  private bool PageShows(string url)
+  {
+    foreach (var item in hideList)
+      if(url.StartsWith(item))
+        return false;
+    return true;
   }
 }

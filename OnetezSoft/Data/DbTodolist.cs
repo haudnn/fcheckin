@@ -35,27 +35,29 @@ namespace OnetezSoft.Data
 
       var day = string.Format("{0:yyyy-MM-dd}", new DateTime(model.date));
       var config = await DbMainCompany.Get(companyId);
-      var checkin = Convert.ToDateTime(day + " " + config.todolist.time_checkin).AddDays(-1);
+      var checkin = Convert.ToDateTime(day + " " + config.todolist.time_checkin).AddDays(config.todolist.day_checkin);
       var checkout = Convert.ToDateTime(day + " " + config.todolist.time_checkout);
 
-      // Checkin đúng hạn
       if (model.status >= 2 && model.date_checkin <= checkin.Ticks)
       {
+        // Checkin đúng hạn
         model.ontime_checkin = true;
       }
-      else // Checkin trễ hạn
+      else
       {
+        // Checkin trễ hạn
         model.ontime_checkin = false;
         point -= 2;
       }
 
-      // Checkout trễ hạn
       if (model.status == 3 && model.date_checkout <= checkout.Ticks)
       {
+        // Checkout trễ hạn
         model.ontime_checkout = true;
       }
       else
       {
+        // Checkout trễ hạn
         model.ontime_checkout = false;
         point -= 2;
       }
@@ -65,6 +67,7 @@ namespace OnetezSoft.Data
       model.total = todoItems.Count;
       model.done = todoItems.Where(x => x.status == 4).Count();
       point -= todoItems.Where(x => x.status < 4).Count();
+      
       // Cập nhật điểm Todolist
       model.point = point > 0 ? point : 0;
 

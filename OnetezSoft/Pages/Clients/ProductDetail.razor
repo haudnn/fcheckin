@@ -20,7 +20,8 @@
               Mua ngay
             </a>
             <span class="item_price">
-              @model.price.ToString("0,0") VNĐ/người/tháng
+              @model.price.ToString("0,0")
+              @(model.id == "storage" ? "VNĐ/GB/tháng" : "VNĐ/người/tháng")
             </span>
           </div>
         </li>
@@ -78,7 +79,10 @@
             </div>
             <div class="column is-5 has-text-centered">
               <span class="has-text-weight-bold">Professional</span>
-              <span class="is-block is-size-7">@model.price.ToString("0,0") VNĐ/người/tháng</span>
+              <span class="is-block is-size-7">
+                @model.price.ToString("0,0")
+                @(model.id == "storage" ? "VNĐ/GB/tháng" : "VNĐ/người/tháng")  
+              </span>
               <hr class="mt-2 mb-0" />
             </div>
             @foreach (var item in model.pricelist)

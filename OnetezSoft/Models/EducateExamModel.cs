@@ -25,7 +25,7 @@ namespace OnetezSoft.Models
 
     /// <summary>Người chấm thi</summary>
     public string examiner { get; set; }
-    
+
     // Loại bài thi
     public int type { get; set; }
     // Mức điểm bài thi
@@ -43,23 +43,31 @@ namespace OnetezSoft.Models
 
     /// <summary>Thời gian chấm bài</summary>
     public long date_check { get; set; }
-    
+
     // Câu hỏi
     public List<Question> questions { get; set; }
 
     public class Question
     {
       public string id { get; set; }
+
       // Nội dung câu hỏi
       public string content { get; set; }
+
       // Đáp án câu hỏi
       public string answer { get; set; }
+
       // Nhận xét
       public string comment { get; set; }
+
       // Số điểm chấm
       public int point_exam { get; set; }
+
       // Số điểm tối đa
       public int point_max { get; set; }
+
+      /// <summary>File đính kèm</summary>
+      public List<string> files { get; set; } = new();
     }
   }
 }

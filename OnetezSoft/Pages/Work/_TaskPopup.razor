@@ -10,8 +10,8 @@
   var editTask = WorkService.RoleEditTask(plan, task, Layout.User.id);
 
   <section class="modal is-active">
-  <div class="modal-background"></div>
-  <section id="plan_popup" class="modal-card is-medium">
+    <div class="modal-background"></div>
+    <section id="plan_popup" class="modal-card is-medium">
     @if (Layout.IsMobile)
     {
       if (task.date_start == 0)
@@ -34,36 +34,42 @@
       <section class="modal-card-tabs">
         <ul class="columns is-mobile is-variable is-0">
           <li class="column is-narrow">
-            <a class="button is-small @(tab == 1 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(1)">
+            <a class="button is-small @(tab == 1 ? "has_bg has-text-link" : "is-white")"
+              @onclick="() => ChangeTab(1)">
               Thông tin chung
             </a>
           </li>
           @if (!string.IsNullOrEmpty(task.id))
           {
             <li class="column is-narrow">
-              <a class="button is-small @(tab == 2 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(2)">
+              <a class="button is-small @(tab == 2 ? "has_bg has-text-link" : "is-white")"
+                @onclick="() => ChangeTab(2)">
                 Công việc phụ
               </a>
             </li>
             <li class="column is-narrow">
-              <a class="button is-small @(tab == 3 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(3)">
+              <a class="button is-small @(tab == 3 ? "has_bg has-text-link" : "is-white")"
+                @onclick="() => ChangeTab(3)">
                 Todolist liên kết
               </a>
             </li>
             <li class="column is-narrow">
-              <a class="button is-small @(tab == 4 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(4)">
+              <a class="button is-small @(tab == 4 ? "has_bg has-text-link" : "is-white")"
+                @onclick="() => ChangeTab(4)">
                 Bình luận
               </a>
             </li>
             <li class="column is-narrow">
-              <a class="button is-small @(tab == 5 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(5)">
+              <a class="button is-small @(tab == 5 ? "has_bg has-text-link" : "is-white")"
+                @onclick="() => ChangeTab(5)">
                 Lịch sử cập nhật
               </a>
             </li>
             @if (editTask)
             {
               <li class="column is-narrow">
-                <a class="button is-small @(tab == 6 ? "has_bg has-text-link" : "is-white")" @onclick="() => ChangeTab(6)">
+                <a class="button is-small @(tab == 6 ? "has_bg has-text-link" : "is-white")"
+                  @onclick="() => ChangeTab(6)">
                   Xóa và rời khỏi
                 </a>
               </li>
@@ -72,15 +78,13 @@
         </ul>
       </section>
       <section class="modal-card-body is-size-7">
-      @if (tab == 1)
+        @if (tab == 1)
         {
           <div class="field">
             @if (editTask)
             {
-              <div class="control">
-                <textarea @bind="task.name" id="task_name" class="textarea has-text-weight-semibold is_bg"
-                  rows="1" placeholder="Nhập tiêu đề công việc" />
-              </div>
+              <textarea @bind="task.name" id="task_name" class="textarea has-text-weight-semibold is_bg"
+                rows="1" placeholder="Nhập tiêu đề công việc" />
             }
             else
             {
@@ -171,8 +175,8 @@
                   <span>@dateS.ToString("HH:mm")</span>
                 </div>
               }
-              </div>
             </div>
+          </div>
           <div class="field is-grouped">
             <div class="control has-text-grey" style="width: 120px;">
               Ngày kết thúc
@@ -208,28 +212,28 @@
             </div>
           </div>
           <div class="field is-grouped">
-          <div class="control has-text-grey" style="width: 120px;">
-            Kế hoạch:
-          </div>
-          <div class="control is-expanded">
-            <div class="dropdown is-hoverable is-fullwidth">
-              <div class="dropdown-trigger">
-                <a class="icon-text">
-                  <span>@plan.name</span>
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                  </span>
-                </a>
-              </div>
-              @if (editTask)
-              {
-                <div class="dropdown-menu">
-                  <div class="dropdown-content">
-                    <a class="dropdown-item">@plan.name</a>
-                  </div>
+            <div class="control has-text-grey" style="width: 120px;">
+              Kế hoạch:
+            </div>
+            <div class="control is-expanded">
+              <div class="dropdown is-hoverable is-fullwidth">
+                <div class="dropdown-trigger">
+                  <a class="icon-text">
+                    <span>@plan.name</span>
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                    </span>
+                  </a>
                 </div>
-              }
-              </div>
+                @if (editTask)
+                {
+                  <div class="dropdown-menu">
+                    <div class="dropdown-content">
+                      <a class="dropdown-item">@plan.name</a>
+                    </div>
+                  </div>
+                }
+                </div>
             </div>
           </div>
           <div class="field is-grouped">
@@ -269,7 +273,8 @@
                       }
                       @foreach (var item in plan.sections)
                       {
-                        <a class="dropdown-item" style="white-space: normal;" @onclick="() => UpdateSection(item.id)">@item.name</a>
+                        <a class="dropdown-item" style="white-space: normal;"
+                          @onclick="() => UpdateSection(item.id)">@item.name</a>
                       }
                     </div>
                   </div>
@@ -314,20 +319,47 @@
               <_LabelList labels="task.labels" sources="plan.labels" isEdit="editTask" OnUpdate="UpdateLabels" />
             </div>
           </div>
+          @if(ProductService.CheckStorage(Layout.Company))
+          {
+            if (editTask)
+            {
+              <div class="field is-grouped" style="align-items: flex-start;">
+                <div class="control has-text-grey pt-1" style="width: 120px;">
+                  File đính kèm:
+                </div>
+                <div class="control is-expanded" style="width: calc(100% - 132px)">
+                  <FileUpload Multiple="true" Small="true" Cloud="true" OnUpload="x => task.files.AddRange(x)" />
+                  <FileViews Delete="true" Values="task.files" />
+                </div>
+              </div>
+            }
+            else if(task.files.Count > 0)
+            {
+              <div class="field is-grouped" style="align-items: flex-start;">
+                <div class="control has-text-grey pt-1" style="width: 120px;">
+                  File đính kèm:
+                </div>
+                <div class="control is-expanded" style="width: calc(100% - 132px)">
+                  <FileViews Values="task.files" />
+                </div>
+              </div>
+            }
+          }
           <div class="field">
             <div class="control has-text-grey mb-2">Mô tả công việc:</div>
-              @if (editTask)
-              {
-                <div class="control">
-                  <textarea @bind="task.detail" class="textarea is_bg" rows="7" placeholder="Nhập mô tả công việc..." />
-                </div>
-              }
-              else
-              {
-                <div class="content is-size-7">
-                  @((MarkupString)Shared.TextToHtml(task.detail))
-                </div>
-              }
+            @if (editTask)
+            {
+              <div class="control">
+                <textarea @bind="task.detail" class="textarea is_bg" rows="7"
+                  placeholder="Nhập mô tả công việc..." />
+              </div>
+            }
+            else
+            {
+              <div class="content is-size-7">
+                @((MarkupString)Shared.TextToHtml(task.detail))
+              </div>
+            }
           </div>
           @if (editTask)
           {
@@ -691,7 +723,8 @@
                           <a class="dropdown-item is-hidden" @onclick="() => UpdatePriorty(0)">Trống</a>
                           @foreach (var item in WorkService.Priority())
                           {
-                            <a class="dropdown-item" style="color: @item.color;" @onclick="() => UpdatePriorty(item.id)">@item.name</a>
+                            <a class="dropdown-item" style="color: @item.color;"
+                              @onclick="() => UpdatePriorty(item.id)">@item.name</a>
                           }
                         </div>
                       </div>
@@ -707,12 +740,41 @@
                   <_LabelList labels="task.labels" sources="plan.labels" isEdit="editTask" OnUpdate="UpdateLabels" />
                 </div>
               </div>
+              @if(ProductService.CheckStorage(Layout.Company))
+              {
+                if (editTask)
+                {
+                  <div class="field is-grouped">
+                    <div class="control has-text-grey" style="width: 120px;">
+                      File đính kèm:
+                    </div>
+                    <div class="control is-expanded" style="width: calc(100% - 132px)">
+                      <FileUpload Multiple="true" Small="true" Cloud="true" OnUpload="x => task.files.AddRange(x)" />
+                    </div>
+                  </div>
+                  <div class="pb-3">
+                    <FileViews Delete="true" Values="task.files" />
+                  </div>
+                }
+                else if(task.files.Count > 0)
+                {
+                  <div class="field is-grouped" style="align-items: flex-start;">
+                    <div class="control has-text-grey pt-1" style="width: 120px;">
+                      File đính kèm:
+                    </div>
+                    <div class="control is-expanded" style="width: calc(100% - 132px)">
+                      <FileViews Values="task.files" />
+                    </div>
+                  </div>
+                }
+              }
               <div class="field">
                 <div class="control has-text-grey mb-2">Mô tả công việc:</div>
                 @if (editTask)
                 {
                   <div class="control">
-                    <textarea @bind="task.detail" class="textarea is-small is_bg" rows="5" placeholder="Nhập mô tả công việc..." style="height: calc(100vh - 518px);" />
+                    <InputArea Class="textarea is-small is_bg" Title="Nhập mô tả công việc..."
+                      Value="@task.detail" OnInput="x => task.detail = x"/>
                   </div>
                 }
                 else

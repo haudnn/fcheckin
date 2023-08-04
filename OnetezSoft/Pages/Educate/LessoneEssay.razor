@@ -1,16 +1,6 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
 <ul class="columns is-multiline is-variable is-2">
   <li class="column">
     <div class="field">
@@ -40,14 +30,15 @@
   </li>
   <li class="column is-full">
     <ul class="columns is-multiline is-variable is-2">
-      @for (int i = 0; i < lesson.questions.Count; i++)
+      @foreach (var item in lesson.questions)
       {
-        var item = lesson.questions[i];
+        int index = lesson.questions.IndexOf(item) + 1;
         <li class="column is-four-fifths">
           <div class="field">
-            <label class="label">Câu hỏi @(i+1)</label>
+            <label class="label">Câu hỏi @index</label>
             <div class="control">
-              <textarea @bind="item.content" id="@item.id" class="textarea is_bg" rows="2" placeholder="Nhập nôi dung câu hỏi..." />
+              <InputArea Class="textarea is_bg" Value="@item.content"
+                OnInput="x => item.content = x" Title="Nhập nội dung câu hỏi..." />
             </div>
           </div>
         </li>
@@ -68,6 +59,18 @@
             </div>
           </div>
         </li>
+        @if(ProductService.CheckStorage(Layout.Company))
+        {
+          <li class="column is-full">
+            <div class="field is-grouped">
+              <div class="control">File đính kèm</div>
+              <div class="control">
+                <FileUpload Multiple="true" Small="true" Cloud="true" OnUpload="x => item.files.AddRange(x)" />
+              </div>
+            </div>
+            <FileViews Delete="true" Values="item.files" />
+          </li>
+        }
       }
     </ul>
   </li>
@@ -128,20 +131,11 @@
   public LayoutMain Layout { get; set; }
   [Parameter]
   public EducateLessonModel lesson { get; set; }
-
-  private bool _success = false;
-  private string _message = string.Empty;
-
   private EducateCourseModel course = null;
 
   protected override async Task OnInitializedAsync()
   {
     course = await DbEducateCourse.Get(Layout.Company.id, lesson.course);
-  }
-
-  protected override void OnAfterRender(bool firstRender)
-  {
-    _message = string.Empty;
   }
 
   private async Task AddItem()
@@ -153,7 +147,6 @@
       point = 1
     };
     lesson.questions.Add(item);
-    await JSRuntime.InvokeVoidAsync("setFocus", id);
   }
 
   private async Task DeleteItem(EducateLessonModel.Question item)
@@ -175,39 +168,19 @@
 
   private async Task Update()
   {
-    _success = false;
-    _message = string.Empty;
-
-    if (string.IsNullOrEmpty(lesson.name) || lesson.time == 0)
-    {
-      _message = "Nhập tiêu đề và thời lượng bài tự luận !";
-      await Task.Delay(10000);
-      _message = string.Empty;
-    }
+    if (StringHelper.IsEmpty(lesson.name) || lesson.time == 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập tiêu đề và thời lượng bài tự luận !");
     else if (lesson.point <= 0)
-    {
-      _message = "Giá trị mức điểm đạt phải lớn hơn hoặc bằng 1 !";
-      await Task.Delay(10000);
-      _message = string.Empty;
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Giá trị mức điểm đạt phải lớn hơn hoặc bằng 1 !");
     else if (lesson.point > lesson.questions.Select(x => x.point).Sum())
-    {
-      _message = "Mức điểm đạt được của bài thi phải nhỏ hơn tổng điểm bài thi !";
-      await Task.Delay(10000);
-      _message = string.Empty;
-    }
-    else if (lesson.questions.Where(x => string.IsNullOrEmpty(x.content)).Count() > 0)
-    {
-      _message = "Có câu hỏi chưa nhập nội dung !";
-      await Task.Delay(10000);
-      _message = string.Empty;
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Mức điểm đạt được phải nhỏ hơn tổng điểm bài thi !");
+    else if (lesson.questions.Where(x => StringHelper.IsEmpty(x.content)).Count() > 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Có câu hỏi chưa nhập nội dung !");
     else
     {
       lesson.content = $"Bài thi tự luận này có {lesson.questions.Count} câu hỏi.";
       await DbEducateLesson.Update(Layout.Company.id, lesson);
-      _message = "Đã cập nhật thông tin bài tự luận !";
-      _success = true;
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin bài tự luận !");
     }
   }
 }

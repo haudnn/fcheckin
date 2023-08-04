@@ -276,6 +276,37 @@ else
               </div>
             </div>
           }
+
+          @if (current.has_salary)
+          {
+            <div>
+              <div class="control">
+                <div class="is-flex is-justify-content-space-between">
+                  <label class="label">
+                    Công tính lương
+                  </label>
+                  <p @onclick="() => isEdit = true">Chỉnh sửa</p>
+                </div>
+
+                @foreach (var item in current.time_off)
+                {
+                  <div class="control mt-2">
+                    <input type="text" @bind="item.time" />
+                    <_MemberDayOff members_selected="userSelected" members="item.users"
+                                   sources="Layout.UserList" isEdit="isEdit" />
+                  </div>
+                }
+              </div>
+              <div class="control is-expanded is-hidden-mobile">
+              </div>
+              @if(isEdit)
+              {
+                <div class="control" @onclick="() => current.time_off.Add(new())">
+                  <label class="label">Thêm mới</label>
+                </div>
+              }
+            </div>
+          }
           <div class="field is-grouped mt-5">
             <div class="control is-expanded">
                <label class="checkbox has-text-link">
@@ -314,6 +345,8 @@ else
   private DayOffModel current = null;
   DateTimeOffset? StartDate { get; set; }
   DateTimeOffset? EndDate { get; set; }
+  private List<string> userSelected { get; set; } = new();
+  private bool isEdit;
 
   protected override void OnInitialized()
   {
@@ -349,6 +382,7 @@ else
     else
     {
       current = item;
+      item.time_off.ForEach(i => userSelected.AddRange(i.users));
     }
     StartDate = new DateTime(current.start);
     EndDate = new DateTime(current.end);

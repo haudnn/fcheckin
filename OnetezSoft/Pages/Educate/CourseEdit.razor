@@ -5,17 +5,7 @@
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<section class="p-4 @(_loaded ? "" : "is-loading")">
+<section class="p-4">
   <div class="card p-5">
     <ul class="columns is-multiline is-variable is-2">
       <li class="column is-two-thirds">
@@ -43,38 +33,25 @@
             <div class="field">
               <label class="label">Tiêu đề *</label>
               <div class="control">
-                <input @bind="current.name" type="text" class="input has-text-weight-bold is_bg" placeholder="Nhập tiêu đề khóa học..." />
+                <input @bind="model.name" type="text" class="input has-text-weight-bold is_bg"
+                  placeholder="Nhập tiêu đề khóa học..." />
               </div>
             </div>
           </li>
           <li class="column is-half">
             <div class="field">
               <label class="label">Giảng viên *</label>
-              <div class="control has-icons-right has_suggest">
-                <input class="input is_bg" type="text" placeholder="Tìm giảng viên..."
-                       autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
-                <ul class="suggest">
-                  @foreach (var item in userSuggests)
-                  {
-                    <li class="rsitem" @onclick="() => UserSelected(item)">
-                      <div class="user_item">
-                        <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
-                        <span>@item.FullName</span>
-                      </div>
-                    </li>
-                  }
-                </ul>
-                <span class="icon is-right">
-                  <i class="material-icons-outlined">search</i>
-                </span>
-              </div>
+              <MemberSearch sources="Layout.UserList" OnUpdate="ChangeTeacher" />
             </div>
           </li>
           <li class="column is-half">
             <div class="field">
               <label class="label">Hình ảnh *</label>
-              <div class="control">
-                <InputFile OnChange="Upload" accept="image/*" class="input is_bg" />
+              <div class="field has-addons">
+                <div class="control is-expanded">
+                  <input @bind="model.image" class="input is_bg" type="text" placeholder="Nhập link hình..." />
+                </div>
+                <FileUpload Accept="image/*" Size="400" OnUpload="x => model.image = x[0]" />
               </div>
             </div>
           </li>
@@ -82,7 +59,7 @@
             <div class="field">
               <label class="label">Số bài học *</label>
               <div class="control">
-                <input @bind="current.lesson" type="number" class="input is_bg" min="0" />
+                <input @bind="model.lesson" type="number" class="input is_bg" min="0" />
               </div>
             </div>
           </li>
@@ -90,7 +67,7 @@
             <div class="field">
               <label class="label">Thời lượng *</label>
               <div class="control">
-                <input @bind="current.time" type="text" class="input is_bg" placeholder="VD: 5h 30ph..." />
+                <input @bind="model.time" type="text" class="input is_bg" placeholder="VD: 5h 30ph..." />
               </div>
             </div>
           </li>
@@ -99,7 +76,7 @@
               <label class="label">Thuộc tính</label>
               <div class="control pt-2">
                 <label class="checkbox">
-                  <input type="checkbox" @bind="current.show" />
+                  <input type="checkbox" @bind="model.show" />
                   <span>Hiển thị khóa học</span>
                 </label>
               </div>
@@ -124,7 +101,7 @@
           
           <li class="column is-two-thirds">
             <div class="field is-grouped is-grouped-multiline pt-5 mt-1">
-              @foreach (var id in current.category)
+              @foreach (var id in model.category)
               {
                 var item = categoryList.SingleOrDefault(x => x.id == id);
                 <div class="control">
@@ -133,7 +110,7 @@
                       <span class="input">@(item != null ? item.name : id)</span>
                     </div>
                     <div class="control">
-                      <a class="button has-text-danger" @onclick="() => current.category.Remove(id)">
+                      <a class="button has-text-danger" @onclick="() => model.category.Remove(id)">
                         <span class="icon">
                           <i class="material-icons is-size-6">close</i>
                         </span>
@@ -150,12 +127,12 @@
         <div class="card has_image">
           <div class="card-image">
             <div class="image is-5by3 has-background-grey-lighter">
-              <img src="@current.image" />
+              <img src="@model.image" />
             </div>
           </div>
           <div class="card-content p-4">
             <div class="is-size-6 has-text-link has-text-weight-bold text_1_line">
-              @current.name
+              @model.name
             </div>
             <div class="mt-3 font_13">
               <span class="has-text-grey">Giảng viên:</span>
@@ -171,17 +148,17 @@
           <label class="label">Người chấm thi</label>
           <ul class="columns is-vcentered is-multiline is-variable is-2">
             <li class="column is-one-third">
-              <MemberSelected members="current.examiner" sources="Layout.UserList"
+              <MemberSelected members="model.examiner" sources="Layout.UserList"
                 title="Chọn người chấm thi" OnUpdate="ChangeExaminer" />
             </li>
-            @foreach (var userId in current.examiner)
+            @foreach (var userId in model.examiner)
             {
               var examiner = UserService.GetMember(Layout.UserList, userId);
               <li class="column is-narrow">
                 <div class="icon-text">
                   <img class="icon is-rounded image is-24x24 mr-2" src="@examiner.avatar" alt="IMG">
                   <span>@examiner.name</span>
-                  <a class="icon has-text-danger" @onclick="() => current.examiner.Remove(userId)">
+                  <a class="icon has-text-danger" @onclick="() => model.examiner.Remove(userId)">
                     <i class="material-icons-outlined is-size-6">close</i>
                   </a>
                 </div>
@@ -190,6 +167,18 @@
           </ul>
         </div>
       </li>
+      @if(ProductService.CheckStorage(Layout.Company))
+      {
+        <li class="column is-full">
+          <div class="field is-grouped">
+            <div class="control">File đính kèm</div>
+            <div class="control">
+              <FileUpload Multiple="true" Small="true" Cloud="true" OnUpload="x => model.files.AddRange(x)" />
+            </div>
+          </div>
+          <FileViews Delete="true" Values="model.files" />
+        </li>
+      }
       <li class="column is-full">
         <div class="field">
           <label class="label">Mô tả khóa học</label>
@@ -222,7 +211,7 @@
                   <button class="ql-link"></button>
                 </span>
                 <span class="ql-formats">
-                  <button onclick="document.getElementById('file').click()">
+                  <button onclick="document.getElementById('fileEditor').click()">
                     <i class="material-icons-outlined">image</i>
                   </button>
                 </span>
@@ -231,13 +220,15 @@
                 @((MarkupString)content)
               </EditorContent>
             </BlazoredTextEditor>
-            <InputFile OnChange="UploadEditor" accept="image/*" class="is-hidden" id="file" />
+            <div class="is-hidden">
+              <FileUpload Accept="image/*" Multiple="true" Size="1000" FileId="fileEditor" OnUpload="UploadEditor" />
+            </div>
           </div>
         </div>
       </li>
       <li class="column is-full">
         <div class="field is-grouped is-grouped-right">
-          @if (!string.IsNullOrEmpty(current.id))
+          @if (!string.IsNullOrEmpty(model.id))
           {
             <div class="control">
               <a class="button is-danger" @onclick="Delete">
@@ -265,16 +256,10 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
   [Parameter]
   public string Id { get; set; }
-
-  private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
   private string _title = "Thông tin khóa học";
-
-  private EducateCourseModel current = new() { category = new() };
+  private EducateCourseModel model = new();
   private UserModel teacher = null;
   private BlazoredTextEditor editor;
   private string content = string.Empty;
@@ -286,120 +271,45 @@
     categoryList.AddRange(DbEducateCategory.GetList(Layout.Company.id, null));
     if (!string.IsNullOrEmpty(Id))
     {
-      current = await DbEducateCourse.Get(Layout.Company.id, Id);
+      model = await DbEducateCourse.Get(Layout.Company.id, Id);
     }
     else
     {
-      current = new() { category = new(), teacher = Layout.User.id };
+      model = new() { category = new(), teacher = Layout.User.id };
     }
 
-    if (current == null)
-      current = new() { category = new(), teacher = Layout.User.id };
-    teacher = Layout.UserList.SingleOrDefault(x => x.id == current.teacher);
-    teacherOld = current.teacher;
-    content = current.content;
+    if (model == null)
+      model = new() { category = new(), teacher = Layout.User.id };
+    teacher = Layout.UserList.SingleOrDefault(x => x.id == model.teacher);
+    teacherOld = model.teacher;
+    content = model.content;
 
-    if (current.creator != Layout.User.id && current.teacher != Layout.User.id && Layout.User.role == 3)
-      navigation.NavigateTo("/educate/course/manager/info/" + current.id, false);
-
-    _loaded = true;
+    if (model.creator != Layout.User.id && model.teacher != Layout.User.id && Layout.User.role == 3)
+      navigation.NavigateTo("/educate/course/manager/info/" + model.id, false);
   }
 
-  protected override void OnAfterRender(bool firstRender)
+  private void ChangeTeacher(string value)
   {
-    _message = string.Empty;
-  }
-
-  private List<UserModel> userSuggests = new();
-  private string teacherSearch = string.Empty;
-  private string UserSearch
-  {
-    get => teacherSearch;
-    set
-    {
-      teacher = null;
-      teacherSearch = value;
-      userSuggests.Clear();
-      if (!string.IsNullOrEmpty(value))
-      {
-        foreach (var item in Layout.UserList)
-        {
-          if (Handled.Shared.SearchKeyword(teacherSearch, item.FullName))
-            userSuggests.Add(item);
-        }
-      }
-    }
-  }
-
-  private void UserSelected(UserModel item)
-  {
-    teacher = item;
-    teacherSearch = item.FullName;
-    userSuggests.Clear();
+    teacher = Layout.UserList.SingleOrDefault(x => x.id == value);
   }
 
   private void ChangeCategory(ChangeEventArgs e)
   {
     var id = e.Value.ToString();
-    if (!string.IsNullOrEmpty(id) && !current.category.Contains(id))
-      current.category.Add(id);
+    if (!string.IsNullOrEmpty(id) && !model.category.Contains(id))
+      model.category.Add(id);
   }
 
   private void ChangeExaminer(List<string> values)
   {
-    current.examiner = values;
+    model.examiner = values;
   }
 
-  private async Task Upload(InputFileChangeEventArgs e)
+  private async Task UploadEditor(List<string> files)
   {
-    _success = false;
-    foreach (var file in e.GetMultipleFiles())
+    foreach (var image in files)
     {
-      _message = "Đang upload file lên...";
-      try
-      {
-        if (file.Size <= Layout.MaxFileSize)
-        {
-          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
-          current.image = await Files.SaveFileAsync(fileContent, file.Name);
-          _message = string.Empty;
-        }
-        else
-        {
-          _message = $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB";
-        }
-      }
-      catch (Exception ex)
-      {
-        _message = $"ERROR: {ex.Message}";
-      }
-    }
-  }
-
-  private async Task UploadEditor(InputFileChangeEventArgs e)
-  {
-    _success = false;
-    foreach (var file in e.GetMultipleFiles())
-    {
-      _message = "Đang upload file lên...";
-      try
-      {
-        if (file.Size <= Layout.MaxFileSize)
-        {
-          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
-          var image = await Files.SaveFileAsync(fileContent, file.Name);
-          await editor.InsertImage(image);
-          _message = string.Empty;
-        }
-        else
-        {
-          _message = $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB";
-        }
-      }
-      catch (Exception ex)
-      {
-        _message = $"ERROR: {ex.Message}";
-      }
+      await editor.InsertImage(image);
     }
   }
 
@@ -408,57 +318,41 @@
     if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn xóa khóa học này ?"))
       return;
 
-    await DbEducateCourse.Delete(Layout.Company.id, current.id);
+    await DbEducateCourse.Delete(Layout.Company.id, model.id);
     navigation.NavigateTo("/educate/course/manager", false);
   }
 
   private async Task Update()
   {
-    _success = false;
-    _message = string.Empty;
-
-    if (string.IsNullOrEmpty(current.name) || string.IsNullOrEmpty(current.image))
-    {
-      _message = "Nhập tiêu đề và hình ảnh khóa học !";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
-    else if (current.lesson == 0 || string.IsNullOrEmpty(current.image))
-    {
-      _message = "Nhập số bài học và thời lượng khóa học !";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
+    if (StringHelper.IsEmpty(model.name) || StringHelper.IsEmpty(model.image))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập tiêu đề và hình ảnh khóa học !");
+    else if (model.lesson == 0 || string.IsNullOrEmpty(model.image))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập số bài học và thời lượng khóa học !");
     else if (teacher == null)
-    {
-      _message = "Chọn giảng viên của khóa học !";
-      await Task.Delay(5000);
-      _message = string.Empty;
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Chọn giảng viên của khóa học !");
     else
     {
-      current.teacher = teacher.id;
-      current.content = await editor.GetHTML();
+      model.teacher = teacher.id;
+      model.content = await editor.GetHTML();
 
-      if (string.IsNullOrEmpty(current.id))
+      if (string.IsNullOrEmpty(model.id))
       {
-        current.creator = Layout.User.id;
-        await DbEducateCourse.Create(Layout.Company.id, current);
+        model.creator = Layout.User.id;
+        await DbEducateCourse.Create(Layout.Company.id, model);
       }
       else
       {
-        await DbEducateCourse.Update(Layout.Company.id, current);
+        await DbEducateCourse.Update(Layout.Company.id, model);
 
         // Đổi giảng viên
-        if(current.teacher != teacherOld)
+        if(model.teacher != teacherOld)
         {
-          await EducateService.ChangeTeacher(Layout.Company.id, current.id);
-          await DbNotify.Create(Layout.Company.id, 602, current.id, current.teacher, Layout.User.id);
+          await EducateService.ChangeTeacher(Layout.Company.id, model.id);
+          await DbNotify.Create(Layout.Company.id, 602, model.id, model.teacher, Layout.User.id);
         }
       }
       navigation.NavigateTo("/educate/course/manager", false);
-      _message = "Đã cập nhật thông tin khóa học";
-      _success = true;
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin khóa học");
       StateHasChanged();
     }
   }

@@ -1,0 +1,36 @@
+@inject IJSRuntime JSRuntime
+
+<textarea id="text_@inputId" @bind="content" @bind:event="onchange" class="@Class" rows="1" placeholder="@Title" />
+
+@code {
+  [Parameter]
+  public string Value { get; set; }
+  [Parameter]
+  public string Title { get; set; } = "Nhập nội dung...";
+  [Parameter]
+  public string Class { get; set; } = "textarea";
+  [Parameter]
+  public EventCallback<string> OnInput { get; set; }
+  private string inputId = string.Empty;
+
+  private string content
+  {
+    get => Value;
+    set
+    {
+      Value = value;
+      OnInput.InvokeAsync(Value);
+    }
+  }
+
+  protected override void OnInitialized()
+  {
+    inputId = Mongo.RandomId();
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if(firstRender)
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "text_" + inputId);
+  }
+}

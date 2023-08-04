@@ -22,46 +22,52 @@
 
       <ul class="columns is-multiline is-variable is-2 @(Layout.IsMobile ? "" : "mt-2")">
         <li class="column is-three-quarters">
-          <div class="scrolly_p-3" style="_height: calc(100vh - 120px);">
-            <div class="card p-5 p-4-mobile">
+          <div class="card py-5 py-4-mobile">
+            <div class="scrolly px-5" style="height: calc(100vh - 210px);">
               <ul class="columns is-multiline is-variable is-1 is-size-7 is-mobile">
                 @if(editMode)
                 {
                   <li class="column is-full">
-                    <div class="control has-icons-left">
+                    <div class="control has-icons-right">
                       <input @bind="model.name" id="plan_name" type="text"
                         class="input has-text-weight-medium is_bg" placeholder="Nhập tiêu đề kế hoạch"> 
-                      <span class="icon is-left has-text-dark ml-1">
+                      <span class="icon is-right has-text-dark">
                         <i class="material-icons-outlined is-size-5">edit</i>
                       </span>
                     </div>
                   </li>
-                  <li class="column is-one-fifth-tablet is-full-mobile">
-                    <span class="has-text-grey">Mô tả</span>
-                  </li>
-                  <li class="column is-four-fifths-tablet is-full-mobile">
-                    <textarea @bind="model.detail" id="plan_detail" class="textarea is-small is_bg" 
-                      placeholder="Nhập mô tả kế hoạch..." rows="5" />
-                    <div class="buttons mt-3">
-                      <a class="button is-link is-small" @onclick="UpdateContent">
-                        <span class="icon">
-                          <i class="material-icons-round is-size-6">done</i>
-                        </span>
-                        <span>Cập nhật</span>
-                      </a>
-                      <a class="button has-text-danger is-small" @onclick="ToggleEdit">
-                        <span class="icon">
-                          <i class="material-icons-round is-size-6">close</i>
-                        </span>
-                        <span>Hủy</span>
-                      </a>
+                  <li class="column is-full">
+                    <div class="field">
+                      <label class="label has-text-grey">Mô tả</label>
+                      <div class="control">
+                        <textarea @bind="model.detail" class="textarea is-small is_bg" 
+                          id="plan_detail" placeholder="Nhập mô tả kế hoạch..." rows="5" />
+                      </div>
+                    </div>
+                    <div class="field is-grouped is-grouped-right">
+                      <div class="control">
+                        <a class="button is-link is-small" @onclick="UpdateContent">
+                          <span class="icon">
+                            <i class="material-icons-round is-size-6">done</i>
+                          </span>
+                          <span>Cập nhật</span>
+                        </a>
+                      </div>
+                      <div class="control">
+                        <a class="button has-text-danger is-small" @onclick="ToggleEdit">
+                          <span class="icon">
+                            <i class="material-icons-round is-size-6">close</i>
+                          </span>
+                          <span>Hủy</span>
+                        </a>
+                      </div>
                     </div>
                   </li>
                 }
                 else
                 {
                   <li class="column is-four-fifths-tablet is-two-thirds-mobile">
-                    <div class="has-text-black has-text-weight-medium is-size-6">THÔNG TIN CHUNG</div>
+                    <div class="has-text-black has-text-weight-semibold is-size-6">THÔNG TIN CHUNG</div>
                   </li>
                   <li class="column is-one-fifth-tablet is-one-third-mobile has-text-right">
                     @if(editRole)
@@ -76,11 +82,9 @@
                   </li>
                   @if(!string.IsNullOrEmpty(model.detail))
                   {
-                    <li class="column is-one-fifth-tablet is-full-mobile">
-                      <span class="has-text-grey">Mô tả</span>
-                    </li>
-                    <li class="column is-four-fifths-tablet is-full-mobile">
-                      <div class="content has-text-justified">
+                    <li class="column is-full">
+                      <div class="has-text-grey">Mô tả:</div>
+                      <div class="content has-text-justified pb-2">
                         @((MarkupString)Shared.TextToHtml(model.detail))
                       </div>
                     </li>
@@ -220,16 +224,22 @@
                   </li>
                 }
               </ul>
-            </div>
 
-            <div class="card p-5 p-4-mobile">
-              <div class="has-text-black has-text-weight-medium is-size-6 mb-4">
-                Nhãn công việc
+              <div class="field is-grouped mt-5">
+                <div class="control">
+                  <div class="has-text-black has-text-weight-medium is-size-6">
+                    Nhãn công việc
+                  </div>
+                </div>
+                <div class="control is-expanded">
+                  <hr class="m-0">
+                </div>
               </div>
               @if(editRole)
               {
                 <div class="field is-grouped">
-                  <div class="control @(Layout.IsMobile ? "is-expanded" : "")" style="@(Layout.IsMobile ? "" : "width: 50%;")">
+                  <div class="control @(Layout.IsMobile ? "is-expanded" : "")"
+                    style="@(Layout.IsMobile ? "" : "width: 50%;")">
                       <input @bind="label.name" class="input is_bg" type="text" placeholder="Nhập tiêu đề nhãn">
                   </div>
                   <div class="control">
@@ -284,7 +294,7 @@
             <div class="has-text-black has-text-weight-medium is-size-6 mb-3 px-5">
               Lịch sử cập nhật
             </div>
-            <div class="scrolly px-5" style="height: calc(100vh - 190px);">
+            <div class="scrolly px-5" style="height: calc(100vh - 245px);">
               <_PlanLogs logs="logs" />
             </div>
           </div>

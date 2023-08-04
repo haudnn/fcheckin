@@ -128,19 +128,22 @@ else
           </div>
           <div class="dropdown-menu">
             <div class="dropdown-content is-size-7">
-              <a class="dropdown-item px-1 icon-text has-text-@(view == "list" ? "link" : "grey")" href="/work/@model.id/task/list">
+              <a class="dropdown-item px-1 icon-text has-text-@(view == "list" ? "link" : "grey")"
+                @onclick='() => ChangeView("list")'>
                 <span class="icon">
                   <i class="material-icons-outlined is-size-5">list</i>
                 </span>
                 <span>Chế độ List</span>
               </a>
-              <a class="dropdown-item px-1 icon-text has-text-@(view == "board" ? "link" : "grey") "href="/work/@model.id/task/board">
+              <a class="dropdown-item px-1 icon-text has-text-@(view == "board" ? "link" : "grey")"
+                @onclick='() => ChangeView("board")'>
                 <span class="icon">
                   <i class="material-icons-outlined is-size-6">dashboard</i>
                 </span>
                 <span>Chế độ Board</span>
               </a>
-              <a class="dropdown-item px-1 icon-text has-text-@(view == "gantt" ? "link" : "grey") "href="/work/@model.id/task/gantt">
+              <a class="dropdown-item px-1 icon-text has-text-@(view == "gantt" ? "link" : "grey")"
+                @onclick='() => ChangeView("gantt")'>
                 <span class="icon">
                   <i class="material-icons-outlined is-size-5">clear_all</i>
                 </span>
@@ -257,5 +260,12 @@ else
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang là quản lý duy nhất của kế hoạch, vui lòng thêm quản lý khác trước khi rời khỏi kế hoạch!");
     else
       await JSRuntime.InvokeVoidAsync("tagline", false, "Không thành công, vui lòng thử lại!");
+  }
+
+  private async Task ChangeView(string value)
+  {
+    navigation.NavigateTo($"/work/{model.id}/task/{value}");
+    if(value == "gantt")
+      await JSRuntime.InvokeVoidAsync("dragScrollX");
   }
 }

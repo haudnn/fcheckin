@@ -151,6 +151,18 @@ namespace OnetezSoft.Data
         && x.departments_id.Contains(department)).ToListAsync();
     }
 
+    /// <summary>Lấy danh sách thông tin tài khoản, kể cả tài khoản đã xóa</summary>
+    public static List<UserModel> GetAllWithoutDelete(string companyId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<UserModel>(_collection);
+
+      var results = collection.Find(x => true).ToList();
+
+      return (from x in results orderby x.title, x.role select x).ToList();
+    }
+
 
     public static async Task<List<UserModel>> GetList(string companyId, string keyword, string department, int status)
     {
@@ -230,6 +242,20 @@ namespace OnetezSoft.Data
       else
         return 0;
     }
+
+				/// <summary>
+    /// Lấy thông tin thiết bị của người dùng
+    /// </summary>
+				public static async Task<bool> GetDevice(string companyId, string userId, string deviceId)
+				{
+						var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<UserModel>(_collection);
+
+						var result = await collection.Find(x => x.id == userId && x.device_id == deviceId).FirstOrDefaultAsync();
+						
+      return result != null ? true : false;
+				}
 
 
     #region Dữ liệu cố định

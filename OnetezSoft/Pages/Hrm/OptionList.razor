@@ -51,7 +51,8 @@ else
   protected override async Task OnInitializedAsync()
   {
     // Quyền truy cập trang
-    _access = Layout.User.role == 1 || Layout.User.role_manage.timekeeping || Layout.User.role_manage.hrrecords;
+    //_access = Layout.User.role == 1 || Layout.User.role_manage.timekeeping || Layout.User.role_manage.hrrecords;
+    _access = true;
 
     mainList = HrmService.Options();
     dataList = await DbHrmOption.GetAll(Layout.Company.id);

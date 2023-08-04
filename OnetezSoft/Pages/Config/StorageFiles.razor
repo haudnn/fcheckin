@@ -1,0 +1,225 @@
+@page "/config/storage"
+@page "/config/storage/files"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>Quản lý lưu trữ</PageTitle>
+
+<section class="p-4">
+  <div class="tabs is-boxed mb-0">
+    <ul>
+      <li class="is-active">
+        <a href="/config/storage/files">
+          <span>Quản lý lưu trữ</span>
+        </a>
+      </li>
+      <li>
+        <a href="/config/storage/logs">
+          <span>Lịch sử xóa file</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+  <div class="card p-4">
+    <ul class="columns is-multiline is-variable is-2 is-vcentered mb-3">
+      <li class="column is-two-thirds">
+        <div class="title is-5 has-text-info">QUẢN LÝ LƯU TRỮ</div>
+      </li>
+      <li class="column is-one-third">
+        <div class="field is-grouped">
+          <div class="control">
+            <div class="select is-fullwidth is-rounded">
+              <select @onchange="ChangeSort">
+                <option value="date_des">Mới nhất</option>
+                <option value="date_asc">Cũ nhất</option>
+                <option value="size_des">Nặng nhất</option>
+                <option value="size_asc">Nhẹ nhất</option>
+              </select>
+            </div>
+          </div>
+          <div class="control is-expanded">
+            <form @onsubmit="GetList" class="control has-icons-right">
+              <input @bind="filterKey" type="text" class="input is-rounded is_bg" placeholder="Tìm kiếm file..." />
+              <span class="icon is-right">
+                <i class="material-icons-outlined is-size-6">search</i>
+              </span>
+            </form>
+          </div>
+        </div>
+      </li>
+      <li class="column is-narrow">
+        <span class="has-text-grey">Tổng dung lượng: </span>
+        <span class="has-text-weight-semibold">@SizeToString(dataTotal)</span>
+      </li>
+      <li class="column is-narrow">
+        <span class="has-text-grey">Đã sử dụng:</span>
+        <span class="has-text-weight-semibold">@SizeToString(dataUsed)</span>
+      </li>
+      <li class="column is-narrow">
+        <span class="has-text-grey">Khả dụng:</span>
+        <span class="has-text-weight-semibold">@SizeToString(dataAvailable)</span>
+      </li>
+      <li class="column is-narrow">
+        <span class="has-text-grey">Số lượng file:</span>
+        <span class="has-text-weight-semibold">@totalFiles file</span>
+      </li>
+      @if(storage != null)
+      {
+        <li class="column has-text-right">
+          <span class="has-text-grey">Ngày hết hạn:</span>
+          <span class="has-text-weight-semibold">
+            @string.Format("{0:dd/MM/yyyy}", new DateTime(storage.end))
+            (@Shared.ConvertDate(new DateTime(storage.end)))
+          </span>
+        </li>
+      }
+    </ul>
+
+    <div class="scrolly" style="height: calc(100vh - 260px);">
+      @if(storage != null)
+      {
+        <table class="table is-fullwidth is-vcentered">
+          <thead>
+            <tr class="has-background-info has-text-black">
+              <th>Tên file</th>
+              <th width="180px">Định dạng</th>
+              <th width="150px">Kích thước</th>
+              <th width="150px">Ngày tải lên</th>
+              <th width="100px" align="center">Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            <Virtualize Items="dataList" Context="item" ItemSize="39">
+              <tr>
+                <td>
+                  @item.name
+                </td>
+                <td>
+                  @item.format
+                </td>
+                <td>
+                  @SizeToString(item.size)
+                </td>
+                <td>
+                  @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
+                </td>
+                <td align="center">
+                  <a class="icon has-text-link" href="@item.link" target="_blank">
+                    <i class="material-icons-outlined is-size-6">download</i>
+                  </a>
+                  <a class="icon has-text-danger" @onclick="() => DeleteItem(item)">
+                    <i class="material-icons-outlined is-size-6">delete</i>
+                  </a>
+                </td>
+              </tr>
+            </Virtualize>
+          </tbody>
+        </table>
+      }
+      else
+      {
+        <div class="py-2 has-text-centered">
+          Tổ chức của bạn không có sản phẩm này
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  private CompanyModel company = new();
+  private CompanyModel.Product storage = null;
+  private List<FileModel> database = new();
+  private List<FileModel> dataList = new();
+  private string filterKey = string.Empty;
+  private string sortBy = "date_des";
+  private long dataTotal = 0;
+  private long dataAvailable = 0;
+  private long dataUsed = 0;
+  private int totalFiles = 0;
+  private long unit = 1024;
+
+  protected override async Task OnInitializedAsync()
+  {
+    // Thông tin tổ chức
+    company = await DbMainCompany.Get(Layout.Company.id);
+    // Gói lưu trữ hiện tại
+    storage = company.products.FirstOrDefault(x => x.id == "storage");
+    if(storage != null)
+    {
+      // Tất cả files
+      database = await StorageService.GetListAsync(company.id);
+      // Danh sách files
+      GetList();
+      // Lấy trình trạng sử dụng
+      await GetStatus();
+    }
+  }
+
+  private void ChangeSort(ChangeEventArgs e)
+  {
+    sortBy = e.Value.ToString();
+    GetList();
+  }
+
+  private void GetList()
+  {
+    // Sắp xếp
+    if(sortBy == "date_des")
+      dataList = database.OrderByDescending(x => x.date).ToList();
+    else if(sortBy == "date_asc")
+      dataList = database.OrderBy(x => x.date).ToList();
+    else if(sortBy == "size_des")
+      dataList = database.OrderByDescending(x => x.size).ToList();
+    else if(sortBy == "size_asc")
+      dataList = database.OrderBy(x => x.size).ToList();
+
+    // Tìm kiếm
+    if(!string.IsNullOrEmpty(filterKey))
+      dataList.RemoveAll(x => !StringHelper.SearchKeyword(filterKey, x.name));
+  }
+
+  private async Task GetStatus()
+  {
+    // Tình trạng sử dụng
+    dataTotal = unit * 1000 * 1000 * storage.total;
+    dataUsed = database.Sum(x => x.size);
+    dataAvailable = dataTotal - dataUsed;
+    totalFiles = database.Count;
+
+    storage.used = Convert.ToInt32(dataUsed / (unit * 1000));
+    await DbMainCompany.Update(company);
+    Console.WriteLine(string.Format("Storage {0}: {1}/{2} MB", company.id, storage.used, storage.total * 1000));
+  }
+
+  private async Task DeleteItem(FileModel item)
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa file [{item.name}]?"))
+      return;
+
+    if(StorageService.DeleteFile(item.link))
+    {
+      database.Remove(item);
+      dataList.Remove(item);
+      item.author_name = Layout.User.FullName;
+      item.author_avatar = Layout.User.avatar;
+      await DbStorageLog.Create(Layout.Company.id, item);
+      await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã xóa file [{item.name}]");
+      await GetStatus();
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", true, $"Lỗi khi xóa file [{item.name}]");
+  }
+
+  private string SizeToString(double size)
+  {
+    if(size >= unit * 1000 * 1000)
+      return string.Format("{0:0.00} GB", size / (unit * 1000 * 1000));
+    else if(size >= unit * 1000)
+      return string.Format("{0:0.00} MB", size / (unit * 1000));
+    else
+      return string.Format("{0:0.00} KB", size / unit);
+  }
+}

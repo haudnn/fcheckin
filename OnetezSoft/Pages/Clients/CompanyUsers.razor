@@ -28,7 +28,7 @@
     </ul>
 
     <div class="mb-4">
-      <_CompanyInfo company="company" members="members" products="productList" />
+      <_CompanyInfo company="company" members="memberList" products="productList" />
     </div>
 
     <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
@@ -40,7 +40,7 @@
           <div class="select is-small has-text-weight-medium">
             <select @onchange="FilterProduct">
               <option value="">Sản phẩm</option>
-              @foreach (var sl in company.products)
+              @foreach (var sl in productActive)
               {
                 <option value="@sl.id">@sl.title</option>
               }
@@ -108,7 +108,7 @@
       <thead>
         <tr>
           <th>Tài khoản</th>
-          @foreach (var product in company.products.Where(x => x.active))
+          @foreach (var product in productActive)
           {
             <th width="100px" align="center">
               @product.used/@product.total - @product.title
@@ -132,7 +132,7 @@
                 </div>
               </a>
             </td>
-            @foreach (var product in company.products.Where(x => x.active))
+            @foreach (var product in productActive)
             {
               var access = ProductService.CheckAccess(item.products, product.id);
               <td align="center">
@@ -193,13 +193,12 @@ else
 @code {
   [CascadingParameter]
   public LayoutAdmin Layout { get; set; }
-
   [Parameter]
   public string Id { get; set; }
-
   private string _title = "Người dùng sản phẩm";
   private CompanyModel company = null;
-  private List<UserModel> members = new();
+  private List<CompanyModel.Product> productActive = new();
+  private List<UserModel> memberList = new();
   private List<ProductModel> productList = new();
   private List<UserModel> dataList = new();
   private UserModel edit = null;
@@ -215,11 +214,12 @@ else
     company = await DbMainCompany.Get(Id);
     if (company != null)
     {
-      members = DbUser.GetAll(company.id);
+      memberList = DbUser.GetAll(company.id);
       productList = await DbMainProduct.GetList();
+      productActive = company.products.Where(x => x.active && x.id != "storage").ToList();
 
       // Cập nhật số lượng người dùng
-      company.members = members.Count;
+      company.members = memberList.Count;
       await DbMainCompany.Update(company);
 
       await GetList();

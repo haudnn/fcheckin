@@ -1,21 +1,17 @@
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
 
 <section class="modal is-active">
   <div class="modal-background"></div>
   <section class="modal-card">
     <section class="modal-card-head">
       <div class="modal-card-title">
-        Khóa bảng công
+        Cảnh báo khoá bảng công
       </div>
       <a class="delete is-medium" @onclick="Cancel"></a>
     </section>
     <section class="modal-card-body">
-      Bạn đang thực hiện hành động khóa bảng công.
-      <br>
-      Bảng công sẽ không thể chỉnh sửa được nữa.
-      <p class="pt-3 has-text-danger">
-        Bạn có chắc chắn muốn thực hiện?
-      </p>
+      @(start != end ? $"Bảng công đã khóa từ ngày {start} đến {end}, đơn từ được phê duyệt sẽ không cập nhật vào bảng công." 
+                     : $"Bảng công đã khóa vào ngày {start}, đơn từ được phê duyệt sẽ không cập nhật vào bảng công.")
     </section>
     <section class="modal-card-foot is-right">
       <a class="button" @onclick="Cancel">
@@ -24,11 +20,11 @@
         </span>
         <span>Hủy</span>
       </a>
-      <a class="button is-danger" @onclick="Update">
+      <a class="button is-success" @onclick="Update">
         <span class="icon">
-          <i class="material-icons-round is-size-6">lock</i>
+          <i class="material-icons-round is-size-6">check</i>
         </span>
-        <span>Khóa</span>
+        <span>Phê duyệt</span>
       </a>
     </section>
   </section>
@@ -37,6 +33,17 @@
 @code {
   [Parameter]
   public EventCallback<bool> OnUpdate { get; set; }
+  [Parameter]
+  public List<long> dateLock { get; set; } = new();
+
+  private string start;
+  private string end;
+
+  protected override void OnInitialized()
+  {
+    start = new DateTime(dateLock.Min()).ToString("dd'/'MM'/'yyyy");
+    end = new DateTime(dateLock.Max()).ToString("dd'/'MM'/'yyyy");
+  }
 
   private async Task Cancel()
   {

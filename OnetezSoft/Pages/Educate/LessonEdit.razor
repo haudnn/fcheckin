@@ -5,24 +5,24 @@
 <PageTitle>@_title</PageTitle>
 
 <section class="p-4">
-  @if (current != null)
+  @if (model != null)
   {
     <div class="card p-5">
       <ul class="columns is-multiline is-variable is-2 mb-3">
         <li class="column">
-          @if (current.type == 1)
+          @if (model.type == 1)
           {
             <h1 class="title is-5 has-text-info">
               CHI TIẾT BÀI GIẢNG
             </h1>
           }
-          else if (current.type == 2)
+          else if (model.type == 2)
           {
             <h1 class="title is-5 has-text-info">
               CHI TIẾT BÀI TỰ LUẬN
             </h1>
           }
-          else if (current.type == 3)
+          else if (model.type == 3)
           {
             <h1 class="title is-5 has-text-info">
               CHI TIẾT BÀI TRẮC NGHIỆM
@@ -38,17 +38,17 @@
           </a>
         </li>
       </ul>
-      @if (current.type == 1)
+      @if (model.type == 1)
       {
-        <LessonContent lesson="current" />
+        <LessonContent lesson="model" />
       }
-      else if (current.type == 2)
+      else if (model.type == 2)
       {
-        <LessoneEssay lesson="current" />
+        <LessoneEssay lesson="model" />
       }
-      else if (current.type == 3)
+      else if (model.type == 3)
       {
-        <LessonQuiz lesson="current" />
+        <LessonQuiz lesson="model" />
       }
     </div>
   }
@@ -68,23 +68,22 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
   [Parameter]
   public string Id { get; set; }
 
   private string _title = "Chỉnh sửa bài học";
 
-  private EducateLessonModel current = null;
+  private EducateLessonModel model = null;
 
   protected override async Task OnInitializedAsync()
   {
-    current = await DbEducateLesson.Get(Layout.Company.id, Id);
+    model = await DbEducateLesson.Get(Layout.Company.id, Id);
   }
 
   private async Task GoBack()
   {
-    if (string.IsNullOrEmpty(current.name))
-      await DbEducateLesson.Delete(Layout.Company.id, current.id);
-    navigation.NavigateTo("/educate/course/manager/info/" + current.course, false);
+    if (string.IsNullOrEmpty(model.name))
+      await DbEducateLesson.Delete(Layout.Company.id, model.id);
+    navigation.NavigateTo("/educate/course/manager/info/" + model.course, false);
   }
 }

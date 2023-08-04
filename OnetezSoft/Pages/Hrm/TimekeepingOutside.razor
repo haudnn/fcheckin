@@ -2,16 +2,16 @@
 
 <section class="modal is-active">
   <div class="modal-background"></div>
-  <section class="modal-card is-small">
+  <section class="modal-card is-small p-4">
     <section class="modal-card-head">
       <div class="modal-card-title">Chấm công ngoài vị trí</div>
       <a class="delete is-medium" @onclick="Cancel"></a>
     </section>
     <section class="modal-card-body">
-      @if(time > 0 && !checkin)
+      @if (time > 0 && !checkin)
       {
         <p class="mb-2 has-text-danger">
-          Bạn đang check-out trước giờ kết thúc ca.
+          Bạn đang check-out trước giờ kết thúc ca làm.
         </p>
         <p class="mb-5">
           Về sớm: <strong>@time phút</strong>
@@ -24,7 +24,7 @@
         @foreach (var item in Reasons())
         {
           <a class="button @(item == model.reason ? "is-link" : "is_bg")"
-            @onclick="() => model.reason = item">
+          @onclick="() => model.reason = item">
             @item
           </a>
         }
@@ -79,16 +79,19 @@
   [Parameter]
   public EventCallback<HrmTimekeepingModel.TimeData> OnConfirm { get; set; }
 
+		[Parameter]
+ 	public EventCallback OffConfirmOutside { get; set; }
+
   private HrmTimekeepingModel.TimeData model = new();
 
   private async Task Cancel()
   {
-    await OnConfirm.InvokeAsync(null);
+    await OffConfirmOutside.InvokeAsync();
   }
 
   private async Task Update()
   {
-    if(Shared.IsEmpty(model.reason))
+    if (Shared.IsEmpty(model.reason))
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn lý do vì sao chấm công ngoài vị trí!");
     else
     {
@@ -96,15 +99,15 @@
       model = new();
     }
   }
-  
+
   private async Task Upload(InputFileChangeEventArgs e)
   {
     int maxSize = 10;
     try
-    {  
+    {
       foreach (var file in e.GetMultipleFiles())
       {
-        if(model.images.Count == 3)
+        if (model.images.Count == 3)
         {
           await JSRuntime.InvokeVoidAsync("tagline", false, "Chỉ cho phép đính kèm tối đa 3 hình!");
           break;

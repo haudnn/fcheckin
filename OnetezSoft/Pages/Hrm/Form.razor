@@ -1,0 +1,942 @@
+﻿@page "/hrm/form"
+@page "/hrm/form/{tab}"
+@inject IJSRuntime JSRuntime
+
+<PageTitle>@_title</PageTitle>
+
+
+<!-- Popup không có quyền truy cập -->
+@if (!CheckAccess())
+{
+  <_PopupUnauthorized msgAccess="@msgAccess" />
+}
+else
+{
+  <section class="columns is-gapless p-4">
+    <div class="column" style="flex: none; width: 100%;">
+      <div class="tabs_white is_radius mb-4 is-flex-wrap-wrap">
+        <a class="button is-size-6 has-text-weight-semibold has-text-@(tab == "1" ? "link is_bg" : "grey is-white")"
+        @onclick="() => ChangeTab(1)">
+          ĐƠN TỪ CỦA TÔI
+        </a>
+        <a class="button is-size-6 has-text-weight-semibold has-text-@(tab == "2" ? "link is_bg" : "grey is-white")"
+        @onclick="() => ChangeTab(2)">
+          PHÊ DUYỆT
+        </a>
+
+        @if (checkLead || _access)
+        {
+          <a class="button is-size-6 has-text-weight-semibold has-text-@(tab == "3" ? "link is_bg" : "grey is-white")"
+          @onclick="() => ChangeTab(3)">
+            ĐƠN TỪ TỔNG HỢP
+          </a>
+        }
+      </div>
+
+      @if (tab == "1" || tab == "2" || tab == "3")
+      {
+        <div class="card p-5" style="width: 100%;">
+          <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
+            <li class="column">
+              <h1 class="title is-5 has-text-info is-uppercase" style="white-space: nowrap;">
+                @_title
+              </h1>
+            </li>
+
+            <li class="column is-narrow">
+              <div class="field has-addons">
+                <div class="control">
+                  <span class="button is-link">
+                    <i class="material-icons-outlined">calendar_today</i>
+                  </span>
+                </div>
+                <div class="control is-expanded">
+                  <div class="input" style="width: 190px;">
+                    <DateRangePicker @bind-StartDate="startDate" @bind-EndDate="endDate" OnRangeSelect="() => ChangeTimeDatepicker()" />
+                  </div>
+                </div>
+              </div>
+            </li>
+
+            @if (tab == "2" || tab == "3")
+            {
+              <li class="column is-narrow">
+                <div class="select is-fullwidth">
+                  <select @onchange="ChangeDepartment">
+                    <option value="" selected="@string.IsNullOrEmpty(selectDepart)">Phòng ban</option>
+                    @foreach (var item in departments)
+                    {
+                      <option value="@item.id" selected="@(selectDepart == item.id)">@item.name</option>
+                    }
+                  </select>
+                </div>
+              </li>
+            }
+
+            @if (dataFormList.Any())
+            {
+              <li class="column is-narrow">
+                <div class="select is-fullwidth">
+                  <select @onchange="ChangeForm">
+                    <option value="" selected="@string.IsNullOrEmpty(selectForm)">Tất cả đơn từ</option>
+
+                    @if (!string.IsNullOrEmpty(selectForm))
+                    {
+                      foreach (var item in dataFormList)
+                      {
+                        <option value="@item.id" selected="@(selectForm == item.id)">@item.name</option>
+                      }
+                    }
+                    else
+                    {
+                      @foreach (var item in dataFormList)
+                      {
+                        <option value="@item.id">@item.name</option>
+                      }
+                    }
+                  </select>
+                </div>
+              </li>
+            }
+
+            @if (tab == "1" || tab == "3")
+            {
+              <li class="column is-narrow">
+                <div class="select is-fullwidth">
+                  <select @onchange="ChangeStatus">
+                    <option value="" selected="@string.IsNullOrEmpty(selectStatus)">Tất cả trạng thái</option>
+
+                    @if (!string.IsNullOrEmpty(selectStatus))
+                    {
+                      foreach (var item in DbHrmForm.GetConfirmStatus().Where(i => i.id != 4).ToList())
+                      {
+                        <option value="@item.id" selected="@(Convert.ToInt32(selectStatus) == item.id)">@item.name</option>
+                      }
+                    }
+                    else
+                    {
+                      @foreach (var item in DbHrmForm.GetConfirmStatus().Where(i => i.id != 4).ToList())
+                      {
+                        <option value="@item.id">@item.name</option>
+                      }
+                    }
+                  </select>
+                </div>
+              </li>
+            }
+
+            @if (tab == "2")
+            {
+              <li class="column is-narrow">
+                <div class="select is-fullwidth">
+                  <select @onchange="ChangeStatus">
+                    <option value="" selected="@string.IsNullOrEmpty(selectStatus)">Tất cả trạng thái</option>
+
+                    @if (!string.IsNullOrEmpty(selectStatus))
+                    {
+                      foreach (var item in DbHrmForm.GetConfirmStatus().Where(i => i.id != 4).ToList())
+                      {
+                        <option value="@item.id" selected="@(Convert.ToInt32(selectStatus) == item.id)">@item.name</option>
+                      }
+                    }
+                    else
+                    {
+                      @foreach (var item in DbHrmForm.GetConfirmStatus().Where(i => i.id != 4).ToList())
+                      {
+                        <option value="@item.id">@item.name</option>
+                      }
+                    }
+                  </select>
+                </div>
+              </li>
+            }
+
+
+            @if (tab == "2" || tab == "3")
+            {
+              <li class="column is-one-fifth">
+                <form class="control has-icons-right" @onsubmit="Search">
+                  <input @bind="filterKeyword" class="input is-rounded" type="text" placeholder="Tìm tên nhân viên...">
+                  <span class="icon is-right">
+                    <i class="material-icons-outlined is-size-5">search</i>
+                  </span>
+                </form>
+              </li>
+            }
+
+
+
+            @if (tab == "1")
+            {
+              <li class="column is-narrow">
+                <a class="button is-link" @onclick="() => {showPopup = true;}">
+                  <span class="icon">
+                    <span class="material-icons-outlined is-size-6">add</span>
+                  </span>
+                  <span>Tạo mới</span>
+                </a>
+              </li>
+            }
+          </ul>
+
+          @if (modelList.Any())
+          {
+            if (selectModelList.Any())
+            {
+              <div id="scrollbox" class="table-container" style="overflow: auto; height: calc(100vh - 279px);">
+                <table class="table is-fullwidth is-vcentered sticky">
+                  <thead style="z-index: 1;">
+                    <tr style="background: #AEC6FF;">
+                      <th class="has-text-weight-bold has-text-grey-dark pl-2" width="125px">Ngày tạo</th>
+                      @if (tab == "2" || tab == "3")
+                      {
+                        <th class="has-text-weight-bold has-text-grey-dark" width="200px">Nhân viên</th>
+                        <th class="has-text-weight-bold has-text-grey-dark" width="125px">Phòng ban</th>
+                      }
+                      <th class="has-text-weight-bold has-text-grey-dark" width="100px">Loại đơn từ</th>
+                      <th class="has-text-weight-bold has-text-grey-dark" align="center" width="200px">Thời gian áp dụng</th>
+                      <th class="has-text-weight-bold has-text-grey-dark" align="center" width="100px">Tổng công</th>
+                      <th class="has-text-weight-bold has-text-grey-dark" width="150px">Lý do</th>
+                      <th class="has-text-weight-bold has-text-grey-dark" align="center" width="100px">Hình ảnh</th>
+                      <th class="has-text-weight-bold has-text-grey-dark" align="center" width="225px">
+                        Tiến trình
+                      </th>
+                      @if (tab == "1" || tab == "2")
+                      {
+                        <th class="has-text-weight-bold has-text-grey-dark" align="center" width="200px">Hành động</th>
+                      }
+                    </tr>
+                  </thead>
+
+                  <tbody>
+
+                    @foreach (var item in selectModelList)
+                    {
+                      double totalTime = 0;
+                      List<string> works = new();
+                      if (item.work_date_shifts.Any())
+                      {
+                        foreach (var workDate in item.work_date_shifts)
+                        {
+                          var timeListItem = timeList.Find(i => i.id == item.user);
+                          if (timeListItem != null)
+                          {
+                            var shiftList = timeListItem.shifts.Where(i => i.day >= workDate.start && i.day < workDate.end).ToList();
+                            List<List<string>> itemList = HrmService.ConvertDateRangeToTimeList(item.user, workDate.start, workDate.end, shiftList, workShiftList, dayOffs, false).Values.ToList();
+                            foreach (var workListItem in itemList)
+                            {
+                              works.AddRange(workListItem);
+                            }
+                          }
+                        }
+
+                        foreach (var workId in works)
+                        {
+                          var workShìft = workShiftList.Find(i => i.id == workId);
+                          if (workShìft != null)
+                          {
+                            totalTime += workShìft.value;
+                          }
+                        }
+                      }
+                      <tr>
+                        <td class="pl-2">
+                          <span class="is-size-7 has-text-weight-semibold">
+                            @($"{new DateTime(item.created):dd'/'MM'/'yyyy}")
+                          </span>
+                          <br>
+                          <span class="is-size-7">
+                            @($"{new DateTime(item.created):HH:mm}")
+                          </span>
+                        </td>
+
+                        @if (tab == "2" || tab == "3")
+                        {
+                          <td>
+                            <div class="user_item">
+                              <img class="image is-24x24 mr-2" src="@users.Find(i => i.id == item.user).avatar" alt="IMG">
+                              <span class="text_1_line">
+                                @users.Find(i => i.id == item.user).FullName
+                              </span>
+                            </div>
+                          </td>
+
+                          <td>
+                            <span class="text_1_line" style="width:125px">
+                              @users.Find(i => i.id == item.user).departments_name
+                            </span>
+                          </td>
+                        }
+
+                        <td>
+                          <span style="word-break: break-word;">@item.form.name</span>
+                        </td>
+
+                        <td align="center">
+                          @if (item.work_date_shifts.Any())
+                          {
+                            foreach (var workDate in item.work_date_shifts)
+                            {
+                              <div class="is-flex is-align-items-center has-text-centered">
+                                <span class="has-text-centered mr-2">
+                                  <span class=" has-text-weight-semibold">
+                                    @(new DateTime(workDate.start).ToString("dd'/'MM'/'yy"))
+                                  </span>
+                                  <br>
+                                  <span class="is-size-7">
+                                    @(new DateTime(workDate.start).ToString("HH:mm"))
+                                  </span>
+                                </span>
+                                <span class="material-icons mx-1">
+                                  arrow_right_alt
+                                </span>
+                                <span class="has-text-centered mr-2">
+                                  <span class=" has-text-weight-semibold">
+                                    @(new DateTime(workDate.end).ToString("dd'/'MM'/'yy"))
+                                  </span>
+                                  <br>
+                                  <span class="is-size-7">
+                                    @(new DateTime(workDate.end).ToString("HH:mm"))
+                                  </span>
+                                </span>
+                              </div>
+                            }
+                          }
+                        </td>
+
+                        <td align="center">
+                          @Math.Round(totalTime, 2)
+                        </td>
+
+                        <td>
+                          @if (!string.IsNullOrEmpty(item.reason))
+                          {
+                            <div class="td-value is-word-break">
+                              <div class="text_2_line" onclick="toggleText(this)">
+                                @((MarkupString)Shared.GetLinks(item.reason))
+                              </div>
+                            </div>
+                          }
+                          else
+                          {
+                            <span>
+                              -
+                            </span>
+                          }
+                        </td>
+
+                        <td align="center">
+                          @if (item.images.Any())
+                          {
+                            <span class="material-icons is-clickable" @onclick="() => OpenImages(item.images)">
+                              image
+                            </span>
+                          }
+                          else
+                          {
+                            <span>
+                              -
+                            </span>
+                          }
+                        </td>
+
+
+                        <td align="center">
+                          @{var checkCancel = false;}
+                          @foreach (var confirmItem in item.confirm_users.OrderBy(i => i.pos).ToList())
+                          {
+                            var user = users.Find(i => i.id == confirmItem.user);
+                            var confirm = new StaticModel();
+
+                            if (checkCancel)
+                            {
+                              confirm = DbHrmForm.GetConfirmStatusDetail(4);
+                            }
+                            else
+                            {
+                              confirm = DbHrmForm.GetConfirmStatusDetail(confirmItem.status);
+                            }
+
+                            if (confirmItem.status == 3)
+                            {
+                              checkCancel = true;
+                            }
+
+                            <div class="is-flex is-align-items-center" title="@confirm.name" style="opacity: @(confirmItem.status == 1 || confirmItem.status == 4 ? "0.2" : "1");">
+                              <div class="user_item">
+                                <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG">
+                                <span class="text_1_line">
+                                  @user.FullName
+                                </span>
+                              </div>
+                              <span class="material-icons-outlined ml-2 @confirm.color">
+                                @confirm.icon
+                              </span>
+                            </div>
+                          }
+                        </td>
+
+                        @if (tab == "1" || tab == "2")
+                        {
+                          <td align="center">
+                            @if (tab == "1")
+                            {
+                              if (item.confirm_users.All(i => i.status == 1))
+                              {
+                                <span class="is-flex is-align-items-center has-text-danger is-clickable px-4 is-justify-content-center"
+                                @onclick="() => {confirmCancel = true; formIdSelect = item.id;}">
+                                  <span class="icon">
+                                    <span class="material-icons-outlined is-size-6">history</span>
+                                  </span>
+                                  <span>Thu hồi</span>
+                                </span>
+                              }
+                              else
+                              {
+                                <span class="is-flex is-align-items-center has-text-danger is-clickable px-4 is-justify-content-center" style="opacity: 0.2;">
+                                  <span class="icon">
+                                    <span class="material-icons-outlined is-size-6">history</span>
+                                  </span>
+                                  <span>Thu hồi</span>
+                                </span>
+                              }
+                            }
+
+                            @if (tab == "2" && item.confirm_users.Select(i => i.user).Contains(Layout.User.id))
+                            {
+                              var confirm = item.confirm_users.Find(i => i.user == Layout.User.id);
+                              <!--Trường hợp chưa xác nhận-->
+                              @if (confirm.status == 1)
+                              {
+                                <span class="button is-success is-clickable" @onclick="() => Confirm(item, 2)">
+                                  <span class="icon">
+                                    <span class="material-icons-outlined is-size-6">check</span>
+                                  </span>
+                                  <span>Phê duyệt</span>
+                                </span>
+
+                                <span class="button is-clickable" @onclick="() => Confirm(item, 3)" style="border: none !important;">
+                                  <span class="icon">
+                                    <span class="material-icons-outlined is-size-6 has-text-danger">cancel</span>
+                                  </span>
+                                  <span class="has-text-danger">Từ chối</span>
+                                </span>
+                              }
+                              else
+                              {
+                                // đã xác nhận
+                                if (confirm.status == 2)
+                                {
+                                  <span class="button" style="border: none !important;">
+                                    <span class="icon">
+                                      <span class="material-icons-outlined is-size-6 has-text-success">check</span>
+                                    </span>
+                                    <span class="has-text-success">Đã phê duyệt</span>
+                                  </span>
+
+                                  <span class="button" style="opacity: 0.2; border: none !important;">
+                                    <span class="icon">
+                                      <span class="material-icons-outlined is-size-6 has-text-danger">cancel</span>
+                                    </span>
+                                    <span class="has-text-danger">Từ chối</span>
+                                  </span>
+                                }
+
+                                // đã từ chối
+                                if (confirm.status == 3)
+                                {
+                                  <span class="button is-success" style="opacity: 0.2;">
+                                    <span class="icon">
+                                      <span class="material-icons-outlined is-size-6">check</span>
+                                    </span>
+                                    <span>Phê duyệt</span>
+                                  </span>
+
+                                  <span class="button" style="border: none !important;">
+                                    <span class="icon">
+                                      <span class="material-icons-outlined is-size-6 has-text-danger">cancel</span>
+                                    </span>
+                                    <span class="has-text-danger">Đã từ chối</span>
+                                  </span>
+                                }
+                              }
+                            }
+                          </td>
+                        }
+                      </tr>
+                    }
+
+                  </tbody>
+                </table>
+              </div>
+            }
+            else
+            {
+              <div class="has-text-weight-medium is-size-6 mt-5 is-flex is-justify-content-center">
+                Không tìm thấy dữ liệu phù hợp!
+              </div>
+            }
+          }
+          else
+          {
+            @if (tab == "1" || tab == "3")
+            {
+              <div class="has-text-weight-medium is-size-6 mt-5 is-flex is-justify-content-center">
+                Không có đơn từ!
+              </div>
+            }
+
+            @if (tab == "2")
+            {
+              <div class="has-text-weight-medium is-size-6 mt-5 is-flex is-justify-content-center">
+                Không có đơn từ cần phê duyệt!
+              </div>
+            }
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  @if (showPopup)
+  {
+    <FormPopup OnUpdate="OnUpdate" />
+  }
+
+  <!-- Xác nhận thu hồi  -->
+  @if (confirmCancel)
+  {
+    <CancelFormPopup OnUpdate="ConfirmCancel" />
+  }
+
+  <!-- Xác nhận phê duyệt bảng công bị xoá  -->
+  @if (lockConfirmShow)
+  {
+    <LockFormPopup dateLock="dateLock" OnUpdate="ConfirmLock" />
+  }
+
+  <!--Popup hình ảnh-->
+  @if (imageShow)
+  {
+    <FormSlidePopup dataList="images" OnUpdate="(e) => imageShow = e" />
+  }
+
+}
+
+
+
+@code {
+  [Parameter]
+  public string tab { get; set; }
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  private string _title = "Đơn từ";
+  private bool _access;
+  private string msgAccess = string.Empty;
+  private bool checkLead;
+
+  private DateTimeOffset? startDate = DateTime.Today;
+  private DateTimeOffset? endDate = DateTime.Today;
+  private List<UserModel> users = new();
+  private List<HrmFormModel> dataList = new();
+  private List<HrmFormModel> modelList = new();
+  private List<HrmFormModel> selectModelList = new();
+  private List<HrmWorkShiftModel> workShiftList = new();
+  private List<HrmRulesModel.Form> dataFormList = new();
+  private string selectStatus = "";
+  private string selectForm = "";
+  private string filterKeyword = "";
+  private bool showPopup;
+  private List<HrmTimeListModel> timeList = new();
+  private List<HrmDayOffModel> dayOffs = new();
+  private string selectDepart = "";
+  private List<DepartmentModel> departments = new();
+  private List<DepartmentModel> departmentUsers = new();
+  private bool confirmCancel;
+  private bool lockConfirmShow;
+  private bool lockConfirm;
+  private string formIdSelect = "";
+  private List<string> usersIdView = new();
+  private List<HrmFormModel> dataLeadList = new();
+  private List<HrmFormModel> dataAdminList = new();
+  private List<long> dateLock = new();
+  private HrmFormModel formUpdate;
+  private int statusUpdate;
+  private bool imageShow;
+  private List<string> images = new();
+
+  private bool CheckAccess()
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, "timekeeping", out msgAccess);
+  }
+
+  protected override async Task OnInitializedAsync()
+  {
+    // Quyền truy cập trang
+    _access = Layout.User.role == 1 || (Layout.User.role == 2 && Layout.User.role_manage.timekeeping);
+
+    tab = tab ?? "1";
+
+    if (tab == "1" || tab == "3")
+    {
+      selectStatus = "";
+    }
+    else if (tab == "2")
+    {
+      selectStatus = "1";
+    }
+
+    Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
+    startDate = start;
+    endDate = new DateTime(end.Ticks + new TimeSpan(23, 59, 59).Ticks);
+
+    departments = DbDepartment.GetAll(Layout.Company.id);
+    var rules = await DbHrmRules.Get(Layout.Company.id, Layout.Company.id);
+
+    if (rules != null)
+      dataFormList = rules.forms;
+
+    if (_access)
+      dataAdminList = await DbHrmForm.GetListAdmin(Layout.Company.id, Layout.Company.id);
+    else
+    {
+      // danh sách User của mình có cấp dưới
+      departmentUsers = DbDepartment.GetListByUser(Layout.Company.id, Layout.User.id);
+      if (departmentUsers.Any())
+      {
+        checkLead = true;
+        foreach (var item in departmentUsers)
+        {
+          // TH: mình là trường phòng
+          if (item.members_list.Find(i => i.id == Layout.User.id && i.role == 1) != null)
+          {
+            usersIdView.AddRange(item.members_list.Where(i => i.role == 2 || i.role == 3).Select(i => i.id).ToList());
+          }
+
+          // TH: mình là phó phòng
+          if (item.members_list.Find(i => i.id == Layout.User.id && i.role == 2) != null)
+          {
+            usersIdView.AddRange(item.members_list.Where(i => i.role == 3).Select(i => i.id).ToList());
+          }
+        }
+
+        usersIdView = usersIdView.Where(i => i != Layout.User.id).Distinct().ToList();
+
+        if (usersIdView.Any())
+        {
+          dataLeadList = await DbHrmForm.GetListByUsers(Layout.Company.id, usersIdView);
+        }
+      }
+    }
+
+    workShiftList = await DbHrmWorkShift.GetListWithoutDelete(Layout.Company.id);
+    dayOffs = await DbHrmDayOff.GetAllWithoutDelete(Layout.Company.id);
+
+    users = DbUser.GetAllWithoutDelete(Layout.Company.id);
+    dataList = await DbHrmForm.GetListByUser(Layout.Company.id, Layout.User.id);
+
+    var userSelect = dataList.Select(i => i.user).Distinct().ToList();
+
+    // lấy dữ liệu phân ca
+    if (dataList.Any())
+    {
+      var min = dataList.SelectMany(i => i.work_date_shifts).Min(i => i.start);
+      var max = dataList.SelectMany(i => i.work_date_shifts).Max(i => i.end);
+      timeList = await DbHrmTimeList.GetByRangeAndUsers(Layout.Company.id, userSelect, min, max);
+    }
+    GetData();
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    if (tab == null || (tab != "1" && tab != "2" && tab != "3") || ((checkLead || _access) && tab == "3"))
+      tab = "1";
+
+    if (modelList.Any() && selectModelList.Any())
+      await JSRuntime.InvokeVoidAsync("dragScrollX");
+
+    ChangeTab(Convert.ToInt32(tab));
+  }
+
+  private void ChangeTab(int item)
+  {
+    tab = item.ToString();
+
+    if (tab == "1" || tab == "3")
+    {
+      selectStatus = "";
+    }
+    else if (tab == "2")
+    {
+      selectStatus = "1";
+    }
+
+    filterKeyword = "";
+    selectForm = "";
+    Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
+    startDate = start;
+    endDate = new DateTime(end.Ticks + new TimeSpan(23, 59, 59).Ticks);
+    GetData();
+  }
+
+  private void ChangeTimeDatepicker()
+  {
+    GetData();
+  }
+
+  /// <summary>Lọc trạng thái </summary>
+  private void ChangeStatus(ChangeEventArgs e)
+  {
+    selectStatus = e.Value.ToString();
+    GetData();
+  }
+
+  /// <summary>Lọc đơn từ </summary>
+  private void ChangeForm(ChangeEventArgs e)
+  {
+    selectForm = e.Value.ToString();
+    GetData();
+  }
+
+
+  /// <summary>Tìm kiếm</summary>
+  private void Search()
+  {
+    GetData();
+  }
+
+  /// <summary>Đổi phòng ban</summary>
+  private void ChangeDepartment(ChangeEventArgs e)
+  {
+    selectDepart = e.Value.ToString();
+    Filter();
+  }
+
+  /// <summary>Lọc kết quả tìm kiếm và lọc theo trạng thái theo ngày</summary>
+  private void Filter()
+  {
+    if (tab == "1" || tab == "3")
+    {
+      // 1: Chờ xác nhận, 2: Đã xác nhận, 3: Đã từ chối
+      // lọc theo trạng thái trang đơn từ của tôi
+      if (selectStatus == "3")
+        selectModelList = modelList.Where(i => i.confirm_users.Any(i => i.status == 3)).ToList();
+      else if (selectStatus == "2")
+        selectModelList = modelList.Where(i => i.confirm_users.All(i => i.status == 2)).ToList();
+      else if (selectStatus == "1")
+        selectModelList = modelList.Where(i => i.confirm_users.Any(i => i.status == 1) && !i.confirm_users.Any(i => i.status == 3)).ToList();
+      else
+        selectModelList = modelList.Where(i => true).ToList();
+    }
+
+    if (tab == "2")
+    {
+      if (selectStatus == "3")
+        selectModelList = modelList.Where(i => i.confirm_users.Find(i => i.user == Layout.User.id).status == 3).ToList();
+      else if (selectStatus == "2")
+        selectModelList = modelList.Where(i => i.confirm_users.Find(i => i.user == Layout.User.id).status == 2).ToList();
+      else if (selectStatus == "1")
+        selectModelList = modelList.Where(i => i.confirm_users.Find(i => i.user == Layout.User.id).status == 1).ToList();
+      else
+        selectModelList = modelList.Where(i => true).ToList();
+    }
+
+    if (tab == "2" || tab == "3")
+    {
+      // lọc theo user và phòng ban
+      var userIdList = selectModelList.Select(i => i.user).ToList();
+      var userList = Layout.UserList.Where(i => userIdList.Contains(i.id)).ToList();
+
+      userList = userList.Where(x =>
+      {
+        return (string.IsNullOrEmpty(selectDepart) ? true : x.departments_id.Contains(selectDepart)) &&
+                (string.IsNullOrEmpty(filterKeyword) ? true : Shared.SearchKeyword(filterKeyword, x.FullName));
+      }).ToList();
+
+      // lọc tìm kiếm
+      selectModelList = selectModelList.Where(x => userList.Select(i => i.id).Contains(x.user)).ToList();
+    }
+
+    // lọc theo đơn từ
+    selectModelList = selectModelList.Where(x =>
+    {
+      return string.IsNullOrEmpty(selectForm) ? true : x.form.id == selectForm;
+    }).ToList();
+
+    // lọc theo thời gian
+    selectModelList = selectModelList.Where(x => x.created >= startDate.Value.Ticks && x.created <= endDate.Value.Ticks).ToList();
+
+    StateHasChanged();
+  }
+
+  /// <summary>Thay đổi danh sách xem theo từng chế độ</summary>
+  private void GetData()
+  {
+    modelList = dataList.Where(x => (x.user == Layout.User.id
+                                     || x.confirm_users.Find(i => i.user == Layout.User.id) != null && x.confirm_users.Find(i => i.user == Layout.User.id).pos == x.confirm_users.Min(i => i.pos))
+                                     || (x.confirm_users.Find(i => i.user == Layout.User.id) != null
+                                        && x.confirm_users.Find(i => i.user == Layout.User.id).pos > x.confirm_users.Min(i => i.pos)
+                                          && x.confirm_users.Find(i => i.pos == x.confirm_users.Find(i => i.user == Layout.User.id).pos - 1).status == 2))
+                        .ToList();
+    if (tab == "1")
+      modelList = modelList.Where(i => i.user == Layout.User.id).ToList();
+    if (tab == "2")
+      modelList = modelList.Where(i => i.confirm_users.Select(i => i.user).Contains(Layout.User.id)).ToList();
+    if (tab == "3")
+    {
+      if (!_access)
+        modelList = dataLeadList.Where(i => true).ToList();
+      else
+        modelList = dataAdminList.Where(i => true).ToList();
+    }
+
+    Filter();
+  }
+
+  /// <summary>Mở hình ảnh</summary>
+  private void OpenImages(List<string> imageList)
+  {
+    imageShow = true;
+    images = imageList;
+  }
+
+  /// <summary>Phê duyệt đơn từ</summary>
+  private async Task Confirm(HrmFormModel item, int status)
+  {
+    HrmFormModel form = Shared.Clone(item);
+    formUpdate = Shared.Clone(item); ;
+    statusUpdate = status;
+
+    // kiểm tra đơn từ còn tồn tại không
+    var check = DbHrmForm.Get(Layout.Company.id, form.id);
+    if (check != null)
+    {
+      var confirmList = form.confirm_users.Where(i => true).ToList();
+      var old = confirmList.Find(i => i.user == Layout.User.id);
+      confirmList.RemoveAll(i => i.user == Layout.User.id);
+      confirmList.Add(new()
+        {
+          user = old.user,
+          pos = old.pos,
+          status = status
+        });
+      form.confirm_users = confirmList;
+
+      // cập nhật bên bảng công
+      if (form.confirm_users.All(i => i.status == 2))
+      {
+        var confirmItem = await HrmService.UpdateFormTimeSheetUser(Layout.Company.id, form, timeList, workShiftList, dayOffs, false);
+        form = confirmItem.Item1;
+        dateLock = confirmItem.Item2;
+      }
+
+      if (dateLock.Any())
+        lockConfirmShow = true;
+
+      if (!lockConfirmShow || lockConfirm)
+      {
+        // cập nhật bên bảng công
+        if (form.confirm_users.All(i => i.status == 2))
+        {
+          var confirmItem = await HrmService.UpdateFormTimeSheetUser(Layout.Company.id, form, timeList, workShiftList, dayOffs, true);
+          form = confirmItem.Item1;
+        }
+
+        await DbHrmForm.Update(Layout.Company.id, form);
+        if (dateLock.Any())
+          await SendNotify(815, form.user, status);
+        else
+          await SendNotify(814, form.user, status);
+
+        // thông báo chuông cho người tiếp theo
+        if (status == 2 && form.confirm_users.Find(i => i.user == Layout.User.id).pos != form.confirm_users.Max(i => i.pos))
+        {
+          var receiver = form.confirm_users.Find(i => i.pos == (form.confirm_users.Find(i => i.user == Layout.User.id).pos + 1));
+          await SendNotify(813, form, receiver.user);
+        }
+
+        if (status == 2)
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Phê duyệt đơn từ thành công!");
+        else if (status == 3)
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Từ chối đơn từ thành công!");
+
+        dataList = await DbHrmForm.GetListByUser(Layout.Company.id, Layout.User.id);
+        GetData();
+      }
+    }
+    else
+    {
+      dataList = await DbHrmForm.GetListByUser(Layout.Company.id, Layout.User.id);
+      GetData();
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Đơn từ đã bị thu hồi!");
+    }
+  }
+
+  private async Task OnUpdate()
+  {
+    showPopup = false;
+    dataList = await DbHrmForm.GetListByUser(Layout.Company.id, Layout.User.id);
+
+    var userSelect = dataList.Select(i => i.user).Distinct().ToList();
+
+    // lấy dữ liệu phân ca
+    if (dataList.Any())
+    {
+      var min = dataList.SelectMany(i => i.work_date_shifts).Min(i => i.start);
+      var max = dataList.SelectMany(i => i.work_date_shifts).Max(i => i.end);
+      timeList = await DbHrmTimeList.GetByRangeAndUsers(Layout.Company.id, userSelect, min, max);
+    }
+
+    GetData();
+  }
+
+
+  private async Task SendNotify(int notifyType, string userId, int status)
+  {
+    // Gủi thông báo chuông
+    await DbNotify.Create(Layout.Company.id, notifyType, DbHrmForm.GetConfirmStatusDetail(status).name.ToLower(), userId, Layout.User.id);
+  }
+
+
+  private async Task SendNotify(int notifyType, HrmFormModel item, string receiver)
+  {
+    // Gủi thông báo chuông
+    await DbNotify.Create(Layout.Company.id, notifyType, item.form.name, receiver, item.user);
+  }
+
+  private async Task ConfirmCancel(bool confirm)
+  {
+    if (confirm)
+    {
+      var checkItem = await DbHrmForm.Get(Layout.Company.id, formIdSelect);
+      if (checkItem != null)
+      {
+        if (checkItem.confirm_users.All(i => i.status == 1))
+        {
+          await DbHrmForm.Delete(Layout.Company.id, formIdSelect);
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Thu hồi đơn từ thành công!");
+        }
+        else
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Đơn từ của bạn đã được phê duyệt!");
+
+        dataList = await DbHrmForm.GetListByUser(Layout.Company.id, Layout.User.id);
+        GetData();
+      }
+    }
+    else
+    {
+      formIdSelect = "";
+    }
+    confirmCancel = false;
+  }
+
+  private async Task ConfirmLock(bool confirm)
+  {
+    lockConfirm = confirm;
+
+    if (confirm)
+      await Confirm(formUpdate, statusUpdate);
+
+    lockConfirmShow = false;
+  }
+}

@@ -83,6 +83,21 @@
               </div>
             </div>
           </li>
+          <li class="column is-full">
+            <InputArea Value="@item.detail" OnInput="x => item.detail = x" title="Nhập mô tả chi tiết công việc" />
+          </li>
+          @if(ProductService.CheckStorage(Layout.Company))
+          {
+            <li class="column is-full">
+              <div class="field is-grouped">
+                <div class="control">File đính kèm</div>
+                <div class="control">
+                  <FileUpload Multiple="true" Small="true" Cloud="true" OnUpload="x => item.files.AddRange(x)" />
+                </div>
+              </div>
+              <FileViews Delete="true" Values="item.files" />
+            </li>
+          }
           <li class="column is-one-quarter is-full-mobile">
             <MemberSelected title="Chọn người thực hiện" members="members" sources="userList"
               OnUpdate="x => members = x" />
@@ -121,7 +136,9 @@
           <span>Thêm công việc</span>
         </a>
       </div>
-      <div class="field is-grouped is-grouped-right">
+    </section>
+    <section class="modal-card-foot py-2 has-background-white">
+      <div class="field is-grouped is-grouped-right is-fullwidth">
         <div class="control">  
           <a class="button is-link" @onclick="Update">
             <span class="icon">
@@ -151,7 +168,7 @@
   private List<TodolistModel.Todo> dataList = new();
   private Dictionary<string, List<string>> memberTodoList = new();
   private Dictionary<string, string> memberCheckout = new();
-  private List<UserModel> userList => Layout.UserList.Where(x => x.id != Layout.User.id).ToList();
+  private List<UserModel> userList => Layout.UserList;
 
   protected override async Task OnInitializedAsync()
   {
@@ -240,16 +257,16 @@
   private async Task AddItem()
   {
     var item = new TodolistModel.Todo()
-      {
-        id = Mongo.RandomId(),
-        type = 2,
-        level = 1,
-        status = 1,
-        start = "08:30",
-        end = "17:30",
-        date = DateTime.Today.Ticks,
-        assign_user = Layout.User.id
-      };
+    {
+      id = Mongo.RandomId(),
+      type = 2,
+      level = 1,
+      status = 1,
+      start = "08:30",
+      end = "17:30",
+      date = DateTime.Today.Ticks,
+      assign_user = Layout.User.id
+    };
     dataList.Add(item);
     memberTodoList.Add(item.id, new());
     memberCheckout.Add(item.id, "");

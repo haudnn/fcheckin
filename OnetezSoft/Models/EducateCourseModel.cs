@@ -8,38 +8,54 @@ namespace OnetezSoft.Models
   {
     [BsonId]
     public string id { get; set; }
-    // Tên khóa học
+
+    /// <summary>Tên khóa học</summary>
     public string name { get; set; }
-    // Hình ảnh
+
+    /// <summary>Hình ảnh</summary>
     public string image { get; set; }
-    // Mô tả
+
+    /// <summary>Mô tả</summary>
     public string content { get; set; }
-    // Danh mục
-    public List<string> category { get; set; }
-    // Thời lượng
+
+    /// <summary>Danh mục</summary>
+    public List<string> category { get; set; } = new();
+
+    /// <summary>Thời lượng</summary>
     public string time { get; set; }
-    // Số bài học
+
+    /// <summary>Số bài học</summary>
     public int lesson { get; set; }
-    // Số người học
+
+    /// <summary>Số người học</summary>
     public int learned { get; set; }
-    // Số người tốt nghiệp
+
+    /// <summary>Số người tốt nghiệp</summary>
     public int graduated { get; set; }
-    // Hiển thị
+
+    /// <summary>Hiển thị</summary>
     public bool show { get; set; }
-    // Ngày tạo
+
+    /// <summary>Ngày tạo</summary>
     public long date { get; set; }
-    // Người tạo
+
+    /// <summary>Người tạo</summary>
     public string creator { get; set; }
 
-    // Danh sách người chấm thi
+    /// <summary>Danh sách người chấm thi</summary>
     public List<string> examiner { get; set; } = new();
 
-    // Giảng viên
+    /// <summary>Giảng viên</summary>
     public string teacher { get; set; }
-    // Đánh giá
+
+    /// <summary>Đánh giá</summary>
     public List<Review> reviews { get; set; }
-    // Người đã lưu khóa học
-    public List<string> bookmarks { get; set; }
+
+    /// <summary>Người đã lưu khóa học</summary>
+    public List<string> bookmarks { get; set; } = new();
+
+    /// <summary>File đính kèm</summary>
+    public List<string> files { get; set; } = new();
 
 
     public class Review

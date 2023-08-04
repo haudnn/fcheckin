@@ -67,6 +67,63 @@ namespace OnetezSoft.Services
 
 
     /// <summary>
+    /// Kiểm tra tổ chức có được sử dụng sản phẩm fStorage hay không?
+    /// </summary>
+    /// <param name="company">Công ty</param>
+    public static bool CheckStorage(CompanyModel company)
+    {
+      if (company != null && company.products != null)
+      {
+        // Kiểm tra tổ chức có sản phẩm này không
+        var product = company.products.SingleOrDefault(x => x.id == "storage");
+        if (product != null && product.active && product.end >= DateTime.Today.Ticks)
+          return true;
+      }
+
+      return false;
+    }
+
+
+    /// <summary>
+    /// Kiểm tra tổ chức có được sử dụng sản phẩm fStorage hay không?
+    /// </summary>
+    /// <param name="company">Công ty</param>
+    public static bool CheckStorage(string companyId, out string message)
+    {
+      message = string.Empty;
+      var company = DbMainCompany.GetById(companyId);
+      if (company != null && company.products != null)
+      {
+        // Kiểm tra tổ chức có sản phẩm này không
+        var product = company.products.SingleOrDefault(x => x.id == "storage");
+        if (product != null)
+        {
+          if(product.active)
+          {
+            if(product.end >= DateTime.Today.Ticks)
+            {
+              if(product.used < product.total * 1024)
+                return true;
+              else
+                message = "Tổ chức đã sử dụng hết dung lượng lưu trữ";
+            }
+            else
+              message = "Sản phẩm fStorage của tổ chức đã hết hạn.";
+          }
+          else
+            message = "Sản phẩm fStorage của tổ chức đã bị vô hiệu hóa.";
+        }
+        else
+          message = "Tổ chức không sở hữu sản phẩm fStorage.";
+      }
+      else
+        message = "Tổ chức không sở hữu sản phẩm fStorage.";
+
+      return false;
+    }
+
+
+    /// <summary>
     /// Tính chi phí gia hạn sản phẩm
     /// </summary>
     /// <param name="staff">Số người nâng cấp thêm</param>

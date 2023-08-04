@@ -113,8 +113,9 @@ else
               </a>
             </div>
             <div class="control is-expanded">
-              <InputFile OnChange="Upload" accept="image/*" class="input" />
+              <input @bind="model.icon" class="input" type="text" placeholder="Nhập link hình..." />
             </div>
+            <FileUpload Accept="image/*" Size="400" OnUpload="x => model.icon = x[0]" />
           </div>
         </div>
         <div class="field mt-5">
@@ -149,7 +150,6 @@ else
   /// <summary>
   ///   Xóa danh mục
   /// </summary>
-
   private async Task DeleteItem(StaticModel item)
   {
     var products = await DbGiftProduct.GetListOfCategory(Layout.Company.id, item.id);
@@ -165,6 +165,7 @@ else
       company.gift_category.Remove(item);
       await DbMainCompany.Update(company);
       await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa danh mục sản phẩm.");
+      Files.DeleteFile(item.icon);
     }
   }
 
@@ -205,38 +206,8 @@ else
       else
         await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin danh mục.");
       company.gift_category = company.gift_category.OrderBy(x => x.color).ToList();
-      company = await DbMainCompany.Update(company);
+      await DbMainCompany.Update(company);
       model = null;
-    }
-  }
-
-
-  /// <summary>
-  /// Tải ảnh
-  /// </summary>
-
-  private async Task Upload(InputFileChangeEventArgs e)
-  {
-    foreach (var file in e.GetMultipleFiles())
-    {
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đang tải file lên...");
-      try
-      {
-        if (file.Size <= Layout.MaxFileSize)
-        {
-          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
-          model.icon = await Files.SaveFileAsync(fileContent, file.Name);
-        }
-        else
-        {
-          await JSRuntime.InvokeVoidAsync("tagline", false, 
-            $"File tối đa cho phép là {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB");
-        }
-      }
-      catch (Exception ex)
-      {
-        await JSRuntime.InvokeVoidAsync("tagline", false, $"Lỗi: {ex.Message}");
-      }
     }
   }
 
@@ -262,6 +233,6 @@ else
       category.color = string.Format("{0:0,0}", pos);
     }
     company.gift_category = company.gift_category.OrderBy(x => x.color).ToList();
-    company = await DbMainCompany.Update(company);
+    await DbMainCompany.Update(company);
   }
 }

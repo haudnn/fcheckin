@@ -1,13 +1,39 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@using System;
+@using System.Text;
+@using System.Text.RegularExpressions;
+
 
 @if(editRole && Layout.IsMobile)
 {
-  <div class="control has-icons-right mt-2">
-    <textarea @bind="comment" id="task_comment" class="textarea is-small" placeholder="Nhập nội dung..." rows="1" />
-    <a class="icon is-small is-right has-text-link" @onclick="Comment">
-      <i class="material-icons-outlined is-size-6">send</i>
-    </a>
+  <div>
+				<div class="control has-icons-right mt-2">
+					<textarea @bind="comment" id="task_comment" @oninput="HandleInput" @onkeyup="HandleKeyUp" class="textarea" placeholder="Nhập nội dung..." rows="1"></textarea>
+					<a class="icon is-small is-right has-text-link" @onclick="Comment">
+							<i class="material-icons-outlined is-size-6">send</i>
+					</a>
+				</div>
+				<div class="dropdown @(showSuggest ? "is-active" : "") is-down">
+					<div class="dropdown-menu" role="menu">
+						<div class="dropdown-content"  style="min-width: 250px; padding: 0px">
+								@if (showSuggest)
+								{
+											@foreach (var user in suggests)
+											{
+												<div class="dropdown-item is-hoverable" style="cursor: pointer;" >
+													<div class="icon-text" @onclick="() => AddMention(user)">
+														<span class="image is-rounded is-24x24">
+															<img src="@user.avatar" alt="AVT">
+														</span>
+														<span class="ml-2" style="flex-grow: 1">@user.FullName</span>
+													</div>
+												</div>
+											}
+								}
+						</div>
+					</div>
+				</div>
   </div>
 }
 <div class="scrolly py-1" style="height: calc(100vh - 270px);">
@@ -39,12 +65,32 @@
 @if(editRole && !Layout.IsMobile)
 {
   <div class="is-flex" style="min-height: 82px; align-items: flex-end;">
-    <div class="control has-icons-right" style="width: 100%;">
-      <textarea @bind="comment" id="task_comment" class="textarea" placeholder="Nhập nội dung..." rows="1" />
-      <a class="icon is-right has-text-link" @onclick="Comment">
-        <i class="material-icons-outlined is-size-5">send</i>
-      </a>
-    </div>
+			<div class="dropdown @(showSuggest ? "is-active" : "") is-up" style="margin-bottom: 50px;">
+				<div class="dropdown-menu" role="menu">
+					<div class="dropdown-content"  style="min-width: 250px; padding: 0px">
+							@if (showSuggest)
+							{
+										@foreach (var user in suggests)
+										{
+											<div class="dropdown-item is-hoverable" style="cursor: pointer;" >
+												<div class="icon-text" @onclick="() => AddMention(user)">
+													<span class="image is-rounded is-24x24">
+														<img src="@user.avatar" alt="AVT">
+													</span>
+													<span class="ml-2" style="flex-grow: 1">@user.FullName</span>
+												</div>
+											</div>
+										}
+							}
+					</div>
+				</div>
+ 		</div>
+   <div class="control has-icons-right" style="width: 100%;">
+				<textarea @bind="comment" id="task_comment" @oninput="HandleInput" @onkeyup="HandleKeyUp" class="textarea" placeholder="Nhập nội dung..." rows="1"></textarea>
+    <a class="icon is-right has-text-link" @onclick="Comment">
+     <i class="material-icons-outlined is-size-5">send</i>
+    </a>
+   </div>
   </div>
 }
 
@@ -57,8 +103,24 @@
   public List<WorkPlanModel.Comment> comments { get; set; }
   [Parameter]
   public bool editRole { get; set; }
-
   private string comment = string.Empty;
+		private List<UserModel> suggests = new();
+		private bool showSuggest = false;
+		private Dictionary<string, int> usersMention = new Dictionary<string, int>();
+		private List<UserModel> sources = new();
+		private string keyword = string.Empty;
+
+
+		protected override void OnInitialized()
+  {
+			GetSources();
+  }
+
+		private void GetSources()
+		{
+			sources = Layout.UserList.Where(x => task.members.Any(i => i.id == x.id)).ToList();
+			sources.RemoveAll(x => x.id == Layout.User.id);
+		}
 
   private async Task DeleteComment(WorkPlanModel.Comment iten)
   {
@@ -76,28 +138,143 @@
     else
     {
       var item = new WorkPlanModel.Comment();
-      item.detail = comment;
+      item.detail = FormatComment(comment);
       item.task_id = task.id;
       item.plan_id = task.plan_id;
       item.user_id = Layout.User.id;
+
       await DbWorkComment.Create(Layout.Company.id, item);
-      await GetComments();
-      comment = string.Empty;
       await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
       foreach (var user in task.members)
         await DbNotify.ForPlan(Layout.Company.id, 712, task.plan_id, task.id, user.id, Layout.User.id);
+						foreach (var user in usersMention)
+        await DbNotify.ForPlan(Layout.Company.id, 721, task.plan_id, task.id, user.Key, Layout.User.id);
+
+						await GetComments();
+      comment = string.Empty;
+						showSuggest = false;
+						GetSources();
+						usersMention = new Dictionary<string, int>();
     }
   }
   
   private async Task GetComments()
   {
-    comments = await DbWorkComment.GetList(Layout.Company.id, task.plan_id, task.id);
-    await UpdateTask();
+   comments = await DbWorkComment.GetList(Layout.Company.id, task.plan_id, task.id);
+   await UpdateTask();
   }
 
   private async Task UpdateTask()
   {
-    task.comment = comments.Count;
-    await DbWorkTask.Update(Layout.Company.id, task);
+   task.comment = comments.Count;
+   await DbWorkTask.Update(Layout.Company.id, task);
   }
+
+		private List<UserModel> GetSuggests()
+		{
+			var results = new List<UserModel>();
+			foreach (var item in sources)
+			{
+    if (!usersMention.ContainsKey(item.id))
+    {
+     bool check = true;
+   	 if (!Shared.SearchKeyword(keyword, item.id + item.email + item.FullName))
+      check = false;
+     if (check)
+      results.Add(item);
+   	};
+			}
+			return results;
+		}
+
+		private void AddMention(UserModel selectedUser)
+		{
+			int atIndex = comment.LastIndexOf('@');
+			if (atIndex >= 0 && (atIndex == 0 || char.IsWhiteSpace(comment[atIndex - 1])))
+			{
+				string mention = "@" + selectedUser.FullName + " ";
+
+				if (atIndex == comment.Length - 1)
+					comment = comment.Insert(atIndex + 1, selectedUser.FullName + " ");
+				else
+						comment = comment.Remove(atIndex, keyword.Length + 1).Insert(atIndex, mention);
+
+				showSuggest = false;
+				usersMention[selectedUser.id] = atIndex;
+				keyword = String.Empty;
+			}
+		}
+
+
+private void HandleKeyUp(KeyboardEventArgs e)
+{
+    if (e.Key == "Backspace" || e.Key == "Delete")
+    {
+        int atIndex = comment.LastIndexOf('@');
+        if (atIndex >= 0 && atIndex < comment.Length - 1)
+        {
+            string searchText = comment.Substring(atIndex + 1, comment.Length - atIndex - 1).Trim();
+            if (searchText == "")
+            {
+                var keysToRemove = usersMention.Where(pair => pair.Value == atIndex).Select(pair => pair.Key).ToList();
+														
+                foreach (var key in keysToRemove)
+                {
+
+                    usersMention.Remove(key);
+                }
+            }
+        }
+    }
+    else if (e.Key == "Enter" || e.Key == " ")
+    {
+        showSuggest = false;
+    }
+}
+
+
+
+		private void HandleInput(ChangeEventArgs e)
+		{
+			comment = e.Value.ToString();
+			int atIndex = comment.LastIndexOf('@');
+			int inputLength = comment.Length;
+
+			if (inputLength == 0)
+			{
+				showSuggest = false;
+			}
+			else if (atIndex == 0 && (inputLength == 1 || char.IsWhiteSpace(comment[atIndex + 1])))
+			{
+				showSuggest = true;
+				usersMention = new Dictionary<string, int>();
+				suggests = sources;
+			}
+			else if (atIndex >= 0 && atIndex == inputLength - 1 && char.IsWhiteSpace(comment[atIndex - 1]))
+			{
+				showSuggest = true;
+				suggests = sources.Where(x => !usersMention.ContainsKey(x.id)).ToList();
+			}
+		else if (atIndex >= 0 && atIndex < inputLength - 1)
+		{
+			showSuggest = true;
+			keyword = comment.Substring(atIndex + 1, inputLength - atIndex - 1).Trim();
+			suggests = GetSuggests();
+		}
+		else
+			showSuggest = false;
+		}
+
+	private string FormatComment(string comment)
+	{
+		string result = comment;
+		foreach (var item in usersMention)
+		{
+			var list = DbUser.GetAll(Layout.Company.id);
+		 var user = list.FirstOrDefault(x => x.id == item.Key);
+			string mention = "@" + user.FullName;
+			result = result.Replace(mention, $"<span class='has-text-link has-text-weight-medium'>{mention}</span>");
+		}
+		return result;
+	}
 }

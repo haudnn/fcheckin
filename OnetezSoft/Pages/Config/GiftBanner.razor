@@ -145,46 +145,45 @@ else
   </section>
 }
 
-@if (current != null)
+@if (model != null)
 {
   <div class="modal is-active">
     <div class="modal-background"></div>
     <div class="modal-card">
       <div class="modal-card-head">
         <div class="modal-card-title">
-          @(string.IsNullOrEmpty(current.id) ? "Thêm banner mới" : "Chỉnh sửa banner")
+          @(string.IsNullOrEmpty(model.id) ? "Thêm banner mới" : "Chỉnh sửa banner")
         </div>
-        <a class="delete" @onclick="() => current = null"></a>
+        <a class="delete" @onclick="() => model = null"></a>
       </div>
       <form @onsubmit="Update" class="modal-card-body">
         <div class="field">
           <label class="label">Tiêu đề *</label>
           <div class="control">
-            <input @bind="current.name" type="text" class="input" />
+            <input @bind="model.name" type="text" class="input" />
           </div>
         </div>
         <div class="field">
           <label class="label">Hình ảnh *</label>
-          <div class="field has-addons">
-            <div class="control">
-              <a class="image is-square">
-                <img src="@current.image" />
-              </a>
-            </div>
-            <div class="control is-expanded">
-              <InputFile OnChange="Upload" accept="image/*" class="input" />
-            </div>
+          <div class="control">
+            <a class="image is-square">
+              <img src="@model.image" />
+            </a>
           </div>
+          <div class="control is-expanded">
+            <input @bind="model.image" class="input" type="text" placeholder="Nhập link hình..." />
+          </div>
+          <FileUpload Accept="image/*" Size="400" OnUpload="x => model.image = x[0]" />
         </div>
         <div class="field">
           <label class="label">Sản phẩm liên quan</label>
           <div class="control">
-            <input @bind="current.products" type="text" class="input" placeholder="Tên sản phẩn 1, tên sản phẩm 2...." />
+            <input @bind="model.products" type="text" class="input" placeholder="Tên sản phẩn 1, tên sản phẩm 2...." />
           </div>
         </div>
         <div class="field mt-5">
           <div class="buttons is-right">
-            <a class="button" @onclick="() => current = null">
+            <a class="button" @onclick="() => model = null">
               Hủy
             </a>
             <a class="button is-link" @onclick="Update">
@@ -203,8 +202,7 @@ else
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
-  private GiftBannerModel current = null;
+  private GiftBannerModel model = null;
   private List<GiftBannerModel> dataList = new();
   private List<DepartmentModel> departments = new();
   private string filterKey = string.Empty;
@@ -241,6 +239,7 @@ else
 
     dataList.Remove(item);
     await DbGiftBanner.Delete(Layout.Company.id, item.id);
+    Files.DeleteFile(item.image);
   }
 
   private async Task ToggleItem(GiftBannerModel item)
@@ -253,58 +252,34 @@ else
   {
     if (item == null)
     {
-      current = new()
+      model = new()
       {
         department = filterDepartment
       };
     }
     else
     {
-      current = item;
-    }
-  }
-
-  private async Task Upload(InputFileChangeEventArgs e)
-  {
-    foreach (var file in e.GetMultipleFiles())
-    {
-      try
-      {
-        if (file.Size <= Layout.MaxFileSize)
-        {
-          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
-          current.image = await Files.SaveFileAsync(fileContent, file.Name);
-        }
-        else
-        {
-          await JSRuntime.InvokeVoidAsync("tagline", false, 
-            $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB");
-        }
-      }
-      catch (Exception ex)
-      {
-        await JSRuntime.InvokeVoidAsync("tagline", false, $"ERROR: {ex.Message}");
-      }
+      model = item;
     }
   }
 
   private async Task Update()
   {
-    if (string.IsNullOrEmpty(current.name) || string.IsNullOrEmpty(current.image))
+    if (StringHelper.IsEmpty(model.name) || StringHelper.IsEmpty(model.image))
       await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập các trường bắt buộc (*)");
     else
     {
-      current.products = !string.IsNullOrEmpty(current.products) ? current.products.ToLower() : string.Empty;
-      if (string.IsNullOrEmpty(current.id))
+      model.products = !string.IsNullOrEmpty(model.products) ? model.products.ToLower() : string.Empty;
+      if (string.IsNullOrEmpty(model.id))
       {
-        current = await DbGiftBanner.Create(Layout.Company.id, current);
-        dataList.Insert(0, current);
+        model = await DbGiftBanner.Create(Layout.Company.id, model);
+        dataList.Insert(0, model);
       }
       else
       {
-        current = await DbGiftBanner.Update(Layout.Company.id, current);
+        model = await DbGiftBanner.Update(Layout.Company.id, model);
       }
-      current = null;
+      model = null;
       await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật banner ưu đãi thành công!");
     }
   }

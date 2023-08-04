@@ -37,7 +37,7 @@
               CHECK-IN 1:1
             </h1>
           </li>
-          @if (!current.checkin && current.draft && !string.IsNullOrEmpty(current.id))
+          @if (!model.checkin && model.draft && !string.IsNullOrEmpty(model.id))
           {
             <li class="column is-narrow">
               <a class="button is-danger" @onclick="Delete">
@@ -47,7 +47,7 @@
             </li>
           }
         </ul>
-        <table class="table is-fullwidth is-vcentered is-noborder is-responsive">
+        <table class="table is-fullwidth is-vcentered is-noborder is-responsive mb-0">
           <thead>
             <tr>
               <th>Mục tiêu</th>
@@ -57,9 +57,9 @@
             </tr>
           </thead>
           <tbody>
-            @if (current != null)
+            @if (model != null)
             {
-              var progress = DbOkrCheckin.GetProgress(current.key_results, okr.key_results);
+              var progress = DbOkrCheckin.GetProgress(model.key_results, okr.key_results);
               var okrColor = Shared.ProgressColor(progress);
 
               <tr>
@@ -80,14 +80,14 @@
                 <td align="center">
                   <label class="td-label">Thay đổi</label>
                   <div class="td-value has-text-weight-semibold">
-                    @Shared.FormatPercent(progress - current.progress_prev)%
+                    @Shared.FormatPercent(progress - model.progress_prev)%
                   </div>
                 </td>
                 <td align="center">
                   <label class="td-label">Tự tin</label>
                   <div class="td-value">
                     <div class="select is-fullwidth">
-                      <select @bind="current.confident">
+                      <select @bind="model.confident">
                         <option value="0">- Chọn -</option>
                         @foreach (var sl in DbOkr.Confident())
                         {
@@ -109,7 +109,7 @@
                 <td></td>
                 <td align="center">Tự tin</td>
               </tr>
-              @foreach (var checkin in current.key_results)
+              @foreach (var checkin in model.key_results)
               {
                 var kr = okr.key_results.SingleOrDefault(x => x.id == checkin.id);
                 if (kr != null)
@@ -158,7 +158,7 @@
                       <ul class="columns is-multiline is-variable is-2">
                         @foreach (var qs in DbOkrCheckin.Question())
                         {
-                          var checkVal = !string.IsNullOrEmpty(_message) && string.IsNullOrEmpty(checkin.questions[qs.id]);
+                          var checkVal = !string.IsNullOrEmpty(message) && string.IsNullOrEmpty(checkin.questions[qs.id]);
                           <li class="column is-full">
                             <div class="has-text-grey">@qs.name</div>
                             <div class="control pt-2">
@@ -166,7 +166,7 @@
                             </div>
                           </li>
                         }
-                        @if (!current.draft || Layout.User.okr_checkin)
+                        @if (!model.draft || Layout.User.okr_checkin)
                         {
                           <li class="column is-full">
                             <div class="has-text-grey">Phản hồi KR</div>
@@ -183,9 +183,20 @@
             }
           </tbody>
         </table>
-        <hr />
+
+        @if(ProductService.CheckStorage(Layout.Company))
+        {
+          <div class="field is-grouped">
+            <div class="control">File đính kèm</div>
+            <div class="control">
+              <FileUpload Multiple="true" Small="true" Cloud="true" OnUpload="x => model.files.AddRange(x)" />
+            </div>
+          </div>
+          <FileViews Delete="true" Values="model.files" />
+        }
+        
         <div class="field is-grouped is-grouped-multiline mt-5">
-          @if(!current.checkin && Layout.User.okr_checkin)
+          @if(!model.checkin && Layout.User.okr_checkin)
           {
             <div class="control is-expanded pl-3">
               <label class="checkbox">
@@ -205,7 +216,7 @@
               </a>
             </div>
           }
-          else if (!current.checkin && current.draft)
+          else if (!model.checkin && model.draft)
           {
             if (string.IsNullOrEmpty(okr.user_checkin))
             {
@@ -214,36 +225,13 @@
                   <li class="column is-narrow">
                     Chọn quản lý check-in
                   </li>
-                  <li class="column is-narrow">
-                    <div class="select is-fullwidth">
-                      <select @onchange="ChangeDepartment" class="is-family-code">
-                        <option value="">Chọn phòng ban</option>
-                        @foreach (var item in departments)
-                        {
-                          <option value="@item.id">@item.name</option>
-                        }
-                      </select>
-                    </div>
+                  <li class="column is-one-quarter">
+                    <DepartmentDropdown css="is-up" department="@filterDepartment"
+                      OnUpdate="x => filterDepartment = x" />
                   </li>
                   <li class="column is-narrow">
-                    <div class="control has-icons-right has_suggest" style="width: 220px;">
-                      <input class="input" type="text" placeholder="Nhập tên nhân viên..."
-                       autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
-                      <ul class="suggest">
-                        @foreach (var item in userSuggests)
-                        {
-                          <li class="rsitem" @onclick="() => UserSelected(item)">
-                            <div class="user_item">
-                              <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
-                              <span>@item.FullName</span>
-                            </div>
-                          </li>
-                        }
-                      </ul>
-                      <span class="icon is-right">
-                        <i class="material-icons-outlined is-size-6">search</i>
-                      </span>
-                    </div>
+                    <MemberSearch department="@filterDepartment"
+                      sources="Layout.UserList" OnUpdate="UserSelected" />
                   </li>
                   @if (managerList.Count > 0)
                   {
@@ -276,7 +264,7 @@
               </a>
             </div>
           }
-          else if (!current.checkin)
+          else if (!model.checkin)
           {
             <div class="control">
               Chọn lần check-in tiếp theo
@@ -343,21 +331,18 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
   [Parameter]
   public string OkrId { get; set; }
   [Parameter]
   public string CheckinId { get; set; }
+  private string message = string.Empty;
 
-  private string _message = string.Empty;
-  private OkrCheckinModel current = new();
   private OkrModel okr = null;
+  private OkrCheckinModel model = new();
   private DateTimeOffset? nextCheckin = null;
   private List<DepartmentModel.SelectList> departments = new();
-  private List<UserModel> userSuggests = new();
   private List<UserModel> managerList = new();
   private string filterDepartment = string.Empty;
-  private string filterUserName = string.Empty;
   private bool showAlertCheckin = false;
 
   protected override async Task OnInitializedAsync()
@@ -368,10 +353,10 @@
     if (okr != null)
     {
       if (!string.IsNullOrEmpty(CheckinId))
-        current = await DbOkrCheckin.Get(Layout.Company.id, CheckinId);
+        model = await DbOkrCheckin.Get(Layout.Company.id, CheckinId);
       else
       {
-        current = new()
+        model = new()
           {
             cycle = okr.cycle,
             user_create = okr.user_create,
@@ -382,7 +367,7 @@
           };
         foreach (var kr in okr.key_results)
         {
-          current.key_results.Add(new()
+          model.key_results.Add(new()
             {
               id = kr.id,
               result = kr.result,
@@ -393,56 +378,11 @@
     }
   }
 
-  protected override void OnAfterRender(bool firstRender)
+  private void UserSelected(string value)
   {
-    _message = string.Empty;
-  }
-
-  private void ChangeDepartment(ChangeEventArgs e)
-  {
-    filterDepartment = e.Value.ToString();
-    filterUserName = string.Empty;
-    userSuggests = new();
-    foreach (var item in Layout.UserList)
-    {
-      if (!string.IsNullOrEmpty(filterDepartment) && item.departments_id != null && item.departments_id.Contains(filterDepartment))
-        userSuggests.Add(item);
-    }
-  }
-
-  private string UserSearch
-  {
-    get => filterUserName;
-    set
-    {
-      filterUserName = value;
-      userSuggests = new();
-      if (!string.IsNullOrEmpty(value))
-      {
-        foreach (var item in Layout.UserList)
-        {
-          bool check = true;
-          if (!string.IsNullOrEmpty(filterDepartment))
-            if (item.departments_id == null || !item.departments_id.Contains(filterDepartment))
-              check = false;
-          if (!Handled.Shared.SearchKeyword(filterUserName, item.first_name + item.last_name))
-            check = false;
-
-          if (check)
-            userSuggests.Add(item);
-        }
-      }
-    }
-  }
-
-  private void UserSelected(UserModel item)
-  {
-    filterUserName = string.Empty;
-    if (item.id != Layout.User.id)
-    {
-      userSuggests = new();
+    var item = Layout.UserList.FirstOrDefault(x => x.id == value);
+    if (item != null && item.id != Layout.User.id)
       managerList.Add(item);
-    }
   }
 
   private async Task Delete()
@@ -450,57 +390,57 @@
     if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn xóa bản check-in nháp này để thực hiện lại?"))
       return;
 
-    await DbOkrCheckin.Delete(Layout.Company.id, current.id);
+    await DbOkrCheckin.Delete(Layout.Company.id, model.id);
     navigation.NavigateTo($"/okr/checkin/{okr.id}/info");
   }
 
   private async Task Update()
   {
-    if (current.confident == 0)
+    if (model.confident == 0)
     {
-      _message = "Chưa nhập mức độ tự tin của Mục tiêu !";
+      message = "Chưa nhập mức độ tự tin của Mục tiêu !";
     }
-    else if (current.key_results.Where(x => x.confident == 0).Count() > 0)
+    else if (model.key_results.Where(x => x.confident == 0).Count() > 0)
     {
-      _message = "Chưa nhập mức độ tự tin của Kết quả then chốt !";
+      message = "Chưa nhập mức độ tự tin của Kết quả then chốt !";
     }
     else if(ValidationQuestion() == false)
     {
-      _message = "Bạn cần nhập đầy đủ tất cả thông tin bắt buộc !";
+      message = "Bạn cần nhập đầy đủ tất cả thông tin bắt buộc !";
     }
     else if (string.IsNullOrEmpty(okr.user_checkin) && managerList.Count == 0)
     {
-      _message = "Bạn chưa chọn quản lý sẽ check-in với bạn !";
+      message = "Bạn chưa chọn quản lý sẽ check-in với bạn !";
     }
     else
     {
-      if (string.IsNullOrEmpty(current.id))
+      if (string.IsNullOrEmpty(model.id))
       {
         // Create Checkin on DB
-        await DbOkrCheckin.Create(Layout.Company.id, current);
+        await DbOkrCheckin.Create(Layout.Company.id, model);
 
         // Gửi thông báo chuông cho quản lý
         if (!string.IsNullOrEmpty(okr.user_checkin))
-          await DbNotify.Create(Layout.Company.id, 503, current.id, okr.user_checkin, Layout.User.id);
+          await DbNotify.Create(Layout.Company.id, 503, model.id, okr.user_checkin, Layout.User.id);
         else
         {
           foreach (var user in managerList)
-            await DbNotify.Create(Layout.Company.id, 503, current.id, user.id, Layout.User.id);
+            await DbNotify.Create(Layout.Company.id, 503, model.id, user.id, Layout.User.id);
         }
       }
       else
       {
         // Update Checkin on DB
-        await DbOkrCheckin.Update(Layout.Company.id, current);
+        await DbOkrCheckin.Update(Layout.Company.id, model);
       }
 
-      okr.date_checkin = current.date_create;
+      okr.date_checkin = model.date_create;
       okr.status_checkin = 1;
       await DbOkr.Update(Layout.Company.id, okr);
       navigation.NavigateTo($"/okr/checkin/{okr.id}/info");
       return;
     }
-    await JSRuntime.InvokeVoidAsync("tagline", false, _message);
+    await JSRuntime.InvokeVoidAsync("tagline", false, message);
   }
 
   private async Task AlertCheckin()
@@ -510,29 +450,29 @@
     var key_results = new List<OkrCheckinModel.KeyResult>();
     foreach (var item in okr.key_results)
     {
-      var krCheckin = current.key_results.SingleOrDefault(x => x.id == item.id);
+      var krCheckin = model.key_results.SingleOrDefault(x => x.id == item.id);
       if (krCheckin != null)
         key_results.Add(krCheckin);
     }
-    current.key_results = key_results;
+    model.key_results = key_results;
 
     #endregion
 
-    if (current.confident == 0)
+    if (model.confident == 0)
     {
-      _message = "Chưa nhập mức độ tự tin của Mục tiêu !";
+      message = "Chưa nhập mức độ tự tin của Mục tiêu !";
     }
-    else if (current.key_results.Where(x => x.confident == 0).Count() > 0)
+    else if (model.key_results.Where(x => x.confident == 0).Count() > 0)
     {
-      _message = "Chưa nhập mức độ tự tin của Kết quả then chốt !";
+      message = "Chưa nhập mức độ tự tin của Kết quả then chốt !";
     }
-    else if (current.key_results.Where(x => string.IsNullOrEmpty(x.feedback)).Count() > 0)
+    else if (model.key_results.Where(x => string.IsNullOrEmpty(x.feedback)).Count() > 0)
     {
-      _message = "Bạn chưa nhập phản hồi cho kết quả then chốt !";
+      message = "Bạn chưa nhập phản hồi cho kết quả then chốt !";
     }
     else if (nextCheckin == null && !okr.done && !Layout.User.okr_checkin)
     {
-      _message = "Bạn chưa chọn lần check-in tiếp theo hoặc chọn Hoàn thành OKRs!";
+      message = "Bạn chưa chọn lần check-in tiếp theo hoặc chọn Hoàn thành OKRs!";
     }
     else
     {
@@ -548,19 +488,19 @@
       }
       return;
     }
-    await JSRuntime.InvokeVoidAsync("tagline", false, _message);
+    await JSRuntime.InvokeVoidAsync("tagline", false, message);
   }
 
   private async Task ConfirmCheckin()
   {
     // Update Checkin
-    current.checkin = true;
-    current.date_checkin = DateTime.Now.Ticks;
-    await DbOkrCheckin.Update(Layout.Company.id, current);
+    model.checkin = true;
+    model.date_checkin = DateTime.Now.Ticks;
+    await DbOkrCheckin.Update(Layout.Company.id, model);
 
     foreach (var kr in okr.key_results)
     {
-      var checkin = current.key_results.SingleOrDefault(x => x.id == kr.id);
+      var checkin = model.key_results.SingleOrDefault(x => x.id == kr.id);
       if (checkin != null)
       {
         kr.result = checkin.result;
@@ -570,8 +510,8 @@
     }
 
     // Update OKRs
-    okr.confident = current.confident;
-    okr.progress_prev = current.progress_prev;
+    okr.confident = model.confident;
+    okr.progress_prev = model.progress_prev;
     okr.status_checkin = 3;
     if (!okr.done && nextCheckin != null)
       okr.next_checkin = nextCheckin.Value.DateTime.Ticks;
@@ -593,37 +533,37 @@
     }
 
     // Gửi thông báo chuông
-    await DbNotify.Create(Layout.Company.id, 505, current.id, okr.user_checkin, Layout.User.id);
+    await DbNotify.Create(Layout.Company.id, 505, model.id, okr.user_checkin, Layout.User.id);
 
     navigation.NavigateTo($"/okr/checkin/{okr.id}/info", false);
   }
 
   private async Task AutoCheckin()
   {
-    if (current.confident == 0)
+    if (model.confident == 0)
     {
-      _message = "Chưa nhập mức độ tự tin của Mục tiêu !";
+      message = "Chưa nhập mức độ tự tin của Mục tiêu !";
     }
-    else if (current.key_results.Where(x => x.confident == 0).Count() > 0)
+    else if (model.key_results.Where(x => x.confident == 0).Count() > 0)
     {
-      _message = "Chưa nhập mức độ tự tin của Kết quả then chốt !";
+      message = "Chưa nhập mức độ tự tin của Kết quả then chốt !";
     }
     else if(ValidationQuestion() == false)
     {
-      _message = "Bạn cần nhập đầy đủ tất cả thông tin bắt buộc !";
+      message = "Bạn cần nhập đầy đủ tất cả thông tin bắt buộc !";
     }
     else
     {
       // Tạo bản checkin
-      current.draft = false;
-      current.checkin = true;
-      current.date_checkin = DateTime.Now.Ticks;
-      await DbOkrCheckin.Create(Layout.Company.id, current);
+      model.draft = false;
+      model.checkin = true;
+      model.date_checkin = DateTime.Now.Ticks;
+      await DbOkrCheckin.Create(Layout.Company.id, model);
 
       // Cập nhật lại KR khi checkin
       foreach (var kr in okr.key_results)
       {
-        var checkin = current.key_results.SingleOrDefault(x => x.id == kr.id);
+        var checkin = model.key_results.SingleOrDefault(x => x.id == kr.id);
         if (checkin != null)
         {
           kr.result = checkin.result;
@@ -636,18 +576,18 @@
       okr.status_checkin = 3;
       okr.next_checkin = 0;
       okr.date_checkin = DateTime.Now.Ticks;
-      okr.confident = current.confident;
-      okr.progress_prev = current.progress_prev;
+      okr.confident = model.confident;
+      okr.progress_prev = model.progress_prev;
       await DbOkr.Update(Layout.Company.id, okr);
 
       navigation.NavigateTo($"/okr/checkin/{okr.id}/info", false);
     }
-    await JSRuntime.InvokeVoidAsync("tagline", false, _message);
+    await JSRuntime.InvokeVoidAsync("tagline", false, message);
   }
 
   private bool ValidationQuestion()
   {
-    foreach (var keyResult in current.key_results)
+    foreach (var keyResult in model.key_results)
     {
       if (keyResult.questions.Where(x => string.IsNullOrEmpty(x)).Count() > 0
         || keyResult.questions.Where(x => string.IsNullOrEmpty(x.Trim())).Count() > 0)

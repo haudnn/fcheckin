@@ -39,11 +39,24 @@ else
         </ul>
         <form @onsubmit="Update">
           <ul class="columns is-multiline">
-            <li class="column is-full">
+            <li class="column is-half">
               <div class="field">
                 <label class="label">Địa chỉ email *</label>
                 <div class="control">
                   <input value="@user.email" type="email" class="input" readonly />
+                </div>
+              </div>
+            </li>
+            <li class="column is-half">
+              <div class="field">
+                <label class="label">Hình đại diện</label>
+                <div class="field is-grouped">
+                  <div class="control">
+                    <a class="image is-square is-radius">
+                      <img src="@user.avatar" alt="IMG">
+                    </a>
+                  </div>
+                  <FileUpload Accept="image/*" Size="200" OnUpload="x => user.avatar = x[0]" />
                 </div>
               </div>
             </li>
@@ -60,43 +73,6 @@ else
                 <label class="label">Tên *</label>
                 <div class="control">
                   <input @bind="user.first_name" type="text" class="input" />
-                </div>
-              </div>
-            </li>
-            <li class="column is-half">
-              <div class="field">
-                <label class="label">Hình đại diện</label>
-                <div class="field has-addons">
-                  <div class="control">
-                    <a class="image is-square">
-                      <img src="@user.avatar" alt="IMG">
-                    </a>
-                  </div>
-                  <div class="control is-expanded @(uploading ? "is-loading" : "")">
-                    <InputFile OnChange="Upload" accept="image/*" class="input" />
-                  </div>
-                </div>
-              </div>
-            </li>
-            <li class="column is-half">
-              <div class="field">
-                <label class="label">Quyền hạn *</label>
-                <div class="control">
-                  <div class="select is-fullwidth">
-                    <select @onchange="ChangeRole">
-                      @foreach (var sl in DbUser.Role())
-                      {
-                        if (user.role == sl.id)
-                        {
-                          <option value="@sl.id" selected>@sl.name</option>
-                        }
-                        else
-                        {
-                          <option value="@sl.id">@sl.name</option>
-                        }
-                      }
-                    </select>
-                  </div>
                 </div>
               </div>
             </li>
@@ -126,6 +102,28 @@ else
                       @foreach (var sl in departmentOptions)
                       {
                         <option value="@sl.id">@sl.name</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li class="column is-half">
+              <div class="field">
+                <label class="label">Quyền hạn *</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select @onchange="ChangeRole">
+                      @foreach (var sl in DbUser.Role())
+                      {
+                        if (user.role == sl.id)
+                        {
+                          <option value="@sl.id" selected>@sl.name</option>
+                        }
+                        else
+                        {
+                          <option value="@sl.id">@sl.name</option>
+                        }
                       }
                     </select>
                   </div>
@@ -261,6 +259,21 @@ else
                     <b>Banner, Điểm tin, Châm ngôn, Thành tựu</b>
                   </div>
                 </div>
+                @if(Layout.Company.products.Any(x => x.id == "storage" && x.active))
+                {
+                  <div class="field">
+                    <div class="control">
+                      <label class="checkbox">
+                        <input type="checkbox" @bind="user.role_manage.storage" />
+                        <span class="has-text-weight-bold has-text-link">QUẢN LÝ LƯU TRỮ</span>
+                      </label>
+                    </div>
+                    <div class="control has-text-grey mt-2">
+                      Truy cập tất cả chức năng trong trang Cấu hình - <b>Quản lý lưu trữ</b> bao gồm:
+                      <b>Quản lý lưu trữ, Lịch sử xóa file</b>
+                    </div>
+                  </div>
+                }
                 <hr class="mb-0" />
               }
             </li>
@@ -346,6 +359,7 @@ else
       user.role_manage.other = true;
       user.role_manage.timekeeping = true;
       user.role_manage.hrrecords = true;
+      user.role_manage.storage = true;
     }
     else if (user.role == 3)
     {
@@ -357,28 +371,7 @@ else
       user.role_manage.other = false;
       user.role_manage.timekeeping = false;
       user.role_manage.hrrecords = false;
-    }
-  }
-
-  private bool uploading = false;
-  private async Task Upload(InputFileChangeEventArgs e)
-  {
-    foreach (var file in e.GetMultipleFiles())
-    {
-      try
-      {
-        if (file.Size <= Layout.MaxFileSize)
-        {
-          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
-          user.avatar = await Files.SaveFileAsync(fileContent, file.Name);
-        }
-        else
-          await JSRuntime.InvokeVoidAsync("tagline", false, $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB");
-      }
-      catch (Exception ex)
-      {
-        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.Message}");
-      }
+      user.role_manage.storage = false;;
     }
   }
 

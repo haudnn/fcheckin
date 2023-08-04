@@ -80,5 +80,27 @@ namespace OnetezSoft.Services
       // Cập nhật dữ liệu chính
       await DbMainUser.Update(user);
     }
+
+    /// <summary>
+    /// Cập nhật dung lượng dữ liệu sử dụng
+    /// </summary>
+    public static async Task UpdateStorageUsed(string companyId)
+    {
+      var company = await DbMainCompany.Get(companyId);
+      if (company != null)
+      {
+        // Gói lưu trữ hiện tại
+        var storage = company.products.FirstOrDefault(x => x.id == "storage");
+        if(storage != null)
+        {
+          long unit = 1024;
+          long dataUsed = await StorageService.GetStorageUsed(companyId);
+
+          storage.used = Convert.ToInt32(dataUsed / (unit * 1000));
+          await DbMainCompany.Update(company);
+          Console.WriteLine(string.Format("Storage {0}: {1}/{2} MB", companyId, storage.used, storage.total * 1000));
+        }
+      }
+    }
   }
 }

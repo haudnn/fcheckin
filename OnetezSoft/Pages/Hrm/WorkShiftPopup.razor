@@ -4,7 +4,7 @@
 {
   <section class="modal is-active">
     <div class="modal-background"></div>
-    <section class="modal-card">
+    <section class="modal-card" style="padding: 0 10px;">
       <section class="modal-card-head">
         <div class="modal-card-title">
           @(string.IsNullOrEmpty(model.id) ? "Tạo mới" : "Chỉnh sửa") ca làm việc
@@ -15,7 +15,7 @@
         <ul class="columns is-multiline is-variable is-2">
           <li class="column is-full">
             <div class="field">
-              <label class="label">Tên ca làm việc</label>
+              <label class="label">Tên ca làm việc *</label>
               <div class="control">
                 <input @bind="model.name" class="input" type="text">
               </div>
@@ -23,12 +23,12 @@
           </li>
           <li class="column is-half">
             <div class="field">
-              <label class="label">Giờ bắt đầu</label>
+              <label class="label">Giờ bắt đầu *</label>
               <div class="control">
                 <div class="select is-fullwidth">
                   <select @bind="model.checkin">
                     <option value="">- chọn -</option>
-                    @foreach (var item in Shared.TimeList())
+                    @foreach (var item in Shared.TimeList(0, 23))
                     {
                       <option value="@item.name">@item.name</option>
                     }
@@ -39,12 +39,12 @@
           </li>
           <li class="column is-half">
             <div class="field">
-              <label class="label">Giờ kết thúc</label>
+              <label class="label">Giờ kết thúc *</label>
               <div class="control">
                 <div class="select is-fullwidth">
                   <select @bind="model.checkout">
                     <option value="">- chọn -</option>
-                    @foreach (var item in Shared.TimeList())
+                    @foreach (var item in Shared.TimeList(0, 23))
                     {
                       <option value="@item.name">@item.name</option>
                     }
@@ -55,7 +55,7 @@
           </li>
           <li class="column is-full">
             <div class="field">
-              <label class="label">Số công</label>
+              <label class="label">Số công *</label>
               <div class="control">
                 <input @bind="model.value" class="input" type="number" min="0" step="0.5">
               </div>
@@ -64,6 +64,12 @@
         </ul>
       </section>
       <section class="modal-card-foot is-right">
+        <div style="flex-grow: 1;" class="mr-2">
+          <label class="checkbox has-text-link">
+            <input type="checkbox" @bind="model.is_overday">
+            <span>Ca làm kéo dài qua ngày</span>
+          </label>
+        </div>
         <a class="button" @onclick="Cancel">
           <span class="icon">
             <i class="material-icons-round is-size-6">close</i>
@@ -104,18 +110,21 @@
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập giờ kết thúc!");
     else if(model.value <= 0)
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập số công!");
+    else if (!model.is_overday && TimeSpan.Parse(model.checkin).Ticks >= TimeSpan.Parse(model.checkout).Ticks)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Không phải ca qua ngày, giờ kết thúc phải lớn hơn giờ bắt đầu!");
     else
     {
+      model.value = Math.Round(model.value, 2);
       if(string.IsNullOrEmpty(model.id))
       {
         await DbHrmWorkShift.Create(Layout.Company.id, model);
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo ca làm thành công");
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo ca làm thành công!");
         await SendNotify(800);
       }
       else
       {
         await DbHrmWorkShift.Update(Layout.Company.id, model);
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Chỉnh sửa ca làm thành công");
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Chỉnh sửa ca làm thành công!");
         await SendNotify(801);
       }
       await OnUpdate.InvokeAsync(true);

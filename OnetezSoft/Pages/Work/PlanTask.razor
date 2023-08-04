@@ -2,7 +2,6 @@
 @page "/work/{PlanId}/task/{TypeView}"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
-@inject ProtectedLocalStorage storage
 
 <PageTitle>Danh sách công việc</PageTitle>
 
@@ -394,7 +393,7 @@
         }
         else if(TypeView == "list")
         {
-          <div class="scrolly" style="height: calc(100vh - 185px); padding-bottom: 300px;">
+          <div class="scrolly" style="height: calc(100vh - 240px); padding-bottom: 300px;">
             <ul class="task_list columns is-gapless is-size-7 has-text-grey"
                 style="position: sticky;top: 0px;background: #fff;z-index: 3;">
               <li class="column" style="width: calc(100% - 630px);">Công việc</li>
@@ -413,13 +412,13 @@
                 <li class="column is-full">
                   @if(editSectionId == item.id)
                   {
-                    <div class="control has-icons-left" style="width: 300px;">
-                      <input @bind="item.name" id="section_@item.id" type="text" 
-                        class="input has-text-weight-semibold font_14 is_bg" placeholder="Nhập tiêu đề nhóm công việc...">
+                    <form class="control has-icons-left" style="width: 300px;" @onsubmit="UpdateSection">
+                      <input @bind="item.name" class="input has-text-weight-semibold font_14 is_bg"
+                        id="section_@item.id" type="text"  placeholder="Nhập tiêu đề nhóm công việc...">
                       <a class="icon is-left has-text-success" title="Cập nhật" @onclick="UpdateSection">
                         <i class="material-icons-outlined is-size-5">done</i>
                       </a>
-                    </div>
+                    </form>
                   }
                   else
                   {
@@ -432,7 +431,8 @@
                       </span>
                       @if(roleMember)
                       {
-                        <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => AddTask(null, item.id)">
+                        <a class="icon has-text-dark is_hover" title="Thêm công việc"
+                          @onclick="() => AddTask(null, item.id)">
                           <i class="material-icons-round is-size-6">add</i>
                         </a>
                       }
@@ -524,13 +524,13 @@
                 <li class="column is-narrow mr-3" style="width: 350px;">
                   @if(editSectionId == item.id)
                   {
-                    <div class="control has-icons-left">
-                      <input @bind="item.name" id="section_@item.id"  type="text" 
-                        class="input has-text-weight-semibold font_14 is_bg" placeholder="Nhập tiêu đề nhóm công việc...">
+                    <form class="control has-icons-left" @onsubmit="UpdateSection">
+                      <input @bind="item.name" class="input has-text-weight-semibold font_14 is_bg"
+                        id="section_@item.id" type="text" placeholder="Nhập tiêu đề nhóm công việc...">
                       <a class="icon is-left has-text-success" title="Cập nhật" @onclick="UpdateSection">
                         <i class="material-icons-outlined is-size-5">done</i>
                       </a>
-                    </div>
+                    </form>
                   }
                   else
                   {
@@ -540,7 +540,8 @@
                       </span>
                       @if(roleMember)
                       {
-                        <a class="icon has-text-dark is_hover" title="Thêm công việc" @onclick="() => AddTask(null, item.id)">
+                        <a class="icon has-text-dark is_hover" title="Thêm công việc"
+                          @onclick="() => AddTask(null, item.id)">
                           <i class="material-icons-round is-size-6">add</i>
                         </a>
                       }
@@ -584,7 +585,8 @@
                       }
                     </div>
                   }
-                  <div class="scrolly p-2" style="height: calc(100vh - 240px); background: #fbfbfb; border-radius: 5px;">
+                  <div class="scrolly p-2"
+                    style="height: calc(100vh - 285px); background: #fbfbfb; border-radius: 5px;">
                     <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_board"
                       AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)" InstantReplace="true">
                       @if(context.id == null)
@@ -622,7 +624,7 @@
         else
         {
           var dayHtml = string.Empty;
-          <div class="list_task_gantt is-size-7">
+          <div id="scrollbox" class="list_task_gantt is-size-7">
             <ul class="task_gantt is_month columns is-gapless is-vcentered">
               <li class="column is-narrow"></li>
               @for (int d = 0; d < dayTotal; d++)
@@ -747,8 +749,8 @@
 
               @if(!hidden)
               {
-                <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_list" 
-                  AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)" InstantReplace="true">
+                <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_list"
+                  AllowsDrag="x => x.status < 0" OnItemDrop="x => OnItemDragdrop(x)" InstantReplace="true">
                   @if(context.id == null)
                   {
                     <ul class="task_gantt columns is-gapless is-size-7">
@@ -885,9 +887,13 @@
   {
     if (firstRender)
     {
-      var toogleAddStorage = await storage.GetAsync<string>("fworkToogleAdd");
-      if (toogleAddStorage.Success && !string.IsNullOrEmpty(toogleAddStorage.Value))
-        toggleAdd = Convert.ToBoolean(toogleAddStorage.Value);
+      if(TypeView == "gantt")
+        await JSRuntime.InvokeVoidAsync("dragScrollX");
+
+      var cookieToggleAdd = await JSRuntime.InvokeAsync<string>("getCookie", "_fwork_add");
+      if (!string.IsNullOrEmpty(cookieToggleAdd))
+        toggleAdd = Convert.ToBoolean(cookieToggleAdd);
+      
       StateHasChanged();
     }
   }
@@ -895,7 +901,7 @@
   private async Task ToogleAdd()
   {
     toggleAdd = !toggleAdd;
-    await storage.SetAsync("fworkToogleAdd", toggleAdd.ToString());
+    await JSRuntime.InvokeVoidAsync("setCookie", "_fwork_add", toggleAdd);
   }
 
   private async Task OpenTaskPopup()
@@ -1332,6 +1338,7 @@
           break;
         }
       }
+      await JSRuntime.InvokeVoidAsync("console.warn", $"plan_{item.plan_id} syncing {item.plan_id}");
       MessagingCenter.Send(this, "plan_" + item.plan_id, item.plan_id);
     }
     else

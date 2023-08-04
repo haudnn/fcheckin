@@ -33,6 +33,8 @@ public class DbHrmWorkShift
   {
     var _db = Mongo.DbConnect("fastdo_" + companyId);
 
+    model.created = DateTime.Now.Ticks;
+
     var collection = _db.GetCollection<HrmWorkShiftModel>(_collection);
 
     var option = new ReplaceOptions { IsUpsert = false };
@@ -46,15 +48,19 @@ public class DbHrmWorkShift
   public static async Task<bool> Delete(string companyId, string id)
   {
     var _db = Mongo.DbConnect("fastdo_" + companyId);
+				var collection = _db.GetCollection<HrmWorkShiftModel>(_collection);
+				await DbHrmTimeList.DeleteShift(companyId, id);
+				await DbHrmTimeListRegister.DeleteShift(companyId, id);
+				
+				var filter = Builders<HrmWorkShiftModel>.Filter.Eq(x => x.id, id);
+				var update = Builders<HrmWorkShiftModel>.Update.Set(x => x.is_deleted, true)
+                                                       .Set(x => x.time_delete, DateTime.Now.Date.Ticks);
 
-    var collection = _db.GetCollection<HrmWorkShiftModel>(_collection);
-
-    var result = await collection.DeleteOneAsync(x => x.id == id);
-
-    if (result.DeletedCount > 0)
-      return true;
-    else
-      return false;
+			var result = await collection.FindOneAndUpdateAsync(filter, update);
+			if (result != null)
+				return true;
+			else
+				return false;
   }
 
 
@@ -74,8 +80,34 @@ public class DbHrmWorkShift
 
     var collection = _db.GetCollection<HrmWorkShiftModel>(_collection);
 
+    var results = await collection.Find(x => !x.is_deleted).ToListAsync();
+
+    var sortedResults = results.OrderBy(x => TimeSpan.Parse(x.checkin)).ToList();
+
+    return sortedResults;
+  }
+
+  public static async Task<List<HrmWorkShiftModel>> GetWorkList(string companyId)
+  {
+    var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+    var collection = _db.GetCollection<HrmWorkShiftModel>(_collection);
+
+    var results = await collection.Find(x => !x.is_deleted).ToListAsync();
+
+    var sortedResults = results.OrderByDescending(x => x.created).ToList();
+
+    return sortedResults;
+  }
+
+  public static async Task<List<HrmWorkShiftModel>> GetListWithoutDelete(string companyId)
+  {
+    var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+    var collection = _db.GetCollection<HrmWorkShiftModel>(_collection);
+
     var results = await collection.Find(new BsonDocument()).ToListAsync();
 
-    return results.OrderBy(x => x.created).ToList();
+    return results.OrderByDescending(x => x.created).ToList();
   }
 }

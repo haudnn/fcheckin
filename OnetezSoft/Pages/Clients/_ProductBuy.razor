@@ -109,45 +109,59 @@
               @if(company != null)
               {
                 <div class="field mb-4">
-                  <label class="label">Số lượng người dùng</label>
-                  @if(step == 1)
+                  @if(product.id == "storage")
                   {
-                    <div class="control has-icons-left">
-                      <div class="dropdown is-fullwidth @(toggleStaff ? "is-active" : "")">
-                        <div class="dropdown-trigger" @onclick="() => toggleStaff = !toggleStaff">
-                          <input @bind="staffQuantity" @bind:event="oninput" type="number" 
-                              class="input is_line font_14" min="5" max="1000" step="1" />
-                          <span class="icon is-left has-text-black">
-                            <i class="material-icons-round is-size-6">person_add</i>
-                          </span>
-                        </div>
-                        @* <div class="dropdown-menu">
-                          <div class="dropdown-content">
-                            @foreach (var item in promotions.Where(x => x.type == 2))
-                            {
-                              <a class="dropdown-item" @onclick="() => PromotionStaff(item.condition)">
-                                @item.condition người (ưu đãi @item.discount%)
-                              </a>
-                            }
-                          </div>
-                        </div> *@
+                    <label class="label">Dung lượng lưu trữ <i>(Đơn vị: GB)</i></label>
+                    @if(step == 1)
+                    {
+                      <div class="control has-icons-left">
+                        <input @bind="staffQuantity" @bind:event="oninput" type="number" 
+                            class="input is_line font_14" min="1" max="1000" step="1" />
+                        <span class="icon is-left has-text-black">
+                          <i class="material-icons is-size-6">cloud</i>
+                        </span>
                       </div>
-                    </div>
+                    }
+                    else 
+                    {
+                      <div class="control py-2">
+                        <div class="icon-text">
+                          <span class="icon is-small has-text-black mr-2">
+                            <i class="material-icons-round is-size-6">cloud</i>
+                          </span>
+                          <span class="has-text-weight-medium">@staff</span>
+                        </div>
+                      </div>
+                    }
                   }
-                  else 
+                  else
                   {
-                    <div class="control py-2">
-                      <div class="icon-text">
-                        <span class="icon is-small has-text-black mr-2">
+                    <label class="label">Số lượng người dùng</label>
+                    @if(step == 1)
+                    {
+                      <div class="control has-icons-left">
+                        <input @bind="staffQuantity" @bind:event="oninput" type="number" 
+                            class="input is_line font_14" min="5" max="1000" step="1" />
+                        <span class="icon is-left has-text-black">
                           <i class="material-icons-round is-size-6">person_add</i>
                         </span>
-                        <span class="has-text-weight-medium">@staff</span>
                       </div>
+                    }
+                    else 
+                    {
+                      <div class="control py-2">
+                        <div class="icon-text">
+                          <span class="icon is-small has-text-black mr-2">
+                            <i class="material-icons-round is-size-6">person_add</i>
+                          </span>
+                          <span class="has-text-weight-medium">@staff</span>
+                        </div>
+                      </div>
+                    }
+                    <div class="has-text-grey has-text-weight-medium is-size-7 pt-2 is-italic">
+                      Số lượng nhân sự của tổ chức: @company.members
                     </div>
                   }
-                  <div class="has-text-grey has-text-weight-medium is-size-7 pt-2 is-italic">
-                    Số lượng nhân sự của tổ chức: @company.members
-                  </div>
                 </div>
                 
                 <div class="field mb-4">
@@ -188,7 +202,7 @@
                     </div>
                   }
                   <div class="has-text-grey has-text-weight-medium is-size-7 pt-2 is-italic">
-                    Tối thiểu 1 tháng.
+                    Tối thiểu 3 tháng.
                   </div>
                 </div>
                 
@@ -308,7 +322,6 @@
   private int month = 3;
   private CompanyModel company = null;
   private bool toggleCompany = false;
-  private bool toggleStaff = false;
   private bool toggleMonth = false;
 
   private void Reset()
@@ -320,14 +333,12 @@
     month = 3;
     company = null;
     toggleCompany = false;
-    toggleStaff = false;
     toggleMonth = false;
   }
 
   private async Task Step(bool next)
   {
     toggleCompany = false;
-    toggleStaff = false;
     toggleMonth = false;
 
     if(next)
@@ -339,9 +350,14 @@
       await Cancel();
     else if(step == 2)
     {
-      if(staff < 5)
+      if(staff < 5 && product.id != "storage")
       {
         await JSRuntime.InvokeVoidAsync("tagline", false, "Số lượng người dùng tối thiểu là 5 người.");
+        step = 1;
+      }
+      else if(staff < 1 && product.id == "storage")
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Dung lượng lưu trữ tối thiểu là 1GB.");
         step = 1;
       }
       else if(month < 3)
@@ -370,8 +386,10 @@
     {
       // Số tiền cần thanh toán
       int price = Convert.ToInt32(discount > 0 ? money - (money * discount / 100) : money);
-      if(staff < 5)
+      if(staff < 5 && product.id != "storage")
         await JSRuntime.InvokeVoidAsync("tagline", false, "Số lượng người dùng tối thiểu là 5 người.");
+      else if(staff < 1 && product.id == "storage")
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Dung lượng lưu trữ tối thiểu là 1GB.");
       else if(month < 3)
         await JSRuntime.InvokeVoidAsync("tagline", false, "Số tháng sử dụng tối thiểu là 3 tháng.");
       else if(customer.balance < price)
@@ -399,10 +417,15 @@
           Company = company.id,
           balance = customer.balance - price,
           money = -price,
-          content = $"Mua sản phẩm <b>{product.title}</b> với <b>{staff} NDSP</b> trong vòng <b>{month} tháng</b> (hết hạn vào {string.Format("{0:dd/MM/yyyy}", new DateTime(module.end))}) cho <b>{company.name}</b>",
           status = 2,
           type = 3
         };
+        // Nội dung giao dịch
+        if(product.id == "storage")
+          transaction.content = $"Mua sản phẩm <b>{product.title}</b> với <b>{staff} GB</b> trong vòng <b>{month} tháng</b> (hết hạn vào {string.Format("{0:dd/MM/yyyy}", new DateTime(module.end))}) cho <b>{company.name}</b>";
+        else
+          transaction.content = $"Mua sản phẩm <b>{product.title}</b> với <b>{staff} NDSP</b> trong vòng <b>{month} tháng</b> (hết hạn vào {string.Format("{0:dd/MM/yyyy}", new DateTime(module.end))}) cho <b>{company.name}</b>";
+
         await DbMainTransaction.Create(transaction);
 
         // Cập nhật số dư
@@ -425,7 +448,6 @@
   private async Task ChangeCompany(CompanyModel item)
   {
     toggleCompany = false;
-    toggleStaff = false;
     toggleMonth = false;
 
     // Lấy thông tin công ty
@@ -481,16 +503,11 @@
   {
     // Tính chi phí
     money = ProductService.CalculateRenew(staff, product.price, month);
-    // Ưu đãi theo tháng
-    //var discountMonth = ProductService.Promotion(1, month);
-    // ƯU đãi theo người dùng -> bỏ
-    //var discountStaff = ProductService.Promotion(2, staff);
 
     // Áp dụng ưu đãi theo tháng
     discount = ProductService.Promotion(1, month); 
 
     toggleCompany = false;
-    toggleStaff = false;
     toggleMonth = false;
   }
 }

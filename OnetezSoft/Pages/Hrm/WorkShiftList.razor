@@ -29,9 +29,10 @@
             <th>Tên ca làm việc</th>
             <th width="20%" align="center">Giờ bắt đầu</th>
             <th width="20%" align="center">Giờ kết thúc</th>
+            <th width="120px" align="center">Ca qua ngày</th>
             <th width="20%" align="center">Số công</th>
-            <th width="12%">Ngày tạo</th>
-            <th width="70px" align="center">Xử lý</th>
+            <th width="12%" >Ngày tạo</th>
+            <th width="70px">Xử lý</th>
           </tr>
         </thead>
         <tbody>
@@ -39,33 +40,52 @@
           {
             <tr>
               <td>
-                <a class="has-text-dark" @onclick="() => EditItem(item)">
-                  @item.name
-                </a>
+																<label class="td-label">Tên ca làm việc</label>
+                <div class="has-text-dark text_1_line td-value">
+                  <span>@item.name</span>
+                </div>
               </td>
               <td align="center">
-                @item.checkin
+															<label class="td-label">Giờ bắt đầu</label>
+															<div class="td-value">
+																<span>@item.checkin</span>
+															</div>
               </td>
               <td align="center">
-                @item.checkout
+																<label class="td-label">Giờ kết thúc</label>
+																<div class="td-value">
+																	<span>@item.checkout</span>
+																</div>
               </td>
               <td align="center">
-                @item.value
+																<label class="td-label">Ca qua ngày</label>
+																<div class="td-value">
+																	<span class="material-icons-outlined @(item.is_overday ? "has-text-success" : "has-text-grey")">
+																			@(item.is_overday ? "check_box" : "check_box_outline_blank")
+																	</span>
+																</div>
+              </td>
+              <td align="center">
+																<label class="td-label">Số công</label>
+                <div class="td-value">
+																	<span>@item.value</span>
+																</div>
               </td>
               <td>
-                @string.Format("{0:dd/MM/yyyy}", new DateTime(item.created))
+																<label class="td-label">Ngày tạo</label>
+																<div class="td-value">
+																	<span>@string.Format("{0:dd/MM/yyyy}", new DateTime(item.created))</span>
+																</div>
               </td>
               <td>
-                <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
-                  <i class="material-icons-outlined is-size-5">
-                    edit
-                  </i>
-                </a>
-                <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+															<label class="td-label">Số công</label>
+															<div class="td-value">
+																 <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
                   <i class="material-icons-outlined is-size-5">
                     delete
                   </i>
                 </a>
+															</div>
               </td>
             </tr>
           }
@@ -74,14 +94,8 @@
     </div>
   </section>
   <WorkShiftPopup model="editItem" OnUpdate="OnUpdate" />
-}
-else
-{
-  <PopupNoRole />
-}
-
-@if(useList != null && useList.Count > 0)
-{
+		@if (useList != null && useList.Count > 0)
+	{
   <section class="modal is-active">
     <div class="modal-background"></div>
     <section class="modal-card">
@@ -93,19 +107,18 @@ else
       </section>
       <section class="modal-card-body">
         <div class="pb-2">
-          Ca làm việc <strong>“@deleteItem”</strong> đang được áp dụng cho <strong>@useList.Count</strong> nhân sự.
+          Ca làm việc <strong>@deleteItem</strong> đang được áp dụng cho <strong>@useList.Count</strong> nhân viên.
         </div>
         <div class="pb-5 has-text-danger">
-          Bạn cần cập nhật ca làm @useList.Count nhân sự trước khi xóa!
+          Bạn cần thay đổi ca làm việc của @useList.Count nhân viên này trước khi xóa!
         </div>
         <ul class="columns is-multiline is-vcentered is-variable is-1">
           @foreach (var item in useList)
           {
             var user = UserService.GetUser(Layout.UserList, item.id);
-            if(user != null)
+            if (user != null)
             {
-              var company = companys.FirstOrDefault(x => x.id == user.company_id);
-              var department = departments.FirstOrDefault(x => x.id == user.department_id);
+              var department = departmentAll.Find(i => i.id == user.department_default);
               <li class="column is-2">
                 @user.id
               </li>
@@ -117,9 +130,7 @@ else
               </li>
               <li class="column is-5 is-size-7">
                 <div class="text_1_line">
-                  <span>@(company != null ? company.name : user.company_id)</span>
-                  <span>/</span>
-                  <span>@(department != null ? department.name : user.department_id)</span>
+                  <span>@(department != null ? department.name : "")</span>
                 </div>
               </li>
               <li class="column is-full">
@@ -145,34 +156,38 @@ else
       </section>
     </section>
   </section>
+	}
 }
+else
+{
+  <PopupNoRole />
+}
+
 
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-  private string _title = "Thiết lập ca làm việc";
+  private string _title = "Ca làm việc";
   private bool _access = false;
   private List<HrmWorkShiftModel> dataList = new();
   private HrmWorkShiftModel editItem = null;
-  private List<HrmUserShiftModel> useList = null;
   private string deleteItem = string.Empty;
-  private List<HrmOptionModel> companys = new();
-  private List<HrmOptionModel> departments = new();
+  private List<HrmTimeListModel> useList = null;
+  private List<DepartmentModel> departmentAll = new();
+
 
   protected override async Task OnInitializedAsync()
   {
     // Quyền truy cập trang
-    _access = Layout.User.role == 1 || Layout.User.role_manage.timekeeping;
+    _access = Layout.User.role == 1 || (Layout.User.role == 2 && Layout.User.role_manage.timekeeping);
 
-    dataList = await DbHrmWorkShift.GetList(Layout.Company.id);
-
-    companys = await DbHrmOption.GetList(Layout.Company.id, "company");
-    departments = await DbHrmOption.GetList(Layout.Company.id, "department");    
+    dataList = await DbHrmWorkShift.GetWorkList(Layout.Company.id);
+    departmentAll = DbDepartment.GetAll(Layout.Company.id);
   }
 
   private async Task EditItem(HrmWorkShiftModel item)
   {
-    if(Layout.User.role == 1)
+    if (_access)
     {
       if(item == null)
         editItem = new();
@@ -185,30 +200,33 @@ else
 
   private async Task DeleteItem(HrmWorkShiftModel item)
   {
-    if(Layout.User.role == 1)
+    if (_access)
     {
-      deleteItem = item.name;
-      // Kiểm tra các tài khoản đang sử dụng
-      useList = await HrmService.GetWorkShiftsUse(Layout.Company.id, item.id);
-      if(useList.Count == 0)
-      {
-        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
-          return;
-
-        dataList.Remove(item);
-        await SendNotify(item);
-        await DbHrmWorkShift.Delete(Layout.Company.id, item.id);
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa ca làm việc thành công.");
-      }
+					var isUsed = await DbHrmTimekeeping.CheckTimekeeping(Layout.Company.id, DateTime.Today.Ticks, item.id, item.is_overday);
+					if (isUsed)
+					{
+						await JSRuntime.InvokeVoidAsync("tagline", false, "Hiện tại đã có nhân viên chấm công, bạn không thể xoá!");
+						return;
+					}
+					else
+					{
+						deleteItem = item.name;
+						if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc chắn muốn xóa {item.name} không?"))
+							return;
+						await DbHrmWorkShift.Delete(Layout.Company.id, item.id);
+						dataList.Remove(item);
+						await SendNotify(item);
+						await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa ca làm việc thành công!");
+					}
     }
     else
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có quyền xóa dữ liệu này!");
+     await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có quyền xóa dữ liệu này!");
   }
 
   private async Task OnUpdate(bool isUpdate)
   {
     editItem = null;
-    dataList = await DbHrmWorkShift.GetList(Layout.Company.id);
+    dataList = await DbHrmWorkShift.GetWorkList(Layout.Company.id);
   }
 
   private async Task SendNotify(HrmWorkShiftModel item)

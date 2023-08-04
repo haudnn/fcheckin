@@ -16,7 +16,7 @@ namespace OnetezSoft.Data
     public static async Task<GiftExchangeModel> Create(string companyId, GiftExchangeModel model)
     {
       if (string.IsNullOrEmpty(model.id))
-        model.id = Mongo.RandomId();
+      model.id = Mongo.RandomId();
       model.date = DateTime.Now.Ticks;
       model.view = model.user_buy == model.user_give;
 

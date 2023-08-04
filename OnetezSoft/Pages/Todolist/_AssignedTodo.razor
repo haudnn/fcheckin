@@ -27,7 +27,7 @@
         </div>
       </div>
     </li>
-    <li class="column is-one-quarter">
+    <li class="column is-one-fifth">
       <MemberSearch sources="Layout.UserList" OnUpdate="ChangeFilterUser" />
     </li>
     <li class="column is-narrow">
@@ -39,7 +39,7 @@
             </span>
           </span>
         </div>
-        <div class="control" style="width: 200px;">
+        <div class="control" style="width: 190px;">
           <div class="input is-link">
             <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE"
               OnRangeSelect="ChangeFilterDate" />
@@ -51,10 +51,9 @@
 
   <a id="reload_assigned" class="is-hidden" @onclick="GetList"></a>
 
-  <table class="table is-fullwidth is-vcentered is-responsive">
+  <table class="table is-fullwidth is-noborder is-vcentered is-responsive">
     <thead>
         <tr>
-          <th width="130px">Thời gian</th>
           <th>Công việc</th>
           <th width="120px">Độ ưu tiên</th>
           <th width="90px" align="center">Bắt đầu</th>
@@ -64,96 +63,150 @@
         </tr>
     </thead>
     <tbody>
-      @foreach (var todo in dataList)
+      @foreach (var item in dataList)
       {
-        var level = DbTodolist.Level(todo.level);
-        var assign = DbTodolist.AssignStatus(todo.assign_status);
-        var assignor = UserService.GetMember(Layout.UserList, todo.assign_user);
-
+        long day = item.Key;
         <tr>
-          <td>
-            <span>@Shared.ConvertDateWeek(todo.date)</span>
-          </td>
-          <td>
-            <div class="has-text-link has-text-weight-semibold">@todo.name</div>
-          </td>
-          <td>
-            <label class="td-label">Ưu tiên:</label>
-            <div class="td-value">
-              <span class="@level.color">@level.name</span>
-            </div>
-          </td>
-          <td align="center">
-            <label class="td-label">Bắt đầu</label>
-            <div class="td-value">
-              <span>@todo.start</span>
-            </div>
-          </td>
-          <td align="center">
-            <label class="td-label">Kết thúc</label>
-            <div class="td-value">
-              <span>@todo.end</span>
-            </div>
-          </td>
-          <td>
-            <label class="td-label">Người giao:</label>
-            <div class="td-value">
-              <div class="user_item">
-                <span class="image is-rounded is-24x24">
-                  <img src="@assignor.avatar" alt="AVT">
-                </span>
-                <span class="text_1_line">@assignor.name</span>
-              </div>
-            </div>
-          </td>
-          <td align="center">
-            <label class="td-label">Trạng thái</label>
-              <div class="td-value">
-                @if(todo.assign_status == 1)
-                {
-                  <div class="dropdown is-hoverable">
-                    <div class="dropdown-trigger">
-                      <div class="icon-text">
-                        <span class="@assign.color">@assign.name</span>
-                        <span class="icon is-small">
-                          <i class="material-icons-outlined is-size-6">expand_more</i>
-                        </span>
-                      </div>
-                    </div>
-                    <div class="dropdown-menu">
-                      <div class="dropdown-content py-0">
-                        <a class="dropdown-item px-2 icon-text has-text-link"
-                          @onclick="() => AcceptItem(todo)">
-                          <span class="icon">
-                            <i class="material-icons-outlined is-size-6">done</i>
-                          </span>
-                          <span>Chấp nhận</span>
-                        </a>
-                        <a class="dropdown-item px-2 icon-text has-text-danger"
-                          @onclick="() => RejectItem(todo)">
-                          <span class="icon">
-                            <i class="material-icons-outlined is-size-6">close</i>
-                          </span>
-                          <span>Từ chối</span>
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                }
-                else
-                {
-                  <span class="has-text-weight-semibold @assign.color">@assign.name</span>
-                }
-              </div>
+          <td colspan="6"><hr class="m-0"></td>
+        </tr>
+        <tr>
+          <td colspan="6">
+            <a class="icon-text has-text-link" @onclick="() => ToggleDay(day)">
+              <span class="has-text-weight-bold">@Shared.ConvertDateWeek(day)</span>
+              <span class="icon">
+                <i class="material-icons-outlined is-size-5">
+                  @(hiddenDays.Contains(day) ? "arrow_right" : "arrow_drop_down")
+                </i>
+              </span>
+            </a>
           </td>
         </tr>
+        @if(!hiddenDays.Contains(day))
+        {
+          foreach (var todo in item.Value)
+          {
+            var level = DbTodolist.Level(todo.level);
+            var assign = DbTodolist.AssignStatus(todo.assign_status);
+            var assignor = UserService.GetMember(Layout.UserList, todo.assign_user);
+            <tr>
+              <td>
+                <div class="icon-text ml-3">
+                  <span class="icon is-small has-text-grey">
+                    <i class="material-icons is-size-7">fiber_manual_record</i>
+                  </span>
+                  <span class="has-text-weight-medium has-text-link" title="@todo.name">
+                    @todo.name
+                  </span>
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Ưu tiên:</label>
+                <div class="td-value">
+                  <span class="@level.color">@level.name</span>
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Bắt đầu</label>
+                <div class="td-value">
+                  <span>@todo.start</span>
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Kết thúc</label>
+                <div class="td-value">
+                  <span>@todo.end</span>
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Người giao:</label>
+                <div class="td-value">
+                  <div class="user_item">
+                    <span class="image is-rounded is-24x24">
+                      <img src="@assignor.avatar" alt="AVT">
+                    </span>
+                    <span class="text_1_line">@assignor.name</span>
+                  </div>
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Trạng thái</label>
+                  <div class="td-value">
+                    @if(todo.assign_status == 1)
+                    {
+                      <div class="dropdown is-hoverable">
+                        <div class="dropdown-trigger">
+                          <div class="icon-text">
+                            <span class="@assign.color">@assign.name</span>
+                            <span class="icon is-small">
+                              <i class="material-icons-outlined is-size-6">expand_more</i>
+                            </span>
+                          </div>
+                        </div>
+                        <div class="dropdown-menu">
+                          <div class="dropdown-content py-0">
+                            <a class="dropdown-item px-2 icon-text has-text-link"
+                              @onclick="() => AcceptItem(todo)">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-6">done</i>
+                              </span>
+                              <span>Chấp nhận</span>
+                            </a>
+                            <a class="dropdown-item px-2 icon-text has-text-danger"
+                              @onclick="() => RejectItem(todo)">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-6">close</i>
+                              </span>
+                              <span>Từ chối</span>
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                    else
+                    {
+                      <span class="has-text-weight-semibold @assign.color">@assign.name</span>
+                    }
+                  </div>
+              </td>
+            </tr>
+            @if(!Shared.IsEmpty(todo.detail) || !Shared.IsEmpty(todo.result))
+            {
+              <tr>
+                <td colspan="6" class="pb-4">
+                  @if(!Shared.IsEmpty(todo.detail))
+                  {
+                    <div class="is-flex pl-5">
+                      <label class="td-label is-show">Chi tiết:</label>
+                      <div class="td-value is-word-break">
+                        <div class="text_1_line" onclick="toggleText(this)">
+                          @((MarkupString)Shared.GetLinks(todo.detail))
+                        </div>
+                      </div>
+                    </div>
+                  }
+                  @if(!Shared.IsEmpty(todo.result))
+                  {
+                    <div class="is-flex pl-5">
+                      <label class="td-label is-show">Kết quả:</label>
+                      <div class="td-value is-word-break">
+                        <div class="text_1_line" onclick="toggleText(this)">
+                          @((MarkupString)Shared.GetLinks(todo.result))
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </td>
+              </tr>
+            }
+          }
+        }
       }
     </tbody>
   </table>
-  @if(dataList.Count == 0)
+  @if(todoList.Count == 0)
   {
     <div class="py-1 has-text-grey has-text-centered">
-      Không có dữ liệu phù hợp.
+      Không có công viêc được giao.
     </div>
   }
 </section>
@@ -162,11 +215,13 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-  private List<TodolistModel.Todo> dataList = new();
+  private Dictionary<long, List<TodolistModel.Todo>> dataList = new();
+  private List<TodolistModel.Todo> todoList = new();
   private int filterStatus = 0;
   private string filterUser = string.Empty;
   private DateTimeOffset? filterDateS = DateTime.Today;
   private DateTimeOffset? filterDateE = DateTime.Today;
+  private List<long> hiddenDays = new();
 
   protected override async Task OnInitializedAsync()
   {
@@ -193,14 +248,33 @@
     await GetList();
   }
 
+  private void ToggleDay(long day)
+  {
+    if(hiddenDays.Contains(day))
+      hiddenDays.Remove(day);
+    else
+      hiddenDays.Add(day);
+  }
+
   private async Task GetList()
   {
-    dataList = await DbTodoItem.GetMyAssignedList(Layout.Company.id, Layout.User.id,
+    todoList = await DbTodoItem.GetMyAssignedList(Layout.Company.id, Layout.User.id,
       filterDateS.Value.Ticks, filterDateE.Value.Ticks);
     if(filterStatus > 0)
-      dataList.RemoveAll(x => x.assign_status != filterStatus);
+      todoList.RemoveAll(x => x.assign_status != filterStatus);
     if(!string.IsNullOrEmpty(filterUser))
-      dataList.RemoveAll(x => x.assign_user != filterUser);
+      todoList.RemoveAll(x => x.assign_user != filterUser);
+    
+    dataList.Clear();
+    var dateS = Convert.ToDateTime(filterDateS.Value.DateTime.ToString("yyyy-MM-dd"));
+    var dateE = Convert.ToDateTime(filterDateE.Value.DateTime.ToString("yyyy-MM-dd"));
+    for (DateTime date = dateE; date >= dateS; date = date.AddDays(-1))
+    {
+      long day = date.Ticks;
+      var list = todoList.Where(x => x.date == day).OrderBy(x => x.start).ToList();
+      if(list.Count > 0)
+        dataList.Add(day, list);
+    }
   }
 
   private async Task RejectItem(TodolistModel.Todo item)

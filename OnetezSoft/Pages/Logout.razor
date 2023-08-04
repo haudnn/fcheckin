@@ -11,10 +11,10 @@
     {
       try
       {
-        var userStorage = await storage.GetAsync<string>("user");
-        if (userStorage.Success && !string.IsNullOrEmpty(userStorage.Value))
+        var cookieUser = await JSRuntime.InvokeAsync<string>("getCookie", "_user");
+        if (!string.IsNullOrEmpty(cookieUser))
         {
-          var user = await DbMainUser.GetbySession(userStorage.Value);
+          var user = await DbMainUser.GetbySession(cookieUser);
           if (user != null)
           {
             user.session = null;
@@ -24,10 +24,20 @@
       }
       catch (Exception ex)
       {
-        await JSRuntime.InvokeVoidAsync("console.log", "ERROR: " + ex.Message);
+        await JSRuntime.InvokeVoidAsync("console.warn", "Logout: " + ex.Message);
       }
 
-      await JSRuntime.InvokeVoidAsync("localStorage.clear");
+      try
+      {
+        await JSRuntime.InvokeVoidAsync("localStorage.clear");
+        await JSRuntime.InvokeVoidAsync("deleteCookie", "_user");
+        await JSRuntime.InvokeVoidAsync("deleteCookie", "_cycle");
+        await JSRuntime.InvokeVoidAsync("deleteCookie", "_company");
+      }
+      catch (Exception ex)
+      {
+        await JSRuntime.InvokeVoidAsync("console.warn", "Logout: " + ex.Message);
+      }
 
       navigation.NavigateTo("/", true);
     }

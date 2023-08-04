@@ -124,16 +124,16 @@ else
 }
 
 
-@if (current != null)
+@if (model != null)
 {
   <div class="modal is-active">
     <div class="modal-background"></div>
     <div class="modal-card">
       <div class="modal-card-head">
         <div class="modal-card-title">
-          @(string.IsNullOrEmpty(current.id) ? "Thêm banner mới" : "Chỉnh sửa banner")
+          @(string.IsNullOrEmpty(model.id) ? "Thêm banner mới" : "Chỉnh sửa banner")
         </div>
-        <a class="delete" @onclick="() => current = null"></a>
+        <a class="delete" @onclick="() => model = null"></a>
       </div>
       <form @onsubmit="Update" class="modal-card-body">
         <ul class="columns is-multiline is-variable is-2">
@@ -141,29 +141,31 @@ else
             <div class="field">
               <label class="label">Tiêu đề *</label>
               <div class="control">
-                <input @bind="current.name" type="text" class="input" />
+                <input @bind="model.name" type="text" class="input" placeholder="Nhập tiêu đề..." />
               </div>
             </div>
           </li>
           <li class="column is-full">
             <div class="field">
               <label class="label">Hình ảnh *</label>
-              <div class="control">
-                <InputFile OnChange="Upload" accept="image/*" class="input" />
-              </div>
-              @if (!string.IsNullOrEmpty(current.image))
-              {
-                <div class="image is_radius mt-2">
-                  <img src="@current.image" />
+              <div class="field has-addons">
+                <div class="control">
+                  <a class="image is-square">
+                    <img src="@model.image" />
+                  </a>
                 </div>
-              }
+                <div class="control is-expanded">
+                  <input @bind="model.image" class="input" type="text" placeholder="Nhập link hình..." />
+                </div>
+                <FileUpload Accept="image/*" Size="1500" OnUpload="x => model.image = x[0]" />
+              </div>
             </div>
           </li>
           <li class="column is-full">
             <div class="field">
               <label class="label">Liên kết</label>
               <div class="control">
-                <input @bind="current.link" type="text" class="input" />
+                <input @bind="model.link" type="text" class="input" />
               </div>
             </div>
           </li>
@@ -172,7 +174,7 @@ else
               <label class="label">Phòng ban</label>
               <div class="control">
                 <div class="select is-fullwidth">
-                  <select @bind="current.department">
+                  <select @bind="model.department">
                     <option value="">Chọn phòng ban</option>
                     @foreach (var item in departments)
                     {
@@ -188,7 +190,7 @@ else
               <label class="label">Thuộc tính</label>
               <div class="control pt-2">
                 <label class="checkbox">
-                  <input @bind="current.pin" type="checkbox" />
+                  <input @bind="model.pin" type="checkbox" />
                   Ghim banner
                 </label>
               </div>
@@ -199,7 +201,7 @@ else
               <label class="label">Trang hiển thị</label>
               <div class="control">
                 <ul class="columns is-multiline is-mobile is-variable is-2">
-                  @foreach (var p in current.pages)
+                  @foreach (var p in model.pages)
                   {
                     <li class="column is-half">
                       <div class="field has-addons">
@@ -207,7 +209,7 @@ else
                           <input type="text" value="@p.Value" class="input is_bg" readonly />
                         </div>
                         <div class="control">
-                          <a class="button is_bg has-text-danger" @onclick="() => current.pages.Remove(p.Key)">
+                          <a class="button is_bg has-text-danger" @onclick="() => model.pages.Remove(p.Key)">
                             <span class="icon">
                               <i class="material-icons is-size-6">close</i>
                             </span>
@@ -240,7 +242,7 @@ else
 
         <div class="field mt-5">
           <div class="buttons is-right">
-            <a class="button" @onclick="() => current = null">
+            <a class="button" @onclick="() => model = null">
               Hủy
             </a>
             <a class="button is-link" @onclick="Update">
@@ -259,10 +261,8 @@ else
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
-  private string _title = "Thiết lập banner";
-
-  private BannerModel current = null;
+  private string _title = "Thiết lập Banner";
+  private BannerModel model = null;
   private List<BannerModel> dataList = new();
   private List<DepartmentModel> departmentAll = new();
   private List<DepartmentModel.SelectList> departments = new();
@@ -296,6 +296,7 @@ else
 
     dataList.Remove(item);
     await DbBanner.Delete(Layout.Company.id, item.id);
+    Files.DeleteFile(item.image);
   }
 
   private async Task ToggleItem(BannerModel item)
@@ -308,11 +309,11 @@ else
   {
     if (item == null)
     {
-      current = new() { pages = new Dictionary<string, string>() };
+      model = new() { pages = new Dictionary<string, string>() };
     }
     else
     {
-      current = item;
+      model = item;
     }
   }
 
@@ -332,50 +333,26 @@ else
     var key = e.Value.ToString();
     if (!string.IsNullOrEmpty(key))
     {
-      var check = current.pages.Where(x => x.Key == key).Count();
+      var check = model.pages.Where(x => x.Key == key).Count();
       if (check == 0)
       {
         var item = pageList.SingleOrDefault(x => x.Key == key);
-        current.pages.Add(item.Key, item.Value);
-      }
-    }
-  }
-
-  private async Task Upload(InputFileChangeEventArgs e)
-  {
-    foreach (var file in e.GetMultipleFiles())
-    {
-      try
-      {
-        if (file.Size <= Layout.MaxFileSize)
-        {
-          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
-          current.image = await Files.SaveFileAsync(fileContent, file.Name);
-        }
-        else
-        {
-          await JSRuntime.InvokeVoidAsync("tagline", false, 
-            $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB");
-        }
-      }
-      catch (Exception ex)
-      {
-        await JSRuntime.InvokeVoidAsync("tagline", false, $"ERROR: {ex.Message}");
+        model.pages.Add(item.Key, item.Value);
       }
     }
   }
 
   private async Task Update()
   {
-    if (string.IsNullOrEmpty(current.name) || string.IsNullOrEmpty(current.image))
+    if (string.IsNullOrEmpty(model.name) || string.IsNullOrEmpty(model.image))
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần nhập nội dung và hình ảnh !");
     else
     {
-      if (string.IsNullOrEmpty(current.id))
-        await DbBanner.Create(Layout.Company.id, current);
+      if (string.IsNullOrEmpty(model.id))
+        await DbBanner.Create(Layout.Company.id, model);
       else
-        await DbBanner.Update(Layout.Company.id, current);
-      current = null;
+        await DbBanner.Update(Layout.Company.id, model);
+      model = null;
       GetList();
       await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật banner thành công!");
     }

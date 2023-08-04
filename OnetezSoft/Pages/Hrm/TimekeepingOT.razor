@@ -1,0 +1,54 @@
+
+<section class="modal is-active">
+  <div class="modal-background"></div>
+  <section class="modal-card" style="padding: 0 10px;">
+    <section class="modal-card-head">
+      <div class="modal-card-title has-text-danger">Check-out trễ quá @Math.Abs(time) phút</div>
+      <a class="delete is-medium" @onclick="Off"></a>
+    </section>
+    <section class="modal-card-body">
+      <p class="mb-2">
+        Bạn đang check-out sau @Math.Abs(time) phút kể từ lúc kết thúc ca.
+      </p>
+      <p class="mb-5 has-text-weight-bold">
+        Bạn có muốn tạo ca làm ngoài giờ?
+      </p>
+    </section>
+    <section class="modal-card-foot is-right footer-mobile" style="gap: 10px">
+      <a class="button is-white has-text-link" @onclick="Cancel">
+        <span>Chỉ check-out</span>
+      </a>
+      <a class="button is-danger" @onclick="Update">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">done</i>
+        </span>
+        <span>Check-out và tạo ca ngoài giờ</span>
+      </a>
+    </section>
+  </section>
+</section>
+
+@code {
+  [Parameter]
+  public long time { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnConfirm { get; set; }
+
+  [Parameter]
+  public EventCallback<bool> OffConfirmOT { get; set; }
+
+  private async Task Cancel()
+  {
+    await OnConfirm.InvokeAsync(false);
+  }
+  private async Task Update()
+  {
+    await OnConfirm.InvokeAsync(true);
+  }
+
+  private async Task Off()
+  {
+    await OffConfirmOT.InvokeAsync();
+  }
+
+}

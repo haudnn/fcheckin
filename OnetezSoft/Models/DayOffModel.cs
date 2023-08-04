@@ -40,5 +40,17 @@ namespace OnetezSoft.Models
       public bool sat { get; set; }
       public bool sun { get; set; }
     }
+
+    /// <summary>Danh sách áp dụng lương cho từng nhân viên</summary>
+    public List<TimeOffs> time_off { get; set; } = new();
+
+    public class TimeOffs
+    {
+      /// <summary>Công ngày nghỉ</summary>
+      public double time {get; set;}
+
+      /// <summary>Danh sách id user áp dụng</summary>
+      public List<string> users{ get; set; } = new();
+    }
   }
 }

@@ -9,6 +9,14 @@
       </h1>
     </li>
     <li class="column is-narrow">
+      <a class="button is-small is-link is-rounded" @onclick="() => togglePopup = true">
+        <span class="icon">
+          <i class="material-icons-outlined is-size-6">add</i>
+        </span>
+        <span>Giao việc</span>
+      </a>
+    </li>
+    <li class="column is-narrow">
       <div class="dropdown is-hoverable is-right">
         <div class="dropdown-trigger">
           <a class="icon-text">
@@ -32,10 +40,10 @@
     <li class="column is-narrow">
       <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
     </li>
-    <li class="column is-one-quarter">
+    <li class="column is-one-fifth">
       <MemberSearch department="@filterDepartment" sources="Layout.UserList" OnUpdate="ChangeFilterUser" />
     </li>
-    <li class="column is-narrow" style="width: 180px;">
+    <li class="column is-narrow">
       <div class="field has-addons">
         <div class="control">
           <span class="button is-link">
@@ -44,35 +52,13 @@
             </span>
           </span>
         </div>
-        <div class="control is-expanded">
-          <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE"
-            OnRangeSelect="ChangeFilterDate">
-            <PickerTemplate>
-              <div id="@context.Id" @onclick="context.Toggle" class="button is-outlined is-link is-fullwidth">
-                @if (context.TStartDate != null)
-                {
-                  <span>@context.TStartDate.Value.ToString("dd/MM")</span>
-                }
-                <span class="icon has-text-grey">
-                  <i class="material-icons-outlined is-size-6">arrow_forward</i>
-                </span>
-                @if (context.TEndDate != null)
-                {
-                  <span>@context.TEndDate.Value.ToString("dd/MM")</span>
-                }
-              </div>
-            </PickerTemplate>
-          </DateRangePicker>
+        <div class="control" style="width: 190px;">
+          <div class="input is-link">
+            <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE"
+              OnRangeSelect="ChangeFilterDate" />
+          </div>
         </div>
       </div>
-    </li>
-    <li class="column is-narrow">
-      <a class="button is-link" @onclick="() => togglePopup = true">
-        <span class="icon">
-          <i class="material-icons-outlined is-size-5">add</i>
-        </span>
-        <span>Giao việc</span>
-      </a>
     </li>
   </ul>
 
@@ -88,13 +74,13 @@
         <th width="120px">
           Độ ưu tiên
         </th>
-        <th width="110px" align="center">
+        <th width="100px">
           Bắt đầu
         </th>
-        <th width="110px" align="center">
+        <th width="100px">
           Kết thúc
         </th>
-        <th width="110px" align="center">
+        <th width="100px">
           Tình trạng
         </th>
         <th width="120px" align="center">
@@ -106,202 +92,228 @@
       @foreach (var item in dataList)
       {
         long day = item.Key;
-        var todoList = item.Value;
-        if(todoList.Count() > 0)
-        {
-          <tr>
-            <td colspan="7"><hr class="m-0"></td>
-          </tr>
-          <tr>
-            <td colspan="7">
-              <a class="icon-text has-text-link" @onclick="() => ToggleDay(day)">
-                <span class="has-text-weight-bold">@Shared.ConvertDateWeek(day)</span>
-                <span class="icon" title="Xem nhanh các công việc">
-                  <i class="material-icons-outlined is-size-5">
-                    @(hiddenDays.Contains(day) ? "arrow_right" : "arrow_drop_down")
-                  </i>
-                </span>
-              </a>
-            </td>
-          </tr>
-          @if(!hiddenDays.Contains(day))
-          {
-            foreach (var todo in todoList)
-            {
-              var level = DbTodolist.Level(todo.level);
-              var status = DbTodolist.Status(todo.status);
-              var assign = DbTodolist.AssignStatus(todo.assign_status);
-              var member = UserService.GetMember(Layout.UserList, todo.user);
 
-              if(editList.Contains(todo.id))
+        <tr>
+          <td colspan="7"><hr class="m-0"></td>
+        </tr>
+        <tr>
+          <td colspan="7">
+            <a class="icon-text has-text-link" @onclick="() => ToggleDay(day)">
+              <span class="has-text-weight-bold">@Shared.ConvertDateWeek(day)</span>
+              <span class="icon" title="Xem nhanh các công việc">
+                <i class="material-icons-outlined is-size-5">
+                  @(hiddenDays.Contains(day) ? "arrow_right" : "arrow_drop_down")
+                </i>
+              </span>
+            </a>
+          </td>
+        </tr>
+        @if(!hiddenDays.Contains(day))
+        {
+          foreach (var todo in item.Value)
+          {
+            var level = DbTodolist.Level(todo.level);
+            var status = DbTodolist.Status(todo.status);
+            var assign = DbTodolist.AssignStatus(todo.assign_status);
+            var member = UserService.GetMember(Layout.UserList, todo.user);
+
+            if(editList.Contains(todo.id))
+            {
+              <tr id="assign_@todo.id">
+                <td>
+                  <input @bind="todo.name" class="input" type="text" placeholder="Nhập tên công việc" />
+                </td>
+                <td>
+                  <label class="td-label">Người nhận:</label>
+                  <div class="td-value">
+                    <div class="user_item">
+                      <span class="image is-rounded is-24x24">
+                        <img src="@member.avatar" alt="AVT">
+                      </span>
+                      <span class="text_1_line">@member.name</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Ưu tiên:</label>
+                  <div class="td-value">
+                    <div class="select is-fullwidth is-small">
+                      <select @bind="todo.level">
+                        @foreach (var sl in DbTodolist.Level())
+                        {
+                          <option value="@sl.id">@sl.name</option>
+                        }
+                      </select>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Bắt đầu</label>
+                  <div class="td-value">
+                    <div class="select is-fullwidth is-small">
+                      <select @bind="todo.start">
+                        @foreach (var sl in Shared.TimeList())
+                        {
+                          <option value="@sl.name">@sl.name</option>
+                        }
+                      </select>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Kết thúc</label>
+                  <div class="td-value">
+                    <div class="select is-fullwidth is-small">
+                      <select @bind="todo.end">
+                        @foreach (var sl in Shared.TimeList())
+                        {
+                          <option value="@sl.name">@sl.name</option>
+                        }
+                      </select>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Ngày thực hiện</label>
+                  <div class="td-value">
+                    <DatePicker value="todo.date" format="dd/MM" OnChange="x => todo.date = x" />
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Hành động</label>
+                  <div class="td-value">
+                    <a class="icon-text has-text-link mr-2" @onclick="() => UpdateItem(todo)">
+                      <span class="icon is-small">
+                        <i class="material-icons-outlined is-size-6">done</i>
+                      </span>
+                      <span>Lưu</span>
+                    </a>
+                    <a class="icon-text has-text-danger" @onclick="() => DeleteItem(todo)">
+                      <span class="icon is-small">
+                        <i class="material-icons-outlined is-size-6">delete</i>
+                      </span>
+                      <span>Xóa</span>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td colspan="7">
+                  <InputArea Value="@todo.detail" OnInput="x => todo.detail = x" title="Nhập mô tả công việc..." />
+                </td>
+              </tr>
+              @if(ProductService.CheckStorage(Layout.Company))
               {
-                <tr id="assign_@todo.id">
-                  <td>
-                    <input @bind="todo.name" class="input" type="text" placeholder="Nhập tên công việc" />
-                  </td>
-                  <td>
-                    <label class="td-label">Người nhận:</label>
-                    <div class="td-value">
-                      <div class="user_item">
-                        <span class="image is-rounded is-24x24">
-                          <img src="@member.avatar" alt="AVT">
-                        </span>
-                        <span class="text_1_line">@member.name</span>
+                <tr>
+                  <td colspan="7">
+                    <div class="field is-grouped mb-2">
+                      <div class="control">File đính kèm</div>
+                      <div class="control">
+                        <FileUpload Multiple="true" Small="true" Cloud="true" OnUpload="x => todo.files.AddRange(x)" />
                       </div>
                     </div>
-                  </td>
-                  <td>
-                    <label class="td-label">Ưu tiên:</label>
-                    <div class="td-value">
-                      <div class="select is-fullwidth">
-                        <select @bind="todo.level">
-                          @foreach (var sl in DbTodolist.Level())
-                          {
-                            <option value="@sl.id">@sl.name</option>
-                          }
-                        </select>
-                      </div>
-                    </div>
-                  </td>
-                  <td align="center">
-                    <label class="td-label">Bắt đầu</label>
-                    <div class="td-value">
-                      <div class="select is-fullwidth">
-                        <select @bind="todo.start">
-                          @foreach (var sl in Shared.TimeList())
-                          {
-                            <option value="@sl.name">@sl.name</option>
-                          }
-                        </select>
-                      </div>
-                    </div>
-                  </td>
-                  <td align="center">
-                    <label class="td-label">Kết thúc</label>
-                    <div class="td-value">
-                      <div class="select is-fullwidth">
-                        <select @bind="todo.end">
-                          @foreach (var sl in Shared.TimeList())
-                          {
-                            <option value="@sl.name">@sl.name</option>
-                          }
-                        </select>
-                      </div>
-                    </div>
-                  </td>
-                  <td align="center">
-                    <label class="td-label">Ngày thực hiện</label>
-                    <div class="td-value">
-                      <DatePicker value="todo.date" format="dd/MM" OnChange="x => todo.date = x" />
-                    </div>
-                  </td>
-                  <td align="center">
-                    <label class="td-label">Hành động</label>
-                    <div class="td-value">
-                      <a class="icon-text has-text-link mr-2" @onclick="() => UpdateItem(todo)">
-                        <span class="icon is-small">
-                          <i class="material-icons-outlined is-size-6">done</i>
-                        </span>
-                        <span>Lưu</span>
-                      </a>
-                      <a class="icon-text has-text-danger" @onclick="() => DeleteItem(todo)">
-                        <span class="icon is-small">
-                          <i class="material-icons-outlined is-size-6">delete</i>
-                        </span>
-                        <span>Xóa</span>
-                      </a>
-                    </div>
+                    <FileViews Delete="true" Values="todo.files" />
                   </td>
                 </tr>
               }
-              else
-              {
-                <tr id="todo-@todo.id">
-                  <td>
-                    <div class="ml-3 text_1_line" title="@todo.name">• @todo.name</div>
-                  </td>
-                  <td>
-                    <label class="td-label">Người nhận:</label>
-                    <div class="td-value">
-                      <div class="user_item">
-                        <span class="image is-rounded is-24x24">
-                          <img src="@member.avatar" alt="AVT">
-                        </span>
-                        <span class="text_1_line">@member.name</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <label class="td-label">Ưu tiên:</label>
-                    <div class="td-value">
-                      <span class="@level.color">@level.name</span>
-                    </div>
-                  </td>
-                  <td align="center">
-                    <label class="td-label">Bắt đầu</label>
-                    <div class="td-value">
-                      <span>@todo.start</span>
-                    </div>
-                  </td>
-                  <td align="center">
-                    <label class="td-label">Kết thúc</label>
-                    <div class="td-value">
-                      <span>@todo.end</span>
-                    </div>
-                  </td>
-                  <td align="center">
-                    <label class="td-label">Tình trạng</label>
-                    <div class="td-value">
-                      <span class="has-text-weight-semibold @status.color.Replace("is-", "has-text-")">
-                        @status.name
+            }
+            else
+            {
+              <tr id="todo-@todo.id">
+                <td>
+                  <div class="icon-text ml-3">
+                    <span class="icon is-small has-text-grey">
+                      <i class="material-icons is-size-7">fiber_manual_record</i>
+                    </span>
+                    <span class="has-text-weight-medium has-text-link" title="@todo.name">
+                      @todo.name
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Người nhận:</label>
+                  <div class="td-value">
+                    <div class="user_item">
+                      <span class="image is-rounded is-24x24">
+                        <img src="@member.avatar" alt="AVT">
                       </span>
+                      <span class="text_1_line">@member.name</span>
                     </div>
-                  </td>
-                  <td align="center">
-                    <label class="td-label">Trạng thái</label>
-                    <div class="td-value">
-                      @if(todo.assign_status == 1)
-                      {
-                        <div class="dropdown is-hoverable">
-                          <div class="dropdown-trigger">
-                            <div class="icon-text">
-                              <span class="@assign.color">@assign.name</span>
-                              <span class="icon is-small">
-                                <i class="material-icons-outlined is-size-6">expand_more</i>
-                              </span>
-                            </div>
-                          </div>
-                          <div class="dropdown-menu">
-                            <div class="dropdown-content py-0">
-                              <a class="dropdown-item px-2 icon-text has-text-link"
-                                @onclick="() => EditItem(todo)">
-                                <span class="icon is-small">
-                                  <i class="material-icons-outlined is-size-6">edit</i>
-                                </span>
-                                <span>Chỉnh sửa</span>
-                              </a>
-                              <a class="dropdown-item px-2 icon-text has-text-danger"
-                                @onclick="() => DeleteItem(todo)">
-                                <span class="icon is-small">
-                                  <i class="material-icons-outlined is-size-6">delete</i>
-                                </span>
-                                <span>Xóa</span>
-                              </a>
-                            </div>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Ưu tiên:</label>
+                  <div class="td-value">
+                    <span class="@level.color">@level.name</span>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Bắt đầu</label>
+                  <div class="td-value">
+                    <span>@todo.start</span>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Kết thúc</label>
+                  <div class="td-value">
+                    <span>@todo.end</span>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Tình trạng</label>
+                  <div class="td-value">
+                    <span class="has-text-weight-semibold @status.color.Replace("is-", "has-text-")">
+                      @status.name
+                    </span>
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Trạng thái</label>
+                  <div class="td-value">
+                    @if(todo.assign_status == 1)
+                    {
+                      <div class="dropdown is-hoverable">
+                        <div class="dropdown-trigger">
+                          <div class="icon-text">
+                            <span class="@assign.color">@assign.name</span>
+                            <span class="icon is-small">
+                              <i class="material-icons-outlined is-size-6">expand_more</i>
+                            </span>
                           </div>
                         </div>
-                      }
-                      else
-                      {
-                        <span class="has-text-weight-semibold @assign.color">@assign.name</span>
-                      }
-                    </div>
-                  </td>
-                </tr>
-                @if(!Shared.IsEmpty(todo.detail))
-                {
-                  <tr>
-                    <td colspan="7">
+                        <div class="dropdown-menu">
+                          <div class="dropdown-content py-0">
+                            <a class="dropdown-item px-2 icon-text has-text-link"
+                              @onclick="() => EditItem(todo)">
+                              <span class="icon is-small">
+                                <i class="material-icons-outlined is-size-6">edit</i>
+                              </span>
+                              <span>Chỉnh sửa</span>
+                            </a>
+                            <a class="dropdown-item px-2 icon-text has-text-danger"
+                              @onclick="() => DeleteItem(todo)">
+                              <span class="icon is-small">
+                                <i class="material-icons-outlined is-size-6">delete</i>
+                              </span>
+                              <span>Xóa</span>
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                    else
+                    {
+                      <span class="has-text-weight-semibold @assign.color">@assign.name</span>
+                    }
+                  </div>
+                </td>
+              </tr>
+              @if(!Shared.IsEmpty(todo.detail) || !Shared.IsEmpty(todo.result))
+              {
+                <tr>
+                  <td colspan="7" class="pb-4">
+                    @if(!Shared.IsEmpty(todo.detail))
+                    {
                       <div class="is-flex pl-5">
                         <label class="td-label is-show">Chi tiết:</label>
                         <div class="td-value is-word-break">
@@ -310,13 +322,9 @@
                           </div>
                         </div>
                       </div>
-                    </td>
-                  </tr>
-                }
-                @if(!Shared.IsEmpty(todo.result))
-                {
-                  <tr>
-                    <td colspan="7">
+                    }
+                    @if(!Shared.IsEmpty(todo.result))
+                    {
                       <div class="is-flex pl-5">
                         <label class="td-label is-show">Kết quả:</label>
                         <div class="td-value is-word-break">
@@ -325,9 +333,9 @@
                           </div>
                         </div>
                       </div>
-                    </td>
-                  </tr>
-                }
+                    }
+                  </td>
+                </tr>
               }
             }
           }

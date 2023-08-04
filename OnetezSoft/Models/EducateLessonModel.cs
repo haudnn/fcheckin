@@ -8,27 +8,38 @@ namespace OnetezSoft.Models
   {
     [BsonId]
     public string id { get; set; }
-    // ID khóa học
+
+    /// <summary>ID khóa học</summary>
     public string course { get; set; }
-    // Loại bài học
+    
+    /// <summary>Loại bài học</summary>
     public int type { get; set; }
-    // Tên bài
+    
+    /// <summary>Tên bài</summary>
     public string name { get; set; }
-    // Hình ảnh
+    
+    /// <summary>Hình ảnh</summary>
     public string image { get; set; }
-    // Thời lượng: phút
+    
+    /// <summary>Thời lượng: phút</summary>
     public int time { get; set; }
-    // Thứ tự
+    
+    /// <summary>Thứ tự</summary>
     public int pos { get; set; }
-    // Nội dung
+    
+    /// <summary>Nội dung</summary>
     public string content { get; set; }
-    // Video youtube
+    
+    /// <summary>Video youtube</summary>
     public string video { get; set; }
-    // File đính kèm
+    
+    /// <summary>File đính kèm</summary>
     public string file { get; set; }
-    // Mức điểm đạt
+    
+    /// <summary>Mức điểm đạt</summary>
     public int point { get; set; }
-    // Câu hỏi
+    
+    /// <summary>Câu hỏi</summary>
     public List<Question> questions { get; set; }
 
 
@@ -36,11 +47,17 @@ namespace OnetezSoft.Models
     {
       public string id { get; set; }
 
+      /// <summary>Nội dung</summary>
       public string content { get; set; }
 
+      /// <summary>Điểm</summary>
       public int point { get; set; }
 
+      /// <summary>Đáp án</summary>
       public List<Answer> answers { get; set; }
+
+      /// <summary>File đính kèm</summary>
+      public List<string> files { get; set; } = new();
 
 
       public class Answer

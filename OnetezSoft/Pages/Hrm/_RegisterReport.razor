@@ -1,0 +1,387 @@
+﻿@inject IJSRuntime JSRuntime
+
+<div class="card" style="height: calc(100vh - 142px);">
+  <div class="p-5" style="height: 50%;">
+    <ul class="header columns is-vcentered is-multiline is-variable is-2" style="z-index: 19;">
+      <li class="column">
+        <h1 class="title is-5 has-text-info is-uppercase text_1_line" style="height:auto; overflow: unset">
+          Thống kê đăng ký ca làm
+        </h1>
+      </li>
+
+      <li class="column is-narrow">
+        <div class="field has-addons">
+          <div class="control">
+            <span class="button is-link">
+              <i class="material-icons-outlined">calendar_today</i>
+            </span>
+          </div>
+          <div class="control is-expanded">
+            <div class="input" style="width: 190px; z-index:12">
+              <DateRangePicker aria-readonly="true" readonly @bind-StartDate="startDateShift" @bind-EndDate="endDateShift" OnRangeSelect="() => ChangeDateRangeShift()" />
+            </div>
+          </div>
+        </div>
+      </li>
+    </ul>
+
+    <h6 class="mb-3 has-text-weight-medium">
+      Từ @(new DateTime(startDateShift.Value.Ticks).ToString("dd'/'MM'/'yyyy")) đến @(new DateTime(endDateShift.Value.Ticks).ToString("dd'/'MM'/'yyyy"))
+    </h6>
+
+    <div id="scrollbox1" class="table-container" style="overflow: auto; height: calc(100% - 60px);">
+      @if (dataList.Any() && workList.Any())
+      {
+        var from = new DateTime(startDateShift.Value.Ticks);
+        var to = new DateTime(endDateShift.Value.Ticks);
+        if (selectList.Any() && workByShift.Any())
+        {
+          <table class="table is-fullwidth is-vcentered sticky" style="width: max-content;">
+            <thead>
+              <tr>
+                <th class="sticky has-text-black has-text-weight-medium" width="120px" style="left:0; background: #AEC6FF;">
+                  Tên ca làm
+                </th>
+
+                <th class="sticky last has-text-black has-text-weight-medium" width="140px" style="left:120px;background: #AEC6FF;">
+                  Thời gian
+                </th>
+
+                @for (DateTime i = from; i <= to; i = i.AddDays(1))
+                {
+                  <th width="140px" class="has-text-black has-text-weight-medium"
+                      align="center" style="background: #B6EBF5;">
+                    @DateToDay(i)
+                  </th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Chế độ xem phân ca -->
+              @foreach (var shift in workByShift)
+              {
+                <tr>
+                  <td class="sticky" style="left: 0; width:120px;">
+                    <a class="user_item" style="width:100px;">
+                      <span class="text_1_line">
+                        @shift.name
+                      </span>
+                    </a>
+                  </td>
+                  <td class="sticky last" style="left:120px;">
+                    <p class="user_item" style="width:100px;">
+                      @if (shift.checkin != null && shift.checkout != null)
+                      {
+                        <span class="text_1_line">
+                          @shift.checkin - @shift.checkout
+                        </span>
+                      }
+                    </p>
+                  </td>
+
+                  @for (DateTime i = from; i <= to; i = i.AddDays(1))
+                  {
+                    var date = i;
+                    <td align="center">
+                      <span class="tag has-text-weight-medium is-flex"
+                            style="width:119px;background-color:#B6EBF530;"
+                      @onclick="() => ShowDetail(shift, date)">
+                        <span class="text_1_line pr-2">
+                          @selectList.Where(i => i.day == date.Ticks && i.shifts_id.Contains(shift.id)).ToList().Count nhân viên
+                        </span>
+                      </span>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+        else
+        {
+          <div class="has-text-weight-medium is-size-6 mt-5 is-flex is-justify-content-center">
+            Không tìm thấy dữ liệu phù hợp
+          </div>
+        }
+      }
+      else
+      {
+        <div class="has-text-weight-medium is-size-6 mt-5 is-flex is-justify-content-center">
+          Không có dữ liệu đăng ký ca làm
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="p-5" style="height: 50%;">
+    <ul class="header columns is-vcentered is-multiline is-variable is-2" style="z-index: 19;">
+      <li class="column">
+        <h1 class="title is-5 has-text-info is-uppercase text_1_line" style="height:auto; overflow: unset">
+          Thống kê theo nhân viên
+        </h1>
+      </li>
+
+      <li class="column is-narrow">
+        <div class="field has-addons">
+          <div class="control">
+            <span class="button is-link">
+              <i class="material-icons-outlined">calendar_today</i>
+            </span>
+          </div>
+          <div class="control is-expanded">
+            <div class="input" style="width: 190px; z-index:12">
+              <DateRangePicker aria-readonly="true" readonly @bind-StartDate="startDateUser" @bind-EndDate="endDateUser" OnRangeSelect="() => ChangeDateRangeUser()" />
+            </div>
+          </div>
+        </div>
+      </li>
+
+      <li class="column is-narrow">
+        <div class="select is-fullwidth">
+          <select @onchange="ChangeDepartment">
+            <option value="" selected="@string.IsNullOrEmpty(selectDepart)">Phòng ban</option>
+            @foreach (var item in departments)
+            {
+              <option value="@item.id" selected="@(selectDepart == item.id)">@item.name</option>
+            }
+          </select>
+        </div>
+      </li>
+
+      <li class="column is-one-fifth">
+        <form class="control has-icons-right" @onsubmit="Search">
+          <input @bind="filterKeyword" class="input is-rounded" type="text" placeholder="Tìm tên nhân viên...">
+          <span class="icon is-right">
+            <i class="material-icons-outlined is-size-5">search</i>
+          </span>
+        </form>
+      </li>
+    </ul>
+
+    <h6 class="mb-3 has-text-weight-medium">
+      Từ @(new DateTime(startDateUser.Value.Ticks).ToString("dd'/'MM'/'yyyy")) đến @(new DateTime(endDateUser.Value.Ticks).ToString("dd'/'MM'/'yyyy"))
+    </h6>
+
+    <div id="scrollbox2" class="table-container" style="overflow: auto; height: calc(100% - 60px);">
+      @if (dataList.Any() && workList.Any())
+      {
+        if (selectUsers.Any() && workByUser.Any())
+        {
+          <table class="table is-fullwidth is-vcentered sticky" style="width: max-content;">
+            <thead>
+              <tr>
+                <th class="sticky has-text-black has-text-weight-medium" width="200px" style="left:0; background: #AEC6FF; vertical-align: middle;">
+                  Tên nhân viên
+                </th>
+
+                <th class="sticky last has-text-black has-text-weight-medium" width="200px" style="left:200px;background: #AEC6FF; vertical-align: middle;">
+                  Phòng ban
+                </th>
+
+                @foreach (var shift in workByUser)
+                {
+                  <th width="120px" class="has-text-black has-text-weight-medium"
+                      align="center" style="background: #B6EBF5;">
+                    <p style="width: 120px;">
+                      <span class="text_1_line">
+                        @shift.name
+                      </span>
+                    </p>
+                    <span>
+                      @shift.checkin - @shift.checkout
+                    </span>
+                  </th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @foreach (var user in selectUsers)
+              {
+                var registerUser = dataList.Find(i => i.id == user.id);
+                <tr>
+                  <td class="sticky" style="left: 0; width:200px;">
+                    <p class="user_item" style="width:180px;">
+                      <span class="text_1_line">
+                        @user.FullName
+                      </span>
+                    </p>
+                  </td>
+                  <td class="sticky last" style="left:200px;">
+                    <p class="user_item" style="width:180px;">
+                      <span class="text_1_line">@user.departments_name</span>
+                    </p>
+                  </td>
+
+                  @foreach (var shift in workByUser)
+                  {
+                    <td align="center">
+                      @if (registerUser != null)
+                      {
+                        var shiftId = registerUser.shifts_register.Where(i => i.day >= startDateUser.Value.Ticks && i.day <= endDateUser.Value.Ticks)
+                        .SelectMany(i => i.shifts_id).Where(i => i == shift.id).ToList();
+                        <span class="tag has-text-weight-medium"
+                              style="width:100px;background-color:#B6EBF530;">
+                          Đăng ký @(shiftId.Count) lần
+                        </span>
+                      }
+                      else
+                      {
+                        <span class="tag has-text-weight-medium"
+                              style="width:100px;background-color:#B6EBF530;">
+                          Đăng ký 0 lần
+                        </span>
+                      }
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+        else
+        {
+          <div class="has-text-weight-medium is-size-6 mt-5 is-flex is-justify-content-center">
+            Không tìm thấy dữ liệu phù hợp
+          </div>
+        }
+      }
+      else
+      {
+        <div class="has-text-weight-medium is-size-6 mt-5 is-flex is-justify-content-center">
+          Không có dữ liệu đăng ký ca làm
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- Popup chi tiết ca làm phần "Bảng ca làm"  -->
+@if (showDetail)
+{
+  <_RegisterReportDetail users="users"
+                         selectWorkShift="workShiftSelect" date="selectDay"
+                         OnClose="e => showDetail = e" />
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<HrmTimeListRegisterModel> dataList { get; set; } = new();
+  [Parameter]
+  public List<HrmWorkShiftModel> workList { get; set; } = new();
+  [Parameter]
+  public HrmRulesModel dataRules { get; set; }
+
+  private DateTimeOffset? startDateShift = DateTime.Today;
+  private DateTimeOffset? endDateShift = DateTime.Today;
+
+  private DateTimeOffset? startDateUser = DateTime.Today;
+  private DateTimeOffset? endDateUser = DateTime.Today;
+
+  private List<HrmTimeListRegisterModel.ShiftRegister> selectList = new();
+  private bool showDetail;
+  private List<UserModel> users = new();
+  private List<UserModel> usersModel = new();
+  private List<UserModel> selectUsers = new();
+  private HrmWorkShiftModel workShiftSelect;
+  private List<HrmWorkShiftModel> workByShift = new();
+  private List<HrmWorkShiftModel> workByUser = new();
+  private DateTime selectDay;
+  private string selectDepart = "";
+  private string filterKeyword = "";
+  private List<DepartmentModel> departments = new();
+
+
+  protected override void OnInitialized()
+  {
+    Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
+    startDateShift = start;
+    endDateShift = end;
+    startDateUser = start;
+    endDateUser = end;
+
+    departments = DbDepartment.GetAll(Layout.Company.id);
+
+    if (dataList.Any())
+    {
+      selectList = dataList.SelectMany(i => i.shifts_register)
+                           .Where(i => i.day >= startDateShift.Value.Ticks && i.day <= endDateShift.Value.Ticks).ToList();
+    }
+
+    var usersId = dataList.Where(x => x.shifts_register.Any())
+                          .Select(i => i.id).ToList();
+
+    usersId.AddRange(dataRules.register_shift.users);
+
+    usersModel = Layout.UserList.Where(i => usersId.Distinct().Contains(i.id)).ToList();
+    workByShift = workList.Where(i => !i.is_deleted || (i.is_deleted && i.time_delete >= startDateShift.Value.Ticks)).ToList();
+    workByUser = workList.Where(i => !i.is_deleted || (i.is_deleted && i.time_delete >= startDateUser.Value.Ticks)).ToList();
+    Filter();
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    await JSRuntime.InvokeVoidAsync("dragScrollById", "scrollbox1");
+    await JSRuntime.InvokeVoidAsync("dragScrollById", "scrollbox2");
+  }
+
+  /// <summary>Định dạng thời gian (T2 - 01)</summary>
+  private string DateToDay(DateTime date)
+  {
+    return string.Format("{0} - {1:dd}", Shared.ConvertWeekdays(date), date);
+  }
+
+  private void ChangeDateRangeShift()
+  {
+    workByShift = workList.Where(i => !i.is_deleted || (i.is_deleted && i.time_delete >= startDateShift.Value.Ticks)).ToList();
+    selectList = dataList.SelectMany(i => i.shifts_register)
+                         .Where(i => i.day >= startDateShift.Value.Ticks && i.day <= endDateShift.Value.Ticks).ToList();
+  }
+
+
+  private void ChangeDateRangeUser()
+  {
+    workByUser = workList.Where(i => !i.is_deleted || (i.is_deleted && i.time_delete >= startDateUser.Value.Ticks)).ToList();
+    Filter();
+  }
+
+  private void ShowDetail(HrmWorkShiftModel workShift, DateTime date)
+  {
+    showDetail = true;
+    workShiftSelect = workShift;
+    selectDay = date;
+    var usersId = dataList.Where(x => x.shifts_register.Select(i => i.day).Contains(selectDay.Ticks)
+                                      && x.shifts_register.Find(i => i.day == (selectDay.Ticks)) != null
+                                      && x.shifts_register.Find(i => i.day == (selectDay.Ticks)).shifts_id.Contains(workShiftSelect.id))
+                          .Select(i => i.id).ToList();
+    users = Layout.UserList.Where(i => usersId.Contains(i.id)).ToList();
+  }
+
+  /// <summary>Đổi phòng ban</summary>
+  private void ChangeDepartment(ChangeEventArgs e)
+  {
+    selectDepart = e.Value.ToString();
+    Filter();
+  }
+
+  /// <summary>Lọc kết quả tìm kiếm và phòng ban</summary>
+  private void Filter()
+  {
+    selectUsers = new();
+
+    selectUsers = usersModel.Where(x =>
+    {
+      return (string.IsNullOrEmpty(selectDepart) ? true : x.departments_id.Contains(selectDepart)) &&
+             (string.IsNullOrEmpty(filterKeyword) ? true : Shared.SearchKeyword(filterKeyword, x.FullName));
+    }).ToList();
+
+    StateHasChanged();
+  }
+
+  /// <summary>Tìm kiếm</summary>
+  private void Search()
+  {
+    Filter();
+  }
+}

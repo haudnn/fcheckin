@@ -1,0 +1,73 @@
+﻿<div class="modal is-active">
+  <div class="modal-background"></div>
+  <div class="modal-card">
+    <div class="modal-card-head">
+      <div class="modal-card-title">Chi tiết đăng ký ca làm ngày @date.ToString("dd/MM/yyyy")</div>
+      <a class="delete is-medium" @onclick="Close"></a>
+    </div>
+    <div class="modal-card-body">
+      <div class="has-text-weight-semibold mb-3">
+        <span>
+          Ca làm: @selectWorkShift.name.
+        </span>
+        @if (selectWorkShift.checkin != null && selectWorkShift.checkout != null)
+        {
+          <span class="ml-2">
+            Giờ bắt đầu ca: @selectWorkShift.checkin.
+          </span>
+          <span class="ml-2">
+            Giờ kết thúc ca: @selectWorkShift.checkout.
+          </span>
+        }
+      </div>
+      @if (users.Count == 0)
+      {
+        <div class="mb-3">
+          Không có nhân viên đăng ký ca làm
+        </div>
+      }
+      else
+      {
+        <ul class="columns is-variable is-1 mb-3">
+          <li class="column is-narrow">
+            Số nhân viên đăng ký ca làm: @users.Count
+          </li>
+        </ul>
+
+        <div style="overflow-y: auto; max-height: 300px;">
+          @foreach (var user in users)
+          {
+            <div class="user_item mb-2">
+              <img class="image is-36x36 mr-2" src="@user.avatar" alt="IMG">
+              <div>
+                <p class="has-text-weight-semibold has-text-info is-size-6">
+                  @user.FullName
+                </p>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public DateTime date { get; set; }
+  [Parameter]
+  public HrmWorkShiftModel selectWorkShift { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnClose { get; set; }
+  [Parameter]
+  public List<UserModel> users { get; set; } = new();
+
+  private List<HrmTimekeepingModel.TimeData> in_outs = new();
+
+  private async Task Close()
+  {
+    await OnClose.InvokeAsync(false);
+  }
+}

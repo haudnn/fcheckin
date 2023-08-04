@@ -8,32 +8,48 @@ namespace OnetezSoft.Models
   {
     [BsonId]
     public string id { get; set; }
-    // Chu kỳ
+
+    /// <summary>Chu kỳ</summary>
     public string cycle { get; set; }
-    // Ngày tạo
+
+    /// <summary>Ngày tạo</summary>
     public long date_create { get; set; }
-    // Người tạo
+
+    /// <summary>Người tạo</summary>
     public string user_create { get; set; }
-    // Ngày hoàn tất check-in
+
+    /// <summary>Ngày hoàn tất check-in</summary>
     public long date_checkin { get; set; }
-    // Trạng thái check in: 1. Đúng hạn, 2. Trễ hạn
+
+    /// <summary>Trạng thái check in: 1. Đúng hạn, 2. Trễ hạn</summary>
     public int status_checkin { get; set; }
-    // Người checkin
+
+    /// <summary>Người checkin</summary>
     public string user_checkin { get; set; }
-    // Id OKRs
+
+    /// <summary>ID OKRs</summary>
     public string okr { get; set; }
-    // Độ tự tin
+
+    /// <summary>Độ tự tin</summary>
     public int confident { get; set; }
-    // Tiến độ lần checkin trước
+
+    /// <summary>Tiến độ lần checkin trước</summary>
     public double progress_prev { get; set; }
-    // Checkin nháp/Xác nhận
+
+    /// <summary>Checkin nháp/Xác nhận</summary>
     public bool draft { get; set; }
-    // Checkin xong/chưa
+
+    /// <summary>Checkin xong/chưa</summary>
     public bool checkin { get; set; }
-    // Checkin Kết quả chính
+
+    /// <summary>Checkin Kết quả chính</summary>
     public List<KeyResult> key_results { get; set; }
-    // Phản hồi checkin
+
+    /// <summary>Phản hồi checkin</summary>
     public List<Feedback> feedbacks { get; set; }
+
+    /// <summary>File đính kèm</summary>
+    public List<string> files { get; set; } = new();
 
 
     public class KeyResult

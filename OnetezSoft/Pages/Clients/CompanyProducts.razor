@@ -49,7 +49,7 @@
       <thead>
         <tr>
           <th width="15%">Sản phẩm</th>
-          <th>Số lượng người dùng</th>
+          <th>Số lượng sử dụng</th>
           <th width="15%">Ngày mua/gia hạn</th>
           <th width="15%">Ngày hết hạn</th>
           <th width="15%">Đơn giá</th>
@@ -74,7 +74,18 @@
             @if (module != null)
             {
               <td>
-                @module.used/@module.total
+                @if(item.id == "storage")
+                {
+                  <span class="has-text-weight-bold">
+                    @string.Format("{0:0.00}/{1}", (double)module.used/1024, module.total)
+                  </span>
+                  <span>GB (Gigabyte)</span>
+                }
+                else
+                {
+                  <span class="has-text-weight-bold">@module.used/@module.total</span>
+                  <span>người dùng</span>
+                }
               </td>
               <td>
                 @string.Format("{0:dd/MM/yyyy}", new DateTime(module.start))
@@ -85,8 +96,8 @@
                 </span>
               </td>
               <td>
-                <span class="has-text-weight-semibold">@string.Format("{0:0,0}", item.price)</span>
-                <span>VNĐ/người/tháng</span>
+                <span class="has-text-weight-bold">@string.Format("{0:0,0}", item.price)</span>
+                <span>@(item.id == "storage" ? "VNĐ/GB/tháng" : "VNĐ/người/tháng")</span>
               </td>
               <td align="center">
                 <a class="icon-text has-text-dark" @onclick="() => RenewItem(item)">

@@ -30,7 +30,8 @@
             <h1 class="title is-5 has-text-info is-uppercase">Công việc của tôi</h1>
           </li>
           <li class="column is-narrow">
-            <a class="icon-text has-text-@(TypeView == "list" ? "link has-text-weight-semibold" : "dark")" href="/work/my-task/list">
+            <a class="icon-text has-text-@(TypeView == "list" ? "link has-text-weight-semibold" : "dark")"
+              @onclick='() => ChangeView("list")'>
               <span class="icon">
                 <i class="material-icons-outlined is-size-5">list</i>
               </span>
@@ -38,7 +39,8 @@
             </a>
           </li>
           <li class="column is-narrow">
-            <a class="icon-text has-text-@(TypeView == "board" ? "link has-text-weight-semibold" : "dark") "href="/work/my-task/board">
+            <a class="icon-text has-text-@(TypeView == "board" ? "link has-text-weight-semibold" : "dark")"
+              @onclick='() => ChangeView("board")'>
               <span class="icon">
                 <i class="material-icons-outlined is-size-6">dashboard</i>
               </span>
@@ -46,7 +48,8 @@
             </a>
           </li>
           <li class="column is-narrow">
-            <a class="icon-text has-text-@(TypeView == "gantt" ? "link has-text-weight-semibold" : "dark") "href="/work/my-task/gantt">
+            <a class="icon-text has-text-@(TypeView == "gantt" ? "link has-text-weight-semibold" : "dark")"
+              @onclick='() => ChangeView("gantt")'>
               <span class="icon">
                 <i class="material-icons-outlined is-size-5">clear_all</i>
               </span>
@@ -300,7 +303,7 @@
       }
       else if(TypeView == "list")
       {
-        <div class="scrolly" style="height: calc(100vh - 160px); padding-bottom: 300px;">
+        <div class="scrolly" style="height: calc(100vh - 215px); padding-bottom: 300px;">
           <ul class="task_list columns is-gapless is-size-7 has-text-grey"
               style="position: sticky;top: 0px;background: #fff;z-index: 3;">
             <li class="column" style="width: calc(100% - 630px);">Công việc</li>
@@ -379,7 +382,7 @@
                     @status.name @(count > 0 ? $"({count})" : "")
                   </span>
                 </div>
-                <div class="scrolly p-2" style="height: calc(100vh - 215px); background: #fbfbfb; border-radius: 5px;">
+                <div class="scrolly p-2" style="height: calc(100vh - 270px); background: #fbfbfb; border-radius: 5px;">
                   <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_board"
                     AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
                     @if(context.id == null)
@@ -397,7 +400,7 @@
                             <span class="icon is-small mr-2">
                               <i class="material-icons-outlined is-size-6">link</i>
                             </span>
-                            <span>@context.name</span>
+                            <span class="has-text-weight-semibold">@context.name</span>
                           </a>
                         </div>
                       }
@@ -419,7 +422,7 @@
       else
       {
         var dayHtml = string.Empty;
-        <div class="list_task_gantt is-size-7" style="height: calc(100vh - 160px);">
+        <div id="scrollbox" class="list_task_gantt is-size-7" style="height: calc(100vh - 215px);">
           <ul class="task_gantt is_month columns is-gapless is-vcentered">
             <li class="column is-narrow"></li>
             @for (int d = 0; d < dayTotal; d++)
@@ -488,7 +491,7 @@
             @if(show)
             {
               <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_list" 
-                AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
+                AllowsDrag="x => x.status < 0" OnItemDrop="x => OnItemDragdrop(x)">
                 @if(context.id == null)
                 {
                   <ul class="task_gantt columns is-gapless is-size-7">
@@ -504,7 +507,7 @@
                             <span class="icon is-small mr-2">
                               <i class="material-icons-outlined is-size-6">link</i>
                             </span>
-                            <span>@context.name</span>
+                            <span class="has-text-weight-semibold">@context.name</span>
                           </a>
                         </div>
                       }
@@ -585,7 +588,17 @@
     if (firstRender && Layout.IsMobile)
     {
       await JSRuntime.InvokeVoidAsync("stickyHeaderMobile");
+
+      if(TypeView == "gantt")
+        await JSRuntime.InvokeVoidAsync("dragScrollX");
     }
+  }
+
+  private async Task ChangeView(string value)
+  {
+    navigation.NavigateTo($"/work/my-task/{value}");
+    if(value == "gantt")
+      await JSRuntime.InvokeVoidAsync("dragScrollX");
   }
 
   #region Bộ lọc và lấy dữ liệu

@@ -1,6 +1,5 @@
 ﻿@inherits LayoutComponentBase
 @inject IJSRuntime JSRuntime
-@inject ProtectedLocalStorage storage
 @inject NavigationManager navigation
 
 <CascadingValue Value="this">
@@ -10,7 +9,7 @@
       if (Company != null)
       {
         <aside class="column is-narrow">
-          <SidebarMain />
+          <SidebarMain OnToggle="ToggleNav" />
         </aside>
         <section id="content" class="column">
           <HeaderMain />
@@ -20,11 +19,8 @@
       }
       else
       {
-        <aside class="column is-narrow">
-          <SidebarMain />
-        </aside>
-        <section id="content" class="column has-text-centered">
-          <div class="px-6">
+        <section class="column is-full is-flex is-vcentered is-centered">
+          <div class="has-text-danger has-text-weight-semibold">
             Bạn chưa chọn công ty
           </div>
         </section>
@@ -40,7 +36,13 @@
     }
     else
     {
-      <section class="column is-full movingBallG"></section>
+      <section class="column is-full">
+        <div class="p-6 has-text-centered">
+          <a class="button is-white is-loading">
+            Đang tải...
+          </a>
+        </div>
+      </section>
     }
   </main>
 </CascadingValue>
@@ -58,6 +60,8 @@
 
   public string CycleId = null;
 
+  public bool NavLess = false;
+
   public int PageSize = 25;
 
   public long MaxFileSize = 10 * 1024000;
@@ -66,69 +70,101 @@
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
-    try
+    if (firstRender)
     {
-      if (firstRender)
+      try
       {
-        var userAgent = await JSRuntime.InvokeAsync<string>("getUserAgent");
-        IsMobile = Shared.DeviceMobile(userAgent);
-        await JSRuntime.InvokeVoidAsync("console.log", "Device detection: " + (IsMobile ? "Mobile" : "Desktop"));
-
-        var userStorage = await storage.GetAsync<string>("user");
-        
-        if (!userStorage.Success || string.IsNullOrEmpty(userStorage.Value))
+        var cookieUser = await JSRuntime.InvokeAsync<string>("getCookie", "_user");
+        if (string.IsNullOrEmpty(cookieUser))
         {
-          navigation.NavigateTo("/logout", false);
-          return;
+          navigation.NavigateTo("/", true);
         }
         else
         {
-          var customer = await DbMainUser.GetbySession(userStorage.Value);
-          if (customer == null)
+          var user = await DbMainUser.GetbySession(cookieUser);
+          if (user == null)
           {
             navigation.NavigateTo("/logout", false);
             return;
           }
           else
           {
-            var companyStorage = await storage.GetAsync<string>("company");
-            if (userStorage.Success && !string.IsNullOrEmpty(userStorage.Value))
-            {
-              Company = await DbMainCompany.Get(companyStorage.Value);
-              if (Company == null)
-              {
-                navigation.NavigateTo("/", true);
-              }
-              else
-              {
-                User = await DbUser.Get(Company.id, customer.id);
-                if (User != null)
-                {
-                  UserList = DbUser.GetAll(Company.id);
-                  DaysOff = DbDayOff.GetAll(Company.id);
-                  OkrConfig = await DbOkrConfig.Get(Company.id);
-
-                  // Lấy chu kỳ
-                  var cycleStorage = await storage.GetAsync<string>("cycle");
-                  if (cycleStorage.Success && !string.IsNullOrEmpty(cycleStorage.Value))
-                    CycleId = cycleStorage.Value;
-
-                  // Cập nhật database chính
-                  customer.online = DateTime.Now.Ticks;
-                  await DbMainUser.Update(customer);
-                }
-              }
-            }
+            // Cập nhật database chính
+            user.online = DateTime.Now.Ticks;
+            await DbMainUser.Update(user);
+            // Lấy thiết bị
+            await GetDevice();
+            // Lấy Navbar
+            await GetNavbar();
+            // Lấy tổ chức
+            await GetCompany(user);
+            // Tác vụ chạy ngầm
+            BackgroundService();
           }
         }
-        await InvokeAsync(StateHasChanged);
       }
+      catch (Exception ex)
+      {
+        await JSRuntime.InvokeAsync<string>("console.warn", "LayoutMain: " + ex.Message);
+      }
+      StateHasChanged();
     }
-    catch (Exception ex)
+  }
+
+  private async Task ToggleNav(bool value)
+  {
+    NavLess = value;
+    await JSRuntime.InvokeVoidAsync("setCookie", "_nav", NavLess);
+  }
+
+  private async Task GetDevice()
+  {
+    var userAgent = await JSRuntime.InvokeAsync<string>("getUserAgent");
+    IsMobile = Shared.DeviceMobile(userAgent);
+    await JSRuntime.InvokeVoidAsync("console.log", "Device detection: " + (IsMobile ? "Mobile" : "Desktop"));
+  }
+
+  private async Task GetNavbar()
+  {
+    var cookieNav = await JSRuntime.InvokeAsync<string>("getCookie", "_nav");
+    if (!string.IsNullOrEmpty(cookieNav))
+      NavLess = Convert.ToBoolean(cookieNav);
+  }
+
+  private async Task GetCompany(UserModel user)
+  {
+    try
     {
-      await JSRuntime.InvokeAsync<string>("console.log", "ERROR: " + ex.Message);
-      navigation.NavigateTo("/logout", false);
-      return;
+      var cookieCompany = await JSRuntime.InvokeAsync<string>("getCookie", "_company");
+      if (!string.IsNullOrEmpty(cookieCompany))
+      {
+        Company = await DbMainCompany.Get(cookieCompany);
+        if (Company != null)
+        {
+          User = await DbUser.Get(Company.id, user.id);
+          if (User != null)
+          {
+            UserList = DbUser.GetAll(Company.id);
+            DaysOff = DbDayOff.GetAll(Company.id);
+            OkrConfig = await DbOkrConfig.Get(Company.id);
+
+            // Lấy chu kỳ
+            var cookieCycle = await JSRuntime.InvokeAsync<string>("getCookie", "_cycle");
+            if (!string.IsNullOrEmpty(cookieCycle))
+              CycleId = cookieCycle;
+          }
+        }
+        else
+        {
+          navigation.NavigateTo("/", true);
+        }
+      }
+      else
+        navigation.NavigateTo("/", true);
+    }
+    catch (System.Exception ex)
+    {
+      await JSRuntime.InvokeAsync<string>("console.warn", "GetCompany: " + ex.Message);
     }
   }
 
@@ -138,10 +174,21 @@
     OkrConfig = await DbOkrConfig.Get(Company.id);
     DaysOff = DbDayOff.GetAll(Company.id);
     UserList = DbUser.GetAll(Company.id);
-    
 
     await InvokeAsync(StateHasChanged);
 
     await JSRuntime.InvokeAsync<string>("console.log", string.Format("Update Layout at {0:HH:mm:ss}", DateTime.Now));
+  }
+
+  private void BackgroundService()
+  {
+    if(Company != null)
+    {
+      new Task(async () =>
+      {
+        var storage = CompanyService.UpdateStorageUsed(Company.id);
+        await Task.WhenAll(storage);
+      }).Start();
+    }
   }
 }

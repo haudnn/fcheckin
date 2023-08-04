@@ -4,80 +4,63 @@
 {
   <section class="modal is-active">
     <div class="modal-background"></div>
-    <section class="modal-card">
+    <section class="modal-card is-medium">
       <section class="modal-card-head">
-        <div class="modal-card-title">
-          @(string.IsNullOrEmpty(model.id) ? "Tạo mới" : "Chỉnh sửa") địa điểm chấm công
+        <div class="modal-card-title is-flex is-align-items-center">
+          <span class="mr-2">          
+            @(string.IsNullOrEmpty(model.id) ? "Tạo mới" : "Chỉnh sửa") địa điểm chấm công
+          </span>
+          <a target="_blank" href="https://docs.google.com/document/d/1d20HWXYRt_g9Qp4htIa-rKNZ2lHJNWPt/edit" class="icon">
+            <span class="material-icons">
+              info
+            </span>
+          </a>
         </div>
         <a class="delete is-medium" @onclick="Cancel"></a>
       </section>
       <section class="modal-card-body">
-        <ul class="columns is-multiline is-variable is-2">
-          <li class="column is-full">
-            <div class="field">
-              <label class="label">Tiêu đề địa điểm</label>
-              <div class="control">
-                <input @bind="model.name" class="input" type="text">
-              </div>
-            </div>
-          </li>
-          <li class="column is-half">
-            <div class="field">
-              <label class="label">Vĩ độ</label>
-              <div class="control">
-                <input @bind="model.latitude" class="input" type="text">
-              </div>
-            </div>
-          </li>
-          <li class="column is-half">
-            <div class="field">
-              <label class="label">Kinh độ</label>
-              <div class="control">
-                <input @bind="model.longitude" class="input" type="text">
-              </div>
-            </div>
-          </li>
-          <li class="column is-full">
-            <div class="field">
-              <label class="label">Bán kính chấm công</label>
-              <div class="control">
-                <input @bind="model.radius" class="input" type="number" min="0">
-              </div>
-            </div>
-            <div class="field">
-              <label class="label">Công ty áp dụng</label>
-              <div class="control">
-                <div class="select is-fullwidth">
-                  <select @onchange="ChangeCompany">
-                    <option value="">- chọn công ty -</option>
-                    @foreach (var item in companys)
-                    {
-                      <option value="@item.id">@item.name</option>
-                    }
-                  </select>
-              </div>
-              </div>
-            </div>
-          </li>
-          @foreach (var item in model.companys)
-          {
-            var company = companys.FirstOrDefault(x => x.id == item);
-            <li class="column is-half">
-              <div class="field has-addons">
-                <div class="control is-expanded">
-                  <input type="text" value="@(company != null ? company.name : item)" class="input is_bg" readonly />
+        <div class="columns is-variable is-2">
+          <div class="column is-narrow">
+            <img src="/images/location-setup.jpg" alt="location thumbnail" style="border-radius:10px">
+          </div>
+          <div class="column">
+            <ul class="columns is-multiline is-variable is-2">
+              <li class="column is-full">
+                <div class="field">
+                  <label class="label">Tên địa điểm *</label>
+                  <div class="control">
+                    <input @bind="model.name" placeholder="Nhập tên địa điểm" class="input" type="text">
+                  </div>
                 </div>
-                <div class="control">
-                  <a class="button is_bg has-text-danger" @onclick="() => model.companys.Remove(item)">
-                    <span class="icon">
-                      <i class="material-icons is-size-6">close</i>
-                    </span>
-                  </a>
+              </li>
+              <li class="column is-half">
+                <div class="field">
+                  <label class="label">Vĩ độ *</label>
+                  <div class="control">
+                    <input @bind="model.latitude" placeholder="Nhập giá trị vĩ độ" class="input" type="text">
+                  </div>
                 </div>
-              </div>
-            </li>
-          }
-        </ul>
+              </li>
+              <li class="column is-half">
+                <div class="field">
+                  <label class="label">Kinh độ *</label>
+                  <div class="control">
+                    <input @bind="model.longitude" placeholder="Nhập giá trị kinh độ" class="input" type="text">
+                  </div>
+                </div>
+              </li>
+              <li class="column is-full">
+                <div class="field">
+                  <label class="label">Khoảng cách hợp lệ (m)</label>
+                  <div class="control">
+                    <input @bind="model.radius" class="input" type="number" min="0">
+                  </div>
+																		<p style="font-size: 12px;" class="has-text-grey is-italic mt-2">(*) Khuyến nghị: Nên thiết lập khoảng cách hợp lệ trên 25m để tăng độ chính xác.</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
       </section>
       <section class="modal-card-foot is-right">
         <a class="button" @onclick="Cancel">
@@ -103,8 +86,6 @@
   [Parameter]
   public HrmLocationModel model { get; set; }
   [Parameter]
-  public List<HrmOptionModel> companys { get; set; }
-  [Parameter]
   public EventCallback<bool> OnUpdate { get; set; }
 
   private async Task Cancel()
@@ -112,30 +93,21 @@
     await OnUpdate.InvokeAsync(false);
   }
 
-  private void ChangeCompany(ChangeEventArgs e)
-  {
-    var key = e.Value.ToString();
-    if(!string.IsNullOrEmpty(key) && !model.companys.Contains(key))
-      model.companys.Add(key);
-  }
-
   private async Task Update()
   {
-    if(Shared.IsEmpty(model.name))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề địa điểm!");
-    else if(Shared.IsEmpty(model.latitude))
+    if (Shared.IsEmpty(model.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên địa điểm!");
+    else if (Shared.IsEmpty(model.latitude))
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập vĩ độ!");
-    else if(Shared.IsEmpty(model.longitude))
+    else if (Shared.IsEmpty(model.longitude))
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập kinh độ!");
-    else if(model.radius <= 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập bán kính chấm công!");
-    else if(model.companys.Count == 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn công ty áp dụng!");
+    else if (model.radius < 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập khoảng cách hợp lệ!");
     else
     {
       model.latitude = model.latitude.Trim();
       model.longitude = model.longitude.Trim();
-      if(string.IsNullOrEmpty(model.id))
+      if (string.IsNullOrEmpty(model.id))
       {
         await DbHrmLocation.Create(Layout.Company.id, model);
         await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo địa điểm chấm công thành công!");

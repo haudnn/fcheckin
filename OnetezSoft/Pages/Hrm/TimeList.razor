@@ -1,0 +1,1376 @@
+@page "/hrm/timelist"
+@inject IJSRuntime JSRuntime
+@using System.Text.Json
+@implements IDisposable
+
+
+<PageTitle>@_title</PageTitle>
+@if (CheckAccess())
+{
+	<section class="timelist px-5 pb-0 pt-5">
+		<!-- Tabs -->
+		<div class="tabs is-boxed mb-0">
+			<ul style="font-size:14px;" class="is-flex is-align-items-center is-justify-content-space-between">
+				<li class="@(view_mode == 1 ? "is-active" : "")" style="flex: 1;">
+					<a style="width: fit-content;" @onclick="() => ChangeView(1)">
+						<span>Phân ca</span>
+					</a>
+				</li>
+
+				@if(checkRules && (_access || dataRules.register_shift.users.Contains(Layout.User.id)))
+				{
+					<li class="@(view_mode == 3 ? "is-active" : "")">
+						<a @onclick="() => ChangeView(3)">
+							<span>Thống kê đăng ký ca làm</span>
+						</a>
+					</li>
+
+					<li class="@(view_mode == 2 ? "is-active" : "")">
+						<a @onclick="() => ChangeView(2)">
+							<span>Đăng ký ca làm</span>
+						</a>
+					</li>
+				}
+			</ul>
+		</div>
+
+		@if(view_mode == 1 || view_mode == 2)
+		{
+			<div class="card">
+				<div class="p-5">
+					<ul class="header columns is-vcentered is-multiline is-variable is-2 mb-3" style="z-index: 19;">
+						<li class="column">
+							<h1 class="title is-5 has-text-info is-uppercase text_1_line" style="height:auto; overflow: unset">
+								@if(view_mode == 1)
+								{
+									<span>Phân ca</span>
+								}
+								else if (view_mode == 2)
+								{
+									<span>Đăng ký ca làm</span>
+								}
+							</h1>
+						</li>
+
+						<li class="column">
+							<div class="select is-fullwidth">
+								<select @onchange="ChangeDepartment">
+									<option value="">Phòng ban</option>
+									@foreach (var item in departmentAll)
+									{
+									<option value="@item.id" selected="@(filterDepartment == item.id)">@item.name</option>
+									}
+								</select>
+							</div>
+						</li>
+						<li class="column">
+							<form class="control has-icons-right" @onsubmit="GetList">
+								<input @bind="filterKeyword" class="input is-rounded" type="text" placeholder="Tìm tên nhân viên...">
+									<span class="icon is-right">
+										<i class="material-icons-outlined is-size-5">search</i>
+									</span>
+							</form>
+						</li>
+						<li class="column is-hidden-mobile is-narrow">
+							<div class="field has-addons">
+								<div class="control">
+									<span class="button is-link">
+										<i class="material-icons-outlined">calendar_today</i>
+									</span>
+								</div>
+								<div class="control is-expanded">
+								<div class="input" style="width: 190px; z-index:12">
+									<DateRangePicker aria-readonly="true" readonly @bind-StartDate="filterDateS" @bind-EndDate="filterDateE" OnRangeSelect="() => CheckOverMonth()" />
+								</div>
+							</div>
+							<div class="control is-flex">
+								<span class="button is-radiusless" style="border-right-width:0;" @onclick="PreMonth">
+									<i class="material-icons-outlined">chevron_left</i>
+								</span>
+								<span class="button" @onclick="NextMonth">
+									<i class="material-icons-outlined">chevron_right</i>
+								</span>
+							</div>
+						</div>
+						</li>
+						<li class="column is-narrow">
+							@if (editMode)
+							{
+								<button id="btn_refresh" class="button is-transparent has-text-danger" @onclick="() => OnApplyUpdate(false)">
+										<span>Hủy</span>
+								</button>
+								<button class="button is-link @(isLoading ? "is-loading" : "")" @onclick="() => OnApplyUpdate(true)">
+										<span class="icon">
+											<span class="material-icons-outlined">check</span>
+										</span>
+										<span>Hoàn tất</span>
+								</button>
+							}
+							else
+							{
+								if(view_mode == 1 && _access)
+								{
+									<button class="button is-link" @onclick="() => EditMode(true)">
+										<span>Phân ca</span>
+									</button>
+								}
+
+								if(view_mode == 2 && checkRules)
+								{
+									if(_access)
+									{								
+										<button class="button is-link" @onclick="() => ConfirmRegister()">
+											<span>Phê duyệt</span>
+										</button>
+									}
+									else
+									{							
+										<button class="button is-link" @onclick="() => EditMode(true)">
+											<span>Đăng ký</span>
+										</button>
+									}
+								}
+							}
+						</li>
+							@if(!editMode && _access && view_mode == 1)
+							{
+								<li class="column is-narrow">
+								<button class="button" title="Xuất Excel" @onclick="ExportFile">
+									<span class="icon">
+											<i class="material-icons-outlined is-size-5">file_download</i>
+									</span>
+									<span>Xuất file Excel</span>
+								</button>
+							</li>
+							}
+					</ul>
+					<ul class="columns is-vcentered is-variable is-2 mb-1 calendar-note">
+						<li class="column is-narrow">
+							<span class="is_valid"></span>
+							<span>Ca làm</span>
+						</li>
+						<li class="column is-narrow">
+							<span class="is_error"></span>
+							<span>Ngày nghỉ lễ</span>
+						</li>
+						<li class="column is-narrow">
+							<span class="is_ovt"></span>
+							<span>Ngày nghỉ hàng tuần</span>
+						</li>
+						<li class="column is-narrow ">
+							<span class="icon svg-coins">
+								<?xml version="1.0" encoding="UTF-8"?>
+									<svg xmlns="http://www.w3.org/2000/svg" id="Layer_1" data-name="Layer 1" viewBox="0 0 24 24" width="512" height="512">
+									<path d="M9,4c0-2.209,3.358-4,7.5-4s7.5,1.791,7.5,4-3.358,4-7.5,4-7.5-1.791-7.5-4Zm7.5,6c-1.027,0-2.001-.115-2.891-.315-1.359-1.019-3.586-1.685-6.109-1.685-4.142,0-7.5,1.791-7.5,4s3.358,4,7.5,4,7.5-1.791,7.5-4c0-.029-.007-.057-.008-.086h.008v2.086c0,2.209-3.358,4-7.5,4S0,16.209,0,14v2c0,2.209,3.358,4,7.5,4s7.5-1.791,7.5-4v2c0,2.209-3.358,4-7.5,4S0,20.209,0,18v2c0,2.209,3.358,4,7.5,4s7.5-1.791,7.5-4v-.08c.485,.052,.986,.08,1.5,.08,4.142,0,7.5-1.791,7.5-4v-2c0,2.119-3.092,3.849-7,3.987v-2c3.908-.138,7-1.867,7-3.987v-2c0,2.119-3.092,3.849-7,3.987v-2c3.908-.138,7-1.867,7-3.987v-2c0,2.209-3.358,4-7.5,4Z"/></svg>
+							</span>
+							<span>Ngày nghỉ có tính lương</span>
+						</li>
+					</ul>
+					<div id="scrollbox" class="table-container" style="overflow: auto; height: calc(100vh - 324px); cursor: grab;">
+						<table class="table is-fullwidth is-vcentered sticky scrollx mb-5" style="width: max-content;">
+							<thead style="top: 0px">
+							@if (editMode && view_mode == 1)
+							{
+								<tr>
+									<th width="160px" class="sticky is_last p-0" style="left:0">
+										<label class="checkbox has-text-link">
+										@if (!isSelectedAll)
+										{
+											<input type="checkbox" @onchange="() => ToggleSelected(true)">
+											<span>Chọn tất cả</span>
+										}
+										else
+										{
+											<input type="checkbox" @onchange="() => ToggleSelected(false)" checked>
+											<span>Bỏ chọn tất cả (@checkList.Count())</span>
+										}
+										</label>
+									</th>
+									<th width="150px"></th>
+									<th width="100px" class="sticky" style="left:160px"></th>
+										@for (var i = filterDateS.Value.DateTime; i.Ticks <= filterDateE.Value.Ticks; i = i.AddDays(1))
+										{
+											var day = i.Ticks;
+											var lastDateOfMonth = new DateTime(i.Year, i.Month, DateTime.DaysInMonth(i.Year, i.Month));
+											var isAvailable = i <= DateTime.Today;
+									
+											if(checkList.Any())
+											{
+											<th width="150px" align="center" class="py-0" style="vertical-align:bottom">
+												@if (isAvailable)
+												{
+													<button class="button is-fullwidth is-small is-link is-light" disabled>
+														<span class="icon">
+																<span class="material-icons-outlined">add</span>
+														</span>
+														<span>Tạo nhanh</span>
+													</button>
+												}
+												else
+												{
+													<button class="button is-fullwidth is-small is-link is-light" @onclick="() => HandleEditCol(day)">
+														<span class="icon">
+															<span class="material-icons-outlined">add</span>
+														</span>
+														<span>Tạo nhanh</span>
+													</button>
+												}
+											</th>
+											}
+											else
+											{
+												<th width="150px" align="center" class="py-0" style="vertical-align:bottom"></th>
+											}
+											@if (isOverMonth && i == lastDateOfMonth && lastDateOfMonth.Month != filterDateE.Value.Month)
+											{
+												<th width="150px"></th>
+											}
+										}
+								</tr>
+							}
+							<tr style="background-color:#AEC6FF">
+								<th width="160px" class="sticky last" style="left:0;background-color:#AEC6FF">Tên nhân viên</th>
+								<th width="150px">Phòng ban</th>
+								<th align="center" width="100px" class="p-0 is_button sticky" style="left:160px">
+									<div class="button px-0 is-transparent has-text-link">
+										<span class="icon" @onclick="PreMonth">
+											<span class="material-icons-outlined">
+												chevron_left
+											</span>
+										</span>
+										<div class="dropdown is-right @(changeMonthDropdown ? "is-active" : "")">
+											<div class="dropdown-trigger">
+												<div class="button is-transparent px-0" @onclick="() => changeMonthDropdown = !changeMonthDropdown">
+													<span>@($"{preMonth}/{filterDateS.Value.Year}")</span>
+												</div>
+											</div>
+											<div class="dropdown-menu" role="menu">
+												<div class="dropdown-content scrolly">
+													@for (int i = 1; i <= 12; i++)
+													{
+														var month = i;
+														var year = DateTime.Today.Year;
+														<a class="dropdown-item @(preMonth == month ? "is-active" : "")"@onclick="() => ChangeMonth(month,year)">@($"{month}/{year}")</a>
+													}
+												</div>
+											</div>
+										</div>
+										<span class="icon" @onclick="NextMonth">
+											<span class="material-icons-outlined">
+											chevron_right
+										</span>
+										</span>
+									</div>
+								</th>
+								@for (DateTime i = filterDateS.Value.DateTime; i.Ticks <= filterDateE.Value.Ticks; i = i.AddDays(1))
+								{
+									var lastDateOfMonth = new DateTime(i.Year, i.Month, DateTime.DaysInMonth(i.Year, i.Month));
+									<th width="150px" align="center" class=" @(i == DateTime.Today ? "is_today" : "")">@DateToDay(i)</th>
+									@if (isOverMonth)
+									{
+										if (i == lastDateOfMonth && lastDateOfMonth.Month != filterDateE.Value.Month)
+										{
+											<th width="150px" align="center" class="month" data-month="@lastDateOfMonth.AddDays(1).Month">
+												Tháng @(lastDateOfMonth.AddDays(1).Month)
+											</th>
+										}
+									}
+								}
+							</tr>
+							</thead>
+							<tbody>
+							@foreach (var user in userSelect)
+							{
+								<tr>
+									<td class="sticky last" style="left:0;">
+									@if (editMode)
+									{
+										if(view_mode == 1)
+										{
+											<label class="checkbox">
+												@if (checkList.Contains(user.id))
+												{
+													<input type="checkbox" @onchange="() => CheckItem(user.id)" checked />
+												}
+												else
+												{
+													<input type="checkbox" @onchange="() => CheckItem(user.id)" />
+												}
+												@user.FullName
+											</label>
+										}							
+										else if(view_mode == 2 && checkRules)
+										{
+											@if(user.id == Layout.User.id)
+											{
+												<span class="has-text-link">
+													@user.FullName
+												</span>
+											}
+											else
+											{
+												<span>
+													@user.FullName
+												</span>
+											}
+										}
+									}
+									else
+									{
+										<span>
+											@user.FullName
+										</span>
+									}
+									</td>
+									<td>
+										<p class="text_1_line" style="width:140px">
+											@user.departments_name
+										</p>
+									</td>
+									<td class="sticky" style="left:160px"></td>
+									@for (DateTime i = filterDateS.Value.DateTime; i.Ticks <= filterDateE.Value.Ticks; i = i.AddDays(1))
+									{
+									var isSunday = i.DayOfWeek == 0;
+									var isOutDate = i.Ticks <= DateTime.Today.Ticks;
+									var lastDateOfMonth = new DateTime(i.Year, i.Month, DateTime.DaysInMonth(i.Year, i.Month));
+									var formated = user.id + " - " + i.Ticks;
+									var isConfirmDate = false;
+									var isCheckNoItem = false;
+
+									<td width="150px" align="center" class="timelist_cell @(isSunday ? "is_sunday" : "")">
+										<div class="is-flex is-align-items-center is-justify-content-center">
+											@if(view_mode == 1)
+											{
+													var data = dataShifts.FirstOrDefault(x => x.id == user.id);
+													if (data != null)
+													{
+														var shiftsFound = false;
+														@foreach (var item in data.shifts)
+														{
+															if (item.day == i.Ticks)
+															{
+															<div class="tags is-justify-content-center mb-0" style="gap:.5rem">
+															@if (item.shifts_id.Count > 0)
+															{
+																if (item.dayoff_id != null)
+																{
+																	var dataOff = dayOffList.FirstOrDefault(x => x.id == item.dayoff_id);
+																	if (dataOff != null)
+																	{
+																		shiftsFound = true;
+																		<span class="tag m-0 is-link is-flex is-align-items-center @(dataOff.loop == 1 ? "is-holiday" : "is-week")" title="@dataOff.name">
+																				<span class="text_1_line">Ngày nghỉ</span>
+																					@if(dataOff.salary_users.Contains(user.id))
+																					{
+																						<span class="svg-coins" style="width: unset;">
+																							<?xml version="1.0" encoding="UTF-8"?>
+																							<svg xmlns="http://www.w3.org/2000/svg" id="Layer_1" data-name="Layer 1" viewBox="0 0 24 24" width="12" height="12">
+																							<path d="M9,4c0-2.209,3.358-4,7.5-4s7.5,1.791,7.5,4-3.358,4-7.5,4-7.5-1.791-7.5-4Zm7.5,6c-1.027,0-2.001-.115-2.891-.315-1.359-1.019-3.586-1.685-6.109-1.685-4.142,0-7.5,1.791-7.5,4s3.358,4,7.5,4,7.5-1.791,7.5-4c0-.029-.007-.057-.008-.086h.008v2.086c0,2.209-3.358,4-7.5,4S0,16.209,0,14v2c0,2.209,3.358,4,7.5,4s7.5-1.791,7.5-4v2c0,2.209-3.358,4-7.5,4S0,20.209,0,18v2c0,2.209,3.358,4,7.5,4s7.5-1.791,7.5-4v-.08c.485,.052,.986,.08,1.5,.08,4.142,0,7.5-1.791,7.5-4v-2c0,2.119-3.092,3.849-7,3.987v-2c3.908-.138,7-1.867,7-3.987v-2c0,2.119-3.092,3.849-7,3.987v-2c3.908-.138,7-1.867,7-3.987v-2c0,2.209-3.358,4-7.5,4Z"/>
+																							</svg>
+																						</span>
+																						}
+																		</span>
+																	}
+																}
+																@foreach (var shift in item.shifts_id)
+																{
+																	var shift_item = shiftList.FirstOrDefault(x => x.id == shift);
+																	if (shift_item != null)
+																	{
+																		shiftsFound = true;
+																		<span title="@(shift_item.checkin + " - " + shift_item.checkout)" class="tag m-0 is-link is-light">
+																			<span class="text_1_line">@shift_item.name</span>
+																		</span>
+																	}
+																	else
+																	{
+																		if(isOutDate)
+																		{
+																			shiftsFound = true;
+																			<span class="tag m-0 is-link is-light">
+																				<span class="text_1_line">Ca làm đã xoá</span>
+																			</span>
+																		}
+																	}
+																}
+															}
+															else
+															{
+																if (item.dayoff_id != null)
+																{
+																	shiftsFound = true;
+																	var dataOff = dayOffList.FirstOrDefault(x => x.id == item.dayoff_id);
+																	if (dataOff != null)
+																	{
+																	<span class="tag m-0 is-link is-flex is-align-items-center @(dataOff.loop == 1 ? "is-holiday" : "is-week")" title="@dataOff.name" style="0 10px;">
+																		<span class="text_1_line">Ngày nghỉ</span>
+																		@if(dataOff.salary_users.Contains(user.id))
+																		{
+																			<span class="svg-coins" style="width: unset;">
+																			<?xml version="1.0" encoding="UTF-8"?>
+																				<svg xmlns="http://www.w3.org/2000/svg" id="Layer_1" data-name="Layer 1" viewBox="0 0 24 24" width="12" height="12">
+																				<path d="M9,4c0-2.209,3.358-4,7.5-4s7.5,1.791,7.5,4-3.358,4-7.5,4-7.5-1.791-7.5-4Zm7.5,6c-1.027,0-2.001-.115-2.891-.315-1.359-1.019-3.586-1.685-6.109-1.685-4.142,0-7.5,1.791-7.5,4s3.358,4,7.5,4,7.5-1.791,7.5-4c0-.029-.007-.057-.008-.086h.008v2.086c0,2.209-3.358,4-7.5,4S0,16.209,0,14v2c0,2.209,3.358,4,7.5,4s7.5-1.791,7.5-4v2c0,2.209-3.358,4-7.5,4S0,20.209,0,18v2c0,2.209,3.358,4,7.5,4s7.5-1.791,7.5-4v-.08c.485,.052,.986,.08,1.5,.08,4.142,0,7.5-1.791,7.5-4v-2c0,2.119-3.092,3.849-7,3.987v-2c3.908-.138,7-1.867,7-3.987v-2c0,2.119-3.092,3.849-7,3.987v-2c3.908-.138,7-1.867,7-3.987v-2c0,2.209-3.358,4-7.5,4Z"/>
+																			</svg>
+																			</span>
+																		}
+																	</span>
+																	}
+																}
+															}
+															</div>
+															}
+														}
+													@if (!shiftsFound && !editMode)
+													{
+														<span>-</span>
+													}
+												}
+												else
+												{
+													if	(!editMode)
+													{
+														<span>-</span>
+													}
+												}
+											}
+											else if (view_mode == 2 && checkRules)
+											{
+													var data = dataRegisters.FirstOrDefault(x => x.id == user.id);
+													if (data != null)
+													{
+														var shiftsFound = false;
+														@foreach (var item in data.shifts_register)
+														{
+															if (item.day == i.Ticks)
+															{
+															isConfirmDate = item.is_confirm;
+															isCheckNoItem = item.shifts_id.Count == 0;
+															<div class="tags is-justify-content-center mb-0" style="gap:.5rem">
+															@if (item.shifts_id.Count > 0)
+															{
+																if (item.dayoff_id != null)
+																{
+																	var dataOff = dayOffList.FirstOrDefault(x => x.id == item.dayoff_id);
+																	if (dataOff != null)
+																	{
+																		shiftsFound = true;
+																		<span class="tag m-0 is-link is-flex is-align-items-center @(dataOff.loop == 1 ? "is-holiday" : "is-week")" title="@dataOff.name">
+																				<span class="text_1_line">Ngày nghỉ</span>
+																					@if(dataOff.salary_users.Contains(user.id))
+																					{
+																						<span class="svg-coins" style="width: unset;">
+																							<?xml version="1.0" encoding="UTF-8"?>
+																							<svg xmlns="http://www.w3.org/2000/svg" id="Layer_1" data-name="Layer 1" viewBox="0 0 24 24" width="12" height="12">
+																							<path d="M9,4c0-2.209,3.358-4,7.5-4s7.5,1.791,7.5,4-3.358,4-7.5,4-7.5-1.791-7.5-4Zm7.5,6c-1.027,0-2.001-.115-2.891-.315-1.359-1.019-3.586-1.685-6.109-1.685-4.142,0-7.5,1.791-7.5,4s3.358,4,7.5,4,7.5-1.791,7.5-4c0-.029-.007-.057-.008-.086h.008v2.086c0,2.209-3.358,4-7.5,4S0,16.209,0,14v2c0,2.209,3.358,4,7.5,4s7.5-1.791,7.5-4v2c0,2.209-3.358,4-7.5,4S0,20.209,0,18v2c0,2.209,3.358,4,7.5,4s7.5-1.791,7.5-4v-.08c.485,.052,.986,.08,1.5,.08,4.142,0,7.5-1.791,7.5-4v-2c0,2.119-3.092,3.849-7,3.987v-2c3.908-.138,7-1.867,7-3.987v-2c0,2.119-3.092,3.849-7,3.987v-2c3.908-.138,7-1.867,7-3.987v-2c0,2.209-3.358,4-7.5,4Z"/>
+																							</svg>
+																						</span>
+																						}
+																		</span>
+																	}
+																}
+																@foreach (var shift in item.shifts_id)
+																{
+																	var shift_item = shiftList.FirstOrDefault(x => x.id == shift);
+																	if (shift_item != null)
+																	{
+																		shiftsFound = true;
+																		<span title="@(shift_item.checkin + " - " + shift_item.checkout)" class="tag m-0 is-link is-light">
+																			<span class="text_1_line @(item.is_confirm ? "pl-4" : "")">@shift_item.name</span>
+																		
+																			@if(item.is_confirm)
+																			{
+																				<span class="material-icons-outlined has-text-success is-size-6" style="width: fit-content;">
+																					check
+																				</span>
+																			}
+																		</span>
+																	}
+																	else
+																	{
+																		if(isOutDate)
+																		{
+																			shiftsFound = true;
+																			<span class="tag m-0 is-link is-light">
+																				<span class="text_1_line @(item.is_confirm ? "pl-4" : "")">Ca làm đã xoá</span>
+
+																				@if(item.is_confirm)
+																				{
+																					<span class="material-icons-outlined has-text-success is-size-6" style="width: fit-content;">
+																						check
+																					</span>
+																				}
+																			</span>
+																		}
+																	}
+																}
+															}
+															else
+															{
+																if (item.dayoff_id != null)
+																{
+																	shiftsFound = true;
+																	var dataOff = dayOffList.FirstOrDefault(x => x.id == item.dayoff_id);
+																	if (dataOff != null)
+																	{
+																	<span class="tag m-0 is-link is-flex is-align-items-center @(dataOff.loop == 1 ? "is-holiday" : "is-week")" title="@dataOff.name" style="0 10px;">
+																		<span class="text_1_line">Ngày nghỉ</span>
+																		@if(dataOff.salary_users.Contains(user.id))
+																		{
+																			<span class="svg-coins" style="width: unset;">
+																			<?xml version="1.0" encoding="UTF-8"?>
+																				<svg xmlns="http://www.w3.org/2000/svg" id="Layer_1" data-name="Layer 1" viewBox="0 0 24 24" width="12" height="12">
+																				<path d="M9,4c0-2.209,3.358-4,7.5-4s7.5,1.791,7.5,4-3.358,4-7.5,4-7.5-1.791-7.5-4Zm7.5,6c-1.027,0-2.001-.115-2.891-.315-1.359-1.019-3.586-1.685-6.109-1.685-4.142,0-7.5,1.791-7.5,4s3.358,4,7.5,4,7.5-1.791,7.5-4c0-.029-.007-.057-.008-.086h.008v2.086c0,2.209-3.358,4-7.5,4S0,16.209,0,14v2c0,2.209,3.358,4,7.5,4s7.5-1.791,7.5-4v2c0,2.209-3.358,4-7.5,4S0,20.209,0,18v2c0,2.209,3.358,4,7.5,4s7.5-1.791,7.5-4v-.08c.485,.052,.986,.08,1.5,.08,4.142,0,7.5-1.791,7.5-4v-2c0,2.119-3.092,3.849-7,3.987v-2c3.908-.138,7-1.867,7-3.987v-2c0,2.119-3.092,3.849-7,3.987v-2c3.908-.138,7-1.867,7-3.987v-2c0,2.209-3.358,4-7.5,4Z"/>
+																			</svg>
+																			</span>
+																		}
+																	</span>
+																	}
+																}
+															}
+															</div>
+															}
+														}
+													@if (!shiftsFound && !editMode)
+													{
+														if(isConfirmDate)
+														{
+															<span class="material-icons-outlined has-text-success is-size-4" style="width: fit-content;">
+																check
+															</span>
+														}
+														else
+														{
+															<span>-</span>
+														}
+													}
+												}
+												else
+												{
+													if(isConfirmDate)
+													{
+														<span class="material-icons-outlined has-text-success is-size-4" style="width: fit-content;">
+															check
+														</span>
+													}
+													else
+													{
+														<span>-</span>
+													}
+												}
+											}
+
+										@if (editMode && !isOutDate)
+										{
+											if(view_mode == 1 || (view_mode == 2 && checkRules && user.id == Layout.User.id && !isConfirmDate))
+											{
+												<div class="mt-2">
+													<a class="button is-small is_dash" @onmousedown="e => EditCell(e, formated)">
+														<span class="icon">
+															<span class="material-icons-outlined">
+																	add
+															</span>
+														</span>
+													</a>
+												</div>
+											}
+											else
+											{
+												if(isCheckNoItem)
+												{
+													<span class="material-icons-outlined has-text-success is-size-4" style="width: fit-content;">
+														check
+													</span>
+												}
+											}
+										}
+										</div>
+									</td>
+
+									@if (isOverMonth)
+									{
+										if (i == lastDateOfMonth && lastDateOfMonth.Month != filterDateE.Value.Month)
+										{
+											<th width="150px" class="timelist_cell is_sunday"></th>
+										}
+									}
+								}
+								</tr>
+							}
+							</tbody>
+						</table>
+							@if(userSelect.Count == 0)
+							{
+								<div class="has-text-centered py-6"> Không tìm thấy dữ liệu phù hợp!</div>
+							}
+					</div>
+				</div>
+
+				@if (editMode && ((checkList.Any() && view_mode == 1) || view_mode == 2))
+				{
+					<div class="footer buttons_footer px-5 py-3">
+						<div class="columns is-multiline is-mobile is-vcentered">
+							<div class="column">
+								@(view_mode == 1 ? $"{checkList.Count} nhân viên được chọn" : "")
+							</div>
+							<div class="column is-narrow">
+								<div class="buttons">
+									@if(view_mode == 1)
+									{
+										<a class="button is-link" @onclick="HandleEditRow">
+											Tiếp tục
+										</a>
+									}
+									else if (view_mode == 2)
+									{
+										<a class="button is-link" @onclick="RegisterRow">
+											Tiếp tục
+										</a>
+									}
+								</div>
+							</div>
+						</div>
+					</div>
+				}
+			</div>
+		}
+
+		@if(view_mode == 3)
+		{
+			<_RegisterReport dataList="dataRegisters"
+									  	 workList="dataWorkList"
+											 dataRules="dataRules"/>
+		}
+	</section>
+
+	@if (editRow)
+	{
+		var users = userList.Where(x => checkList.Contains(x.id)).ToList();
+		<_TimeListPopupMembers users="users" shifts="shiftList" startDate="startDate" endDate="endDate" OnCancel="Cancel" OnUpdateDay="UpdateDay" OnUpdateWeek="UpdateWeek" view_mode="view_mode"/>
+	}
+
+	@if(editCell)
+	{
+		string[] parts = current.Split('-');
+		var users = userList.Where(x => x.id == parts[0].Trim()).ToList();
+		long date = (long)Convert.ToDouble(parts[1].Trim());
+		<_TimeListPopupDay shifts="shiftList" OnUpdate="OnUpdateCell" date="date" users="users" shiftsSelected="shiftsSelected" view_mode="view_mode"/>
+	}
+
+	@if (editCol)
+	{
+		var users = userList.Where(x => checkList.Contains(x.id)).ToList();
+		<_TimeListPopupDay shifts="shiftList" OnUpdate="OnUpdateColumn" date="dateCol" users="users" shiftsSelected="shiftsSelected"/>
+	}
+
+	@if(isExport)
+	{
+		<_ExportExelPopup OnUpdate="Export" model="export"/>
+	}
+
+	@if(isConfirm)
+	{
+		<_ConfirmRegisterPopup dataRules="dataRules" OnUpdate="UpdateConfirm"/>
+	}
+}
+else
+{
+ <_PopupUnauthorized msgAccess="@msgAccess" />
+}
+
+
+@code {
+	[CascadingParameter]
+	public LayoutMain Layout { get; set; }
+	private string _title = "Phân ca";
+	private bool _access = false;
+	private int view_mode = 1;
+	private string msgAccess = string.Empty;
+	private List<UserModel> userList = new(); 
+	private List<UserModel> userSelect = new();
+	private List<HrmWorkShiftModel> shiftList = new();
+	private List<HrmWorkShiftModel> dataWorkList = new();
+	private HrmRulesModel dataRules;
+	private List<string> shiftsSelected = new();
+	private List<DepartmentModel> departmentAll = new();
+	private List<string> checkList = new();
+	private List<HrmTimeListModel> dataShifts = new(); 
+	private List<HrmTimeListRegisterModel> dataRegisters = new(); 
+	private string filterDepartment = string.Empty;
+	private string current = String.Empty;
+	private DateTimeOffset? startDate = DateTime.Today.AddDays(1);
+	private DateTimeOffset? endDate = DateTime.Today.AddDays(2);
+	private string filterKeyword;
+	private DateTimeOffset? filterDateS = DateTime.Today;
+	private DateTimeOffset? filterDateE = DateTime.Today;
+	private bool isSelectedAll = false; // Chọn tất cả nhân viên
+	private bool changeMonthDropdown;
+	private int preMonth;
+	private int nextMonth;
+	private bool isOverMonth;
+	private bool editMode;
+	private bool editCell;
+	private bool editCol;
+	private bool isConfirm;
+	private DotNetObjectReference<TimeList> obj;
+	private long dateCol;
+	private bool editRow;
+	private List<HrmDayOffModel> dayOffList = new();
+	private Dictionary<string, List<string>> dataTemp = new();
+	private bool isExport = false;
+	public HrmTimeListModel.ExportData export = null;
+	private bool isLoading = false;
+	private bool checkRules;
+
+	private bool CheckAccess()
+	{
+		return ProductService.CheckAccess(Layout.Company, Layout.User, "timekeeping", out msgAccess);
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		// Quyền phân ca
+		_access = Layout.User.role == 1 || (Layout.User.role == 2 && Layout.User.role_manage.timekeeping);
+
+		userList = Layout.UserList;
+		dataRules = await DbHrmRules.Get(Layout.Company.id, Layout.Company.id);
+		if (dataRules != null)
+			checkRules = dataRules.register_shift.has_register_shifts;
+
+		departmentAll = DbDepartment.GetAll(Layout.Company.id);
+		shiftList = await DbHrmWorkShift.GetList(Layout.Company.id);
+
+		dataWorkList = await DbHrmWorkShift.GetListWithoutDelete(Layout.Company.id);
+		if(dataWorkList.Any())
+			dataWorkList = dataWorkList.OrderBy(x => TimeSpan.Parse(x.checkin)).ToList();
+
+		dayOffList = DbHrmDayOff.GetAll(Layout.Company.id, true);
+		await GetList();
+		if(CheckAccess())
+			obj = DotNetObjectReference.Create(this);
+
+		await InitialTime();
+	}
+
+	private async Task GetList()
+	{
+		userSelect = new();
+
+		if(view_mode == 1)
+			dataShifts = await DbHrmTimeList.GetListByMonth(Layout.Company.id, DateTime.Now);
+		else if((view_mode == 2 || view_mode == 3) && checkRules)
+			dataRegisters = await DbHrmTimeListRegister.GetListByMonth(Layout.Company.id, DateTime.Now);
+
+		await CheckOverMonth();
+		userSelect = userList.Where(x =>
+			{
+				return 
+				(string.IsNullOrEmpty(filterDepartment) ? true : x.departments_id.Contains(filterDepartment)) &&
+		(string.IsNullOrEmpty(filterKeyword) ? true : Shared.SearchKeyword(filterKeyword, x.FullName));}).ToList();
+
+		// check theo có phải đăng ký phân ca không
+		if (view_mode == 2 && checkRules)
+			userSelect = userSelect.Where(x => x.role != 1 && !(x.role == 2 && x.role_manage.timekeeping) && dataRules.register_shift.users.Contains(x.id)).ToList();
+	}
+
+	private async Task ChangeDepartment(ChangeEventArgs e)
+	{
+		filterDepartment = e.Value.ToString();
+		checkList = new();
+		isSelectedAll = false;
+		filterKeyword = String.Empty;
+		await GetList();
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await JSRuntime.InvokeVoidAsync("TimeList", obj);
+			await ScrollToToday();
+		}
+		if(CheckAccess())
+			await JSRuntime.InvokeVoidAsync("dragScrollX");
+	}
+
+	public void Dispose()
+	{
+		obj?.Dispose();
+	}
+
+	private async Task InitialTime()
+	{
+		DateTime start = DateTime.Today;
+		DateTime end = DateTime.Today;
+		Shared.GetTimeSpan(2, out start, out end);
+		filterDateS = start;
+		filterDateE = end;
+		await CheckOverMonth(true);
+	}
+
+	private async Task CheckOverMonth(bool isDefault = false)
+	{
+		isOverMonth = filterDateS.Value.Month != filterDateE.Value.Month;
+		preMonth = filterDateS.Value.Month;
+		nextMonth = filterDateE.Value.AddMonths(1).Month;
+
+		await ScrollToToday(isDefault);
+	}
+
+	/// <summary>Định dạng thời gian (T2 - 01)</summary>
+	private string DateToDay(DateTime date)
+	{
+		return string.Format("{0} - {1:dd}", Shared.ConvertWeekdays(date), date);
+	}
+
+	private async Task NextMonth()
+	{
+		filterDateS = filterDateS.Value.AddMonths(1);
+		filterDateE = filterDateE.Value.AddMonths(1);
+
+		var dateS = filterDateS.Value.DateTime;
+
+		if(view_mode == 1)
+			dataShifts = await DbHrmTimeList.GetListByMonth(Layout.Company.id, dateS);
+		else if(view_mode == 2 && checkRules)
+			dataRegisters = await DbHrmTimeListRegister.GetListByMonth(Layout.Company.id, dateS);
+
+		await CheckOverMonth(false);
+	}
+
+	private async Task PreMonth()
+	{
+		filterDateS = filterDateS.Value.AddMonths(-1);
+		filterDateE = filterDateE.Value.AddMonths(-1);
+		var dateS = filterDateS.Value.DateTime;
+
+		if(view_mode == 1)
+			dataShifts = await DbHrmTimeList.GetListByMonth(Layout.Company.id, dateS);
+		else if(view_mode == 2 && checkRules)
+			dataRegisters = await DbHrmTimeListRegister.GetListByMonth(Layout.Company.id, dateS);
+
+		await CheckOverMonth(false);
+	}
+
+	private async Task ChangeMonth(int month, int year)
+	{
+		filterDateS = new DateTime(year, month, 1);
+		filterDateE = new DateTime(year, month, DateTime.DaysInMonth(year, month));
+
+		await CheckOverMonth(false);
+	}
+
+	private async Task ScrollToToday(bool isDefault = true)
+	{
+		var today = isDefault ? DateTime.Today : new DateTime(filterDateS.Value.Year, filterDateS.Value.Month, 1);
+
+		if (!isDefault && DateTime.Today.Month == filterDateS.Value.Month)
+			today = DateTime.Today;
+
+		if (!Shared.IsEmpty(filterKeyword))
+			today = new DateTime(filterDateS.Value.Year, filterDateS.Value.Month, 1);
+
+		if (today <= filterDateE.Value && today >= filterDateS.Value)
+		{
+			var scrollwidth = (today - filterDateS.Value).TotalDays * 150;
+			await JSRuntime.InvokeVoidAsync("scrollDivX", "scrollbox", scrollwidth);
+		}
+	}
+
+	private void EditCell(MouseEventArgs e, string value)
+	{
+		editCell = true;
+		current = value;
+
+		if(view_mode == 1)
+		{
+			var getShifts = dataShifts.FirstOrDefault(x => x.id == value.Split('-')[0].Trim());
+			if (getShifts != null)
+			{
+				var check = getShifts.shifts.FirstOrDefault(x => x.day == Convert.ToInt64(value.Split('-')[1].Trim()));
+				if(check != null)
+					shiftsSelected.AddRange(check.shifts_id);
+				else
+					shiftsSelected = new();
+			}
+			else
+				shiftsSelected = new();
+		}
+		else if(view_mode == 2 && checkRules)
+		{
+			var getShifts = dataRegisters.FirstOrDefault(x => x.id == value.Split('-')[0].Trim());
+			if (getShifts != null)
+			{
+				var check = getShifts.shifts_register.FirstOrDefault(x => x.day == Convert.ToInt64(value.Split('-')[1].Trim()));
+				if(check != null)
+					shiftsSelected.AddRange(check.shifts_id);
+				else
+					shiftsSelected = new();
+			}
+			else
+				shiftsSelected = new();
+		}
+	}
+
+	[JSInvokable]
+	public async Task UpdatePreMonthOnScroll(JsonElement value)
+	{
+		var result = value.Deserialize<int[]>();
+		if (result[0] == 0 || result[0] == filterDateS.Value.Month)
+			preMonth = filterDateS.Value.Month;
+		else
+			preMonth = result[0];
+		await InvokeAsync(StateHasChanged);
+	}
+
+	// Xử lý chọn nhân viên áp dụng
+	private void CheckItem(string id)
+	{
+		if (checkList.Contains(id))
+			checkList.Remove(id);
+		else
+			checkList.Add(id);
+	}
+
+	// Update phân ca cho nhân viên theo tuần
+	public async Task UpdateWeek(HrmTimeListModel.ShiftsData current)
+	{
+		var startF = new DateTime(current.start);
+		var endF = new DateTime(current.end);
+
+		for (DateTime date = endF; date >= startF; date = date.AddDays(-1))
+		{
+			var weekday = (int)date.DayOfWeek == 0 ? 8 : (int)date.DayOfWeek + 1;
+
+			foreach (var item in current.week)
+			{
+				if (item.Key == weekday)
+				{
+					var sorted = HrmService.SortedShifts(shiftList.Where(x => item.Value.Contains(x.id)).ToList());
+					foreach (var user in checkList)
+					{
+						var formated = user + " - " + date.Ticks;
+						await HandleShifts(formated, sorted);
+					}
+				}
+			}
+		}
+		Reset();
+	}
+
+	// Update phân ca cho nhân viên theo ngày
+	public async Task UpdateDay(HrmTimeListModel.ShiftsData current)
+	{
+		var startF = new DateTime(current.start);
+		var endF = new DateTime(current.end);
+
+		for (DateTime date = endF; date >= startF; date = date.AddDays(-1))
+		{
+			var tick = date.Ticks;
+			foreach (var user in checkList)
+			{
+				var formated = user + " - " + tick;
+				var sorted = HrmService.SortedShifts(shiftList.Where(x => current.days.Contains(x.id)).ToList());
+				await HandleShifts(formated, sorted);
+			}
+		}
+		Reset();
+	}
+
+	public async Task OnUpdateColumn(bool isUpdate)
+	{
+		if (isUpdate)
+		{
+			foreach (var user in checkList)
+			{
+				var formated = user + " - " + dateCol;
+				var sorted = HrmService.SortedShifts(shiftList.Where(x => shiftsSelected.Contains(x.id)).ToList());
+				await HandleShifts(formated, sorted);
+			}
+		}
+		editCol = false;
+		dateCol = 0;
+		shiftsSelected = new();
+	}
+
+	public async Task OnUpdateCell(bool isUpdate)
+	{
+		if (isUpdate)
+		{
+			var sorted = HrmService.SortedShifts(shiftList.Where(x => shiftsSelected.Contains(x.id)).ToList());
+			await HandleShifts(current, sorted);
+		}
+
+		editCell = false;
+		shiftsSelected = new();
+		current = string.Empty;
+	}
+
+	private void ToggleSelected(bool value)
+	{
+		if (value)
+			checkList = userSelect.Select(x => x.id).ToList();
+		else
+			checkList = new();
+
+		isSelectedAll = value;
+	}
+
+	private void HandleEditCol(long date)
+	{
+		dateCol = date;
+		editCol = true;
+	}
+
+	private async Task HandleEditRow()
+	{
+		if (checkList.Count == 0)
+		{
+			await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn nhân viên nào!");
+			return;
+		}
+
+		editCell = false;
+		editRow = true;
+	}
+
+	/// <summary>Đăng ký theo hàng</summary>
+	private void RegisterRow()
+	{
+		if(view_mode == 2 && checkRules)
+		{
+			checkList = new();
+			checkList.Add(Layout.User.id);
+
+			editCell = false;
+			editRow = true;
+		}
+	}
+
+	private void EditMode(bool value)
+	{
+		if (!value)
+		{
+			checkList = new();
+			isSelectedAll = false;
+			editCell = false;
+			isLoading = false;
+		}
+		editMode = value;
+	}
+
+	/// <summary>Duyệt đơn</summary>
+	private void ConfirmRegister()
+	{
+		isConfirm = true;
+	}
+
+	private void Cancel()
+	{
+		editRow = false;
+	}
+
+	private void Reset()
+	{
+		editRow = false;
+		checkList = new();
+		startDate = DateTime.Today.AddDays(1);
+		endDate = DateTime.Today.AddDays(2);
+	}
+
+	private async Task OnApplyUpdate(bool isUpdate)
+	{
+		if (isUpdate)
+		{
+			isLoading = true;
+			foreach (var item in dataTemp)
+			{
+				var parts = item.Key.Split('-');
+				var user_id = parts[0].Trim();
+				var date = (long)Convert.ToDouble(parts[1].Trim());
+				if(view_mode == 1)
+					await DbHrmTimeList.HandleData(user_id, item.Value, Layout.Company.id, new DateTime(date));
+				else if(view_mode == 2 && checkRules)
+					await DbHrmTimeListRegister.HandleData(user_id, item.Value, Layout.Company.id, new DateTime(date));
+			}
+			if(view_mode == 1)
+			{
+				await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật bảng phân ca thành công!");
+				dataShifts = await DbHrmTimeList.GetListByMonth(Layout.Company.id, filterDateS.Value.DateTime);
+			}
+			else if( view_mode == 2 && checkRules)
+			{
+				await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật bảng đăng ký ca thành công!");
+				dataRegisters = await DbHrmTimeListRegister.GetListByMonth(Layout.Company.id, filterDateS.Value.DateTime);
+			}
+			EditMode(false);
+		}
+		else if (dataTemp.Count() > 0)
+		{
+			bool isConfirm = await JSRuntime.InvokeAsync<bool>("confirm", "Các thay đổi sẽ không được lưu, bạn có chắc chắn muốn thoát?");
+			if (!isConfirm)
+			{
+				EditMode(true);
+				return;
+			}
+			dataTemp = new();
+			if(view_mode == 1)
+				dataShifts = await DbHrmTimeList.GetListByMonth(Layout.Company.id, filterDateS.Value.DateTime);
+			else if (view_mode == 2 && checkRules)
+				dataRegisters = await DbHrmTimeListRegister.GetListByMonth(Layout.Company.id, filterDateS.Value.DateTime);
+
+			EditMode(false);
+		}
+		else
+			EditMode(false);
+	}
+
+	private async Task HandleShifts(string dataF, List<string> sorted)
+	{
+		if(view_mode == 1)
+		{
+			if(dataTemp.ContainsKey(dataF))
+				dataTemp.Remove(dataF);
+
+			dataTemp.Add(dataF, sorted);
+		}
+
+		string[] parts = dataF.Split('-');
+		string user_id = parts[0].Trim();
+		long date = (long)Convert.ToDouble(parts[1].Trim());
+
+		if(view_mode == 2 && checkRules)
+		{
+			var dataRegistersNew = await DbHrmTimeListRegister.GetListByMonth(Layout.Company.id, filterDateS.Value.DateTime);
+			var foundData = dataRegistersNew.Where(x => x.id == user_id).FirstOrDefault();
+			if(foundData != null)
+			{
+				var foundShift = foundData.shifts_register.Where(x => x.day == date).FirstOrDefault();
+				if(foundShift != null)
+				{
+					if(!foundShift.is_confirm)
+					{
+						if(dataTemp.ContainsKey(dataF))
+							dataTemp.Remove(dataF);
+
+						dataTemp.Add(dataF, sorted);	
+					}
+				}
+				else
+				{
+					if(dataTemp.ContainsKey(dataF))
+						dataTemp.Remove(dataF);
+
+					dataTemp.Add(dataF, sorted);	
+				}
+			}
+			else
+			{
+				if(dataTemp.ContainsKey(dataF))
+					dataTemp.Remove(dataF);
+
+				dataTemp.Add(dataF, sorted);					
+			}
+		}
+
+		if(view_mode == 1)
+		{
+			var foundData = dataShifts.Where(x => x.id == user_id).FirstOrDefault();
+
+			if (foundData != null)
+			{
+				var foundShift = foundData.shifts.Where(x => x.day == date).FirstOrDefault();
+
+				if (foundShift != null)
+					foundShift.shifts_id = sorted;
+				else
+				{
+					var model = new HrmTimeListModel.Shift
+					{
+						day = date,
+						shifts_id = sorted
+					};
+					foundData.shifts.Add(model);
+				}
+			}
+			else
+			{
+				var model = new HrmTimeListModel
+				{
+					id = user_id,
+				};
+				var data = new HrmTimeListModel.Shift
+				{
+					day = date,
+					shifts_id = sorted
+				};
+				model.shifts.Add(data);
+				dataShifts.Add(model);
+			}
+		}
+		else if(view_mode == 2 && checkRules)
+		{
+			var foundData = dataRegisters.Where(x => x.id == user_id).FirstOrDefault();
+
+			if (foundData != null)
+			{
+				var foundShift = foundData.shifts_register.Where(x => x.day == date).FirstOrDefault();
+
+				if (foundShift != null)
+				{
+					foundShift = foundData.shifts_register.Where(x => x.day == date && !x.is_confirm).FirstOrDefault();
+					if(foundShift != null)
+						foundShift.shifts_id = sorted;
+				}
+				else
+				{
+					var model = new HrmTimeListRegisterModel.ShiftRegister
+					{
+						day = date,
+						shifts_id = sorted
+					};
+					foundData.shifts_register.Add(model);
+				}
+			}
+			else
+			{
+				var model = new HrmTimeListRegisterModel
+				{
+					id = user_id,
+				};
+				var data = new HrmTimeListRegisterModel.ShiftRegister
+				{
+					day = date,
+					shifts_id = sorted
+				};
+				model.shifts_register.Add(data);
+				dataRegisters.Add(model);
+			}
+		}
+	}
+
+	private void ExportFile()
+	{
+		export = new HrmTimeListModel.ExportData
+			{
+				start = filterDateS, 
+				end = filterDateE,
+				name = "Bảng phân ca",
+			};
+		isExport = true;
+	}
+
+	private async Task Export(bool isConfirmed)
+	{
+		if (isConfirmed)
+		{
+			var dataExport = new List<List<string>>();
+			var header = new List<string>
+   {
+    "Tên nhân viên",
+    "Phòng ban"
+   };
+			for (DateTime i = export.start.Value.DateTime; i.Ticks <= export.end.Value.Ticks; i = i.AddDays(1))
+			{
+				var day = i;
+				header.Add(DateToDay(day));
+			}
+			dataExport.Add(header);
+
+			foreach (var user in userList)
+			{
+				var item = new List<string>
+    {
+     user.FullName,
+     user.departments_name
+    };
+				var timeListUser = dataShifts.Where(x => x.id == user.id).FirstOrDefault();
+				if (timeListUser != null)
+				{
+					for (DateTime i = export.start.Value.DateTime; i.Ticks <= export.end.Value.Ticks; i = i.AddDays(1))
+					{
+						var shiftName = string.Empty;
+						var hasShift = false;
+						foreach (var data in timeListUser.shifts)
+						{
+							if (data.day == i.Ticks)
+							{
+								hasShift = true;
+								var shift = data.shifts_id;
+								foreach (var itemShift in shift)
+								{
+									var shiftData = shiftList.Where(x => x.id == itemShift).FirstOrDefault();
+									if (shiftData != null)
+									{
+										shiftName += shiftData.name + " (" + shiftData.checkin + " - " + shiftData.checkout + ")";
+										shiftName += Environment.NewLine;
+									}
+									else
+										continue;
+								}
+								break;
+							}
+						}
+						if (hasShift)
+							item.Add(shiftName);
+						else
+							item.Add(""); 
+					}
+				}
+				else
+				{       
+					for (DateTime i = export.start.Value.DateTime; i.Ticks <= export.end.Value.Ticks; i = i.AddDays(1))
+					{
+						item.Add("");
+					}
+				}
+				dataExport.Add(item);
+			}
+			var fileLink = Files.ExportExcel(dataExport, export.name);
+			if (fileLink.StartsWith("/"))
+			{
+				await JSRuntime.InvokeVoidAsync("tagline", true, "Bạn đã export file thành công!");
+				await JSRuntime.InvokeAsync<string>("newTab", fileLink);
+			}
+			else
+				await JSRuntime.InvokeVoidAsync("tagline", false, fileLink);
+			isExport = false;
+		}
+		else
+			isExport = false;
+		export = null;
+	}
+
+	/// <summary>Chuyển chế độ xem</summary>
+	private async Task ChangeView(int e)
+	{
+		if (!editMode)
+		{
+			if(e == 1 || e == 2)
+			{
+				view_mode = e;
+				dataTemp = new();
+				await GetList();
+				await InitialTime();
+			}
+
+			if(e == 3)
+			{
+				dataRegisters = await DbHrmTimeListRegister.GetList(Layout.Company.id);
+				view_mode = e;
+			}
+		}
+	}
+
+	/// <summary>Cập nhật dữ liệu sau khi phê duyệt</summary>
+	private async Task UpdateConfirm(bool e)
+	{
+		if(e)
+		{
+			dataTemp = new();
+			await GetList();
+			await InitialTime();
+		}
+
+		isConfirm = false;
+	}
+}

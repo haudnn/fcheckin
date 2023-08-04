@@ -144,19 +144,22 @@ namespace OnetezSoft.Models
       public string plan_id { get; set; }
 
       /// <summary>Nhóm công việc</summary>
-      public string section_id  { get; set; }
+      public string section_id { get; set; }
 
       /// <summary>Công việc chính</summary>
       public string parent_id { get; set; }
-      
+
       /// <summary>Số công việc phụ</summary>
       public int sub_task { get; set; }
-      
+
       /// <summary>Số lượng bình luận</summary>
       public int comment { get; set; }
 
       /// <summary>Nhãn công việc</summary>
-      public List<string> labels { get; set; }
+      public List<string> labels { get; set; } = new();
+
+      /// <summary>File đính kèm</summary>
+      public List<string> files { get; set; } = new();
 
       /// <summary>Người tham gia. role = 1: người nhận xét, 2: người thực hiện</summary>
       public List<Member> members { get; set; }
@@ -183,7 +186,7 @@ namespace OnetezSoft.Models
       public string task_id { get; set; }
 
       /// <summary>Người tạo</summary>
-      public string user_id  { get; set; }
+      public string user_id { get; set; }
     }
 
     /// <summary>
@@ -193,7 +196,7 @@ namespace OnetezSoft.Models
     {
       [BsonId]
       public string id { get; set; }
-      
+
       /// <summary>Số lượng công việc</summary>
       public int total { get; set; }
 

@@ -7,11 +7,12 @@ namespace OnetezSoft.Data
   public class Mongo
   {
     private static readonly string ConnectionString =
-      "mongodb+srv://conando_test:ueczFaZcPqvMYdsv@conandotest.eei9mbf.mongodb.net/?retryWrites=true&w=majority";
+      "mongodb+srv://dnhau191:S0yazjzM8ukj81pR@fastdotest.sdt4sxm.mongodb.net/?retryWrites=true&w=majority";
+
     public static IMongoDatabase DbConnect(string name)
     {
       var client = new MongoClient();
-      //var client = new MongoClient(ConnectionString);
+    	//var client = new MongoClient(ConnectionString);
       return client.GetDatabase(name);
     }
 

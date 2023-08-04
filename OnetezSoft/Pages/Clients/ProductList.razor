@@ -44,6 +44,11 @@
   <_Banner />
 
   <ul class="columns is-multiline is-variable is-2">
+    <li class="column is-full">
+      <div class="title is-4 has-text-info">
+        Sản phẩm chính
+      </div>
+    </li>
     @foreach (var item in dataList)
     {
       <li class="column is-one-third">
@@ -56,6 +61,26 @@
         </a>
       </li>
     }
+    @if(otherList.Count > 0)
+    {
+      <li class="column is-full">
+        <div class="title is-4 has-text-info mt-5">
+          Sản phẩm khác
+        </div>
+      </li>
+      @foreach (var item in otherList)
+      {
+        <li class="column is-one-third">
+          <a class="card_product" href="/client/products/@item.id"
+            style="background-color: @item.color; background-image: url('@item.cover')">
+            <img class="item_icon" src="@item.icon" />
+            <span class="item_title">@item.title</span>
+            <span class="item_desc">@item.desc</span>
+            <span class="tag is-link mt-5">Mua ngay</span>
+          </a>
+        </li>
+      } 
+    }
   </ul>
   
 </section>
@@ -63,12 +88,14 @@
 @code {
   [CascadingParameter]
   public LayoutAdmin Layout { get; set; }
-
   private string _title = "Cửa hàng Fastdo";
   private List<ProductModel> dataList = new();
+  private List<ProductModel> otherList = new();
 
   protected override async Task OnInitializedAsync()
   {
-    dataList = await DbMainProduct.GetList();
+    var database = await DbMainProduct.GetList();
+    dataList = database.Where(x => x.id != "storage").ToList();
+    otherList = database.Where(x => x.id == "storage").ToList();
   }
 }

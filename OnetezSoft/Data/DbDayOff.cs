@@ -79,6 +79,17 @@ namespace OnetezSoft.Data
       return results.OrderByDescending(x => x.create).ToList();
     }
 
+    public static async Task<List<HrmDayOffModel>> GetAllWithoutDelete(string companyId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<HrmDayOffModel>(_collection);
+
+      var results = await collection.Find(new BsonDocument()).ToListAsync();
+
+      return results.OrderByDescending(x => x.create).ToList();
+    }
+
 
     public static bool CheckOff(List<DayOffModel> list, DateTime day)
     {

@@ -60,38 +60,30 @@
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
-    try
+    if (firstRender)
     {
-      if (firstRender)
+      try
       {
-        var userStorage = await storage.GetAsync<string>("user");
-        if (!userStorage.Success || string.IsNullOrEmpty(userStorage.Value))
+        var cookieUser = await JSRuntime.InvokeAsync<string>("getCookie", "_user");
+        if (!string.IsNullOrEmpty(cookieUser))
+          User = await DbMainUser.GetbySession(cookieUser);
+
+        if(User != null)
         {
-          navigation.NavigateTo("/logout", false);
-          return;
+          User.online = DateTime.Now.Ticks;
+          await DbMainUser.Update(User);
         }
         else
         {
-          User = await DbMainUser.GetbySession(userStorage.Value);
-          if (User == null)
-          {
-            navigation.NavigateTo("/logout", false);
-            return;
-          }
-          else
-          {
-            User.online = DateTime.Now.Ticks;
-            await DbMainUser.Update(User);
-          }
+          navigation.NavigateTo("/logout", true);
         }
-        await InvokeAsync(StateHasChanged);
       }
-    }
-    catch (Exception ex)
-    {
-      await JSRuntime.InvokeAsync<string>("console.log", "ERROR: " + ex.Message);
-      navigation.NavigateTo("/logout", false);
-      return;
+      catch (Exception ex)
+      {
+        await JSRuntime.InvokeAsync<string>("console.warn", "LayoutAdmin: " + ex.Message);
+        navigation.NavigateTo("/", true);
+      }
+      StateHasChanged();
     }
   }
 }

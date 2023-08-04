@@ -1,20 +1,20 @@
 
 <section class="modal is-active">
   <div class="modal-background"></div>
-  <section class="modal-card">
+  <section class="modal-card p-4">
     <section class="modal-card-head">
       <div class="modal-card-title has-text-danger">Check-out sớm</div>
       <a class="delete is-medium" @onclick="Cancel"></a>
     </section>
     <section class="modal-card-body">
       <p class="mb-2">
-        Bạn đang check-out trước giờ kết thúc ca.
+        Bạn đang check-out trước giờ kết thúc ca làm.
       </p>
       <p class="mb-2">
         Về sớm: <strong>@time phút</strong>
       </p>
       <p class="mb-5 has-text-weight-bold">
-        Bạn có chắc muốn thực hiện?
+        Bạn có chắc muốn thực hiện checkout?
       </p>
     </section>
     <section class="modal-card-foot is-right">
@@ -32,17 +32,21 @@
 </section>
 
 @code {
-  [Parameter]
-  public long time { get; set; }
-  [Parameter]
-  public EventCallback<bool> OnConfirm { get; set; }
+ [Parameter]
+ public EventCallback<bool> OnConfirm { get; set; }
+	[Parameter]
+ public long time { get; set; }
+		
+ [Parameter]
+ public EventCallback OffConfirmEarly { get; set; }
 
-  private async Task Cancel()
-  {
-    await OnConfirm.InvokeAsync(false);
-  }
-  private async Task Update()
-  {
-    await OnConfirm.InvokeAsync(true);
-  }
+ private async Task Cancel()
+ {
+  await OffConfirmEarly.InvokeAsync();
+ }
+ private async Task Update()
+ {
+  await OnConfirm.InvokeAsync(true);
+ }
+
 }

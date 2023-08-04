@@ -1,0 +1,228 @@
+﻿<div class="modal is-active">
+  <div class="modal-background"></div>
+  <div class="modal-card is-medium">
+    <div class="modal-card-head">
+      <div class="modal-card-title">Chi tiết ca làm ngoài giờ</div>
+      <a class="delete is-medium" @onclick="Close"></a>
+    </div>
+    <div class="modal-card-body">
+      @if (timekeepingOtList.SelectMany(i => i.time_tracking).Where(i => i.is_ot).ToList().Count == 0)
+      {
+        <div>
+          Không có ca làm ngoài giờ
+        </div>
+      }
+      else
+      {
+        <ul class="columns is-variable is-1 mb-3">
+          <li class="column is-narrow">
+            Số lần làm ngoài giờ: @(timekeepingOtList.SelectMany(i => i.time_tracking).Where(i => i.is_ot).ToList().Count / 2)
+          </li>
+          <li class="column is-narrow">
+            Tổng công: @Math.Round(timeOT, 2)
+          </li>
+          <li class="column is-narrow">
+            Tổng giờ làm: @(timeDifference > 0 ? $"{timeDifference} phút" : "0 phút")
+          </li>
+        </ul>
+        <table class="table is-fullwidth is-noborder">
+          <thead>
+            <tr style="background: #B6EBF5;" class="has-text-weight-semibold">
+              <th width="100px" class="pl-1">Ngày</th>
+              <th width="170px">Check-in / Check-out</th>
+              <th width="135px" align="center">Tổng giờ làm</th>
+              <th width="135px" align="center">Công ghi nhận</th>
+              <th width="100px" align="center">Ngoài vị trí</th>
+              <th width="150px">Lý do</th>
+              <th>Ghi chú</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var timekeeping in timekeepingOtList)
+            {
+              long day = 0;
+              var shiftEdits = timeSheetUser.timesheet_dates.SelectMany(i => i.shifts_edit).ToDictionary(i => i.Key, i => i.Value);
+              foreach (var in_out in timekeeping.time_tracking.GroupBy(i => i.checkin_id))
+              {
+                var _in = in_out.ToList().Find(i => i.time_type == "Check-in");
+                var _out = in_out.ToList().Find(i => i.time_type == "Check-out");
+                TimeSpan timeSpan = TimeSpan.FromTicks(_out.time_active_tick - _in.time_active_tick);
+                var timeDifferenceItem = Math.Round(timeSpan.TotalMinutes);
+                // kiểm tra ca làm OT
+                if (_in.is_ot || _out.is_ot)
+                {
+                  // sang ngày mới
+                  if (day != timekeeping.date)
+                  {
+                    <tr>
+                      <td colspan="7" class="p-0">
+                        <hr class="m-0" />
+                      </td>
+                    </tr>
+                  }
+                  else
+                  {
+                    <tr>
+                      <td></td>
+                      <td colspan="6" class="p-0">
+                        <hr class="m-0" />
+                      </td>
+                    </tr>
+                  }
+
+                  <tr>
+                    @if (day != timekeeping.date)
+                    {
+                      <td class="pl-1" style="width:120px">
+                        @(new DateTime(timekeeping.date).ToString("dd/MM/yyyy"))
+                      </td>
+                      day = timekeeping.date;
+                    }
+                    else
+                    {
+                      <td></td>
+                    }
+                    <td colspan="6">
+                      <!-- In -->
+                      <div class="columns is-variable is-3">
+                        <div class="column is-narrow" style="width:170px">
+                          Check-in: @_in.time_active
+                        </div>
+
+                        <div class="column has-text-centered is-narrow" style="width:135px">
+                          @if (_in.time_active_tick > 0 && _out.time_active_tick > 0)
+                          {
+                            @(timeDifferenceItem > 0 ? $"{timeDifferenceItem} phút" : "0 phút")
+                            ;
+                          }
+                        </div>
+
+                        <div class="column has-text-centered is-narrow" style="width:135px">
+                          @if (_in.time_active_tick > 0 && _out.time_active_tick > 0)
+                          {
+                            @(shiftEdits.ContainsKey(_in.checkin_id) ? Math.Round(shiftEdits[_in.checkin_id].time_edit, 2) : "0")
+                            ;
+                          }
+                        </div>
+
+                        <div class="column has-text-centered is-narrow" style="width:100px">
+                          <span class="icon">
+                            @if (!string.IsNullOrEmpty(_in.time_active) && !_in.in_company)
+                            {
+                              <span class="material-icons has-text-danger">
+                                place
+                              </span>
+                            }
+                          </span>
+                        </div>
+                        <div class="column is-narrow" style="width:150px">
+                          <p style="word-wrap: break-word;">@_in.reason</p>
+                        </div>
+                        <div class="column">
+                          <p style="word-wrap: break-word;">@_in.note</p>
+                        </div>
+                      </div>
+
+                      <!-- Out -->
+                      <div class="columns is-variable is-3">
+                        <div class="column is-narrow" style="width:170px">
+                          Check-out: @_out.time_active
+                        </div>
+
+                        <div class="column has-text-centered is-narrow" style="width:135px">
+                        </div>
+
+                        <div class="column has-text-centered is-narrow" style="width:135px">
+                        </div>
+
+                        <div class="column has-text-centered is-narrow" style="width:100px">
+                          <span class="icon">
+                            @if (!string.IsNullOrEmpty(_out.time_active) && !_out.in_company)
+                            {
+                              <span class="material-icons has-text-danger">
+                                place
+                              </span>
+                            }
+                          </span>
+                        </div>
+
+
+                        <div class="column is-narrow" style="width:150px">
+                          @_out.reason
+                        </div>
+                        <div class="column">
+                          @_out.note
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </div>
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public UserModel user { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnClose { get; set; }
+  [Parameter]
+  public List<HrmTimesheetUserModel> timeSheetUsers { get; set; } = new();
+  [Parameter]
+  public List<HrmTimekeepingModel> dataTimekeeping { get; set; } = new();
+  [Parameter]
+  public HrmTimesheetModel timeSheet { get; set; }
+
+  private HrmTimesheetUserModel timeSheetUser = null;
+
+  private List<HrmTimekeepingModel> timekeepingOtList = new();
+
+  private double timeDifference = 0;
+  private double timeOT;
+
+  protected override void OnInitialized()
+  {
+    var endDate = (timeSheet.to > DateTime.Today.Ticks) ? DateTime.Today.Ticks : timeSheet.to;
+
+    timeSheetUser = Shared.Clone(timeSheetUsers.Find(i => i.user == user.id));
+    timeOT =  timeSheetUser.timesheet_dates.Where(i => i.date >= timeSheet.from && i.date <= endDate).ToList()
+                                               .SelectMany(i => i.shifts_edit.Values).Where(i => i.is_ot).Sum(i => i.time_edit);
+
+    var timekeepingList = dataTimekeeping.Where(i => i.user == user.id && i.date >= timeSheet.from && i.date <= endDate).ToList();
+    if (timekeepingList.Any())
+    {
+      timekeepingOtList = timekeepingList.Where(i => i != null && i.time_tracking.Any(i => i.is_ot)).ToList();
+    }
+
+    // tính tổng giờ làm
+    var otShift = timekeepingOtList.SelectMany(i => i.time_tracking)
+                                   .Where(i => i.is_ot).GroupBy(i => i.checkin_id);
+
+    foreach (var item in otShift)
+    {
+      var _in = item.ToList().Find(i => i.time_type == "Check-in");
+      var _out = item.ToList().Find(i => i.time_type == "Check-out");
+
+      var totalOtTime = (_out.time_active_tick - _in.time_active_tick);
+      if (totalOtTime > 0)
+      {
+        TimeSpan timeSpan = TimeSpan.FromTicks(totalOtTime);
+        var timeDifferenceItem = Math.Round(timeSpan.TotalMinutes);
+
+        timeDifference += timeDifferenceItem;
+      }
+    }
+  }
+
+  private async Task Close()
+  {
+    await OnClose.InvokeAsync(false);
+  }
+}

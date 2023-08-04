@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using MongoDB.Bson;
+using System.Linq;
+using System.Text;
 using MongoDB.Driver;
 using OnetezSoft.Models;
+
 
 namespace OnetezSoft.Data;
 
@@ -33,6 +34,8 @@ public class DbHrmLocation
   {
     var _db = Mongo.DbConnect("fastdo_" + companyId);
 
+    model.created = DateTime.Now.Ticks;
+
     var collection = _db.GetCollection<HrmLocationModel>(_collection);
 
     var option = new ReplaceOptions { IsUpsert = false };
@@ -46,52 +49,53 @@ public class DbHrmLocation
   public static async Task<bool> Delete(string companyId, string id)
   {
     var _db = Mongo.DbConnect("fastdo_" + companyId);
-
     var collection = _db.GetCollection<HrmLocationModel>(_collection);
 
-    var result = await collection.DeleteOneAsync(x => x.id == id);
+				var filter = Builders<HrmLocationModel>.Filter.Eq(x => x.id, id);
+				var update = Builders<HrmLocationModel>.Update.Set(x => x.is_deleted, true);
 
-    if (result.DeletedCount > 0)
-      return true;
-    else
-      return false;
+				var result = await collection.FindOneAndUpdateAsync(filter, update);
+				if (result != null)
+					return true;
+				else
+					return false;
   }
 
+		/// <summary>+
+		/// Lấy danh sách địa điểm chấm công
+		/// </summary>
+		/// <param name="isAll">Có lấy địa điểm đã xoá không? true: có | false: không</param>
+		public static async Task<List<HrmLocationModel>> GetList(string companyId, bool isAll = false)
+		{
+			var _db = Mongo.DbConnect("fastdo_" + companyId);
 
-  public static async Task<HrmLocationModel> Get(string companyId, string id)
+			var collection = _db.GetCollection<HrmLocationModel>(_collection);
+
+			var results = new List<HrmLocationModel>();
+			if (isAll)
+				results = await collection.Find(new BsonDocument()).ToListAsync();
+			else
+				results = await collection.Find(x => !x.is_deleted).ToListAsync();
+
+			return results.OrderByDescending(x => x.created).ToList();
+		}
+
+	/// <summary>
+	/// Lấy danh sách địa điểm user áp dụng
+	/// </summary>
+	/// <param name="companyId"></param>
+	/// <param name="userId">Id user</param>
+	/// <returns></returns>
+  public static async Task<List<HrmLocationModel>> GetListForUser(string companyId, string userId)
   {
-    var _db = Mongo.DbConnect("fastdo_" + companyId);
-
-    var collection = _db.GetCollection<HrmLocationModel>(_collection);
-
-    return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
-  }
-
-
-  public static async Task<List<HrmLocationModel>> GetList(string companyId)
-  {
-    var _db = Mongo.DbConnect("fastdo_" + companyId);
-
-    var collection = _db.GetCollection<HrmLocationModel>(_collection);
-
-    var results = await collection.Find(new BsonDocument()).ToListAsync();
-
-    return results.OrderByDescending(x => x.created).ToList();
-  }
-
-  /// <summary>
-  /// Lấy danh sách địa điểm theo công ty áp dụng
-  /// </summary>
-  public static async Task<List<HrmLocationModel>> GetListForCompany(string companyId, string company)
-  {
-    if (string.IsNullOrEmpty(company))
+    if (string.IsNullOrEmpty(userId))
       return new List<HrmLocationModel>();
 
     var _db = Mongo.DbConnect("fastdo_" + companyId);
 
     var collection = _db.GetCollection<HrmLocationModel>(_collection);
 
-    var results = await collection.Find(x => x.companys.Contains(company)).ToListAsync();
+    var results = await collection.Find(x => x.members_id.Contains(userId)).ToListAsync();
 
     return results.OrderByDescending(x => x.created).ToList();
   }

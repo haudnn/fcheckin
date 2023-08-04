@@ -1,0 +1,122 @@
+@inject IJSRuntime JSRuntime
+
+<section class="modal is-active" style="z-index: 100;">
+  <div class="modal-background"></div>
+  <section class="modal-card is-small">
+    <section class="modal-card-head">
+      <div class="modal-card-title">
+        @(view_mode == 1 ? $"Phân ca theo ngày: " : "Đăng ký ca làm: ") @Handled.Shared.ConvertLongToDate(date)
+      </div>
+      <a class="delete is-medium" @onclick="Cancel"></a>
+    </section>
+    <section class="modal-card-body">
+      @if(view_mode == 1)
+      {
+        <p class="has-text-weight-medium mb-2"> Nhân viên áp dụng: @users.Count</p>
+        <div class="mb-3 is-flex" style="flex-wrap:nowrap;">
+          @foreach (var item in users.Take(15))
+          {
+            <img src="@item.avatar"
+                 class="image is-24x24 is-rounded"
+                 style="border:1px solid white;margin-left:-5px" />
+          }
+          @if (users.Count() > 15)
+          {
+            <span class="image is-24x24 is-rounded is-inline-block has-background-grey-light has-text-centered"
+                  style="border:1px solid white;margin-left:-5px">
+              @(users.Count() - 15)
+            </span>
+          }
+        </div>
+      }
+      <p class="has-text-weight-medium mb-2">
+        Ca làm áp dụng
+      </p>
+      <div class="mb-3">
+        @if (shifts.Count > 0)
+        {
+          @foreach (var shift in shifts)
+          {
+            <label class="checkbox py-2" style="width:100%">
+              @if (shiftsSelected.Contains(shift.id))
+              {
+                <input type="checkbox" @onchange="() => CheckItem(shift.id)" checked />
+              }
+              else
+              {
+                <input type="checkbox" @onchange="() => CheckItem(shift.id)" />
+              }
+              <span class="text_1_line">
+                <span class="has-text-link">@shift.name</span> • @shift.checkin - @shift.checkout • @shift.value
+              </span>
+            </label>
+          }
+        }
+        else
+        {
+          <div class="py-1 has-text-grey">Không có dữ liệu ca làm!</div>
+        }
+      </div>
+    </section>
+    <section class="modal-card-foot is-right">
+      <a class="button is-transparent has-text-danger" @onclick="Cancel">
+        <span>Hủy</span>
+      </a>
+      @if (shifts.Count > 0)
+      {
+        <a class="button is-link" @onclick="Update">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">check</i>
+          </span>
+          <span>
+            @(view_mode == 1 ? "Áp dụng" : "Cập nhật")
+          </span>
+        </a>
+      }
+
+    </section>
+  </section>
+</section>
+
+@code
+{
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  [Parameter]
+  public List<UserModel> users { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+  [Parameter]
+  public List<HrmWorkShiftModel> shifts { get; set; }
+  [Parameter]
+  public long date { get; set; }
+  [Parameter]
+  public List<string> shiftsSelected { get; set; }
+  [Parameter]
+  public int view_mode { get; set; } = 1;
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+  }
+
+  private void CheckItem(string id)
+  {
+    if (shiftsSelected.Contains(id))
+      shiftsSelected.Remove(id);
+    else
+      shiftsSelected.Add(id);
+  }
+
+  private async Task Update()
+  {
+			var isValid = HrmService.CheckGapShifts(shifts.Where(x => shiftsSelected.Contains(x.id)).ToList());
+			if(isValid)
+			{
+				await JSRuntime.InvokeVoidAsync("tagline", false, "Ca làm việc không được chồng lên nhau!");
+				return;
+			}
+   await OnUpdate.InvokeAsync(true);
+  }
+}

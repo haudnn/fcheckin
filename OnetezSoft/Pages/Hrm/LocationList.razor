@@ -6,9 +6,9 @@
 
 @if (_access)
 {
-  <section class="p-4">
-    <div class="card p-5">
-      <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
+ <section class="p-4">
+ 	<div class="card p-5">
+   <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
         <li class="column">
           <h1 class="title is-5 has-text-info is-uppercase">
             @_title
@@ -22,63 +22,149 @@
             <span>Thêm mới</span>
           </a>
         </li>
-      </ul>
-      <table class="table is-fullwidth is-vcentered is-responsive mt-5">
-        <thead>
-          <tr>
-            <th>Tiêu đề</th>
-            <th width="30%">Vị trí Google Map</th>
-            <th width="25%">Công ty áp dụng</th>
-            <th width="12%">Ngày tạo</th>
-            <th width="70px" align="center">Xử lý</th>
-          </tr>
-        </thead>
-        <tbody>
-          @foreach (var item in dataList)
+   </ul>
+   <table class="table is-fullwidth is-vcentered is-responsive mt-5">
+   	<thead>
+    	<tr>
+      <th>Tên địa điểm</th>
+				  <th width="25%">Vị trí Google Map</th>
+				  <th align="center" width="300px">Khoảng cách hợp lệ</th>
+				  <th width="15%" align="center">Nhân viên áp dụng</th>
+				  <th width="15%" align="center">Ngày cập nhật</th>
+				  <th width="70px" align="center">Xử lý</th>
+     </tr>
+    </thead>
+     <tbody>
+     @foreach (var item in dataList)
+     {
+      <tr>
+      	<td>
+								<label class="td-label">Tên địa điểm</label>
+								<div class="td-value" style="cursor: pointer;" @onclick="() => EditItem(item)">
+									<span class="has-text-dark text_1_line">
+										@item.name
+									</span>
+								</div>
+      	</td>
+       <td>
+								<label class="td-label">Vị trí Google Map</label>
+								<div class="td-value">
+									<a class="has-text-weight-medium text_1_line" target="_blank"
+          	href="https://www.google.com/maps/place/@item.latitude+@item.longitude/@item.latitude,@item.longitude">
+          	@item.latitude, @item.longitude
+        	</a>
+								</div>
+       </td>
+       <td align="center">
+								<label class="td-label">Khoảng cách hợp lệ</label>
+        <div class="td-value">
+									<span class="has-text-dark">@($"{item.radius}m")</span>
+								</div>
+       </td>
+       <td align="center">
+								<label class="td-label">Nhân viên áp dụng</label>
+        <div class="td-value">
+									<span class="has-text-dark">@item.members_id.Count nhân viên</span>
+								</div>
+       </td>
+      	<td align="center">
+								<label class="td-label">Ngày cập nhật</label>
+        <div class="td-value">
+									<span>@string.Format("{0:dd/MM/yyyy}", new DateTime(item.created))</span>
+								</div>
+       </td>
+       <td>
+								<label class="td-label">Xử lý</label>
+        <div class="td-value">
+									<a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+          <i class="material-icons-outlined is-size-5">
+           edit
+          </i>
+        	</a>
+         <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+         	<i class="material-icons-outlined is-size-5">
+           delete
+          </i>
+        	</a>
+								</div>
+      	</td>
+     	</tr>
+     }
+     </tbody>
+   </table>
+  </div>
+ </section>
+ <LocationPopup model="editItem" OnUpdate="OnUpdate" />
+	@if (useList != null && useList.Count > 0)
+	{
+ <section class="modal is-active">
+  <div class="modal-background"></div>
+    <section class="modal-card">
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          Xóa địa điểm làm việc
+        </div>
+        <a class="delete is-medium" @onclick="() => useList = null"></a>
+      </section>
+      <section class="modal-card-body">
+        <div class="pb-2">
+          Địa điểm <strong>@deleteItem</strong> đang được áp dụng cho <strong>@useList.Count</strong> nhân viên.
+        </div>
+        <div class="pb-5 has-text-danger">
+          Bạn cần thay đổi địa điểm làm việc của @useList.Count nhân viên này trước khi xóa!
+        </div>
+        <ul class="columns is-multiline is-vcentered is-variable is-1">
+          @foreach (var userId in useList)
           {
-            var companys = companyOptions.Where(x => item.companys.Contains(x.id)).Select(x => x.name);
-            <tr>
-              <td>
-                <a class="has-text-dark" @onclick="() => EditItem(item)">
-                  @item.name
-                </a>
-              </td>
-              <td>
-                <a class="has-text-weight-medium" target="_blank"
-                  href="https://www.google.com/maps/place/@item.latitude+@item.longitude/@item.latitude,@item.longitude">
-                  @item.latitude, @item.longitude
-                </a> 
-              </td>
-              <td>
-                <span class="has-text-dark">@string.Join(", ", companys)</span>
-              </td>
-              <td>
-                @string.Format("{0:dd/MM/yyyy}", new DateTime(item.created))
-              </td>
-              <td>
-                <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
-                  <i class="material-icons-outlined is-size-5">
-                    edit
-                  </i>
-                </a>
-                <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
-                  <i class="material-icons-outlined is-size-5">
-                    delete
-                  </i>
-                </a>
-              </td>
-            </tr>
+            var user = UserService.GetUser(Layout.UserList, userId);
+            if (user != null)
+            {
+              var department = departmentAll.Find(i => i.id == user.department_default);
+              <li class="column is-2">
+                @user.id
+              </li>
+              <li class="column is-5">
+                <div class="user_item">
+                  <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                  <span class="text_1_line">@user.FullName</span>
+                </div>
+              </li>
+              <li class="column is-5 is-size-7">
+                <div class="text_1_line">
+                  <span>@(department != null ? department.name : "")</span>
+                </div>
+              </li>
+              <li class="column is-full">
+                <hr class="m-0">
+              </li>
+            }
           }
-        </tbody>
-      </table>
-    </div>
-  </section>
-  <LocationPopup model="editItem" companys="companyOptions" OnUpdate="OnUpdate" />
+        </ul>
+      </section>
+      <section class="modal-card-foot is-right">
+        <a class="button is-white has-text-link" @onclick="() => useList = null">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">close</i>
+          </span>
+          <span>Hủy</span>
+        </a>
+        <a class="button is-static">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">delete</i>
+          </span>
+          <span>Xóa</span>
+        </a>
+      </section>
+    </section>
+ </section>
+	}
 }
 else
 {
   <PopupNoRole />
 }
+
+
 
 @code {
   [CascadingParameter]
@@ -87,22 +173,27 @@ else
   private bool _access = false;
   private List<HrmLocationModel> dataList = new();
   private HrmLocationModel editItem = null;
-  private List<HrmOptionModel> companyOptions = new();
+  private List<string> useList = null;
+  private List<HrmUserShiftModel> HrmUserShiftLocationModel = null;
+  private string deleteItem = string.Empty;
+  private List<DepartmentModel> departmentAll = new();
 
   protected override async Task OnInitializedAsync()
   {
     // Quyền truy cập trang
-    _access = Layout.User.role == 1 || Layout.User.role_manage.timekeeping;
+    _access = Layout.User.role == 1 || (Layout.User.role == 2 && Layout.User.role_manage.timekeeping);
 
-    companyOptions = await DbHrmOption.GetList(Layout.Company.id, "company");
-    dataList = await DbHrmLocation.GetList(Layout.Company.id);
+    dataList = await DbHrmLocation.GetList(Layout.Company.id, false);
+    departmentAll = DbDepartment.GetAll(Layout.Company.id);
+
+    HrmUserShiftLocationModel = await DbHrmUserShift.GetList(Layout.Company.id);
   }
 
   private async Task EditItem(HrmLocationModel item)
   {
-    if(Layout.User.role == 1)
+    if (_access)
     {
-      if(item == null)
+      if (item == null)
         editItem = new();
       else
         editItem = item;
@@ -115,26 +206,31 @@ else
 
   private async Task DeleteItem(HrmLocationModel item)
   {
-    if(Layout.User.role == 1)
+    if (_access)
     {
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
-        return;
+      deleteItem = item.name;
+      // Kiểm tra các tài khoản đang sử dụng
+      useList = Layout.UserList.Where(x => item.members_id.Contains(x.id)).Select(x => x.id).ToList();
 
-      dataList.Remove(item);
-      await SendNotify(item);
-      await DbHrmLocation.Delete(Layout.Company.id, item.id);
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa địa điểm thành công.");
+      if (useList.Count == 0)
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+          return;
+
+        dataList.Remove(item);
+        await SendNotify(item);
+        await DbHrmLocation.Delete(Layout.Company.id, item.id);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa địa điểm thành công.");
+      }
     }
     else
-    {
       await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có quyền xóa dữ liệu này!");
-    }
   }
 
   private async Task OnUpdate(bool isUpdate)
   {
     editItem = null;
-    dataList = await DbHrmLocation.GetList(Layout.Company.id);
+    dataList = await DbHrmLocation.GetList(Layout.Company.id, false);
   }
 
   private async Task SendNotify(HrmLocationModel item)

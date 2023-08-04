@@ -1,63 +1,93 @@
 using System.Collections.Generic;
+using DocumentFormat.OpenXml.Spreadsheet;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models;
 
 public class HrmTimekeepingModel
 {
-  [BsonId]
-  public string id { get; set; }
+	[BsonId]
+	public string id { get; set; }
 
-  /// <summary>ID nhân sự</summary>
-  public string user { get; set; }
+	/// <summary>ID nhân sự</summary>
+	public string user { get; set; }
 
-  /// <summary>Ngày chấm công</summary>
-  public long date { get; set; }
+	/// <summary>Ngày chấm công</summary>
+	public long date { get; set; }
 
-  /// <summary>Checkin ca sáng</summary>
-  public TimeData morning_checkin { get; set; }
+	/// <summary>Danh sách ca làm được phân cho nhân viên trong ngày</summary>
+	public List<HrmWorkShiftModel> shifts { get; set; } = new();
 
-  /// <summary>Checkout ca sáng</summary>
-  public TimeData morning_checkout { get; set; }
-
-  /// <summary>Checkin ca chiều</summary>
-  public TimeData afternoon_checkin { get; set; }
-
-  /// <summary>Checkout ca chiều</summary>
-  public TimeData afternoon_checkout { get; set; }
+	/// <summary>Tracking thời gian chấm công của 1 ngày</summary>
+	public List<TimeData> time_tracking { get; set; } = new();
 
 
-  /// <summary>Dữ liệu thời gian checkin/checkout</summary>
-  public class TimeData
-  {
-    /// <summary>Loại chấm công: checkin/checkout</summary>
-    public string time_type { get; set; }
+	/// <summary>Dữ liệu thời gian checkin/checkout</summary>
+	public class TimeData
+	{
 
-    /// <summary>Số công của ca</summary>
-    public double time_work { get; set; }
+		/// <summary>ID ca làm</summary>
+		public string time_id { get; set; }
 
-    /// <summary>Thời gian phân ca</summary>
-    public string time_shift { get; set; }
+		/// <summary>Tên ca làm</summary>
+		public string time_name { get; set; }
 
-    /// <summary>Thời gian chấm công</summary>
-    public string time_active { get; set; }
+		/// <summary>ID checkin</summary>
+		public string checkin_id { get; set; }
 
-    /// <summary>Thời gian chấm công so với phân ca: lớn 0. Đi trễ/Về sớm (phút)</summary>
-    public long time_difference { get; set; }
+		/// <summary>Loại chấm công: checkin/checkout</summary>
+		public string time_type { get; set; }
 
-    /// <summary>Vị trí chấm công: true. Trong công ty, false. Ngoài công ty</summary>
-    public bool in_company { get; set; }
+		/// <summary>Số công của ca</summary>
+		public double time_work { get; set; }
 
-    /// <summary>Hợp lệ hay không: true = đúng giờ hoặc sớm/trễ trong thời gian cho phép</summary>
-    public bool is_valid { get; set; }
+		/// <summary>Thời gian phân ca</summary>
+		public string time_shift { get; set; }
 
-    /// <summary>Ghi chú</summary>
-    public string note { get; set; }
+		/// <summary>Thời gian chấm công</summary>
+		public string time_active { get; set; }
 
-    /// <summary>Loại lý do</summary>
-    public string reason { get; set; }
+		/// <summary>Thời gian chấm công</summary>
+		public long time_active_tick { get; set; }
 
-    /// <summary>Hình ảnh</summary>
-    public List<string> images { get; set; } = new();
-  }
+		/// <summary>Thời gian chấm công so với phân ca: lớn 0. Đi trễ/Về sớm (phút)</summary>
+		public long time_difference { get; set; }
+
+		/// <summary>Vị trí chấm công: true. Trong công ty, false. Ngoài công ty</summary>
+		public bool in_company { get; set; }
+
+		public Location location { get; set; }
+
+		/// <summary>Hợp lệ hay không: true = đúng giờ hoặc sớm/trễ trong thời gian cho phép</summary>
+		public bool is_valid { get; set; }
+
+		/// <summary>Ghi chú</summary>
+		public string note { get; set; }
+
+		/// <summary>Loại lý do</summary>
+		public string reason { get; set; }
+
+		/// <summary>Hình ảnh</summary>
+		public List<string> images { get; set; } = new();
+
+		/// <summary>Ca OT: true = ca OT, false = Không phải ca OT</summary>
+		public bool is_ot { get; set; }
+
+		/// <summary>Kiểm tra ca qua ngày</summary>
+		public bool is_overday { get; set; }
+
+		/// <summary>Thiết bị hợp lệ</summary>
+		public bool is_valid_device { get; set; }
+
+		/// <summary>Thời gian checkout trước chỉnh sửa</summary>
+		public string time_shift_checkout { get; set; }
+		/// <summary>chế độ hybird</summary>
+  public bool is_hybrid { get; set; }
+	}
+
+	public class Location
+	{
+		public string id { get; set; }
+		public string name { get; set; }
+	}
 }

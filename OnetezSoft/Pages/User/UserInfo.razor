@@ -12,91 +12,90 @@
       </h1>
       @if (user != null)
       {
-        <form @onsubmit="Update">
-          <div class="field">
-            <label class="label">Địa chỉ email</label>
-            <div class="control">
-              <input value="@user.email" type="email" class="input" readonly />
+        <div class="field">
+          <label class="label">
+            Hình đại diện:
+            <a class="ml-3" onclick="document.getElementById('file_avatar').click()">
+              Chọn hình
+            </a>
+          </label>
+          <div class="image is-64x64 is-radius">
+            <img src="@user.avatar" alt="IMG">
+          </div>
+          <div class="is-hidden">
+            <FileUpload Accept="image/*" Size="200" FileId="file_avatar" OnUpload="x => user.avatar = x[0]" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">Địa chỉ email</label>
+          <div class="control">
+            <input value="@user.email" type="email" class="input" readonly />
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">Nhập mật khẩu cũ</label>
+          <div class="control">
+            <input @bind="passwordOld" type="text" class="input" placeholder="Nhập mật khẩu cũ nếu cần thay đổi" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">Nhập mật khẩu mới</label>
+          <div class="control">
+            <input @bind="passwordNew" type="text" class="input" placeholder="Nhập mật khẩu mới nếu cần thay đổi" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">Họ và tên</label>
+          <div class="field is-grouped">
+            <div class="control is-expanded">
+              <input @bind="user.last_name" type="text" class="input" />
+            </div>
+            <div class="control is-expanded">
+              <input @bind="user.first_name" type="text" class="input" />
             </div>
           </div>
-          <div class="field">
-            <label class="label">Nhập mật khẩu cũ</label>
-            <div class="control">
-              <input @bind="passwordOld" type="text" class="input" placeholder="Nhập mật khẩu cũ nếu cần thay đổi" />
+        </div>
+        <div class="field mt-4">
+          <label class="label">Phòng ban mặc định</label>
+          <div class="control">
+            <div class="select is-fullwidth">
+              <select @bind="user.department_default" class="is-family-code">
+                <option value="">Không chọn</option>
+                @foreach (var sl in departments)
+                {
+                  <option value="@sl.id">@sl.name</option>
+                }
+              </select>
             </div>
           </div>
-          <div class="field">
-            <label class="label">Nhập mật khẩu mới</label>
-            <div class="control">
-              <input @bind="passwordNew" type="text" class="input" placeholder="Nhập mật khẩu mới nếu cần thay đổi" />
+        </div>
+        <div class="field mt-4">
+          <label class="label">Trang mặc định khi vào phần mềm</label>
+          <div class="control">
+            <div class="select is-fullwidth">
+              <select @bind="user.page_default">
+                <option value="">Không chọn</option>
+                @foreach (var sl in pageList)
+                {
+                  <option value="@sl.Key">@sl.Value</option>
+                }
+              </select>
             </div>
           </div>
-          <div class="field">
-            <label class="label">Họ và tên</label>
-            <div class="field is-grouped">
-              <div class="control is-expanded">
-                <input @bind="user.last_name" type="text" class="input" />
-              </div>
-              <div class="control is-expanded">
-                <input @bind="user.first_name" type="text" class="input" />
-              </div>
-            </div>
+        </div>
+        <div class="field mt-5">
+          <div class="buttons is-right">
+            <a class="button" onclick="goBack()">
+              <span>Quay lại</span>
+            </a>
+            <a class="button is-link" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">done</i>
+              </span>
+              <span>Cập nhật</span>
+            </a>
           </div>
-          <div class="field">
-            <label class="label">Hình đại diện</label>
-            <div class="field has-addons">
-              <div class="control">
-                <a class="image is-square">
-                  <img src="@user.avatar" />
-                </a>
-              </div>
-              <div class="control is-expanded @(uploading ? "is-loading" : "")">
-                <InputFile OnChange="Upload" accept="image/*" class="input" />
-              </div>
-            </div>
-          </div>
-          <div class="field mt-4">
-            <label class="label">Phòng ban mặc định</label>
-            <div class="control">
-              <div class="select is-fullwidth">
-                <select @bind="user.department_default" class="is-family-code">
-                  <option value="">Không chọn</option>
-                  @foreach (var sl in departments)
-                  {
-                    <option value="@sl.id">@sl.name</option>
-                  }
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="field mt-4">
-            <label class="label">Trang mặc định khi vào phần mềm</label>
-            <div class="control">
-              <div class="select is-fullwidth">
-                <select @bind="user.page_default">
-                  <option value="">Không chọn</option>
-                  @foreach (var sl in pageList)
-                  {
-                    <option value="@sl.Key">@sl.Value</option>
-                  }
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="field mt-5">
-            <div class="buttons is-right">
-              <a class="button" onclick="goBack()">
-                <span>Quay lại</span>
-              </a>
-              <a class="button is-link" @onclick="Update">
-                <span class="icon">
-                  <i class="material-icons-outlined is-size-6">done</i>
-                </span>
-                <span>Cập nhật</span>
-              </a>
-            </div>
-          </div>
-        </form>
+        </div>
       }
       else
       {
@@ -109,9 +108,7 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-
   private string _title = "Thông tin tài khoản";
-
   private UserModel user = new() { companys = new() };
   private List<DepartmentModel.SelectList> departments = new();
   private Dictionary<string, string> pageList = new();
@@ -121,43 +118,10 @@
   protected override async Task OnInitializedAsync()
   {
     pageList = PageList();
-
-    await OnLoad();
-  }
-
-  private async Task OnLoad()
-  {
     user = await DbUser.Get(Layout.Company.id, Layout.User.id);
     if (user != null)
-    {
       departments = DbDepartment.GetSelectListOfUser(Layout.Company.id, user.departments_id, null);
-    }
   }
-
-  private bool uploading = false;
-  private async Task Upload(InputFileChangeEventArgs e)
-  {
-    uploading = true;
-    foreach (var file in e.GetMultipleFiles())
-    {
-      try
-      {
-        if (file.Size <= Layout.MaxFileSize)
-        {
-          var fileContent = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
-          user.avatar = await Files.SaveFileAsync(fileContent, file.Name);
-        }
-        else
-          await JSRuntime.InvokeVoidAsync("tagline", false, $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB");
-      }
-      catch (Exception ex)
-      {
-        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.Message}");
-      }
-    }
-    uploading = false;
-  }
-
 
   private async Task Update()
   {
