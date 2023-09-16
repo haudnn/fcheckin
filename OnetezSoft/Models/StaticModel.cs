@@ -1,18 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace OnetezSoft.Models
+﻿namespace OnetezSoft.Models
 {
-	public class StaticModel
-	{
-		public int id { get; set; }
+  public class StaticModel
+  {
+    public int id { get; set; }
 
-		public string name { get; set; }
+    public string id_string { get; set; }
 
-		public string icon { get; set; }
+    public string name { get; set; }
 
-  public string color { get; set; }
+    public string icon { get; set; }
 
-			public bool isDefault { get; set; }
-   }
+    public string color { get; set; }
+
+    public bool isDefault { get; set; }
+  }
 }

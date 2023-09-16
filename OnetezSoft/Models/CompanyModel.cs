@@ -1,6 +1,5 @@
-﻿using System;
+﻿using MongoDB.Bson.Serialization.Attributes;
 using System.Collections.Generic;
-using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models
 {
@@ -47,6 +46,9 @@ namespace OnetezSoft.Models
     /// <summary>Mã xác minh</summary>
     public string verify { get; set; }
 
+    /// <summary>Kiểm tra có phải lần đầu không?</summary>
+    public bool isUsed { get; set; } = false;
+
     /// <summary>Cấu hình Todolist</summary>
     public Todolist todolist { get; set; }
 
@@ -58,15 +60,12 @@ namespace OnetezSoft.Models
 
     /// <summary>Sản phẩm sở hữu</summary>
     public List<Product> products { get; set; }
-    
+
     /// <summary>Danh mục tin tức</summary>
     public List<Category> blog_category { get; set; } = new();
 
-
     /// <summary>Danh mục cửa hàng</summary>
     public List<StaticModel> gift_category { get; set; } = new();
-
-
 
     /// <summary>Cấu hình Todolist</summary>
     public class Todolist
@@ -79,7 +78,7 @@ namespace OnetezSoft.Models
 
       /// <summary>Thời gian checkout HH:mm</summary>
       public string time_checkout { get; set; }
-      
+
       /// <summary>Thời gian tự động xác nhận</summary>
       public string time_confirm { get; set; }
     }
@@ -132,11 +131,11 @@ namespace OnetezSoft.Models
       public bool educate { get; set; }
     }
 
-      public class Category
-      {
-        public string id { get; set; }
-        public string name { get; set; }
-        public string color { get; set; }
-      }
+    public class Category
+    {
+      public string id { get; set; }
+      public string name { get; set; }
+      public string color { get; set; }
+    }
   }
 }
