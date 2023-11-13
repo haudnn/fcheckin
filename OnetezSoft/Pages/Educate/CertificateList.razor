@@ -1,21 +1,12 @@
 ﻿@page "/educate/certificate/list"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<section class="p-4 @(_loaded ? "" : "is-loading")">
-  <div class="card p-5">
+<section class="main_content @(_loaded ? "" : "is-loading")">
+  <div class="card flex_column is_fullheight">
     <ul class="columns is-vcentered is-variable is-2 mb-3">
       <li class="column">
         <h1 class="title is-5 has-text-info is-uppercase">
@@ -23,82 +14,84 @@
         </h1>
       </li>
     </ul>
-    <table class="table is-fullwidth is-vcentered is-responsive">
-      <thead>
-        <tr>
-          <th>Khóa học</th>
-          <th width="20%">Giảng viên</th>
-          <th width="150px">Ngày đạt chứng chỉ</th>
-          <th width="100px" align="center">Chứng chỉ</th>
-          <th width="60px" align="center">Chi tiết</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach (var item in dataList)
-        {
-          var teacher = Layout.UserList.SingleOrDefault(x => x.id == item.teacher);
+    <div class="inner_section scrolly" style="flex:1">
+      <table class="table is-fullwidth is-vcentered is-responsive">
+        <thead>
+          <tr>
+            <th class="pt-0">Khóa học</th>
+            <th class="pt-0" width="20%">Giảng viên</th>
+            <th class="pt-0" width="150px">Ngày đạt chứng chỉ</th>
+            <th class="pt-0" width="100px" align="center">Chứng chỉ</th>
+            <th class="pt-0" width="60px" align="center">Chi tiết</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var item in dataList)
+          {
+            var teacher = shareStorage.MemberList.SingleOrDefault(x => x.id == item.teacher);
 
-          <tr>
-            <td>
-              <label class="td-label">Khóa học</label>
-              <div class="td-value">
-                <div class="text_1_line has-text-weight-semibold has-text-info" onclick="toggleText(this)">
-                  @item.course_name
-                </div>
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Giảng viên</label>
-              <div class="td-value">
-                @if (teacher != null)
-                {
-                  <div class="user_item">
-                    <img class="image is-24x24 mr-2" src="@teacher.avatar" alt="IMG" />
-                    <span>@teacher.FullName</span>
+            <tr>
+              <td>
+                <label class="td-label">Khóa học</label>
+                <div class="td-value">
+                  <div class="text_1_line has-text-weight-semibold has-text-info" onclick="toggleText(this)">
+                    @item.course_name
                   </div>
-                }
-                else
-                {
-                  <span>@item.user</span>
-                }
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Ngày đạt chứng chỉ</label>
-              <div class="td-value">
-                @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.certificate_date))
-              </div>
-            </td>
-            <td align="center">
-              <label class="td-label">Chứng chỉ</label>
-              <div class="td-value">
-                <a class="image" style="width: 60px;" @onclick="() => ViewItem(item)">
-                  <img src="@item.certificate_image" alt="IMG" />
-                </a>
-              </div>
-            </td>
-            <td align="center">
-              <label class="td-label">Xử lý</label>
-              <div class="td-value">
-                <a class="icon" style="width: 60px;" @onclick="() => ViewItem(item)" title="Xem chi tiết">
-                  <i class="material-icons-outlined is-size-5">info</i>
-                </a>
-              </div>
-            </td>
-          </tr>
-        }
-        @if (dataList.Count == 0)
-        {
-          <tr>
-            <td colspan="5">
-              <div class="has-text-grey py-6">
-                Không tìm thấy dữ liệu
-              </div>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Giảng viên</label>
+                <div class="td-value">
+                  @if (teacher != null)
+                  {
+                    <div class="user_item">
+                      <img class="image is-24x24 mr-2" src="@teacher.avatar" alt="IMG" />
+                      <span>@teacher.name</span>
+                    </div>
+                  }
+                  else
+                  {
+                    <span>@item.user</span>
+                  }
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Ngày đạt chứng chỉ</label>
+                <div class="td-value">
+                  @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.certificate_date))
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Chứng chỉ</label>
+                <div class="td-value">
+                  <a class="image" style="width: 60px;" @onclick="() => ViewItem(item)">
+                    <img src="@item.certificate_image" alt="IMG" />
+                  </a>
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Xử lý</label>
+                <div class="td-value">
+                  <a class="icon" style="width: 60px;" @onclick="() => ViewItem(item)" title="Xem chi tiết">
+                    <i class="material-icons-outlined is-size-5">info</i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          }
+          @if (dataList.Count == 0)
+          {
+            <tr>
+              <td colspan="5">
+                <div class="has-text-grey py-6">
+                  Không tìm thấy dữ liệu
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
 
@@ -130,15 +123,18 @@
   public LayoutMain Layout { get; set; }
 
   private bool _loaded = false;
-  private bool _success = false;
+  private bool success = false;
   private string _message = string.Empty;
   private string _title = "Chứng chỉ đạt được";
 
   private List<EducateLearnedModel> dataList = new();
   private EducateLearnedModel current = null;
 
+  private SharedStorage shareStorage = new();
+
   protected override async Task OnInitializedAsync()
   {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
     var data = await DbEducateLearned.GetList(Layout.Company.id, Layout.User.id, 2);
     foreach (var item in data)
     {

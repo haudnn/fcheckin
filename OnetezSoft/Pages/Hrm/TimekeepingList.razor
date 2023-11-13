@@ -1,99 +1,95 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<section class="p-4">
-	<div class="card p-5">
-		<ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
-			<li class="column">
-				<div class="title is-5 has-text-info is-uppercase">
-					Lịch sử chấm công
-				</div>
-			</li>
-			<li class="column is-narrow">
-				<div class="select is-fullwidth">
-					<select @onchange="ChangeDate">
-						<option value="1">Tuần này</option>
-						<option value="11">Tuần trước</option>
-						<option value="2">Tháng này</option>
-						<option value="22">Tháng trước</option>
-					</select>
-				</div>
-			</li>
-		</ul>
-		<table class="table is-fullwidth is-vcentered is-responsive mt-5">
-			<tbody>
-				@for (DateTime date = filterDateE.Value.DateTime; date >= filterDateS.Value.DateTime; date = date.AddDays(-1))
-				{
-					DateTime day = date;
-					var timekeeping = dataList.FirstOrDefault(x => x.date == day.Ticks);
-		
-					if(timekeeping != null)
-					{
-						var firstData = timekeeping.time_tracking.First();
-							<tr>
-								<td class="pl-2">
-									<div @onclick="() => ShowPopup(day.Ticks, timekeeping, firstData.checkin_id)" class="td-value is-flex is-align-items-center td-heading">
-										<a class="has-text-weight-semibold is-flex-grow-1 is-flex-shrink-1 is-secondary-20">
-											@Shared.ConvertDateWeek(day.Ticks)
-										</a>
-										<div style="gap: 0 10px; display:inline-flex" class="is-justify-content-flex-end is-align-items-center">
-											<span class="is-secondary-20 has-text-weight-semibold">Số công ngày: <span class="is-secondary-40 has-text-weight-normal">@GetTimeRecord(timekeeping)</span></span>
-											<div>
-												<span class="icon">
-													<i class="material-icons-outlined is-size-6">chevron_right</i>
-												</span>
-											</div>
-										</div>
-									</div>
-								</td>
-								<td style="width: 100%; padding-top: 0 !important" align="center" class="is-flex is-align-items-center">
-									<label class="is-flex-grow-1 is-flex-shrink-1 td-label has-text-weight-medium is-secondary-20">Tên ca làm</label>
-									<label class="is-flex-grow-1 is-flex-shrink-1 td-label has-text-weight-medium is-secondary-20">Giờ check-in</label>
-									<label class="is-flex-grow-1 is-flex-shrink-1 td-label has-text-weight-medium is-secondary-20">Giờ check-out</label>
-								</td>
-								<td align="center" style="margin-top: 0; padding-top: 0 !important">
-								@foreach (HrmTimekeepingModel.TimeData item in timekeeping.time_tracking)
-								{
-									var shift = shiftList.Find(x => x.id == item.time_id);
-									if (item.time_type == "Check-in")
-									{
-										var checkoutLog = timekeeping.time_tracking.FirstOrDefault(l => l.time_type == "Check-out" && l.checkin_id == item.checkin_id);
-										if(shift != null && !shift.is_deleted)
-										{
-											<label style="width: 33.33%;" class="is-text-ellipsis is-flex-grow-1 is-flex-shrink-1 td-label is-secondary-40">@shift.name</label>
-										}
-										else if(shift != null && shift.is_deleted)
-										{
-												<label style="width: 33.33%;" class="is-text-ellipsis is-flex-grow-1 is-flex-shrink-1 td-label is-secondary-40">Ca làm đã xóa</label>
-										}
-										else
-										{
-											<label style="width: 33.33%;" class="is-text-ellipsis is-flex-grow-1 is-flex-shrink-1 td-label is-secondary-40">Làm ngoài giờ</label>
-										}
-											<TimekeepingItem data="item" />
-										@if (checkoutLog != null)
-										{
-											<TimekeepingItem data="checkoutLog" />
-										}
-									}
-								}
-								</td>
-							</tr>
-					}
-				}
-			</tbody>
-		</table>
-	</div>
-</section>
+<div class="">
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
+    <li class="column">
+      <div class="title is-5 has-text-info is-uppercase">
+        Lịch sử chấm công
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <div class="select is-fullwidth">
+        <select @onchange="ChangeDate">
+          <option value="1">Tuần này</option>
+          <option value="11">Tuần trước</option>
+          <option value="2">Tháng này</option>
+          <option value="22">Tháng trước</option>
+        </select>
+      </div>
+    </li>
+  </ul>
+  <table class="table is-fullwidth is-vcentered is-responsive mt-5">
+    <tbody>
+      @for (DateTime date = filterDateE.Value.DateTime; date >= filterDateS.Value.DateTime; date = date.AddDays(-1))
+      {
+        DateTime day = date;
+        var timekeeping = dataList.FirstOrDefault(x => x.date == day.Ticks);
 
-<TimekeepingPopup 
-	day="@popupDay" 
-	data="popupData" 
- shifts="shiftList" 
-	model="@currentShift" 
-	OnClose="() => popupDay = 0"
-	isCheckDevice="isCheckDevice"
-/>
+        if (timekeeping != null)
+        {
+          var firstData = timekeeping.time_tracking.First();
+          <tr>
+            <td class="pl-2">
+              <div @onclick="() => ShowPopup(day.Ticks, timekeeping, firstData.checkin_id)" class="td-value is-flex is-align-items-center td-heading">
+                <a class="has-text-weight-semibold is-flex-grow-1 is-flex-shrink-1 is-secondary-20">
+                  @Shared.ConvertDateWeek(day.Ticks)
+                </a>
+                <div style="gap: 0 10px; display:inline-flex" class="is-justify-content-flex-end is-align-items-center">
+                  <span class="is-secondary-20 has-text-weight-semibold">Số công ngày: <span class="is-secondary-40 has-text-weight-normal">@GetTimeRecord(timekeeping)</span></span>
+                  <div>
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-6">chevron_right</i>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td style="width: 100%; padding-top: 0 !important" align="center" class="is-flex is-align-items-center">
+              <label class="is-flex-grow-1 is-flex-shrink-1 td-label has-text-weight-medium is-secondary-20">Tên ca làm</label>
+              <label class="is-flex-grow-1 is-flex-shrink-1 td-label has-text-weight-medium is-secondary-20">Giờ check-in</label>
+              <label class="is-flex-grow-1 is-flex-shrink-1 td-label has-text-weight-medium is-secondary-20">Giờ check-out</label>
+            </td>
+            <td align="center" style="margin-top: 0; padding-top: 0 !important">
+              @foreach (HrmTimekeepingModel.TimeData item in timekeeping.time_tracking)
+              {
+                var shift = shiftList.Find(x => x.id == item.time_id);
+                if (item.time_type == "Check-in")
+                {
+                  var checkoutLog = timekeeping.time_tracking.FirstOrDefault(l => l.time_type == "Check-out" && l.checkin_id == item.checkin_id);
+                  if (shift != null && !shift.is_deleted)
+                  {
+                    <label style="width: 33.33%;" class="is-text-ellipsis is-flex-grow-1 is-flex-shrink-1 td-label is-secondary-40">@shift.name</label>
+                  }
+                  else if (shift != null && shift.is_deleted)
+                  {
+                    <label style="width: 33.33%;" class="is-text-ellipsis is-flex-grow-1 is-flex-shrink-1 td-label is-secondary-40">Ca làm đã xóa</label>
+                  }
+                  else
+                  {
+                    <label style="width: 33.33%;" class="is-text-ellipsis is-flex-grow-1 is-flex-shrink-1 td-label is-secondary-40">Làm ngoài giờ</label>
+                  }
+                  <TimekeepingItem data="item" />
+                  @if (checkoutLog != null)
+                  {
+                    <TimekeepingItem data="checkoutLog" />
+                  }
+                }
+              }
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+<TimekeepingPopup day="@popupDay"
+                  data="popupData"
+                  shifts="shiftList"
+                  model="@currentShift"
+                  OnClose="() => popupDay = 0"
+                  isCheckDevice="isCheckDevice" />
 
 
 @code {
@@ -106,65 +102,65 @@
   private DateTimeOffset? filterDateE = DateTime.Today;
   private long popupDay = 0;
   private HrmTimekeepingModel popupData = null;
-		private HrmTimekeepingModel.TimeData currentShift = null;
-		private bool isCheckDevice = false;
+  private HrmTimekeepingModel.TimeData currentShift = null;
+  private bool isCheckDevice = false;
 
 
 
   protected override async Task OnInitializedAsync()
   {
-   Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
-   filterDateS = start;
-   filterDateE = end;
-   shiftList = await DbHrmWorkShift.GetListWithoutDelete(Layout.Company.id);
-			isCheckDevice = await DbHrmRules.IsCheckDevice(Layout.Company.id);
-   await GetData();
+    Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
+    filterDateS = start;
+    filterDateE = end;
+    shiftList = await DbHrmWorkShift.GetListWithoutDelete(Layout.Company.id);
+    isCheckDevice = await DbHrmRules.IsCheckDevice(Layout.Company.id);
+    await GetData();
   }
 
   public async Task ChangePicker(DateRange range)
   {
-   filterDateS = Convert.ToDateTime(range.Start.DateTime.ToString("yyyy-MM-dd"));
-   filterDateE = Convert.ToDateTime(range.End.DateTime.ToString("yyyy-MM-dd"));
-   await GetData();
+    filterDateS = Convert.ToDateTime(range.Start.DateTime.ToString("yyyy-MM-dd"));
+    filterDateE = Convert.ToDateTime(range.End.DateTime.ToString("yyyy-MM-dd"));
+    await GetData();
   }
 
   private async Task ChangeDate(ChangeEventArgs e)
   {
-   var type = Convert.ToInt32(e.Value);
-   Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
-   filterDateS = start;
-   filterDateE = end;
-   await GetData();
+    var type = Convert.ToInt32(e.Value);
+    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
+    filterDateS = start;
+    filterDateE = end;
+    await GetData();
   }
 
   private async Task GetData()
   {
-   dataList = await DbHrmTimekeeping.GetList(Layout.Company.id, Layout.User.id, filterDateS.Value.Ticks, filterDateE.Value.Ticks);
+    dataList = await DbHrmTimekeeping.GetList(Layout.Company.id, Layout.User.id, filterDateS.Value.Ticks, filterDateE.Value.Ticks);
   }
 
 
   /// <summary>
   /// Lấy tổng số công thực tế ghi nhận trong ngày
   /// </summary>
-	private double GetTimeRecord(HrmTimekeepingModel timekeeping)
-	{
-		double result = timekeeping.time_tracking
-			.Where(t => t.time_type == "Check-out" && t.is_valid && timekeeping.time_tracking.Any(ct => ct.checkin_id == t.checkin_id && ct.time_type == "Check-in" && ct.is_valid))
-			.GroupBy(t => t.time_id)
-			.Select(group => group.Sum(t => t.time_work))
-			.Sum();
-		return result;
-	}
+  private double GetTimeRecord(HrmTimekeepingModel timekeeping)
+  {
+    double result = timekeeping.time_tracking
+      .Where(t => t.time_type == "Check-out" && t.is_valid && timekeeping.time_tracking.Any(ct => ct.checkin_id == t.checkin_id && ct.time_type == "Check-in" && ct.is_valid))
+      .GroupBy(t => t.time_id)
+      .Select(group => group.Sum(t => t.time_work))
+      .Sum();
+    return result;
+  }
 
 
 
   /// <summary>
   /// Hiện popup chi tiết chấm công
   /// </summary>
- private void ShowPopup(long day, HrmTimekeepingModel item, string checkin_id)
- {
-  popupDay = day;
-  popupData = item;
-		currentShift = item.time_tracking.FirstOrDefault(x => x.checkin_id == checkin_id && x.time_type == "Check-in");
- }
+  private void ShowPopup(long day, HrmTimekeepingModel item, string checkin_id)
+  {
+    popupDay = day;
+    popupData = item;
+    currentShift = item.time_tracking.FirstOrDefault(x => x.checkin_id == checkin_id && x.time_type == "Check-in");
+  }
 }

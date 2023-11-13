@@ -1,5 +1,4 @@
-﻿@page "/config/gift"
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
 <PageTitle>@_title</PageTitle>
@@ -10,163 +9,143 @@
 }
 else
 {
-  <section class="columns is-gapless has_menu_left">
-    <div class="column is-narrow">
-      <div class="card p-3 menu_left">
-        <a class="is-active" href="/config/gift">
-          Cửa hàng
-        </a>
-        <a href="/config/gift/exchange">
-          Đơn hàng
-        </a>
-        <a href="/config/gift/category">
-          Danh mục
-        </a>
-        <a href="/config/gift/banner">
-          Ưu đãi
-        </a>
+  <ul class="columns is-vcentered is-variable is-2 mb-2">
+    <li class="column">
+      <h1 class="title is-5 has-text-info">
+        QUẢN LÝ CỬA HÀNG
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <a class="button is-link" @onclick="() => EditItem(null)">
+        <span class="icon">
+          <span class="material-icons-outlined is-size-6">add</span>
+        </span>
+        <span>Thêm mới</span>
+      </a>
+    </li>
+  </ul>
+  <ul class="columns is-variable is-2 mb-2">
+    <li class="column">
+      <input @bind="filterKey" type="text" class="input" placeholder="Từ khóa: tên sản phẩm..." />
+    </li>
+    <li class="column is-one-third is-hidden">
+      <div class="select is-fullwidth">
+        <select @onchange="ChangeDepartment" class="is-family-code">
+          @foreach (var item in departments)
+          {
+            <option value="@item.id">@item.name</option>
+          }
+        </select>
       </div>
-    </div>
-    <div class="column">
-      <div class="card p-5">
-        <ul class="columns is-vcentered">
-          <li class="column">
-            <h1 class="title is-5 has-text-info">
-              QUẢN LÝ CỬA HÀNG
-            </h1>
-          </li>
-          <li class="column is-narrow">
-            <a class="button is-link" @onclick="() => EditItem(null)">
-              <span class="icon">
-                <span class="material-icons-outlined is-size-6">add</span>
-              </span>
-              <span>Thêm mới</span>
-            </a>
-          </li>
-        </ul>
-        <ul class="columns is-variable is-2">
-          <li class="column">
-            <input @bind="filterKey" type="text" class="input" placeholder="Từ khóa: tên sản phẩm..." />
-          </li>
-          <li class="column is-one-third is-hidden">
-            <div class="select is-fullwidth">
-              <select @onchange="ChangeDepartment" class="is-family-code">
-                @foreach (var item in departments)
-                {
-                  <option value="@item.id">@item.name</option>
-                }
-              </select>
-            </div>
-          </li>
-          <li class="column is-narrow">
-            <a class="button is-link is-outlined" @onclick="Search">
-              <span class="icon">
-                <i class="material-icons-outlined">search</i>
-              </span>
-              <span>Tìm kiếm</span>
-            </a>
-          </li>
-        </ul>
-        <table class="table is-fullwidth is-vcentered is-responsive mt-5">
-          <thead>
-            <tr>
-              <th width="60px">Hình</th>
-              <th width="25%">Sản phẩm</th>
-              <th width="15%">Danh mục</th>
-              <th width="80px">Số sao</th>
-              <th>Mô tả</th>
-              <th width="80px" align="center">Hiển thị</th>
-              <th width="70px" align="center">Xử lý</th>
-            </tr>
-          </thead>
-          <tbody>
-            @foreach (var item in dataList)
-            {
-              var category = Layout.Company.gift_category.SingleOrDefault(x => x.id == item.category);
+    </li>
+    <li class="column is-narrow">
+      <a class="button is-link is-outlined" @onclick="Search">
+        <span class="icon">
+          <i class="material-icons-outlined">search</i>
+        </span>
+        <span>Tìm kiếm</span>
+      </a>
+    </li>
+  </ul>
+  <div id="scrollbox" class="scrolly table-container inner_section" style="flex:1">
+    <table class="table is-fullwidth is-vcentered is-responsive sticky only_desktop">
+      <thead>
+        <tr>
+          <th class="sticky" style="left:0" width="60px">Hình</th>
+          <th class="sticky last" style="left:60px" width="250px">Sản phẩm</th>
+          <th class="" width="200px">Danh mục</th>
+          <th class="" width="80px">Số sao</th>
+          <th class="" width="300px">Mô tả</th>
+          <th class="" width="80px" align="center">Hiển thị</th>
+          <th class="" width="70px" align="center">Xử lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in dataList)
+        {
+          var category = Layout.Company.gift_category.SingleOrDefault(x => x.id == item.category);
 
-              <tr>
-                <td>
-                  <a class="image is-square" href="@item.image" target="_blank">
-                    <img src="@item.image" alt="IMG" />
-                  </a>
-                </td>
-                <td>
-                  <label class="td-label">Sản phẩm</label>
-                  <div class="td-value">
-                    <a class="has-text-weight-semibold" @onclick="() => EditItem(item)">
-                      @item.name
-                    </a>
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Danh mục</label>
-                  <div class="td-value">
-                    @(category != null ? category.name : "")
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Số sao</label>
-                  <div class="td-value">
-                    @if (item.price_sale > 0)
-                    {
-                      <span class="has-text-weight-semibold">@item.price_sale</span>
-                      <del>@item.price_list</del>
-                    }
-                    else
-                    {
-                      <span class="has-text-weight-semibold">@item.price_list</span>
-                    }
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Mô tả</label>
-                  <div class="td-value">
-                    <div class="text_1_line" onclick="toggleText(this)">
-                      @((MarkupString)Shared.GetLinks(item.description))
-                    </div>
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Hiển thị</label>
-                  <div class="td-value">
-                    <a class="icon" @onclick="() => ToggleItem(item)">
-                      @if (item.show)
-                      {
-                        <span class="material-icons-outlined is-size-4 has-text-success">
-                          toggle_on
-                        </span>
-                      }
-                      else
-                      {
-                        <span class="material-icons-outlined is-size-4 has-text-black">
-                          toggle_off
-                        </span>
-                      }
-                    </a>
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Xử lý</label>
-                  <div class="td-value">
-                    <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
-                      <i class="material-icons-outlined is-size-5">
-                        edit
-                      </i>
-                    </a>
-                    <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
-                      <i class="material-icons-outlined is-size-5">
-                        delete
-                      </i>
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
+          <tr>
+            <td class="sticky" style="left:0">
+              <a class="image is-square" href="@item.image" target="_blank">
+                <img src="@item.image" alt="IMG" />
+              </a>
+            </td>
+            <td class="sticky last" style="left:60px">
+              <label class="td-label">Sản phẩm</label>
+              <div class="td-value">
+                <a class="has-text-weight-semibold" @onclick="() => EditItem(item)">
+                  @item.name
+                </a>
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Danh mục</label>
+              <div class="td-value">
+                @(category != null ? category.name : "")
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Số sao</label>
+              <div class="td-value">
+                @if (item.price_sale > 0)
+                {
+                  <span class="has-text-weight-semibold">@item.price_sale</span>
+                  <del>@item.price_list</del>
+                }
+                else
+                {
+                  <span class="has-text-weight-semibold">@item.price_list</span>
+                }
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Mô tả</label>
+              <div class="td-value">
+                <div class="text_1_line" onclick="toggleText(this)">
+                  @((MarkupString)Shared.GetLinks(item.description))
+                </div>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Hiển thị</label>
+              <div class="td-value">
+                <a class="icon" @onclick="() => ToggleItem(item)">
+                  @if (item.show)
+                  {
+                    <span class="material-icons-outlined is-size-4 has-text-success">
+                      toggle_on
+                    </span>
+                  }
+                  else
+                  {
+                    <span class="material-icons-outlined is-size-4 has-text-black">
+                      toggle_off
+                    </span>
+                  }
+                </a>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Xử lý</label>
+              <div class="td-value">
+                <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    edit
+                  </i>
+                </a>
+                <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    delete
+                  </i>
+                </a>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 }
 
 @if (current != null)
@@ -202,7 +181,7 @@ else
                 <div class="control is-expanded">
                   <input @bind="current.image" class="input" type="text" placeholder="Nhập link hình..." />
                 </div>
-                <FileUpload Accept="image/*" Size="400" OnUpload="x => current.image = x[0]" />
+                <FileUpload Path="gift/product" Cloud Accept="image/*" Size="400" OnUpload="x => current.image = x[0]" />
               </div>
             </div>
           </li>
@@ -288,20 +267,38 @@ else
 
   protected override async Task OnInitializedAsync()
   {
-    var departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    var departmentAll = await DbDepartment.GetAll(Layout.Company.id);
     departments = departmentAll.Where(x => x.parent == null).ToList();
     if (departments.Count == 1)
       departments = departmentAll.Where(x => x.parent == departments[0].id).ToList();
 
-    if(departments.Count > 0)
+    if (departments.Count > 0)
       filterDepartment = departments[0].id;
 
     await Search();
   }
 
-  private async Task Search()
+  protected override async Task OnAfterRenderAsync(bool firstRender)
   {
-    dataList = await DbGiftProduct.GetList(Layout.Company.id, filterKey, filterDepartment);
+    if (firstRender)
+      await JSRuntime.InvokeVoidAsync("dragScrollX");
+  }
+
+  private async Task<bool> Search()
+  {
+    bool _success = true;
+    try
+    {
+      dataList = await DbGiftProduct.GetList(Layout.Company.id, filterKey, filterDepartment);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Search()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task ChangeDepartment(ChangeEventArgs e)
@@ -310,20 +307,45 @@ else
     await Search();
   }
 
-  private async Task DeleteItem(GiftProductModel item)
+  private async Task<bool> DeleteItem(GiftProductModel item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
-      return;
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+        return false;
 
-    dataList.Remove(item);
-    await DbGiftProduct.Delete(Layout.Company.id, item.id);
-    Files.DeleteFile(item.image);
+      dataList.Remove(item);
+      await DbGiftProduct.Delete(Layout.Company.id, item.id);
+
+      Files.DeleteFile(item.image);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task ToggleItem(GiftProductModel item)
+  private async Task<bool> ToggleItem(GiftProductModel item)
   {
-    item.show = !item.show;
-    await DbGiftProduct.Update(Layout.Company.id, item);
+    bool _success = true;
+    try
+    {
+      item.show = !item.show;
+      await DbGiftProduct.Update(Layout.Company.id, item);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ToggleItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void EditItem(GiftProductModel item)
@@ -331,11 +353,11 @@ else
     if (item == null)
     {
       current = new()
-      {
-        show = true,
-        department = filterDepartment,
-        image = "/images/default.jpg"
-      };
+        {
+          show = true,
+          department = filterDepartment,
+          image = "/images/default.jpg"
+        };
     }
     else
     {
@@ -343,28 +365,40 @@ else
     }
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (Shared.IsEmpty(current.name))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa nhập tên sản phẩm!");
-    else if(Shared.IsEmpty(current.image))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa chọn hình sản phẩm!");
-    else if(current.category == 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa chọn danh mục!");
-    else if(current.price_list == 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa nhập số sao!");
-    else
+    bool _success = true;
+    try
     {
-      if (string.IsNullOrEmpty(current.id))
-      {
-        current = await DbGiftProduct.Create(Layout.Company.id, current);
-        dataList.Insert(0, current);
-      }
+      if (Shared.IsEmpty(current.name))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa nhập tên sản phẩm!");
+      else if (Shared.IsEmpty(current.image))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa chọn hình sản phẩm!");
+      else if (current.category == 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa chọn danh mục!");
+      else if (current.price_list == 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa nhập số sao!");
       else
       {
-        current = await DbGiftProduct.Update(Layout.Company.id, current);
+        if (string.IsNullOrEmpty(current.id))
+        {
+          current = await DbGiftProduct.Create(Layout.Company.id, current);
+          dataList.Insert(0, current);
+        }
+        else
+        {
+          current = await DbGiftProduct.Update(Layout.Company.id, current);
+        }
+        current = null;
       }
-      current = null;
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

@@ -66,7 +66,7 @@
     <li class="column is-narrow">
       <div class="control has-icons-left" style="width: 240px;" title="Nhấn Enter để tìm">
         <input @bind="filterKeyword" @onkeyup="ChangeKeyword" type="text" class="input is-small"
-          placeholder="Tìm theo người gửi, công ty, tiêu đề..." />
+               placeholder="Tìm theo người gửi, công ty, tiêu đề..." />
         <span class="icon is-left has-text-dark">
           <i class="material-icons-round is-size-6">search</i>
         </span>
@@ -287,10 +287,22 @@
     }
   }
 
-  private void Search()
+  private async Task<bool> Search()
   {
-    dataList = DbMainFeedback.GetList(filterKeyword, filterStatus, filterCompany,
-      filterDateS.Value.DateTime, filterDateE.Value.DateTime);
+    bool _success = true;
+    try
+    {
+      dataList = await DbMainFeedback.GetList(filterKeyword, filterStatus, filterCompany,
+        filterDateS.Value.DateTime, filterDateE.Value.DateTime);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Search()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task SetFilter()

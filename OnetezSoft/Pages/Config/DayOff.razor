@@ -1,5 +1,4 @@
-﻿@page "/config/system/dayoff"
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
 <PageTitle>@_title</PageTitle>
@@ -10,172 +9,143 @@
 }
 else
 {
-  <section class="columns is-gapless has_menu_left">
-    <div class="column is-narrow">
-      <div class="card p-3 menu_left">
-        <a href="/config/system/department/list">
-          Phòng ban
-        </a>
-        <a href="/config/system/user/list">
-          Nhân sự
-        </a>
-        <a class="is-active" href="/config/system/dayoff">
-          Thiết lập ngày nghỉ
-        </a>
-      </div>
-    </div>
-    <div class="column">
-      <div class="card p-5">
-        <ul class="columns is-vcentered">
-          <li class="column is-narrow">
-            <h1 class="title is-5 has-text-info is-uppercase">
-              Lịch nghỉ
-            </h1>
-          </li>
-          <li class="column has-text-right">
-            <a class="button" @onclick="() => EditItem(null)">
-              <span class="icon">
-                <span class="material-icons-outlined is-size-6">add</span>
-              </span>
-              <span>Thêm mới</span>
-            </a>
-          </li>
-        </ul>
-        <table class="table is-fullwidth is-vcentered is-responsive mt-5">
-          <thead>
-            <tr>
-              <th width="18%">Tên ngày nghỉ</th>
-              <th align="center">Ngày nghỉ</th>
-              <th width="12%" align="center">Kết thúc</th>
-              <th width="12%" align="center">Ngày tạo</th>
-              <th width="12%" align="center">Tính lương</th>
-              <th width="12%" align="center">Lặp lại</th>
-              <th width="70px" align="center">Xử lý</th>
-            </tr>
-          </thead>
-          <tbody>
-            @foreach (var item in dataList)
-            {
-              <tr>
-                <td>
-                  @item.name
-                </td>
-                <td align="center">
-                  <label class="td-label">Ngày nghỉ</label>
-                  <div class="td-value">
-                    @if (item.loop == 1)
-                    {
-                      <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(item.start))</span>
-                      @if (item.start != item.end)
-                      {
-                        <span>@string.Format(" - {0:dd/MM/yyyy}", new DateTime(item.end))</span>
-                      }
-                    }
-                    else
-                    {
-                      if (item.loop_week.mon)
-                      {
-                        <span>T2, </span>
-                      }
-                      if (item.loop_week.tue)
-                      {
-                        <span>T3, </span>
-                      }
-                      if (item.loop_week.wed)
-                      {
-                        <span>T4, </span>
-                      }
-                      if (item.loop_week.thu)
-                      {
-                        <span>T5, </span>
-                      }
-                      if (item.loop_week.fri)
-                      {
-                        <span>T6, </span>
-                      }
-                      if (item.loop_week.sat)
-                      {
-                        <span>T7, </span>
-                      }
-                      if (item.loop_week.sun)
-                      {
-                        <span>CN</span>
-                      }
-                    }
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Kết thúc</label>
-                  <div class="td-value">
-                    @string.Format("{0:dd/MM/yyyy}", new DateTime(item.end))
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Ngày tạo</label>
-                  <div class="td-value">
-                    @string.Format("{0:dd/MM/yyyy}", new DateTime(item.create))
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Tính lương</label>
-                  <div class="td-value">
-                    @if(item.has_salary)
-                    {
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-5">done</i>
-                      </span>
-                    }
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Lặp lại</label>
-                  <div class="td-value has-text-weight-semibold">
-                    @if (item.loop == 1)
-                    {
-                      <span>Một lần</span>
-                    }
-                    else
-                    {
-                      <span>Hàng tuần</span>
-                    }
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Xử lý</label>
-                  <div class="td-value">
-                    <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
-                      <i class="material-icons-outlined is-size-5">
-                        edit
-                      </i>
-                    </a>
-                    <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
-                      <i class="material-icons-outlined is-size-5">
-                        delete
-                      </i>
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
+  <ul class="columns is-vcentered is-variable is-2 mb-2">
+    <li class="column">
+      <h1 class="title is-5 has-text-info is-uppercase">
+        Lịch nghỉ
+      </h1>
+    </li>
+    <li class="column is-narrow is-full-mobile">
+      <a class="button" @onclick="() => EditItem(null)">
+        <span class="icon">
+          <span class="material-icons-outlined is-size-6">add</span>
+        </span>
+        <span>Thêm mới</span>
+      </a>
+    </li>
+  </ul>
+  <div class="scrolly inner_section" style="flex:1">
+    <table class="table is-fullwidth is-vcentered is-responsive mb-2">
+      <thead>
+        <tr>
+          <th class="pt-0" width="18%">Tên ngày nghỉ</th>
+          <th class="pt-0" align="center">Ngày nghỉ</th>
+          <th class="pt-0" width="12%" align="center">Kết thúc</th>
+          <th class="pt-0" width="12%" align="center">Ngày tạo</th>
+          <th class="pt-0" width="12%" align="center">Lặp lại</th>
+          <th class="pt-0" width="70px" align="center">Xử lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in dataList)
+        {
+          <tr>
+            <td>
+              @item.name
+            </td>
+            <td align="center">
+              <label class="td-label">Ngày nghỉ</label>
+              <div class="td-value">
+                @if (item.loop == 1)
+                {
+                  <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(item.start))</span>
+                  @if (item.start != item.end)
+                  {
+                    <span>@string.Format(" - {0:dd/MM/yyyy}", new DateTime(item.end))</span>
+                  }
+                }
+                else
+                {
+                  if (item.loop_week.mon)
+                  {
+                    <span>T2, </span>
+                  }
+                  if (item.loop_week.tue)
+                  {
+                    <span>T3, </span>
+                  }
+                  if (item.loop_week.wed)
+                  {
+                    <span>T4, </span>
+                  }
+                  if (item.loop_week.thu)
+                  {
+                    <span>T5, </span>
+                  }
+                  if (item.loop_week.fri)
+                  {
+                    <span>T6, </span>
+                  }
+                  if (item.loop_week.sat)
+                  {
+                    <span>T7, </span>
+                  }
+                  if (item.loop_week.sun)
+                  {
+                    <span>CN</span>
+                  }
+                }
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Kết thúc</label>
+              <div class="td-value">
+                @string.Format("{0:dd/MM/yyyy}", new DateTime(item.end))
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Ngày tạo</label>
+              <div class="td-value">
+                @string.Format("{0:dd/MM/yyyy}", new DateTime(item.create))
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Lặp lại</label>
+              <div class="td-value has-text-weight-semibold">
+                @if (item.loop == 1)
+                {
+                  <span>Một lần</span>
+                }
+                else
+                {
+                  <span>Hàng tuần</span>
+                }
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Xử lý</label>
+              <div class="td-value">
+                <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    edit
+                  </i>
+                </a>
+                <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    delete
+                  </i>
+                </a>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 }
 
 @if (current != null)
 {
   <div class="modal is-active">
     <div class="modal-background"></div>
-    <div class="modal-card">
+    <div class="modal-card" style="overflow: visible;">
       <div class="modal-card-head">
         <div class="modal-card-title">
           @(string.IsNullOrEmpty(current.id) ? "Tạo lịch nghỉ mới" : "Chỉnh sửa lịch nghỉ")
         </div>
         <a class="delete" @onclick="() => current = null"></a>
       </div>
-      <div class="modal-card-body">
+      <div class="modal-card-body" style="overflow: visible;">
         <form @onsubmit="Update">
           <div class="field">
             <label class="label">Tên ngày nghỉ</label>
@@ -210,34 +180,14 @@ else
               }
             </div>
           </div>
-          <div class="field is-grouped">
-            <div class="control">
+          <div class="columns is-vcentered">
+            <div class="column is-half">
               <label class="label">Bắt đầu nghỉ</label>
-              <div class="control has-icons-left">
-                <div class="input">
-                  <DateRangePicker SingleDatePicker="true" @bind-StartDate="StartDate" />
-                </div>
-                <span class="icon is-left">
-                  <i class="material-icons-outlined">
-                    calendar_today
-                  </i>
-                </span>
-              </div>
+              <_InputDate @bind-Start="StartDate" />
             </div>
-            <div class="control is-expanded is-hidden-mobile">
-            </div>
-            <div class="control">
+            <div class="column is-half">
               <label class="label">Kết thúc nghỉ</label>
-              <div class="control has-icons-left">
-                <div class="input">
-                  <DateRangePicker SingleDatePicker="true" @bind-StartDate="EndDate" />
-                </div>
-                <span class="icon is-left">
-                  <i class="material-icons-outlined">
-                    calendar_today
-                  </i>
-                </span>
-              </div>
+              <_InputDate @bind-Start="EndDate" />
             </div>
           </div>
           @if (current.loop == 2)
@@ -276,45 +226,10 @@ else
               </div>
             </div>
           }
-
-          @if (current.has_salary)
-          {
-            <div>
-              <div class="control">
-                <div class="is-flex is-justify-content-space-between">
-                  <label class="label">
-                    Công tính lương
-                  </label>
-                  <p @onclick="() => isEdit = true">Chỉnh sửa</p>
-                </div>
-
-                @foreach (var item in current.time_off)
-                {
-                  <div class="control mt-2">
-                    <input type="text" @bind="item.time" />
-                    <_MemberDayOff members_selected="userSelected" members="item.users"
-                                   sources="Layout.UserList" isEdit="isEdit" />
-                  </div>
-                }
-              </div>
-              <div class="control is-expanded is-hidden-mobile">
-              </div>
-              @if(isEdit)
-              {
-                <div class="control" @onclick="() => current.time_off.Add(new())">
-                  <label class="label">Thêm mới</label>
-                </div>
-              }
-            </div>
-          }
           <div class="field is-grouped mt-5">
             <div class="control is-expanded">
-               <label class="checkbox has-text-link">
-                 <input @bind="current.has_salary" type="checkbox">
-                 <span class="has-text-weight-medium">Ngày nghỉ tính lương</span>
-               </label>
             </div>
-            <div class="control"> 
+            <div class="control">
               <a class="button" @onclick="() => current = null">
                 Hủy
               </a>
@@ -343,28 +258,52 @@ else
 
   private List<DayOffModel> dataList = new();
   private DayOffModel current = null;
-  DateTimeOffset? StartDate { get; set; }
-  DateTimeOffset? EndDate { get; set; }
+  long StartDate { get; set; }
+  long EndDate { get; set; }
   private List<string> userSelected { get; set; } = new();
   private bool isEdit;
 
-  protected override void OnInitialized()
+  protected override async Task OnInitializedAsync()
   {
-    GetData();
+    await GetData();
   }
 
-  private void GetData()
+  private async Task<bool> GetData()
   {
-    dataList = DbDayOff.GetAll(Layout.Company.id);
+    bool _success = true;
+    try
+    {
+      dataList = await DbDayOff.GetAll(Layout.Company.id);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetData()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task DeleteItem(DayOffModel item)
+  private async Task<bool> DeleteItem(DayOffModel item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
-      return;
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+        return false;
 
-    await DbDayOff.Delete(Layout.Company.id, item.id);
-    dataList.Remove(item);
+      await DbDayOff.Delete(Layout.Company.id, item.id);
+      dataList.Remove(item);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void EditItem(DayOffModel item)
@@ -372,20 +311,20 @@ else
     if (item == null)
     {
       current = new()
-      {
-        start = Convert.ToDateTime(DateTime.Now.ToShortDateString()).Ticks,
-        end = Convert.ToDateTime(DateTime.Now.ToShortDateString()).Ticks,
-        loop = 1,
-        loop_week = new()
-      };
+        {
+          start = Convert.ToDateTime(DateTime.Now.ToShortDateString()).Ticks,
+          end = Convert.ToDateTime(DateTime.Now.ToShortDateString()).Ticks,
+          loop = 1,
+          loop_week = new()
+        };
     }
     else
     {
       current = item;
       item.time_off.ForEach(i => userSelected.AddRange(i.users));
     }
-    StartDate = new DateTime(current.start);
-    EndDate = new DateTime(current.end);
+    StartDate = current.start;
+    EndDate = current.end;
   }
 
   private void ChangeLoop(int loop)
@@ -393,25 +332,37 @@ else
     current.loop = loop;
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (Shared.IsEmpty(current.name))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần nhập tên ngày nghỉ!");
-    else if(StartDate == null || EndDate == null)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần chọn ngày bắt đầu và kết thúc!");
-    else if (StartDate.Value.DateTime.Ticks > EndDate.Value.DateTime.Ticks)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày bắt đầu không thể lớn hơn ngày kết thúc !");
-    else
+    bool _success = true;
+    try
     {
-      current.start = StartDate.Value.DateTime.Ticks;
-      current.end = EndDate.Value.DateTime.Ticks;
-      if (string.IsNullOrEmpty(current.id))
-        await DbDayOff.Create(Layout.Company.id, current);
+      if (Shared.IsEmpty(current.name))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần nhập tên ngày nghỉ!");
+      else if (StartDate == null || EndDate == null)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần chọn ngày bắt đầu và kết thúc!");
+      else if (StartDate > EndDate)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày bắt đầu không thể lớn hơn ngày kết thúc !");
       else
-        await DbDayOff.Update(Layout.Company.id, current);
+      {
+        current.start = StartDate;
+        current.end = EndDate;
+        if (string.IsNullOrEmpty(current.id))
+          await DbDayOff.Create(Layout.Company.id, current);
+        else
+          await DbDayOff.Update(Layout.Company.id, current);
 
-      current = null;
-      GetData();
+        current = null;
+        GetData();
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

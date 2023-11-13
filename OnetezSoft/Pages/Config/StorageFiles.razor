@@ -1,130 +1,181 @@
-@page "/config/storage"
-@page "/config/storage/files"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
+@using System.IO
 
 <PageTitle>Quản lý lưu trữ</PageTitle>
 
-<section class="p-4">
-  <div class="tabs is-boxed mb-0">
-    <ul>
-      <li class="is-active">
-        <a href="/config/storage/files">
-          <span>Quản lý lưu trữ</span>
-        </a>
-      </li>
-      <li>
-        <a href="/config/storage/logs">
-          <span>Lịch sử xóa file</span>
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div class="card p-4">
-    <ul class="columns is-multiline is-variable is-2 is-vcentered mb-3">
-      <li class="column is-two-thirds">
-        <div class="title is-5 has-text-info">QUẢN LÝ LƯU TRỮ</div>
-      </li>
-      <li class="column is-one-third">
-        <div class="field is-grouped">
-          <div class="control">
-            <div class="select is-fullwidth is-rounded">
-              <select @onchange="ChangeSort">
-                <option value="date_des">Mới nhất</option>
-                <option value="date_asc">Cũ nhất</option>
-                <option value="size_des">Nặng nhất</option>
-                <option value="size_asc">Nhẹ nhất</option>
-              </select>
-            </div>
-          </div>
-          <div class="control is-expanded">
-            <form @onsubmit="GetList" class="control has-icons-right">
-              <input @bind="filterKey" type="text" class="input is-rounded is_bg" placeholder="Tìm kiếm file..." />
-              <span class="icon is-right">
-                <i class="material-icons-outlined is-size-6">search</i>
-              </span>
-            </form>
-          </div>
+<ul class="columns is-multiline is-variable is-2 is-vcentered mb-3">
+  <li class="column">
+    <div class="title is-5 has-text-info">QUẢN LÝ LƯU TRỮ</div>
+  </li>
+  <li class="column is-narrow">
+    <MemberSearch keyword="@userFullName" sources="shareStorage.MemberList" storage="true"
+                  OnUpdate="ChangeFilterUser" />
+  </li>
+  <li class="column is-narrow">
+    <div class="field is-grouped">
+      <div class="control">
+        <div class="select is-fullwidth is-rounded">
+          <select @onchange="ChangeSort">
+            <option value="date_des">Mới nhất</option>
+            <option value="date_asc">Cũ nhất</option>
+            <option value="size_des">Nặng nhất</option>
+            <option value="size_asc">Nhẹ nhất</option>
+            <option value="path">Đường dẫn</option>
+          </select>
         </div>
-      </li>
-      <li class="column is-narrow">
-        <span class="has-text-grey">Tổng dung lượng: </span>
-        <span class="has-text-weight-semibold">@SizeToString(dataTotal)</span>
-      </li>
-      <li class="column is-narrow">
-        <span class="has-text-grey">Đã sử dụng:</span>
-        <span class="has-text-weight-semibold">@SizeToString(dataUsed)</span>
-      </li>
-      <li class="column is-narrow">
-        <span class="has-text-grey">Khả dụng:</span>
-        <span class="has-text-weight-semibold">@SizeToString(dataAvailable)</span>
-      </li>
-      <li class="column is-narrow">
-        <span class="has-text-grey">Số lượng file:</span>
-        <span class="has-text-weight-semibold">@totalFiles file</span>
-      </li>
-      @if(storage != null)
-      {
-        <li class="column has-text-right">
-          <span class="has-text-grey">Ngày hết hạn:</span>
-          <span class="has-text-weight-semibold">
-            @string.Format("{0:dd/MM/yyyy}", new DateTime(storage.end))
-            (@Shared.ConvertDate(new DateTime(storage.end)))
+      </div>
+      <div class="control">
+        <form @onsubmit="GetList" class="control has-icons-right">
+          <input @bind="filterKey" type="text" class="input is-rounded is_bg" placeholder="Tìm kiếm file..." />
+          <span class="icon is-right">
+            <i class="material-icons-outlined is-size-6">search</i>
           </span>
-        </li>
-      }
-    </ul>
+        </form>
+      </div>
+      <div class="control">
 
-    <div class="scrolly" style="height: calc(100vh - 260px);">
-      @if(storage != null)
+      </div>
+    </div>
+  </li>
+  @if (storage != null)
+  {
+    <li class="column is-narrow is-size-7" style="white-space: nowrap;">
+      <span class="has-text-grey">Hết hạn:</span>
+      <span class="has-text-weight-semibold">
+        @string.Format("{0:dd/MM/yyyy}", new DateTime(storage.end))
+        (@Shared.ConvertDate(new DateTime(storage.end)))
+      </span>
+    </li>
+  }
+</ul>
+<div class="inner_section flex_column" style="flex:1;overflow:hidden;">
+  <div class="columns is-vcentered is-gapless">
+    <div class="column">
+      <nav class="breadcrumb is-size-7 pr-2" aria-label="breadcrumbs">
+        @if (!currentPath.IsEmpty())
+        {
+          <ul>
+            <li @onclick='() => GoToFolder(string.Empty)'>
+              <a>
+                ...
+              </a>
+            </li>
+            @foreach (var path in currentPath.Split("/"))
+            {
+              <li class="@(currentPath.EndsWith(path) ? "is-acive" : "")"
+              @onclick="() => GoToFolder(currentPath.Substring(0,currentPath.LastIndexOf(path) + path.Length))">
+                <a>
+                  @path
+                </a>
+              </li>
+            }
+          </ul>
+        }
+      </nav>
+    </div>
+    <div class="column is-narrow">
+      <ul class="columns is-multiline is-variable is-0 is-size-7" style="column-gap:0.5rem;">
+        <li class="column is-narrow">
+          <span class="">Tổng dung lượng: </span>
+          <span class="has-text-weight-semibold">@SizeToString(dataTotal)</span>
+        </li>
+        <li class="column is-narrow">
+          <span class="">Đã sử dụng:</span>
+          <span class="has-text-weight-semibold">@SizeToString(dataUsed)</span>
+        </li>
+        <li class="column is-narrow">
+          <span class="">Khả dụng:</span>
+          <span class="has-text-weight-semibold">@SizeToString(dataAvailable)</span>
+        </li>
+        <li class="column is-narrow">
+          <span class="">Số lượng file:</span>
+          <span class="has-text-weight-semibold">@dataList.Count file</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="scrolly" style="flex:1">
+    <div class="columns is-multiline is-variable is-2 mb-4">
+      @foreach (var folder in folders)
       {
-        <table class="table is-fullwidth is-vcentered">
-          <thead>
-            <tr class="has-background-info has-text-black">
-              <th>Tên file</th>
-              <th width="180px">Định dạng</th>
-              <th width="150px">Kích thước</th>
-              <th width="150px">Ngày tải lên</th>
-              <th width="100px" align="center">Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            <Virtualize Items="dataList" Context="item" ItemSize="39">
-              <tr>
-                <td>
-                  @item.name
-                </td>
-                <td>
-                  @item.format
-                </td>
-                <td>
-                  @SizeToString(item.size)
-                </td>
-                <td>
-                  @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
-                </td>
-                <td align="center">
-                  <a class="icon has-text-link" href="@item.link" target="_blank">
-                    <i class="material-icons-outlined is-size-6">download</i>
-                  </a>
-                  <a class="icon has-text-danger" @onclick="() => DeleteItem(item)">
-                    <i class="material-icons-outlined is-size-6">delete</i>
-                  </a>
-                </td>
-              </tr>
-            </Virtualize>
-          </tbody>
-        </table>
-      }
-      else
-      {
-        <div class="py-2 has-text-centered">
-          Tổ chức của bạn không có sản phẩm này
+        var items = dataList.Where(x => x.path.StartsWith(folder.Value) && x.path != currentPath);
+        <div class="column is-narrow">
+          <div class="folder" @ondblclick="() => GoToFolder(folder.Value)">
+            <img src="@(items.Count() > 0 ? "/images/icon/folder.png" : "/images/icon/folder_empty.png")" alt="thư mục" />
+            <p class="text_1_line">
+              @folder.Key
+            </p>
+            <span>
+              @SizeToString(items.Sum(x => x.size))
+            </span>
+          </div>
         </div>
       }
     </div>
+    <div class="columns is-multiline is-variable is-2">
+      @{
+        var itemsOutsize = dataList.Where(x => x.path == currentPath);
+      }
+      @if (itemsOutsize.Count() > 0)
+      {
+        <div class="column is-full">
+          <div class="">
+            Danh sách file
+          </div>
+        </div>
+        @foreach (var item in itemsOutsize)
+        {
+          var extension = Path.GetExtension(item.name);
+          var user = shareStorage.MemberList.Find(x => x.id == item.creator_id);
+          <div class="column is-full">
+            <div class="columns is-clickable is-vcentered is-gapless">
+              <div class="column is-narrow">
+                <a class="image is-36x36">
+                  <img src="/images/icon/extension/@StorageService.GetIconFromExtension(extension)" alt="thư mục" />
+                </a>
+              </div>
+              <div class="column" style="width:calc(100% - 726px)">
+                <p class="text_1_line pl-2 has-text-weight-medium">
+                  @item.name
+                </p>
+              </div>
+              <div class="column is-narrow" style="width:200px">
+                @if (user != null)
+                {
+                  <a class="icon-text">
+                    <span class="icon image is-24x24 is-rounded">
+                      <img src="@user.avatar" alt="IMG">
+                    </span>
+                    <span>@user.name</span>
+                  </a>
+                }
+              </div>
+              <div class="column is-narrow" style="width:150px">
+                @item.format
+              </div>
+              <div class="column is-narrow" style="width:120px">
+                @SizeToString(item.size)
+              </div>
+              <div class="column is-narrow" style="width:140px">
+                @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
+              </div>
+              <div class="column is-narrow has-text-right" style="width:80px">
+                <a class="icon has-text-link" href="@item.link" target="_blank">
+                  <i class="material-icons-outlined is-size-6">download</i>
+                </a>
+                <a class="icon has-text-danger" @onclick="() => DeleteItem(item)">
+                  <i class="material-icons-outlined is-size-6">delete</i>
+                </a>
+              </div>
+            </div>
+          </div>
+        }
+      }
+    </div>
   </div>
-</section>
+</div>
 
 @code {
   [CascadingParameter]
@@ -132,6 +183,7 @@
   private CompanyModel company = new();
   private CompanyModel.Product storage = null;
   private List<FileModel> database = new();
+  private List<FileModel> dataLocal = new();
   private List<FileModel> dataList = new();
   private string filterKey = string.Empty;
   private string sortBy = "date_des";
@@ -140,84 +192,284 @@
   private long dataUsed = 0;
   private int totalFiles = 0;
   private long unit = 1024;
+  private string userFullName = "";
+  private string userIdSearch = "";
+
+  private Dictionary<string, string> folders = new();
+  private string currentPath;
+
+  private SharedStorage shareStorage = new();
 
   protected override async Task OnInitializedAsync()
   {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
     // Thông tin tổ chức
     company = await DbMainCompany.Get(Layout.Company.id);
     // Gói lưu trữ hiện tại
     storage = company.products.FirstOrDefault(x => x.id == "storage");
-    if(storage != null)
+    if (storage != null)
+    {
+      await SyncData();
+      // Danh sách files
+      await GetList();
+      // Lấy tình trạng sử dụng
+      await GetStatus();
+    }
+
+    // Cập nhật path mới cho tất cả file đã lưu trên db
+    await UpdatePath();
+  }
+
+  private async Task SyncData()
+  {
+    if (storage != null)
     {
       // Tất cả files
-      database = await StorageService.GetListAsync(company.id);
-      // Danh sách files
-      GetList();
-      // Lấy trình trạng sử dụng
-      await GetStatus();
+      var dataStorage = await StorageService.GetListAsync(company.id);
+      var createList = new List<FileModel>();
+      dataLocal = await DbStorageLog.GetList(company.id);
+
+      #region Đồng bộ list bên database và storage
+
+      foreach (var local in dataLocal)
+      {
+        if (dataStorage.FirstOrDefault(x => x.link == local.link) == null)
+        {
+          if (!local.is_delete)
+          {
+            local.is_delete = true;
+            await DbStorageLog.Update(Layout.Company.id, local);
+          }
+        }
+      }
+
+      foreach (var itemStorage in dataStorage)
+      {
+        if (dataLocal.FirstOrDefault(x => x.link == itemStorage.link) == null)
+        {
+          createList.Add(itemStorage);
+        }
+      }
+
+      if (createList.Any())
+      {
+        await DbStorageLog.CreateMany(company.id, createList);
+      }
+
+      #endregion
     }
   }
 
-  private void ChangeSort(ChangeEventArgs e)
+  private async Task UpdatePath()
   {
-    sortBy = e.Value.ToString();
-    GetList();
+    var all = await DbStorageLog.GetList(Layout.Company.id);
+
+    foreach (var item in all)
+    {
+      if (item.path.IsEmpty())
+      {
+        item.path = "other";
+        await DbStorageLog.Update(Layout.Company.id, item);
+      }
+    }
   }
 
-  private void GetList()
+  protected override async Task OnAfterRenderAsync(bool firstRender)
   {
+    if (storage != null)
+      await JSRuntime.InvokeVoidAsync("dragScrollX");
+  }
+
+  private async Task ChangeSort(ChangeEventArgs e)
+  {
+    sortBy = e.Value.ToString();
+    await GetList();
+  }
+
+  private async Task GetList()
+  {
+    database = await DbStorageLog.GetList(Layout.Company.id);
+    dataList = database.Where(x => !x.is_delete && (currentPath.IsEmpty() ? true : x.path.StartsWith(currentPath))).ToList();
+
+    SetupFolder();
+
     // Sắp xếp
-    if(sortBy == "date_des")
-      dataList = database.OrderByDescending(x => x.date).ToList();
-    else if(sortBy == "date_asc")
-      dataList = database.OrderBy(x => x.date).ToList();
-    else if(sortBy == "size_des")
-      dataList = database.OrderByDescending(x => x.size).ToList();
-    else if(sortBy == "size_asc")
-      dataList = database.OrderBy(x => x.size).ToList();
+    if (sortBy == "date_des")
+      dataList = dataList.OrderByDescending(x => x.date).ToList();
+    else if (sortBy == "date_asc")
+      dataList = dataList.OrderBy(x => x.date).ToList();
+    else if (sortBy == "size_des")
+      dataList = dataList.OrderByDescending(x => x.size).ToList();
+    else if (sortBy == "size_asc")
+      dataList = dataList.OrderBy(x => x.size).ToList();
+    else if (sortBy == "path")
+      dataList = dataList.OrderBy(x => x.path).ToList();
+
+    dataList = dataList.Where(x =>
+    {
+      if (userIdSearch == "no_member")
+        return x.creator_id == null;
+      else
+        return string.IsNullOrEmpty(userIdSearch) ? true : userIdSearch == x.creator_id;
+    }).ToList();
+
 
     // Tìm kiếm
-    if(!string.IsNullOrEmpty(filterKey))
+    if (!string.IsNullOrEmpty(filterKey))
       dataList.RemoveAll(x => !StringHelper.SearchKeyword(filterKey, x.name));
   }
 
-  private async Task GetStatus()
+  private void SetupFolder()
   {
-    // Tình trạng sử dụng
-    dataTotal = unit * 1000 * 1000 * storage.total;
-    dataUsed = database.Sum(x => x.size);
-    dataAvailable = dataTotal - dataUsed;
-    totalFiles = database.Count;
+    var paths = dataList.GroupBy(x => x.path).Select(x => x.Key).ToList();
+    folders = new();
 
-    storage.used = Convert.ToInt32(dataUsed / (unit * 1000));
-    await DbMainCompany.Update(company);
-    Console.WriteLine(string.Format("Storage {0}: {1}/{2} MB", company.id, storage.used, storage.total * 1000));
-  }
-
-  private async Task DeleteItem(FileModel item)
-  {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa file [{item.name}]?"))
-      return;
-
-    if(StorageService.DeleteFile(item.link))
+    if (!currentPath.IsEmpty())
     {
-      database.Remove(item);
-      dataList.Remove(item);
-      item.author_name = Layout.User.FullName;
-      item.author_avatar = Layout.User.avatar;
-      await DbStorageLog.Create(Layout.Company.id, item);
-      await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã xóa file [{item.name}]");
-      await GetStatus();
+      paths = paths.Where(x => x.StartsWith(currentPath)).ToList();
+    }
+    paths = paths.OrderBy(x => x).ToList();
+
+    foreach (var path in paths)
+    {
+      var subPaths = path.Split("/").ToList();
+      var subPath = "";
+      foreach (var sub in subPaths)
+      {
+        if (!folders.ContainsKey(sub))
+        {
+          if (subPath == "")
+            subPath = sub;
+          else
+            subPath += "/" + sub;
+
+          folders.Add(sub, subPath);
+        }
+      }
+    }
+
+    if (!currentPath.IsEmpty())
+    {
+      var invalids = folders.Where(x =>
+      {
+        return !x.Value.StartsWith(currentPath) 
+             || x.Value == currentPath
+             || currentPath.Split("/").Count() + 1 < x.Value.Split("/").Count();
+      }).Select(x => x.Key);
+
+      foreach (var key in invalids)
+      {
+        if (folders.ContainsKey(key))
+          folders.Remove(key);
+      }
     }
     else
-      await JSRuntime.InvokeVoidAsync("tagline", true, $"Lỗi khi xóa file [{item.name}]");
+    {
+      var invalids = folders.Where(x => x.Value.Contains("/")).Select(x => x.Key);
+
+      foreach (var key in invalids)
+      {
+        if (folders.ContainsKey(key))
+          folders.Remove(key);
+      }
+    }
+
+    dataUsed = dataList.Sum(x => x.size);
+    totalFiles = dataList.Count();
+  }
+
+  private async Task GoToFolder(string path)
+  {
+    currentPath = path;
+    await GetList();
+  }
+
+  private async Task ChangeFilterUser(string value)
+  {
+    userIdSearch = value;
+
+    if (userIdSearch == "no_member")
+    {
+      userFullName = "Không có người tải lên";
+    }
+    else
+    {
+      if (string.IsNullOrEmpty(value))
+        userFullName = string.Empty;
+      else
+      {
+        var user = shareStorage.MemberList.Find(x => x.id == userIdSearch);
+        if (user != null)
+        {
+          userFullName = user.name;
+        }
+      }
+    }
+
+    await GetList();
+  }
+
+  private async Task<bool> GetStatus()
+  {
+    bool _success = true;
+    try
+    {
+      // Tình trạng sử dụng
+      dataTotal = unit * 1000 * 1000 * storage.total;
+      var fileInFolder = database.Where(x => !x.is_delete);
+      dataUsed = fileInFolder.Sum(x => x.size);
+      dataAvailable = dataTotal - dataUsed;
+      totalFiles = fileInFolder.Count();
+
+      storage.used = Convert.ToInt32(dataUsed / (unit * 1000));
+      await DbMainCompany.Update(company);
+      await globalService.Update(company.id);
+      Console.WriteLine(string.Format("Storage {0}: {1}/{2} MB", company.id, storage.used, storage.total * 1000));
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetStatus()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> DeleteItem(FileModel item)
+  {
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa file [{item.name}]?"))
+        return false;
+
+      var check = await StorageService.DeleleFileAndLog(item.link, Layout.User, Layout.Company.id);
+      // Danh sách files
+      await GetList();
+      if (check)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã xóa file [{item.name}]");
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Đã xảy ra lỗi không mong muốn. Vui lòng thử lại sau!");
+      await GetStatus();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private string SizeToString(double size)
   {
-    if(size >= unit * 1000 * 1000)
+    if (size >= unit * 1000 * 1000)
       return string.Format("{0:0.00} GB", size / (unit * 1000 * 1000));
-    else if(size >= unit * 1000)
+    else if (size >= unit * 1000)
       return string.Format("{0:0.00} MB", size / (unit * 1000));
     else
       return string.Format("{0:0.00} KB", size / unit);

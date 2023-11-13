@@ -1,0 +1,792 @@
+@page "/admin/notifications"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<section class="px-4">
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-4">
+    <li class="column">
+      <h1 class="title is-5">
+        QUẢN LÝ THÔNG BÁO
+      </h1>
+    </li>
+    <li class="column is-one-quarter">
+      <form @onsubmit="GetList" class="control has-icons-left" title="Nhấn Enter để tìm">
+        <input @bind="filterKeyword" type="text" class="input is-small" placeholder="Nhập tiêu đề, nhấn Enter để tìm" />
+        <span class="icon is-left has-text-dark">
+          <i class="material-icons-round is-size-6">search</i>
+        </span>
+      </form>
+    </li>
+    <li class="column is-narrow">
+      <div class="field has-addons">
+        <div class="control">
+          <span class="button is-small is-static">
+            <span class="icon has-text-dark">
+              <i class="material-icons-round is-size-6">filter_list</i>
+            </span>
+            <span>Bộ lọc</span>
+          </span>
+        </div>
+        <div class="control">
+          <div class="select is-small has-text-weight-medium">
+            <select @onchange="ChangeStatus">
+              <option value="0">Tất cả</option>
+              <option value="1">Đã đăng</option>
+              <option value="2">Lưu nháp</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-narrow" @onclick="() => EditItem(null)">
+      <a class="button is-link is-small">
+        <span class="icon">
+          <span class="material-icons-outlined is-size-6">add</span>
+        </span>
+        <span>Thêm mới</span>
+      </a>
+    </li>
+  </ul>
+  <div class="mb-5">
+    <p class="has-text-weight-bold has-text-link is-italic">Trạng thái: <span class="has-text-weight-normal has-text-black">Có 2 trạng thái là lưu nháp và đã đăng, nếu ở trạng thái đã đăng người dùng sẽ thấy thông báo này.</span></p>
+    <p class="has-text-weight-bold has-text-link is-italic">Pin: <span class="has-text-weight-normal has-text-black">Nếu được bật thông báo sẽ xuất hiện dạng popup ngay lúc user vào tool (áp dụng với những thông báo quan trọng).</span></p>
+  </div>
+  <table class="table is-fullwidth is-vcentered is-hoverable is_head_bg is-size-7">
+    <thead>
+      <tr>
+        <th width="40%">Tiêu đề</th>
+        <th width="10%">Danh mục</th>
+        <th width="10%">Ngày tạo</th>
+        <th width="10%">Ngày đăng</th>
+        <th width="10%">Người tạo</th>
+        <th width="5%" align="center">Trạng thái</th>
+        <th width="5%" align="center">Pin</th>
+        <th width="10%" align="right">Xử lý</th>
+      </tr>
+    </thead>
+    <tbody class="has-text-weight-medium">
+      @foreach (var noti in notifications)
+      {
+        var category = categoryList.FirstOrDefault(x => x.id == noti.category);
+        <tr>
+          <td>
+            <label class="td-label">Tiêu đề</label>
+            <div class="td-value">
+              <span class="text_1_line has-text-weight-semibold has-text-link">@noti.title</span>
+              <span class="text_1_line has-text-grey">@noti.sub_title</span>
+            </div>
+          </td>
+          <td>
+            <label class="td-label">Danh mục</label>
+            <div class="td-value">
+              <div style="background-color: @(category.color + "30")" class="tag">
+                <span style="color: @category.color">@category.name</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <label class="td-label">Ngày tạo</label>
+            <div class="td-value">
+              <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(noti.created))</span>
+            </div>
+          </td>
+          <td>
+            <label class="td-label">Ngày đăng</label>
+            <div class="td-value">
+              @if (noti.published == 0)
+              {
+                <span></span>
+              }
+              else
+              {
+                <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(noti.published))</span>
+              }
+            </div>
+          </td>
+          <td>
+            <label class="td-label">Người tạo</label>
+            <div class="td-value">
+              <div class="user_item">
+                <img src="@noti.creator.avatar" alt="IMG" class="image is-24x24 mr-2" />
+                <span class="is-size-7">@noti.creator.name</span>
+              </div>
+            </div>
+          </td>
+          <td align="center">
+            <label class="td-label">Trạng thái</label>
+            <div class="td-value">
+              <a class="icon" @onclick="() => ActiveItem(noti)">
+                @if (!noti.isDraft)
+                {
+                  <span class="material-icons-outlined is-size-4 has-text-success">
+                    toggle_on
+                  </span>
+                }
+                else
+                {
+                  <span class="material-icons-outlined is-size-4 has-text-black">
+                    toggle_off
+                  </span>
+                }
+              </a>
+            </div>
+          </td>
+          <td align="center">
+            <label class="td-label">Pin</label>
+            <div class="td-value">
+              <a class="icon" @onclick="() => PinItem(noti)">
+                @if (noti.pin)
+                {
+                  <span class="material-icons-outlined is-size-4 has-text-success">
+                    toggle_on
+                  </span>
+                }
+                else
+                {
+                  <span class="material-icons-outlined is-size-4 has-text-black">
+                    toggle_off
+                  </span>
+                }
+              </a>
+            </div>
+          </td>
+          <td align="right">
+            <label class="td-label">Xử lý</label>
+            <div class="td-value">
+              <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(noti)">
+                <i class="material-icons-outlined is-size-5">edit</i>
+              </a>
+              <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(noti)">
+                <i class="material-icons-outlined is-size-5">delete</i>
+              </a>
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  @if (notifications.Count == 0)
+  {
+    <div class="has-text-grey has-text-centered py-5">
+      Không tìm thấy dữ liệu phù hợp
+    </div>
+  }
+</section>
+@if (model != null)
+{
+  <div class="modal is-active">
+    <div class="modal-background" style="overflow: visible"></div>
+    <div class="modal-card is-large" style="overflow: visible">
+      <div class="modal-card-head">
+        <div class="modal-card-title">
+          @(string.IsNullOrEmpty(model.id) ? "Thêm thông báo mới" : "Chỉnh sửa thông báo")
+        </div>
+        <a class="delete" @onclick="CancelAdd"></a>
+      </div>
+      <div class="modal-card-body" style="overflow: visible">
+        <ul class="columns is-multiline is-variable is-2">
+          <li class="column is-full">
+            <div class="field">
+              <label class="label">Tiêu đề (tối đa 100 ký tự) *</label>
+              <div class="control">
+                <input @bind="model.title" type="text" class="input is_bg" maxlength="100" placeholder="Nhập tiêu đề" />
+              </div>
+            </div>
+          </li>
+          <li class="column is-full">
+            <div class="field">
+              <label class="label">Tiêu đề phụ</label>
+              <div class="control">
+                <input @bind="model.sub_title" type="text" class="input is_bg" maxlength="100" placeholder="Nhập tiêu đề phụ" />
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-quarter">
+            <div class="field">
+              <label class="label">Hình ảnh *</label>
+              <div class="field has-addons">
+                <div class="control">
+                  <a class="image is-square">
+                    <img src="@model.image" />
+                  </a>
+                </div>
+                <div class="control is-expanded">
+                  <input @bind="model.image" class="input" type="text" placeholder="Nhập link hình..." />
+                </div>
+                <FileUpload Path="notification/thumbnail" Accept="image/*" Size="1000" OnUpload="x => model.image = x[0]" isCMSUpload="true" />
+              </div>
+            </div>
+          </li>
+
+          <li class="column is-one-quarter">
+            <div class="field">
+              <label class="label">Danh mục *</label>
+              <div class="control">
+                <div class="dropdown is-fullwidth @(toggleCategory ? "is-active" : "")">
+                  <div class="dropdown-trigger">
+                    <a class="button is-fullwidth" @onclick="() => toggleCategory = !toggleCategory">
+                      <span style="flex-grow: 1; text-align: left;">
+                        @GetCategoryName(model.category).name
+                      </span>
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                      </span>
+                    </a>
+                  </div>
+                  <div class="dropdown-menu">
+                    <div class="dropdown-content">
+                      <div class="dropdown-item">
+                        <div class="field is-grouped">
+                          <div class="control is-expanded">
+                            <input @bind="categoryModel.name" class="input" type="text" placeholder="Nhập tên danh mục" />
+                          </div>
+                          <div class="control">
+                            <div class="input_color" s style="background: @(categoryModel.color + "30"); color: @categoryModel.color;">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-5">palette</i>
+                              </span>
+                              <input @bind="categoryModel.color" type="color">
+                            </div>
+                          </div>
+                          <div class="control">
+                            <a class="button is-link" @onclick="UpdateCategory">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-5">
+                                  @(string.IsNullOrEmpty(categoryModel.id) ? "add" : "done")
+                                </i>
+                              </span>
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                      <hr class="dropdown-divider">
+                      @foreach (var item in categoryListShow)
+                      {
+                        <div class="dropdown-item">
+                          <div class="icon-text is-fullwidth">
+                            <span class="icon is-small mr-2" style="color: @item.color;">
+                              <i class="material-icons is-size-6">fiber_manual_record</i>
+                            </span>
+                            <a class="has-text-weight-semibold has-text-dark" style="flex-grow: 1;"
+                            @onclick="() => SelectCategory(item.id)">
+                              @item.name
+                            </a>
+                            <a class="icon has-text-link" @onclick="() => categoryModel = item">
+                              <i class="material-icons-outlined is-size-6">edit</i>
+                            </a>
+                            <a class="icon has-text-danger" @onclick="() => DeleteCategory(item.id)">
+                              <i class="material-icons-outlined is-size-6">delete</i>
+                            </a>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-one-quarter">
+            <div class="field">
+              <label class="label">Tổ chức (những tổ chức có thể nhìn thấy) *</label>
+              <div class="control is-flex is-align-items-end" style="height: 30px;">
+                <_CompanySelected isEdit="Shared.IsEmpty(model.id)" isUp="false" companys="model.companys" sources="companys" OnUpdate="UpdateCompanys" />
+              </div>
+            </div>
+          </li>
+          <li class="column s-one-quarter">
+            <div class="field">
+              <label class="label has-text-weight-medium">Pin</label>
+              <div class="control">
+                <label class="checkbox is-size-7">
+                  <input @bind="model.pin" type="checkbox" />
+                </label>
+              </div>
+            </div>
+          </li>
+          <li class="column is-full">
+            <div class="field">
+              <label class="label">Nội dung *</label>
+              <div class="control">
+                <BlazoredTextEditor @ref="@editor">
+                  <ToolbarContent>
+                    <select class="ql-header">
+                      <option selected=""></option>
+                      <option value="1"></option>
+                      <option value="2"></option>
+                      <option value="3"></option>
+                      <option value="4"></option>
+                      <option value="5"></option>
+                    </select>
+                    <span class="ql-formats">
+                      <button class="ql-bold"></button>
+                      <button class="ql-italic"></button>
+                      <button class="ql-underline"></button>
+                      <button class="ql-strike"></button>
+                    </span>
+                    <span class="ql-formats">
+                      <select class="ql-color"></select>
+                      <select class="ql-background"></select>
+                    </span>
+                    <span class="ql-formats">
+                      <button class="ql-list" value="ordered"></button>
+                      <button class="ql-list" value="bullet"></button>
+                    </span>
+                    <span class="ql-formats">
+                      <button class="ql-link"></button>
+                    </span>
+                    <span class="ql-formats">
+                      <button onclick="document.getElementById('fileEditor').click()">
+                        <i class="material-icons-outlined">image</i>
+                      </button>
+                    </span>
+                  </ToolbarContent>
+                  <EditorContent>
+                    @((MarkupString)model.content)
+                  </EditorContent>
+                </BlazoredTextEditor>
+              </div>
+              <div class="is-hidden">
+                <FileUpload Path="notification/content" Accept="image/*" Multiple="true" Size="1000" FileId="fileEditor" OnUpload="UploadEditor" isCMSUpload="true" />
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="modal-card-foot blog is-justify-content-space-between">
+        @if (Shared.IsEmpty(model.id))
+        {
+          <div>
+            <a class="button" @onclick="() => Update(true)">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">save</i>
+              </span>
+              <span>Lưu nháp</span>
+            </a>
+          </div>
+        }
+        <div style="flex: 1" class="is-flex is-justify-content-flex-end">
+          <a class="button" @onclick="CancelAdd">
+            Hủy
+          </a>
+          <a class="button is-link" @onclick="() => Update(false)">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">done</i>
+            </span>
+            <span>Gửi thông báo</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+@if (isLoadingSwitch)
+{
+  <div class="modal is-active">
+    <div class="modal-background" style="overflow: visible"></div>
+    <div class="modal-card">
+      <section class="column is-full">
+        <div class="p-6 has-text-centered">
+          <a class="button is-white is-loading">
+            Đang tải...
+          </a>
+        </div>
+      </section>
+    </div>
+  </div>
+}
+
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  private string _title = "Thông báo hệ thống";
+  private List<NotificationModel> notifications = new();
+  private List<CategoryModel> categoryList = new();
+  private List<CompanyModel> companys = new();
+  private List<CategoryModel> categoryListShow = new();
+  private CategoryModel categoryModel = new();
+  private NotificationModel model = null;
+  private string filterKeyword = string.Empty;
+  private int status = 0;
+  private bool toggleCategory = false;
+  private BlazoredTextEditor editor;
+  private List<string> companySelected = new();
+  private bool isLoading = false;
+  private bool isLoadingSwitch = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await GetList();
+  }
+
+  private async Task<bool> GetList()
+  {
+    bool _success = true;
+    try
+    {
+      notifications = await DbMainNotification.GetList();
+
+      if (status == 1)
+        notifications.RemoveAll(x => x.isDraft);
+      else if (status == 2)
+        notifications.RemoveAll(x => !x.isDraft);
+
+      if (!string.IsNullOrEmpty(filterKeyword))
+      {
+        var list = new List<NotificationModel>();
+        foreach (var item in notifications)
+        {
+          if (Shared.SearchKeyword(filterKeyword, item.title))
+            list.Add(item);
+        }
+        notifications = list;
+      }
+
+      categoryList = await DbMainCategory.GetList();
+      companys = await DbMainCompany.GetAll();
+      categoryListShow = categoryList.FindAll(x => !x.isDeleted).ToList();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+
+  /// <summary>
+  /// Lấy tên danh mục
+  /// </summary>
+  private CategoryModel GetCategoryName(string id)
+  {
+    var result = categoryList.FirstOrDefault(x => x.id == id);
+    if (result != null)
+      return result;
+    else
+      return new CategoryModel() { name = "Chọn danh mục" };
+  }
+
+
+  /// <summary>
+  /// Cập nhật danh mục
+  /// </summary>
+  private async Task<bool> UpdateCategory()
+  {
+    bool _success = true;
+    try
+    {
+      if (Shared.IsEmpty(categoryModel.name))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên danh mục");
+      else
+      {
+        if (Shared.IsEmpty(categoryModel.color))
+          categoryModel.color = "#333333";
+        if (Shared.IsEmpty(categoryModel.id))
+          await DbMainCategory.Create(categoryModel);
+        else
+          await DbMainCategory.Update(categoryModel);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật danh mục.");
+        categoryList = await DbMainCategory.GetList();
+        categoryListShow = categoryList.FindAll(x => !x.isDeleted).ToList();
+        categoryModel = new();
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateCategory()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  /// <summary>
+  /// Chọn danh mục
+  /// </summary>
+  private void SelectCategory(string id)
+  {
+    model.category = id;
+    toggleCategory = false;
+  }
+
+  /// <summary>
+  /// Xóa danh mục
+  /// </summary>
+  private async Task<bool> DeleteCategory(string id)
+  {
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn xóa danh mục này?"))
+        return false;
+
+      await DbMainCategory.Delete(id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa danh mục.");
+      categoryList = await DbMainCategory.GetList();
+      categoryListShow = categoryList.FindAll(x => !x.isDeleted).ToList();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteCategory()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+
+  /// <summary>
+  ///  Xử lý tạo tin tức
+  /// </summary>
+
+  private async Task<bool> Update(bool isDraft)
+  {
+    isLoading = true;
+    bool _success = true;
+    try
+    {
+      if (await Validation(model))
+      {
+        model.content = await editor.GetHTML();
+        if (string.IsNullOrEmpty(model.id))
+        {
+          var id = Mongo.RandomId();
+          model.isDraft = isDraft;
+          model.creator = UserService.ConvertToMember(Layout.User);
+          model.created = DateTime.Now.Ticks;
+          model.id = id;
+          if (!isDraft)
+            model.published = DateTime.Now.Ticks;
+          await DbMainNotification.Create(model);
+          if (!isDraft)
+            await SendNotifications(model);
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo thông báo thành công!");
+        }
+        else
+        {
+          await UpdateNotifications(model);
+          await DbMainNotification.Update(model);
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Cập nhật thông báo thành công!");
+        }
+        notifications = await DbMainNotification.GetList();
+        model = null;
+        categoryModel = new();
+      }
+    }
+    catch (Exception ex)
+    {
+      await JSRuntime.InvokeAsync<string>("console.warn", "Notification_Update" + ex.ToString());
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Đã xảy ra lỗi không mong muốn, vui lòng thử lại!");
+      _success = false;
+    }
+    finally
+    {
+      isLoading = false;
+    }
+    return _success;
+  }
+
+  private void CancelAdd()
+  {
+    model = null;
+    categoryModel = new();
+    toggleCategory = false;
+  }
+
+  private void EditItem(NotificationModel item)
+  {
+    if (item == null)
+      model = new();
+    else
+      model = item;
+  }
+  private async Task UploadEditor(List<string> files)
+  {
+    foreach (var image in files)
+    {
+      await editor.InsertImage(image);
+    }
+  }
+
+  private async Task UpdateCompanys(bool isUpdate)
+  {
+
+  }
+
+  private async Task<bool> ActiveItem(NotificationModel item)
+  {
+    isLoadingSwitch = true;
+    bool _success = true;
+    try
+    {
+      item.isDraft = !item.isDraft;
+      // Đăng
+      if (!item.isDraft)
+      {
+        item.published = DateTime.Now.Ticks;
+        await SendNotifications(item);
+      }
+      // Lưu nháp
+      else
+      {
+        item.published = 0;
+        foreach (var company in item.companys)
+        {
+          await DbNotify.GetbyKeyAndDelete(company, item.id);
+        }
+      }
+      await DbMainNotification.Update(item);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Cập nhật thông báo thành công!");
+      notifications = await DbMainNotification.GetList();
+    }
+    catch (Exception ex)
+    {
+      await JSRuntime.InvokeAsync<string>("console.warn", "Notification_ActiveItem" + ex.ToString());
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Đã xảy ra lỗi không mong muốn, vui lòng thử lại!");
+      _success = false;
+    }
+    finally
+    {
+      isLoadingSwitch = false;
+    }
+    return _success;
+
+  }
+
+  /// <summary>
+  /// Xóa bài viết
+  /// </summary>
+
+  private async Task<bool> DeleteItem(NotificationModel item)
+  {
+    bool _success = true;
+    try
+    {
+      isLoadingSwitch = true;
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.title}"))
+        return false;
+      foreach (var company in item.companys)
+      {
+        await DbNotify.GetbyKeyAndDelete(company, item.id);
+      }
+      await DbMainNotification.Delete(item.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa thông báo thành công!");
+      Files.DeleteFile(item.image);
+      notifications = await DbMainNotification.GetList();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    isLoadingSwitch = false;
+    return _success;
+  }
+
+  private async Task SendNotifications(NotificationModel item)
+  {
+    foreach (var company in item.companys)
+    {
+      // Lấy toàn bộ nhân viên của công ty
+      var users = await DbUser.GetAll(company, globalService);
+      var date = DateTime.Now.Ticks;
+      foreach (var user in users)
+      {
+        var notiModel = new NotifyModel
+          {
+            name = item.title,
+            link = item.id,
+            user = user.id,
+            avatar = item.image,
+            type = 400,
+            key = item.id,
+            sub_title = item.sub_title,
+            isCMS = true,
+            date = date,
+            user_send = "Fastdo",
+          };
+        await DbNotify.Create(company, notiModel);
+      }
+    }
+  }
+
+  private async Task UpdateNotifications(NotificationModel item)
+  {
+    foreach (var company in item.companys)
+    {
+      var notiList = await DbNotify.GetbyKey(company, item.id);
+      foreach (var noti in notiList)
+      {
+        noti.name = item.title;
+        noti.avatar = item.image;
+        noti.sub_title = item.sub_title;
+        noti.date = DateTime.Now.Ticks;
+        noti.read = true;
+        await DbNotify.Update(company, noti);
+      };
+    }
+  }
+
+  private async Task ChangeStatus(ChangeEventArgs e)
+  {
+    status = Convert.ToInt32(e.Value);
+    await GetList();
+  }
+
+  private async Task<bool> PinItem(NotificationModel item)
+  {
+    bool _success = true;
+    try
+    {
+      item.pin = !item.pin;
+      if (!item.isDraft)
+      {
+        foreach (var company in item.companys)
+        {
+          var notiList = await DbNotify.GetbyKey(company, item.id);
+          foreach (var noti in notiList)
+          {
+            noti.read = false;
+            await DbNotify.Update(company, noti);
+          };
+        }
+      }
+      await DbMainNotification.Update(item);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "PinItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> Validation(NotificationModel item)
+  {
+    if (Shared.IsEmpty(model.title))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề!");
+    else if (Shared.IsEmpty(model.image))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn hình ảnh!");
+    else if (Shared.IsEmpty(model.category))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn danh mục!");
+    else if (!model.companys.Any())
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn công ty áp dụng!");
+    else
+      return true;
+    return false;
+  }
+}

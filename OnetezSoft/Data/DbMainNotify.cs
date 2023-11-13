@@ -1,11 +1,9 @@
-using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using OnetezSoft.Models;
-using MongoDB.Bson;
 using MongoDB.Driver;
+using OnetezSoft.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -54,7 +52,9 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<NotifyModel>.Sort.Descending("date");
 
-      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      return (from x in result orderby x.date descending select x).ToList();
     }
 
 
@@ -63,7 +63,7 @@ namespace OnetezSoft.Data
     /// </summary>
     public static async Task<NotifyModel> Create(int type, string key, string target, string create)
     {
-      var creator = await DbMainUser.Get(create);
+      var creator = await DbMainUser.Get(create, null);
       var creatorName = "<b>" + (creator != null ? creator.FullName : create) + "</b>";
       var name = string.Empty;
       var link = string.Empty;

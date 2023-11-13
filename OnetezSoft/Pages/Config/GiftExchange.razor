@@ -1,18 +1,8 @@
-﻿@page "/config/gift/exchange"
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
-
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
 
 @if (Layout.User.role != 1 && !Layout.User.role_manage.store)
 {
@@ -20,202 +10,182 @@
 }
 else
 {
-  <section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
-    <div class="column is-narrow">
-      <div class="card p-3 menu_left">
-        <a href="/config/gift">
-          Cửa hàng
-        </a>
-        <a class="is-active" href="/config/gift/exchange">
-          Đơn hàng
-        </a>
-        <a href="/config/gift/category">
-          Danh mục
-        </a>
-        <a href="/config/gift/banner">
-          Ưu đãi
-        </a>
+  <ul class="columns is-vcentered is-variable is-2 mb-2">
+    <li class="column">
+      <h1 class="title is-5 has-text-info">
+        QUẢN LÝ ĐỔI QUÀ
+      </h1>
+    </li>
+  </ul>
+  <ul class="columns is-variable is-2 mb-2">
+    <li class="column">
+      <input @bind="filterKey" type="text" class="input" placeholder="Từ khóa: tên sản phẩm..." />
+    </li>
+    <li class="column is-one-quarter">
+      <div class="select is-fullwidth">
+        <select @bind="filterStatus">
+          <option value="0">Tất cả trạng thái</option>
+          @foreach (var sl in DbGiftExchange.Status())
+          {
+            <option value="@sl.id">@sl.name</option>
+          }
+        </select>
       </div>
-    </div>
-    <div class="column">
-      <div class="card p-5">
-        <ul class="columns is-vcentered">
-          <li class="column">
-            <h1 class="title is-5 has-text-info">
-              QUẢN LÝ ĐỔI QUÀ
-            </h1>
-          </li>
-        </ul>
-        <ul class="columns is-variable is-2">
-          <li class="column">
-            <input @bind="filterKey" type="text" class="input" placeholder="Từ khóa: tên sản phẩm..." />
-          </li>
-          <li class="column is-one-quarter">
-            <div class="select is-fullwidth">
-              <select @bind="filterStatus">
-                <option value="0">Tất cả trạng thái</option>
-                @foreach (var sl in DbGiftExchange.Status())
-                {
-                  <option value="@sl.id">@sl.name</option>
-                }
-              </select>
-            </div>
-          </li>
-          <li class="column is-one-quarter">
-            <div class="select is-fullwidth">
-              <select @bind="filterDepartment" class="is-family-code">
-                <option value="">Tất cả phòng ban</option>
-                @foreach (var item in departments)
-                {
-                  <option value="@item.id">@item.name</option>
-                }
-              </select>
-            </div>
-          </li>
-          <li class="column is-narrow">
-            <a class="button is-link is-outlined" @onclick="Search">
-              <span class="icon">
-                <i class="material-icons-outlined">search</i>
-              </span>
-              <span>Tìm kiếm</span>
-            </a>
-          </li>
-        </ul>
-        <table class="table is-fullwidth is-vcentered is-responsive mt-5">
-          <thead>
-            <tr>
-              <th width="60px">Hình</th>
-              <th>Sản phẩm</th>
-              <th width="80px">Số lượng</th>
-              <th width="80px">Sao đổi</th>
-              <th width="105px">Thời gian</th>
-              <th width="20%">Người mua/nhận</th>
-              <th width="120px">Trạng thái</th>
-              <th width="70px" align="center">Xử lý</th>
-            </tr>
-          </thead>
-          <tbody>
-            @foreach (var item in dataList)
-            {
-              var status = DbGiftExchange.Status(item.status);
-              var userBuy = Layout.UserList.SingleOrDefault(x => x.id == item.user_buy);
-              var userGive = Layout.UserList.SingleOrDefault(x => x.id == item.user_give);
-
-              <tr>
-                <td>
-                  <a class="image is-square" href="@item.image" target="_blank" style="width: 100%;">
-                    <img src="@item.image" alt="IMG" />
-                  </a>
-                </td>
-                <td>
-                  <label class="td-label">Sản phẩm</label>
-                  <div class="td-value">
-                    <div class="has-text-weight-semibold">@item.name</div>
-                    @if (!string.IsNullOrEmpty(item.note))
-                    {
-                      <div class="is-size-7 mt-1 text_1_line" onclick="toggleText(this)" title="Click để xem">
-                        <span class="has-text-weight-semibold">Ghi chú:</span>
-                        <span class="has-text-grey">@item.note</span>
-                      </div>
-                    }
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Số lượng</label>
-                  <div class="td-value has-text-weight-semibold">
-                    @item.quantity
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Sao đổi</label>
-                  <div class="td-value has-text-weight-semibold">
-                    @item.price
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Thời gian</label>
-                  <div class="td-value">
-                    <div class="is-hidden-mobile">
-                      @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))
-                      <br />
-                      @string.Format("{0:HH:mm}", new DateTime(item.date))
-                    </div>
-                    <div class="is-hidden-tablet">
-                      @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <div class="is-flex">
-                    <label class="td-label">Người mua</label>
-                    <div class="td-value">
-                      @if(userBuy != null)
-                      {
-                        <div class="user_item">
-                          <img class="image is-16x16 mr-2" src="@userBuy.avatar" alt="IMG" />
-                          <span class="is-size-7">@userBuy.FullName</span>
-                        </div>
-                      }
-                      else
-                      {
-                        <span class="is-size-7 is-italic">Người mua này đã bị xóa</span>
-                      }
-                    </div>
-                  </div>
-                  <div class="is-flex">
-                    <label class="td-label">Người nhận</label>
-                    <div class="td-value">
-                      @if(userGive != null)
-                      {
-                        <div class="user_item">
-                          <img class="image is-16x16 mr-2" src="@userGive.avatar" alt="IMG" />
-                          <span class="is-size-7">@userGive.FullName</span>
-                        </div>
-                      }
-                      else
-                      {
-                        <span class="is-size-7 is-italic">Người nhận này đã bị xóa</span>
-                      }
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Trạng thái</label>
-                  <div class="td-value">
-                    <span class="tag @status.color">@status.name</span>
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Xử lý</label>
-                  <div class="td-value">
-                    @if (item.status == 1)
-                    {
-                      <a class="icon has-text-success" title="Duyệt" @onclick="() => ChangeStatus(item, 2)">
-                        <i class="material-icons is-size-5">
-                          check_circle
-                        </i>
-                      </a>
-                      <a class="icon has-text-danger" title="Hủy" @onclick="() => ChangeStatus(item, 3)">
-                        <i class="material-icons is-size-5">
-                          cancel
-                        </i>
-                      </a>
-                    }
-                  </div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-        @if(dataList.Count == pageSize)
+    </li>
+    <li class="column is-one-quarter">
+      <div class="select is-fullwidth">
+        <select @bind="filterDepartment" class="is-family-code">
+          <option value="">Tất cả phòng ban</option>
+          @foreach (var item in departments)
+          {
+            <option value="@item.id">@item.name</option>
+          }
+        </select>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <a class="button is-link is-outlined" @onclick="Search">
+        <span class="icon">
+          <i class="material-icons-outlined">search</i>
+        </span>
+        <span>Tìm kiếm</span>
+      </a>
+    </li>
+  </ul>
+  <div id="scrollbox" class="scrolly table-container inner_section" style="flex:1">
+    <table class="table is-fullwidth is-vcentered is-responsive sticky only_desktop">
+      <thead>
+        <tr>
+          <th class="sticky" style="left:0" width="60px">Hình</th>
+          <th class="sticky last" width="200px" style="left:60px">Sản phẩm</th>
+          <th class="" width="80px">Số lượng</th>
+          <th class="" width="80px">Sao đổi</th>
+          <th class="" width="105px">Thời gian</th>
+          <th class="" width="150px" >Người mua/nhận</th>
+          <th class="" width="120px">Trạng thái</th>
+          <th class="" width="70px" align="center">Xử lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in dataList)
         {
-          <div class="has-text-centered">
-            <a @onclick="ViewMore">Xem thêm</a>
-          </div>
+          var status = DbGiftExchange.Status(item.status);
+          var userBuy = shareStorage.MemberList.SingleOrDefault(x => x.id == item.user_buy);
+          var userGive = shareStorage.MemberList.SingleOrDefault(x => x.id == item.user_give);
+
+          <tr>
+            <td class="sticky" style="left:0;">
+              <a class="image is-square" href="@item.image" target="_blank" style="width: 100%;">
+                <img src="@item.image" alt="IMG" />
+              </a>
+            </td>
+            <td class="sticky last" style="left:60px">
+              <label class="td-label">Sản phẩm</label>
+              <div class="td-value">
+                <div class="has-text-weight-semibold">@item.name</div>
+                @if (!string.IsNullOrEmpty(item.note))
+                {
+                  <div class="is-size-7 mt-1 text_2_line" onclick="toggleText(this)" title="Click để xem">
+                    <span class="has-text-weight-semibold">Ghi chú:</span>
+                    <span class="has-text-grey">@item.note</span>
+                  </div>
+                }
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Số lượng</label>
+              <div class="td-value has-text-weight-semibold">
+                @item.quantity
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Sao đổi</label>
+              <div class="td-value has-text-weight-semibold">
+                @item.price
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Thời gian</label>
+              <div class="td-value">
+                <div class="is-hidden-mobile">
+                  @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))
+                  <br />
+                  @string.Format("{0:HH:mm}", new DateTime(item.date))
+                </div>
+                <div class="is-hidden-tablet">
+                  @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="is-flex">
+                <label class="td-label">Người mua</label>
+                <div class="td-value">
+                  @if (userBuy != null)
+                  {
+                    <div class="user_item">
+                      <img class="image is-16x16 mr-2" src="@userBuy.avatar" alt="IMG" />
+                      <span class="is-size-7">@userBuy.name</span>
+                    </div>
+                  }
+                  else
+                  {
+                    <span class="is-size-7 is-italic">Người mua này đã bị xóa</span>
+                  }
+                </div>
+              </div>
+              <div class="is-flex">
+                <label class="td-label">Người nhận</label>
+                <div class="td-value">
+                  @if (userGive != null)
+                  {
+                    <div class="user_item">
+                      <img class="image is-16x16 mr-2" src="@userGive.avatar" alt="IMG" />
+                      <span class="is-size-7">@userGive.name</span>
+                    </div>
+                  }
+                  else
+                  {
+                    <span class="is-size-7 is-italic">Người nhận này đã bị xóa</span>
+                  }
+                </div>
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Trạng thái</label>
+              <div class="td-value">
+                <span class="tag @status.color">@status.name</span>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Xử lý</label>
+              <div class="td-value">
+                @if (item.status == 1)
+                {
+                  <a class="icon has-text-success" title="Duyệt" @onclick="() => ChangeStatus(item, 2)">
+                    <i class="material-icons is-size-5">
+                      check_circle
+                    </i>
+                  </a>
+                  <a class="icon has-text-danger" title="Hủy" @onclick="() => ChangeStatus(item, 3)">
+                    <i class="material-icons is-size-5">
+                      cancel
+                    </i>
+                  </a>
+                }
+              </div>
+            </td>
+          </tr>
         }
-      </div>
+      </tbody>
+    </table>
+  </div>
+  @if (dataList.Count == pageSize)
+  {
+    <div class="has-text-centered">
+      <a @onclick="ViewMore">Xem thêm</a>
     </div>
-  </section>
+  }
 }
 
 @code {
@@ -223,7 +193,7 @@ else
   public LayoutMain Layout { get; set; }
 
   private bool _loaded = false;
-  private bool _success = false;
+  private bool success = false;
   private string _message = string.Empty;
   private string _title = "Quản lý cửa hàng";
 
@@ -234,11 +204,21 @@ else
   private int filterStatus = 0;
   private int pageSize = 20;
 
+  private SharedStorage shareStorage = new();
+
   protected override async Task OnInitializedAsync()
   {
-    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    var departs = await DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+    departments.AddRange(departs);
     await Search();
     _loaded = true;
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+      await JSRuntime.InvokeVoidAsync("dragScrollX");
   }
 
   private async Task ViewMore()
@@ -247,65 +227,89 @@ else
     await Search();
   }
 
-  private async Task Search()
+  private async Task<bool> Search()
   {
-    dataList = await DbGiftExchange.GetList(Layout.Company.id, filterKey, filterStatus);
-
-    if (!string.IsNullOrEmpty(filterDepartment))
+    bool _success = true;
+    try
     {
-      var userListId = string.IsNullOrEmpty(filterDepartment) ? Layout.UserList.Select(x => x.id).ToList() :
-        Layout.UserList.Where(x => x.departments_id.Contains(filterDepartment)).Select(x => x.id).ToList();
-      dataList = dataList.Where(x => userListId.Contains(x.user_give)).ToList();
-    }
+      dataList = await DbGiftExchange.GetList(Layout.Company.id, filterKey, filterStatus);
 
-    if (pageSize > 0)
-      dataList = dataList.Take(pageSize).ToList();
+      if (!string.IsNullOrEmpty(filterDepartment))
+      {
+        var userListId = string.IsNullOrEmpty(filterDepartment) ? shareStorage.MemberList.Select(x => x.id).ToList() :
+          shareStorage.MemberList.Where(x => x.departments_id.Contains(filterDepartment)).Select(x => x.id).ToList();
+        dataList = dataList.Where(x => userListId.Contains(x.user_give)).ToList();
+      }
+
+      if (pageSize > 0)
+        dataList = dataList.Take(pageSize).ToList();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Search()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task ChangeStatus(GiftExchangeModel item, int status)
+  private async Task<bool> ChangeStatus(GiftExchangeModel item, int status)
   {
-    if (status == 2)
+    bool _success = true;
+    try
     {
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn duyệt sản phẩm: {item.name}?"))
-        return;
-    }
-    else
-    {
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy sản phẩm: {item.name}?"))
-        return;
-    }
-
-    item.status = status;
-    await DbGiftExchange.Update(Layout.Company.id, item);
-
-    // Trả lại sao
-    if (status == 3)
-    {
-      var user = await DbUser.Get(Layout.Company.id, item.user_buy);
-      if (user != null)
+      if (status == 2)
       {
-        user.star_total += item.quantity * item.price;
-        await DbUser.Update(Layout.Company.id, user);
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn duyệt sản phẩm: {item.name}?"))
+          return false;
+      }
+      else
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy sản phẩm: {item.name}?"))
+          return false;
       }
 
-      // Gửi thông báo chuông
-      await DbNotify.Create(Layout.Company.id, 302, item.id, item.user_buy, Layout.User.id);
-    }
-    else
-    {
-      var product = await DbGiftProduct.Get(Layout.Company.id, item.product);
-      if (product != null)
+      item.status = status;
+      await DbGiftExchange.Update(Layout.Company.id, item);
+
+      // Trả lại sao
+      if (status == 3)
       {
-        product.sold += item.quantity;
-        await DbGiftProduct.Update(Layout.Company.id, product);
+        var user = await DbUser.Get(Layout.Company.id, item.user_buy, globalService);
+        if (user != null)
+        {
+          user.star_total += item.quantity * item.price;
+          await DbUser.Update(Layout.Company.id, user, globalService);
+        }
+
+        // Gửi thông báo chuông
+        await DbNotify.Create(Layout.Company.id, 302, item.id, item.user_buy, Layout.User.id);
       }
+      else
+      {
+        var product = await DbGiftProduct.Get(Layout.Company.id, item.product);
+        if (product != null)
+        {
+          product.sold += item.quantity;
+          await DbGiftProduct.Update(Layout.Company.id, product);
+        }
 
-      // Gửi thông báo chuông cho người mua
-      await DbNotify.Create(Layout.Company.id, 301, item.id, item.user_buy, Layout.User.id);
+        // Gửi thông báo chuông cho người mua
+        await DbNotify.Create(Layout.Company.id, 301, item.id, item.user_buy, Layout.User.id);
 
-      // Gửi thông báo chuông cho người được tặng
-      if (item.user_buy != item.user_give)
-        await DbNotify.Create(Layout.Company.id, 303, item.id, item.user_give, item.user_buy);
+        // Gửi thông báo chuông cho người được tặng
+        if (item.user_buy != item.user_give)
+          await DbNotify.Create(Layout.Company.id, 303, item.id, item.user_give, item.user_buy);
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeStatus()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

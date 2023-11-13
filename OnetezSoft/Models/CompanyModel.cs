@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class CompanyModel
   {
     [BsonId]
@@ -16,7 +17,7 @@ namespace OnetezSoft.Models
     /// <summary>ID chủ tổ chức</summary>
     public string admin_id { get; set; }
 
-    /// <summary>Trạng thái</summary>
+    /// <summary>Trạng thái kích hoạt</summary>
     public bool status { get; set; }
 
     /// <summary>Tên tổ chức</summary>
@@ -49,6 +50,12 @@ namespace OnetezSoft.Models
     /// <summary>Kiểm tra có phải lần đầu không?</summary>
     public bool isUsed { get; set; } = false;
 
+    /// <summary>Kiểm tra đã lấy data ghi nhận cũ chưa?</summary>
+    public bool isUsedCfr { get; set; }
+
+    /// <summary>Kiểm tra đã đồng bộ kế hoạch?</summary>
+    public bool is_sync_plan { get; set; }
+
     /// <summary>Cấu hình Todolist</summary>
     public Todolist todolist { get; set; }
 
@@ -59,7 +66,7 @@ namespace OnetezSoft.Models
     public Module module { get; set; }
 
     /// <summary>Sản phẩm sở hữu</summary>
-    public List<Product> products { get; set; }
+    public List<Product> products { get; set; } = new();
 
     /// <summary>Danh mục tin tức</summary>
     public List<Category> blog_category { get; set; } = new();
@@ -81,6 +88,9 @@ namespace OnetezSoft.Models
 
       /// <summary>Thời gian tự động xác nhận</summary>
       public string time_confirm { get; set; }
+
+      /// <summary>Chế độ xem: 1: all, 2: chỉ bên trong</summary>
+      public int view_type { get; set; } = 1;
     }
 
     /// <summary>Cấu hình danh mục Kaizen</summary>

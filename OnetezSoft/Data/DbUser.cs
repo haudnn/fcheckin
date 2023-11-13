@@ -1,11 +1,9 @@
-﻿using System;
+﻿using MongoDB.Driver;
+using OnetezSoft.Models;
+using OnetezSoft.Services;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
 
 namespace OnetezSoft.Data
 {
@@ -54,13 +52,15 @@ namespace OnetezSoft.Data
       var result = await collection.DeleteOneAsync(x => x.id == id);
 
       if (result.DeletedCount > 0)
+      {
         return true;
+      }
       else
         return false;
     }
 
 
-    public static async Task<UserModel> Update(string companyId, UserModel model)
+    public static async Task<UserModel> Update(string companyId, UserModel model, GlobalService globalService)
     {
       if (model.title == 0)
         model.title = 3;
@@ -75,6 +75,17 @@ namespace OnetezSoft.Data
 
       var result = await collection.ReplaceOneAsync(x => x.id.Equals(model.id), model, option);
 
+      if (globalService != null)
+      {
+        var shareStorage = await globalService.GetShareStorage(companyId);
+
+        shareStorage.UserList.RemoveAll(x => x.id == model.id);
+        shareStorage.MemberList.RemoveAll(x => x.id == model.id);
+
+        shareStorage.UserList.Add(model);
+        shareStorage.MemberList.Add(UserService.ConvertToMember(model));
+      }
+
       return model;
     }
 
@@ -82,30 +93,37 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Lấy thông tin tài khoản, không lấy tài khoản đã xóa
     /// </summary>
-    public static async Task<UserModel> Get(string companyId, string id)
+    public static async Task<UserModel> Get(string companyId, string id, GlobalService globalService)
     {
-      var _db = Mongo.DbConnect("fastdo_" + companyId);
+      var shareStorage = globalService == null ? null : await globalService.GetShareStorage(companyId);
 
-      var collection = _db.GetCollection<UserModel>(_collection);
+      var result = globalService == null ? null : shareStorage.UserList.FirstOrDefault(x => x.id == id);
 
-      var result = await collection.Find(x => x.id == id && !x.delete).FirstOrDefaultAsync();
-
-      if (result != null)
+      if (result == null)
       {
-        if (result.companys == null)
-          result.companys = new();
-        if (result.role_manage == null)
-          result.role_manage = new();
-        if (result.departments_id == null)
-          result.departments_id = new();
-        if (result.teams_id == null)
-          result.teams_id = new();
-        if (result.products == null)
-          result.products = new();
-        if (result.plans_pin == null)
-          result.plans_pin = new();
-        if (result.plans_hide == null)
-          result.plans_hide = new();
+        var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+        var collection = _db.GetCollection<UserModel>(_collection);
+
+        result = await collection.FindAsync(x => x.id == id && !x.delete).Result.FirstOrDefaultAsync();
+
+        if (result != null)
+        {
+          if (result.companys == null)
+            result.companys = new();
+          if (result.role_manage == null)
+            result.role_manage = new();
+          if (result.departments_id == null)
+            result.departments_id = new();
+          if (result.teams_id == null)
+            result.teams_id = new();
+          if (result.products == null)
+            result.products = new();
+          if (result.plans_pin == null)
+            result.plans_pin = new();
+          if (result.plans_hide == null)
+            result.plans_hide = new();
+        }
       }
 
       return result;
@@ -122,74 +140,96 @@ namespace OnetezSoft.Data
       var collection = _db.GetCollection<UserModel>(_collection);
 
       if (!string.IsNullOrEmpty(userId))
-        return await collection.Find(x => x.id == userId).FirstOrDefaultAsync();
+        return await collection.FindAsync(x => x.id == userId).Result.FirstOrDefaultAsync();
       else if (!string.IsNullOrEmpty(email))
-        return await collection.Find(x => x.email == email.Trim()).FirstOrDefaultAsync();
+        return await collection.FindAsync(x => x.email == email.Trim()).Result.FirstOrDefaultAsync();
       return null;
     }
 
 
-    public static List<UserModel> GetAll(string companyId)
+    public static async Task<List<UserModel>> GetAll(string companyId, GlobalService globalService)
     {
-      var _db = Mongo.DbConnect("fastdo_" + companyId);
+      var results = new List<UserModel>();
+      if (globalService != null && await globalService.CheckIfExist(companyId) && globalService != null)
+      {
+        var shareStorage = await globalService.GetShareStorage(companyId);
+        results = shareStorage.UserList.Where(x => !x.delete && x.active).ToList();
+      }
 
-      var collection = _db.GetCollection<UserModel>(_collection);
+      if (results == null || results.Count == 0)
+      {
+        var _db = Mongo.DbConnect("fastdo_" + companyId);
 
-      var results = collection.Find(x => !x.delete && x.active).ToList();
+        var collection = _db.GetCollection<UserModel>(_collection);
+
+        results = collection.Find(x => !x.delete && x.active).ToList();
+      }
 
       return (from x in results orderby x.title, x.role select x).ToList();
     }
 
 
-    public static async Task<List<UserModel>> GetAll(string companyId, string department)
+    public static async Task<List<UserModel>> GetAll(string companyId, string department, GlobalService globalService)
     {
-      var _db = Mongo.DbConnect("fastdo_" + companyId);
+      var shareStorage = globalService == null ? null : await globalService.GetShareStorage(companyId);
 
-      var collection = _db.GetCollection<UserModel>(_collection);
+      var results = globalService == null ? new() : shareStorage.UserList.Where(x => !x.delete && x.active && x.departments_id.Contains(department)).ToList();
 
-      return await collection.Find(x => !x.delete && x.active
-        && x.departments_id.Contains(department)).ToListAsync();
+      if (results == null || results.Count == 0)
+      {
+        var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+        var collection = _db.GetCollection<UserModel>(_collection);
+
+        results = await collection.FindAsync(x => !x.delete && x.active
+        && x.departments_id.Contains(department)).Result.ToListAsync();
+      }
+
+      return results;
     }
 
     /// <summary>Lấy danh sách thông tin tài khoản, kể cả tài khoản đã xóa</summary>
-    public static List<UserModel> GetAllWithoutDelete(string companyId)
+    public static async Task<List<UserModel>> GetAllWithinDelete(string companyId)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<UserModel>(_collection);
 
-      var results = collection.Find(x => true).ToList();
+      var results = await collection.FindAsync(x => true).Result.ToListAsync();
 
       return (from x in results orderby x.title, x.role select x).ToList();
     }
 
 
-    public static async Task<List<UserModel>> GetList(string companyId, string keyword, string department, int status)
+    public static async Task<List<UserModel>> GetList(string companyId, string keyword, string department, int status, GlobalService globalService)
     {
-      var _db = Mongo.DbConnect("fastdo_" + companyId);
+      var shareStorage = globalService == null ? null : await globalService.GetShareStorage(companyId);
 
-      var collection = _db.GetCollection<UserModel>(_collection);
+      var results = globalService == null ? new() : shareStorage.UserList;
 
-      var builder = Builders<UserModel>.Filter;
+      if (results == null || results.Count == 0)
+      {
+        var _db = Mongo.DbConnect("fastdo_" + companyId);
 
-      var filtered = builder.Eq("delete", false);
+        var collection = _db.GetCollection<UserModel>(_collection);
+
+        results = await collection.FindAsync(x => !x.delete).Result.ToListAsync();
+      }
 
       if (!string.IsNullOrEmpty(department))
-        filtered = filtered & builder.Eq("departments_id", department);
+        results = results.Where(x => x.departments_id.Contains(department)).ToList();
       if (status == 1) // Hoạt động
-        filtered = filtered & builder.Eq("active", true);
+        results = results.Where(x => x.active).ToList();
       else if (status == 2) // Khóa
-        filtered = filtered & builder.Eq("active", false);
+        results = results.Where(x => !x.active).ToList();
 
-      var sorted = Builders<UserModel>.Sort.Ascending("role");
+      results = results.OrderBy(x => x.role).ToList();
 
-      var list = await collection.Find(filtered).Sort(sorted).ToListAsync();
-
-      var results = new List<UserModel>();
+      var result = new List<UserModel>();
 
       if (!string.IsNullOrEmpty(keyword))
       {
-        foreach (var item in list)
+        foreach (var item in results)
         {
           bool check = Handled.Shared.SearchKeyword(keyword, item.email + item.first_name + item.last_name);
 
@@ -198,32 +238,41 @@ namespace OnetezSoft.Data
         }
       }
       else
-        results = list;
+        result = results;
 
-      return results;
+      return result;
     }
 
 
     /// <summary>
     /// Lấy danh sách Admin và QLHT
     /// </summary>
-    public static async Task<List<UserModel>> GetManager(string companyId, bool onlyAdmin)
+    public static async Task<List<UserModel>> GetManager(string companyId, bool onlyAdmin, GlobalService globalService)
     {
-      var _db = Mongo.DbConnect("fastdo_" + companyId);
+      var shareStorage = globalService == null ? null : await globalService.GetShareStorage(companyId);
 
-      var collection = _db.GetCollection<UserModel>(_collection);
+      var results = globalService == null ? new() : shareStorage.UserList.Where(x => !x.delete && (onlyAdmin ? x.role == 1 : (x.role >= 1 && x.role <= 2))).ToList();
 
-      if (onlyAdmin)
-        return await collection.Find(x => !x.delete && x.role == 1).ToListAsync();
-      else
-        return await collection.Find(x => !x.delete && x.role >= 1 && x.role <= 2).ToListAsync();
+      if (results == null || results.Count == 0)
+      {
+        var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+        var collection = _db.GetCollection<UserModel>(_collection);
+
+        if (onlyAdmin)
+          return await collection.FindAsync(x => !x.delete && x.role == 1).Result.ToListAsync();
+        else
+          return await collection.FindAsync(x => !x.delete && x.role >= 1 && x.role <= 2).Result.ToListAsync();
+      }
+
+      return results;
     }
 
 
     /// <summary>
     /// Lần lần online gần nhất của người dùng trong tổ chức
     /// </summary>
-    public static long GetOnline(string companyId)
+    public static async Task<long> GetOnline(string companyId)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
@@ -235,27 +284,37 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<UserModel>.Sort.Descending("online");
 
-      var result = collection.Find(filtered).Sort(sorted).FirstOrDefault();
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
 
-      if (result != null)
-        return result.online;
+      result = result.OrderByDescending(x => x.online).ToList();
+
+      if (result.Count > 0)
+        return result.FirstOrDefault().online;
       else
         return 0;
     }
 
-				/// <summary>
+    /// <summary>
     /// Lấy thông tin thiết bị của người dùng
     /// </summary>
-				public static async Task<bool> GetDevice(string companyId, string userId, string deviceId)
-				{
-						var _db = Mongo.DbConnect("fastdo_" + companyId);
+    public static async Task<bool> GetDevice(string companyId, string userId, string deviceId, GlobalService globalService)
+    {
+      var shareStorage = globalService == null ? null : await globalService.GetShareStorage(companyId);
 
-      var collection = _db.GetCollection<UserModel>(_collection);
+      var result = globalService == null ? null : shareStorage.UserList.FirstOrDefault(x => x.id == userId && x.device_id == deviceId);
 
-						var result = await collection.Find(x => x.id == userId && x.device_id == deviceId).FirstOrDefaultAsync();
-						
+      if (result == null)
+      {
+        var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+        var collection = _db.GetCollection<UserModel>(_collection);
+
+        result = await collection.FindAsync(x => x.id == userId && x.device_id == deviceId).Result.FirstOrDefaultAsync();
+      };
+
+
       return result != null ? true : false;
-				}
+    }
 
 
     #region Dữ liệu cố định

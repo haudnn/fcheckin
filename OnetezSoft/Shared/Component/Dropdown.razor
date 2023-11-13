@@ -1,0 +1,125 @@
+﻿@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<div id="@id" class="dropdown @DropdownClass @(Toggle || AlwaysShow ? "is-active" : "")" style="@DropdownStyle">
+  <div class="dropdown-trigger" @onclick:stopPropagation="true" @onclick="toggleDropdown" style="@TriggerStyle">
+    @Trigger
+  </div>
+  @if (Toggle)
+  {
+    if (MenuContent != null)
+    {
+      <div style="@DropMenuStyle" class="dropdown-menu @(isFullwidth ? "is-fullwidth" : "")" title="@Title"
+      @onclick="CloseOnMenu">
+        <div class="dropdown-content scrolly is-mobile @MenuClass" style="@MenuStyle">
+          @MenuContent
+        </div>
+      </div>
+    }
+    else
+    {
+      @Menu
+    }
+  }
+</div>
+
+@code {
+  [Parameter]
+  public RenderFragment Trigger { get; set; }
+  [Parameter]
+  public RenderFragment MenuContent { get; set; }
+  [Parameter]
+  public RenderFragment Menu { get; set; }
+  [Parameter]
+  public string DropdownClass { get; set; }
+  [Parameter]
+  public string MenuClass { get; set; }
+  [Parameter]
+  public string Title { get; set; }
+  [Parameter]
+  public string MenuStyle { get; set; }
+  [Parameter]
+  public string TriggerStyle { get; set; }
+  [Parameter]
+  public string DropdownStyle { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnToggle { get; set; }
+  [Parameter]
+  public bool AlwaysShow { get; set; }
+  [Parameter]
+  public bool Toggle { get; set; }
+  [Parameter]
+  public EventCallback<bool> ToggleChanged { get; set; }
+  [Parameter]
+  public bool CloseOnClickMenu { get; set; }
+  [Parameter]
+  public bool isFullwidth { get; set; }
+  [Parameter]
+  public string DropMenuStyle { get; set; }
+  [Parameter]
+  public bool isSetLeft { get; set; }
+  private string id;
+
+  private DotNetObjectReference<Dropdown> obj;
+
+  protected override void OnInitialized()
+  {
+    id = $"dropdown_{Guid.NewGuid().ToString().Split("-").FirstOrDefault()}";
+    obj = DotNetObjectReference.Create(this);
+  }
+
+
+  protected override async Task OnAfterRenderAsync(bool first)
+  {
+    if (Toggle)
+    {
+      await JSRuntime.InvokeVoidAsync("SetDropdownPosition", $"#{id}", ".dropdown-menu", obj, "CloseDropdown", isSetLeft);
+    }
+  }
+
+  private void toggleDropdown()
+  {
+    Toggle = !Toggle;
+
+    ToggleChanged.InvokeAsync(Toggle);
+    OnToggle.InvokeAsync(Toggle);
+  }
+
+  private void CloseOnMenu()
+  {
+    if (CloseOnClickMenu)
+    {
+      Toggle = false;
+      ToggleChanged.InvokeAsync(Toggle);
+
+      OnToggle.InvokeAsync(Toggle);
+    }
+    else
+    {
+      return;
+    }
+  }
+
+  [JSInvokable]
+  public void CloseDropdown()
+  {
+    Toggle = false;
+
+    ToggleChanged.InvokeAsync(Toggle);
+    OnToggle.InvokeAsync(Toggle);
+
+    StateHasChanged();
+  }
+
+  public void Dispose()
+  {
+    try
+    {
+      obj?.Dispose();
+    }
+    catch (Exception ex)
+    {
+      return;
+    }
+  }
+}

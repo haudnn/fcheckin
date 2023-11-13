@@ -5,12 +5,12 @@
   <section class="modal-card is-small">
     <section class="modal-card-head">
       <div class="modal-card-title">
-        @(view_mode == 1 ? $"Phân ca theo ngày: " : "Đăng ký ca làm: ") @Handled.Shared.ConvertLongToDate(date)
+        @(Tab == "shift" ? $"Phân ca theo ngày: " : "Đăng ký ca làm: ") @Handled.Shared.ConvertLongToDate(date)
       </div>
       <a class="delete is-medium" @onclick="Cancel"></a>
     </section>
     <section class="modal-card-body">
-      @if(view_mode == 1)
+      @if (Tab == "shift")
       {
         <p class="has-text-weight-medium mb-2"> Nhân viên áp dụng: @users.Count</p>
         <div class="mb-3 is-flex" style="flex-wrap:nowrap;">
@@ -47,10 +47,11 @@
                 <input type="checkbox" @onchange="() => CheckItem(shift.id)" />
               }
               <span class="text_1_line">
-                <span class="has-text-link">@shift.name</span> • @shift.checkin - @shift.checkout • @shift.value
+                <span class="has-text-link">@shift.name</span> • @shift.checkin - @shift.checkout • @shift.value @(shift.is_byhour ? "(H)" : "")
               </span>
             </label>
           }
+          <p style="font-size: 12px" class="is-italic">*Chú thích: (H) là những ca làm theo giờ</p>
         }
         else
         {
@@ -69,11 +70,10 @@
             <i class="material-icons-round is-size-6">check</i>
           </span>
           <span>
-            @(view_mode == 1 ? "Áp dụng" : "Cập nhật")
+            @(Tab == "shift" ? "Áp dụng" : "Cập nhật")
           </span>
         </a>
       }
-
     </section>
   </section>
 </section>
@@ -84,17 +84,17 @@
   public LayoutMain Layout { get; set; }
 
   [Parameter]
-  public List<UserModel> users { get; set; }
+  public List<MemberModel> users { get; set; } = new();
   [Parameter]
   public EventCallback<bool> OnUpdate { get; set; }
   [Parameter]
-  public List<HrmWorkShiftModel> shifts { get; set; }
+  public List<HrmWorkShiftModel> shifts { get; set; } = new();
   [Parameter]
   public long date { get; set; }
   [Parameter]
-  public List<string> shiftsSelected { get; set; }
+  public List<string> shiftsSelected { get; set; } = new();
   [Parameter]
-  public int view_mode { get; set; } = 1;
+  public string Tab { get; set; }
 
   private async Task Cancel()
   {
@@ -111,12 +111,12 @@
 
   private async Task Update()
   {
-			var isValid = HrmService.CheckGapShifts(shifts.Where(x => shiftsSelected.Contains(x.id)).ToList());
-			if(isValid)
-			{
-				await JSRuntime.InvokeVoidAsync("tagline", false, "Ca làm việc không được chồng lên nhau!");
-				return;
-			}
-   await OnUpdate.InvokeAsync(true);
+    var isValid = HrmService.CheckGapShifts(shifts.Where(x => shiftsSelected.Contains(x.id)).ToList());
+    if (isValid)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Ca làm việc không được chồng lên nhau!");
+      return;
+    }
+    await OnUpdate.InvokeAsync(true);
   }
 }

@@ -1,4 +1,6 @@
 ﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
 <ul class="columns">
   <li class="column is-narrow">
@@ -57,7 +59,7 @@
             <div class="field">
               <div class="control has-icons-left">
                 <input value="@model.last_name" type="text" class="input is_line has-text-weight-medium"
-                  placeholder="Họ" readonly />
+                       placeholder="Họ" readonly />
                 <span class="icon is-left has-text-black">
                   <i class="material-icons-round is-size-6">person</i>
                 </span>
@@ -68,7 +70,7 @@
             <div class="field">
               <div class="control has-icons-left">
                 <input value="@model.first_name" type="text" class="input is_line has-text-weight-medium"
-                  placeholder="Tên" readonly />
+                       placeholder="Tên" readonly />
                 <span class="icon is-left has-text-black">
                   <i class="material-icons-round is-size-6">person</i>
                 </span>
@@ -78,8 +80,8 @@
           <li class="column is-half">
             <div class="field">
               <div class="control has-icons-left">
-                <input value="@model.phone" type="text" class="input is_line has-text-weight-medium" 
-                  placeholder="Số điện thoại" readonly />
+                <input value="@model.phone" type="text" class="input is_line has-text-weight-medium"
+                       placeholder="Số điện thoại" readonly />
                 <span class="icon is-left has-text-black">
                   <i class="material-icons-round is-size-6">call</i>
                 </span>
@@ -90,7 +92,7 @@
             <div class="field">
               <div class="control has-icons-left">
                 <input value="@model.social" type="text" class="input is_line has-text-weight-medium"
-                  placeholder="Liên hệ khác" readonly />
+                       placeholder="Liên hệ khác" readonly />
                 <span class="icon is-left has-text-black">
                   <i class="material-icons-round is-size-6">share</i>
                 </span>
@@ -145,13 +147,13 @@
   </li>
 </ul>
 
-@if(recharge != null)
+@if (recharge != null)
 {
   <section class="modal is-active">
     <div class="modal-background"></div>
     <section class="modal-card has_bg">
-      <section class="modal-card-head is-danger" 
-        style="background-image: url('/images/illustrations/addmoney.png')">
+      <section class="modal-card-head is-danger"
+               style="background-image: url('/images/illustrations/addmoney.png')">
         <div class="modal-card-title">
           <div class="title">
             @(recharge == true ? "Hệ thống nạp tiền" : "Hệ thống rút tiền")
@@ -166,8 +168,8 @@
         <div class="field mb-4">
           <label class="label">Số tiền cần @(recharge == true ? "nạp" : "rút")</label>
           <div class="control has-icons-left">
-            <input @bind="moneyFormat" @bind:event="oninput" type="text" 
-              class="input is_line has-text-weight-bold" placeholder="Nhập số tiền">
+            <input @bind="moneyFormat" @bind:event="oninput" type="text"
+                   class="input is_line has-text-weight-bold" placeholder="Nhập số tiền">
             <span class="icon is-left has-text-black">
               <i class="material-icons-round is-size-6">account_balance_wallet</i>
             </span>
@@ -225,54 +227,66 @@
     recharge = null;
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if(money <= 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa nhập số tiền cần nạp");
-    else
+    bool _success = true;
+    try
     {
-      var customer = await DbMainUser.Get(model.id);
-      if (customer != null)
+      if (money <= 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa nhập số tiền cần nạp");
+      else
       {
-        var transaction = new TransactionModel()
+        var customer = await DbMainUser.Get(model.id, null);
+        if (customer != null)
         {
-          customer = UserService.ConvertToMember(customer),
-          creator = UserService.ConvertToMember(Layout.User),
-          status = 2,
-          type = 2
-        };
+          var transaction = new TransactionModel()
+            {
+              customer = UserService.ConvertToMember(customer),
+              creator = UserService.ConvertToMember(Layout.User),
+              status = 2,
+              type = 2
+            };
 
-        if(recharge == true)
-        {
-          transaction.money = money;
-          transaction.balance = customer.balance + money;
-          transaction.content = "Nạp tiền vào tài khoản Fastdo.";
-          // Cập nhật số dư tài khoản
-          customer.balance += money;
-        }
-        else
-        {
-          transaction.money = -money;
-          transaction.balance = customer.balance - money;
-          transaction.content = "Fastdo rút tiền khỏi tài khoản.";
-          // Cập nhật số dư tài khoản
-          customer.balance -= money;
-        }
+          if (recharge == true)
+          {
+            transaction.money = money;
+            transaction.balance = customer.balance + money;
+            transaction.content = "Nạp tiền vào tài khoản Fastdo.";
+            // Cập nhật số dư tài khoản
+            customer.balance += money;
+          }
+          else
+          {
+            transaction.money = -money;
+            transaction.balance = customer.balance - money;
+            transaction.content = "Fastdo rút tiền khỏi tài khoản.";
+            // Cập nhật số dư tài khoản
+            customer.balance -= money;
+          }
 
-        if (!string.IsNullOrEmpty(content))
+          if (!string.IsNullOrEmpty(content))
             transaction.content += "<br/>Ghi chú: " + content;
 
-        // Tạo dữ liệu giao dịch
-        await DbMainTransaction.Create(transaction);
-        // Cập nhật dữ liệu khách hàng
-        await DbMainUser.Update(customer);
-        model = customer;
-        // Thông báo thành công
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã nạp tiền vào tài khoản thành công.");
-        Cancel();
+          // Tạo dữ liệu giao dịch
+          await DbMainTransaction.Create(transaction);
+          // Cập nhật dữ liệu khách hàng
+          await DbMainUser.Update(customer, globalService);
+          model = customer;
+          // Thông báo thành công
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đã nạp tiền vào tài khoản thành công.");
+          Cancel();
+        }
+        else
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Tài khoản khách hàng không tồn tại.");
       }
-      else
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Tài khoản khách hàng không tồn tại.");
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

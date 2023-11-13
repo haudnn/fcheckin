@@ -1,0 +1,272 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<section class="modal is-active">
+  <div class="modal-background"></div>
+  <section class="modal-card is-medium">
+    <section class="modal-card-head">
+      <div class="modal-card-title">CÔNG VIỆC CHỜ XỬ LÝ</div>
+      <a class="delete" @onclick="Close"></a>
+    </section>
+    <section class="modal-card-body">
+      <div class="field is-grouped">
+        <div class="control is-expanded">
+          <input @bind="model.name" @bind:event="oninput" id="checklist_name" class="input"
+                 type="text" placeholder="Nhập tên công việc..." />
+        </div>
+        <div class="control">
+          <a class="button is-link" @onclick="Update">
+            @(string.IsNullOrEmpty(model.id) ? "Thêm" : "Lưu")
+          </a>
+        </div>
+        <div class="control">
+          <a class="button" @onclick="Cancel">
+            Hủy
+          </a>
+        </div>
+      </div>
+      <div class="@(string.IsNullOrEmpty(model.name) ? "is-hidden" : "field mb-3 mb-0")">
+        <textarea @bind="model.detail" id="checklist_detail" class="textarea is_auto" rows="2"
+                  placeholder="Nhập mô tả công việc..." />
+      </div>
+      <ul class="scrolly" style="max-height: calc(100vh - 250px); min-height: 160px;">
+        @foreach (var item in data)
+        {
+          int index = data.IndexOf(item);
+          var active = item.id == todoItem ? "is-active" : "";
+
+          <li class="py-2 font_13" style="border-top: 1px solid #eee;">
+            <div class="has-text-weight-semibold has-text-dark">
+              @item.name
+            </div>
+            @if (!string.IsNullOrEmpty(item.detail))
+            {
+              <div class="is-word-break has-text-grey">
+                @((MarkupString)Shared.GetLinks(item.detail))
+              </div>
+            }
+            <div class="pt-1">
+              <div class="dropdown @(index == 0 ? "is-down" : "is-up") @active">
+                <div class="dropdown-trigger">
+                  <a class="icon-text has-text-link mr-4" @onclick="() => ToogleTodo(item.id)">
+                    <span class="icon is-small">
+                      <i class="material-icons-round is-size-6">post_add</i>
+                    </span>
+                    <span>Tạo Todolist</span>
+                  </a>
+                </div>
+                @if (item.id == todoItem)
+                {
+                  <div class="dropdown-menu pl-1">
+                    <div class="dropdown-content px-2" style="box-shadow: 0px 0px 4px 0px rgba(0,0,0,0.5);">
+                      <div class="field has-addons">
+                        <div class="control">
+                          <a class="button is-small is-link is-outlined" @onclick="() => ChangeDate(false)">
+                            <span class="icon">
+                              <i class="material-icons-outlined is-size-6">chevron_left</i>
+                            </span>
+                          </a>
+                        </div>
+                        <div class="control">
+                          <a class="button is-small is-link is-outlined" @onclick="() => ChangeDate(true)">
+                            <span class="icon">
+                              <i class="material-icons-outlined is-size-6">chevron_right</i>
+                            </span>
+                          </a>
+                        </div>
+                        <div class="control is-expanded">
+                          <div class="input is-small is-link" style="width: 120px; justify-content: center;">
+                            @Shared.ConvertDateWeek(todoDate.Ticks)
+                          </div>
+                        </div>
+                        <div class="control">
+                          <a class="button is-small is-link" @onclick="() => AddTodo(item)">
+                            <span class="icon is-small">
+                              <i class="material-icons-round is-size-6">post_add</i>
+                            </span>
+                            <span>Tạo</span>
+                          </a>
+                        </div>
+                      </div>
+                      <label class="checkbox">
+                        <input @bind="isDelete" type="checkbox">
+                        <span>Xóa công việc sau khi tạo Todolist</span>
+                      </label>
+                    </div>
+                  </div>
+                }
+              </div>
+              <a class="icon-text has-text-link mr-4" @onclick="() => EditItem(item)">
+                <span class="icon is-small">
+                  <i class="material-icons-round is-size-6">drive_file_rename_outline</i>
+                </span>
+                <span>Chỉnh sửa</span>
+              </a>
+              <a class="icon-text has-text-danger mr-4" @onclick="() => DeleteItem(item)" title="Xóa">
+                <span class="icon is-small">
+                  <i class="material-icons-round is-size-6">remove_circle_outline</i>
+                </span>
+                <span>Xóa</span>
+              </a>
+              <span class="icon-text has-text-grey">
+                <span class="icon is-small">
+                  <i class="material-icons-round is-size-6">schedule</i>
+                </span>
+                <span>@string.Format("{0:HH:mm - dd/MM/yyyy}", new DateTime(item.date))</span>
+              </span>
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
+  </section>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<CheckListModel> data { get; set; } = new();
+  [Parameter]
+  public EventCallback<bool> OnClose { get; set; }
+
+  private bool isUpdate = false;
+  private bool isDelete = false;
+  private CheckListModel model = new();
+  private DateTime todoDate = DateTime.Today;
+  private string todoItem = string.Empty;
+
+  private async Task Close()
+  {
+    await OnClose.InvokeAsync(isUpdate);
+    todoItem = string.Empty;
+    todoDate = DateTime.Today;
+    isUpdate = false;
+  }
+
+  private void Cancel()
+  {
+    model = new();
+  }
+
+  private async Task<bool> Update()
+  {
+    bool _success = true;
+    try
+    {
+      todoItem = string.Empty;
+      if (Shared.IsEmpty(model.name))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên công việc !");
+      else
+      {
+        model.name = model.name.Trim();
+        if (string.IsNullOrEmpty(model.id))
+        {
+          model.user = Layout.User.id;
+          DbChecklist.Create(Layout.Company.id, model);
+        }
+        else
+        {
+          DbChecklist.Update(Layout.Company.id, model);
+        }
+        data = await DbChecklist.GetList(Layout.Company.id, Layout.User.id);
+        model = new();
+        isUpdate = true;
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task EditItem(CheckListModel item)
+  {
+    todoItem = string.Empty;
+    model = Shared.Clone<CheckListModel>(item);
+    await JSRuntime.InvokeVoidAsync("setFocus", "checklist_name");
+    await JSRuntime.InvokeVoidAsync("textAutoSize", "checklist_detail");
+  }
+
+  private async Task<bool> DeleteItem(CheckListModel item)
+  {
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {item.name}?"))
+        return false;
+
+      DbChecklist.Delete(Layout.Company.id, item.id);
+      data.Remove(item);
+      todoItem = string.Empty;
+      isUpdate = true;
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private void ChangeDate(bool next)
+  {
+    todoDate = todoDate.AddDays(next ? 1 : -1);
+  }
+
+  private void ToogleTodo(string id)
+  {
+    if (todoItem == id)
+      todoItem = string.Empty;
+    else
+      todoItem = id;
+  }
+
+  private async Task<bool> AddTodo(CheckListModel item)
+  {
+    bool _success = true;
+    try
+    {
+      // Công việc trong Todolist
+      var todo = new TodolistModel.Todo()
+        {
+          id = Mongo.RandomId(),
+          name = item.name,
+          detail = item.detail,
+          start = "08:30",
+          end = "17:30",
+          type = 1,
+          level = 1
+        };
+
+      // Thêm vào Todolist
+      await TodolistService.AddTodoItem(Layout.Company.id, Layout.User.id, todoDate, todo);
+
+      // Xóa khỏi Checklist
+      if (isDelete)
+      {
+        DbChecklist.Delete(Layout.Company.id, item.id);
+        data.Remove(item);
+      }
+
+      isUpdate = true;
+      todoItem = string.Empty;
+      await JSRuntime.InvokeVoidAsync("tagline", true,
+        "Đã thêm công việc vào Todolist ngày " + Shared.ConvertDateWeek(todoDate.Ticks));
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "AddTodo()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+}

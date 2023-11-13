@@ -1,0 +1,375 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client;
+@using System.Threading;
+@inject IJSRuntime JSRuntime
+@inject HubService hubService
+@inject NavigationManager navigation
+@inject GlobalService globalService
+@implements IDisposable
+
+<Dropdown CloseOnClickMenu Toggle=@toggle OnToggle="Toggle">
+   <Trigger>
+     @if (!loading)
+    {
+      <div class="avatar_list">
+        @{
+          int count = 0;
+          var keys = onlinesInCompany.Keys.ToList();
+        }
+        @foreach (var key in keys)
+        {
+          if(onlinesInCompany.TryGetValue(key, out var row))
+          {
+            if (count < MaxShow)
+            {
+              var user = userList.FirstOrDefault(x => x.id == key);
+              if (user != null)
+              {
+                <a class="image is-rounded @Size mr-1" title="@user.name">
+                  <img src="@user.avatar" alt="IMG">
+                  <div class="online_dot">
+                  </div>
+                </a>
+                count++;
+              }
+            }
+          }
+        }
+        @if (onlinesInCompany.Count > MaxShow)
+        {
+          <a class="image is-rounded is-24x24 has-background-grey-light is-size-7 has-text-white"
+             style="justify-content: center; align-items: center;">
+            +@(onlinesInCompany.Count - MaxShow > 9 ? 9 : onlinesInCompany.Count - MaxShow)
+          </a>
+        }
+      </div>
+    }
+  </Trigger>
+  <MenuContent>
+    @if (!loading)
+    {
+      var keys = onlinesInCompany.Keys.ToList();
+      @foreach (var key in keys)
+      {
+        if(onlinesInCompany.TryGetValue(key, out var row))
+        {
+          var user = userList.FirstOrDefault(x => x.id == key);
+          if (user != null)
+          {
+            <div class="dropdown-item">
+              <a class="icon-text">
+                <span class="icon image @Size is-rounded">
+                  <img src="@user.avatar" alt="" />
+                  <div class="online_dot">
+                  </div>
+                </span>
+                <p>
+                  @user.name
+                  <br>
+                  <span class="is-size-7">
+                    @GetPageName(row)
+                  </span>
+                </p>
+              </a>
+            </div>
+          }
+        }
+      }
+    }
+  </MenuContent>
+</Dropdown>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string Module { get; set; }
+  [Parameter]
+  public int MaxShow { get; set; } = 5;
+  [Parameter]
+  public int Frequence { get; set; } = 20000;
+  [Parameter]
+  public string Size { get; set; } = "is-24x24";
+
+  private Dictionary<string, string> onlines = new();
+  private Dictionary<string, string> onlinesInCompany = new();
+  private List<MemberModel> userList = new();
+  private List<NavModel> navList = new();
+  private bool toggle;
+
+  private DotNetObjectReference<_OnlineUser> obj;
+
+  private string currentModule;
+
+  private bool loading;
+  private bool pending;
+
+  protected override async Task OnInitializedAsync()
+  {
+    obj = DotNetObjectReference.Create(this);
+    navList = ModuleService.GetList(Layout.Company, Layout.User);
+
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    userList = shareStorage.MemberList;
+
+    await SetupHub();
+
+    var url = new Uri(navigation.Uri);
+    currentModule = url.GetLeftPart(UriPartial.Path).Replace(navigation.BaseUri, "");
+    await Online(true);
+    await GetData();
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    try
+    {
+      var hubConnection = hubService.GetHubConnection();
+
+      if (hubConnection is not null)
+      {
+        var url = new Uri(navigation.Uri);
+        var path = url.GetLeftPart(UriPartial.Path).Replace(navigation.BaseUri, "");
+
+        if (path != currentModule)
+        {
+          currentModule = path;
+          await hubConnection.SendAsync("UpdatePath", currentModule, Layout.User.id, Layout.Company.id, "");
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnParametersSetAsync()", ex.ToString(), "Signin Loading...");
+    }
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    try
+    {
+      if (loading)
+      {
+        loading = false;
+        if (pending)
+        {
+          pending = false;
+          await GetData();
+        }
+        StateHasChanged();
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnAfterRenderAsync()", ex.ToString(), "Signin Loading...");
+    }
+  }
+
+  private async Task SetupHub()
+  {
+    try
+    {
+      var hubConnection = hubService.GetHubConnection();
+
+      hubConnection.On<string, string, string, string>("Online", async (module, userId, company, message) =>
+      {
+        if (!loading)
+        {
+          pending = false;
+          if (company == Layout.Company.id)
+          {
+            if (userId != Layout.User.id || !onlines.ContainsKey(userId) || message == "First")
+            {
+              await GetData();
+              await InvokeAsync(StateHasChanged);
+            }
+          }
+        }
+        else
+        {
+          pending = true;
+        }
+      });
+
+      hubConnection.On<string, string, string, string>("Offline", async (module, userId, company, message) =>
+      {
+        if (!loading)
+        {
+          pending = false;
+          if (company == Layout.Company.id && onlines.ContainsKey(userId))
+          {
+            await GetData();
+            await InvokeAsync(StateHasChanged);
+          }
+        }
+        else
+        {
+          pending = true;
+        }
+      });
+
+      hubConnection.On("PingAll", async () =>
+      {
+        if (!loading)
+        {
+          Console.WriteLine("User receive request from server and ping back");
+          pending = false;
+          await Online();
+        }
+        else
+        {
+          pending = true;
+        }
+      });
+
+      hubConnection.On("ReGetData", async () =>
+      {
+        if (!loading)
+        {
+          Console.WriteLine("User try to get lastest data after 40s");
+          if (obj is not null)
+          {
+            await GetData();
+            await InvokeAsync(StateHasChanged);
+          }
+        }
+      });
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "SetupHub()", ex.ToString(), "Signin Loading...");
+    }
+  }
+
+  private async Task GetData()
+  {
+    try
+    {
+      if (loading) return;
+
+      loading = true;
+      onlinesInCompany.Clear();
+      onlines = await globalService.GetOnline();
+
+      if (onlines.ContainsKey(Layout.User.id))
+      {
+        if (onlines[Layout.User.id] != Layout.Company.id + "_" + currentModule)
+        {
+          await globalService.SetOnline(Layout.User.id, Layout.Company.id + "_" + currentModule);
+          onlines[Layout.User.id] = Layout.Company.id + "_" + currentModule;
+        }
+      }
+      else
+      {
+        await globalService.SetOnline(Layout.User.id, Layout.Company.id + "_" + currentModule);
+        onlines.TryAdd(Layout.User.id, Layout.Company.id + "_" + currentModule);
+      }
+
+      var keys = onlines.Keys.ToList();
+
+      foreach (var key in keys)
+      {
+        if (onlines.TryGetValue(key, out var value))
+        {
+          if (userList.Find(x => x.id == key) != null)
+          {
+            if (!onlinesInCompany.ContainsKey(key) && value.StartsWith(Layout.Company.id))
+            {
+              onlinesInCompany.TryAdd(key, value);
+            }
+          }
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetData()", ex.ToString(), "Signin Loading...");
+    }
+  }
+
+  [JSInvokable]
+  public async Task Offline()
+  {
+    try
+    {
+      if (obj is not null)
+      {
+        await globalService.SetOffline(Layout.User.id);
+        obj.Dispose();
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Offline()", ex.ToString(), "Signin Loading...");
+    }
+  }
+
+  private async Task Online(bool first = false)
+  {
+    try
+    {
+      var hubConnection = hubService.GetHubConnection();
+      loading = true;
+      if (hubConnection is not null)
+      {
+        var current = DateTime.Now;
+
+        await hubConnection.SendAsync("On", currentModule, Layout.User.id, Layout.Company.id, first ? "First" : "");
+        hubService.Initialized(Layout.User.id, Layout.Company.id, currentModule);
+        await InvokeAsync(StateHasChanged);
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Online()", ex.ToString(), "Signin Loading...");
+    }
+  }
+
+  private string GetPageName(string path)
+  {
+    if (path.IsEmpty())
+      return path;
+
+    if (path.Contains("homepage"))
+      return "Trang chủ";
+
+    path = path.Split("_").LastOrDefault();
+    path = path.Split("/").FirstOrDefault();
+
+    var page = navList.FirstOrDefault(x =>
+    {
+      var navPath = x.link.Split("/").FirstOrDefault();
+
+      return navPath == path;
+    });
+
+    return page == null ? path : page.name;
+  }
+
+  private async void Toggle(bool e)
+  {
+    toggle = e;
+    if (toggle)
+    {
+      await GetData();
+    }
+  }
+
+  public async void Dispose()
+  {
+    try
+    {
+      await Offline();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Dispose()", ex.ToString(), "Signin Loading...");
+    }
+  }
+}

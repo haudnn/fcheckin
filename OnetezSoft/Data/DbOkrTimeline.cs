@@ -1,11 +1,8 @@
-﻿using System;
+﻿using MongoDB.Driver;
+using OnetezSoft.Models;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
 
 namespace OnetezSoft.Data
 {
@@ -49,7 +46,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<TimelineModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
@@ -68,13 +65,13 @@ namespace OnetezSoft.Data
     }
 
 
-    public static List<TimelineModel> GetAll(string companyId, string cycle)
+    public static async Task<List<TimelineModel>> GetAll(string companyId, string cycle)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<TimelineModel>(_collection);
 
-      var results = collection.Find(x => x.cycle == cycle).ToList();
+      var results = await collection.FindAsync(x => x.cycle == cycle).Result.ToListAsync();
 
       return results.OrderBy(x => x.start).ToList();
     }
@@ -86,7 +83,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<TimelineModel>(_collection);
 
-      var results = await collection.Find(x => x.cycle == cycle && x.department == department).ToListAsync();
+      var results = await collection.FindAsync(x => x.cycle == cycle && x.department == department).Result.ToListAsync();
 
       return results.OrderBy(x => x.start).ToList();
     }

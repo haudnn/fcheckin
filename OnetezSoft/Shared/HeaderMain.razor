@@ -1,235 +1,1057 @@
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
 @inject ProtectedLocalStorage storage
 @inject NavigationManager navigation
-
-<PopupAchievement />
+@inject GlobalService globalService
 
 <section id="header" class="header_main">
-  <ul class="columns is-mobile is-vcentered is-variable is-1">
-    <li class="column">
-      <div class="icon-text">
-        <span class="icon image is-24x24 is-rounded">
-          <img src="@Layout.User.avatar">
-        </span>
-        <span class="has-text-black has-text-weight-medium ml-3 font_14 is-hidden-mobile">
-          @Layout.User.FullName
-        </span>
+  <ul class="columns is-mobile is-vcentered is-variable is-2">
+    <li class="column is-narrow header_product">
+      <Dropdown @bind-Toggle="toggleModule"
+                CloseOnClickMenu=false
+                MenuClass="flex_column">
+        <Trigger>
+          <a class="icon">
+            <span class="material-icons is-size-5">
+              dashboard
+            </span>
+          </a>
+        </Trigger>
+        <MenuContent>
+          <div class="scrolly is-mobile" style="flex:1">
+            <div class="product_group">
+              Ứng dụng yêu thích
+            </div>
+            <div class="columns is-multiline is-mobile is-variable is-0 is-vcentered">
+              @foreach (var item in Layout.User.products_favorite)
+              {
+                var product = navigationList.FirstOrDefault(x => x.link.Contains(item.Replace("#", "")));
+                var module = product != null ? product.link.Split("/").FirstOrDefault() : null;
+                if (product != null && (modules.Contains(module) ? CheckAccess(module) : true))
+                {
+                  <div class="column is-narrow">
+                    <a class="icon favorite" @onclick="() => RemoveFavorite(item)">
+                      <span class="material-icons has-text-warning">star</span>
+                    </a>
+                    <a class="dropdown-item p-4 @CheckActiveModule(product.link)" href="@product.link">
+                      <div class="mb-2">
+                        <span class="icon image is-24x24">
+                          <img src="/images/modules/@(product.icon).png" alt="module-image" />
+                        </span>
+                      </div>
+                      <div class="has-text-centered">
+                        @product.name
+                      </div>
+                    </a>
+                  </div>
+                }
+              }
+            </div>
+            <div class="product_group">
+              Danh sách ứng dụng
+            </div>
+            <div class="columns is-multiline is-mobile is-variable is-0 is-vcentered">
+              @foreach (var item in navigationList.Where(x => !Layout.User.products_favorite.Contains(x.link.Split("/").First())))
+              {
+                var module = item.link.Split("/").FirstOrDefault();
+                if (modules.Contains(module) ? CheckAccess(module) : true)
+                {
+                  <div class="column is-narrow">
+                    @if (Layout.User.products_favorite.Contains(item.link))
+                    {
+                      <a class="icon favorite" @onclick='() => RemoveFavorite(item.link)'>
+                        <span class="material-icons has-text-warning">star</span>
+                      </a>
+                    }
+                    else
+                    {
+                      <a class="icon favorite" @onclick='() => AddFavorite(item.link)'>
+                        <span class="material-icons-outlined has-text-warning">star</span>
+                      </a>
+                    }
+                    <a class="dropdown-item p-4 @CheckActiveModule(item.link)" href="@item.link">
+                      <div class="mb-2">
+                        <span class="icon image is-24x24">
+                          <img src="/images/modules/@(item.icon).png" alt="module-image" />
+                        </span>
+
+                      </div>
+                      <div class="has-text-centered">
+                        @item.name
+                      </div>
+                    </a>
+                  </div>
+                }
+              }
+              @if (Layout.User.role < 3)
+              {
+                var item = ModuleService.GetConfig(Layout.Company, Layout.User);
+                <div class="column is-narrow">
+                  <a class="dropdown-item p-4 @CheckActiveModule("config")" href="/configs">
+                    <div class="mb-2">
+                      <span class="icon image is-24x24">
+                        <img src="/images/modules/@(item.icon).png" alt="module-image" />
+                      </span>
+
+                    </div>
+                    <div class="has-text-centered">
+                      @item.name
+                    </div>
+                  </a>
+                </div>
+              }
+            </div>
+          </div>
+          <a href="/homepage" class="button is-link is-fullwidth has-text-centered mt-4">
+            Về trang chủ
+          </a>
+        </MenuContent>
+      </Dropdown>
+    </li>
+    <li class="column is-hidden-mobile is-narrow">
+      <a href="/homepage">
+        <img class="image pr-2" src="/images/logo.png" style="height:24px" />
+      </a>
+    </li>
+    @if (Layout.ListNav != null)
+    {
+      <li class="column is-narrow is-hidden-mobile">
+        <a class="icon-text" href="@Layout.ListNav.link">
+          <span class="icon image is-24x24">
+            <img src="/images/modules/@(Layout.ListNav.icon).png" alt="module-image" />
+          </span>
+          <span class="has-text-weight-semibold">
+            @Layout.ListNav.name
+          </span>
+        </a>
+      </li>
+    }
+    <li class="column is-hidden-mobile">
+      <div style="max-width:400px">
+        <_Search PlaceHolder="Tên ứng dụng..."
+                 IsInstant=true
+                            IsSmall
+                 SearchType='new () {"link","name"}'
+                 IsRound=true
+                 ImageType=""
+                 OnChange="Navigate"
+                 NameType="name"
+                 TItem="NavModel"
+                 Lists="searchList.OrderBy(x => x.name).ThenBy(x => x.name.Length).ToList()"
+                            ResetOnSelect
+                            IsCollapse
+                            ShowSuggestionOnEmty />
       </div>
     </li>
-    <li class="column is-narrow">
-      <div class="is-noti dropdown is-right @(toggleActive == "blogs" ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="button is-white" @onclick='() => Toggle("blogs")'>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-6">dashboard</i>
-            </span>
-            @if(count_blogs > 0)
+    <li class="column is-hidden-tablet"></li>
+
+    <!-- Online -->
+    <li class="column is-hidden-mobile is-narrow">
+      <_OnlineUser MaxShow="5" Size="is-24x24" Module=""></_OnlineUser>
+    </li>
+
+    <!-- OKRs -->
+    @if (Layout.ListNav != null && Layout.ListNav.name == "OKRs" && CheckAccess("okrs"))
+    {
+      <li class="column is-hidden-mobile is-narrow">
+        <Dropdown CloseOnClickMenu=true>
+          <Trigger>
+            <Button Color="@ComponentModel.ColorType.Link"
+                    IsInverted=true
+                    Content="@cycleName"
+                    IconRight="arrow_drop_down" />
+          </Trigger>
+          <MenuContent>
+            @if (shareStorage.OkrConfig == null || shareStorage.OkrConfig.cycles.Count == 0)
             {
-              <span>@count_blogs</span>
+              <a class="dropdown-item"
+                 style="height: auto; max-width: 150px;">
+                Chưa có chu kỳ
+              </a>
             }
+            else
+            {
+              @foreach (var item in shareStorage.OkrConfig.cycles)
+              {
+                <a class="dropdown-item" @onclick="() => ChangeCycle(item.id)"
+                   style="height: auto; width: 150px;">
+                  @item.name
+                </a>
+              }
+            }
+          </MenuContent>
+        </Dropdown>
+      </li>
+    }
+
+    <!--KPIs-->
+    @if (Layout.ListNav != null && Layout.ListNav.name == "KPIs" && CheckAccess("kpis"))
+    {
+      <li class="column is-hidden-mobile is-narrow">
+        <Dropdown CloseOnClickMenu=true>
+          <Trigger>
+            <Button Color="@ComponentModel.ColorType.Link"
+                    IsInverted=true
+                    Content="@cycleKpisName"
+                    IconRight="arrow_drop_down" />
+          </Trigger>
+          <MenuContent>
+            @if (shareStorage.KpisCycles.Count == 0)
+            {
+              <a class="dropdown-item"
+                 style="height: auto; max-width: 150px;">
+                Chưa có chu kỳ
+              </a>
+            }
+            else
+            {
+              @foreach (var item in shareStorage.KpisCycles)
+              {
+                <a class="dropdown-item" @onclick="() => ChangeKpisCycle(item.id)"
+                   style="height: auto; width: 150px;">
+                  @item.name
+                </a>
+              }
+            }
+          </MenuContent>
+        </Dropdown>
+      </li>
+    }
+
+    <li class="column is-narrow">
+      <Dropdown CloseOnClickMenu=true MenuStyle="max-width:300px;">
+        <Trigger>
+          <a class="icon-text" title="Đổi tổ chức">
+            <span class="icon image is-24x24 is-rounded">
+              <img src="@Layout.Company.logo" alt="Logo" />
+            </span>
+            <span class="is-hidden-mobile text_1_line" style="max-width:200px">
+              @Layout.Company.name
+            </span>
+            <span class="icon">
+              <span class="material-icons-outlined">
+                arrow_drop_down
+              </span>
+            </span>
           </a>
-        </div>
-        @if(toggleActive == "blogs")
-        {
-          <PopupNoti model="dataList" type="blogs" OnClose="Close" />
-        }
-      </div>
+        </Trigger>
+        <MenuContent>
+          @foreach (var item in Layout.User.companys)
+          {
+            var company = companys.FirstOrDefault(x => x.id == item.id);
+            if (company != null)
+            {
+              <a class="dropdown-item" @onclick="() => ChangeCompany(company.id)">
+                <div class="icon-text">
+                  <span class="icon image is-24x24 is-rounded">
+                    <img src="@company.logo" alt="Logo" />
+                  </span>
+                  <span>
+                    @company.name
+                  </span>
+                </div>
+              </a>
+            }
+          }
+          @if (Layout.User.is_customer)
+          {
+            <a class="dropdown-divider"></a>
+            <a class="dropdown-item" href="/client/home">
+              <div class="icon-text">
+                <span class="icon image is-24x24 is-size-4">
+                  <span class="material-icons-outlined">
+                    store
+                  </span>
+                </span>
+                <span>
+                  Quản lý tổ chức
+                </span>
+              </div>
+            </a>
+          }
+          @if (Layout.User.is_admin)
+          {
+            <a class="dropdown-divider"></a>
+            <a class="dropdown-item" href="/admin">
+              <div class="icon-text">
+                <span class="icon image is-24x24 is-size-4">
+                  <span class="material-icons-outlined">
+                    admin_panel_settings
+                  </span>
+                </span>
+                <span>
+                  Phân hệ admin
+                </span>
+              </div>
+            </a>
+          }
+        </MenuContent>
+      </Dropdown>
     </li>
     <li class="column is-narrow">
-      <div class="is-noti dropdown is-right @(toggleActive == "okrs" ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="button is-white" @onclick='() => Toggle("okrs")'>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-6">grade</i>
-            </span>
-            @if(count_okrs > 0)
-            {
-              <span>@count_okrs</span>
-            }
-          </a>
-        </div>
-        @if(toggleActive == "okrs")
-        {
-          <PopupNoti model="dataList" type="okrs" OnClose="Close" />
-        }
-      </div>
+      <Dropdown CloseOnClickMenu=true>
+        <Trigger>
+          <Button Color="@ComponentModel.ColorType.Link"
+                  IsInverted=true
+                  IconRight="help_outline" />
+        </Trigger>
+        <MenuContent>
+          <div class="dropdown-item">
+            <a class="icon-text" href="https://help.fastdo.vn/" target="_blank">
+              <span class="icon">
+                <span class="material-icons-outlined">
+                  book
+                </span>
+              </span>
+              <span>
+                Hướng dẫn sử dụng
+              </span>
+            </a>
+          </div>
+          <div class="dropdown-item">
+            <a class="icon-text" href="/feedback">
+              <span class="icon">
+                <span class="material-icons-outlined">
+                  feedback
+                </span>
+              </span>
+              <span>
+                Góp ý hệ thống
+              </span>
+            </a>
+          </div>
+        </MenuContent>
+      </Dropdown>
+    </li>
+    <li class="column is-narrow" style="z-index:9">
+      <Notification />
     </li>
     <li class="column is-narrow">
-      <div class="is-noti dropdown is-right @(toggleActive == "plan" ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="button is-white" @onclick='() => Toggle("plan")'>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-6">view_timeline</i>
-            </span>
-            @if(count_plan > 0)
-            {
-              <span>@count_plan</span>
-            }
+      <Dropdown Toggle="@(account ? false : false)"
+                MenuStyle="width:250px;overflow:visible"
+                MenuClass="p-3"
+                CloseOnClickMenu=false>
+        <Trigger>
+          <a class="icon image is-rounded is-24x24">
+            <img src="@Layout.User.avatar" alt="" />
           </a>
-        </div>
-        @if(toggleActive == "plan")
-        {
-          <PopupNoti model="dataList" type="plan" OnClose="Close" />
-        }
-      </div>
-    </li>
-    <li class="column is-narrow">
-      <div class="is-noti dropdown is-right @(toggleActive == "educate" ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="button is-white" @onclick='() => Toggle("educate")'>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-6">book</i>
-            </span>
-            @if(count_educate > 0)
-            {
-              <span>@count_educate</span>
-            }
-          </a>
-        </div>
-        @if(toggleActive == "educate")
-        {
-          <PopupNoti model="dataList" type="educate" OnClose="Close" />
-        }
-      </div>
-    </li>
-    <li class="column is-narrow">
-      <div class="is-noti dropdown is-right @(toggleActive == "hrm" ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="button is-white" @onclick='() => Toggle("hrm")'>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-6">person_search</i>
-            </span>
-            @if(count_hrm > 0)
-            {
-              <span>@count_hrm</span>
-            }
-          </a>
-        </div>
-        @if(toggleActive == "hrm")
-        {
-          <PopupNoti model="dataList" type="hrm" OnClose="Close" />
-        }
-      </div>
-    </li>
-    <li class="column is-narrow">
-      <div class="is-noti dropdown is-right @(toggleActive == "other" ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="button is-white" @onclick='() => Toggle("other")'>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-6">notifications</i>
-            </span>
-            @if(count_other > 0)
-            {
-              <span>@count_other</span>
-            }
-          </a>
-        </div>
-        @if(toggleActive == "other")
-        {
-          <PopupNoti model="dataList" type="other" OnClose="Close" />
-        }
-      </div>
+        </Trigger>
+        <MenuContent>
+          <div class="dropdown-item">
+            <div class="field is-grouped">
+              <div class="control">
+                <div class="image is-rounded is-48x48">
+                  <img src="@Layout.User.avatar">
+                </div>
+              </div>
+              <div class="control is-expanded">
+                <div class="control is-expanded">
+                  <a class="has-text-black">
+                    @Layout.User.FullName
+                  </a>
+                  <p style="opacity:0.6">
+                    @Layout.User.job_title
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="dropdown-item">
+            <div class="columns is-multiline is-vcentered is-variable is-2">
+              <div class="column is-half">
+                <span class="icon-text">
+                  <span class="icon">
+                    <span class="material-icons-outlined has-text-link">
+                      star_border
+                    </span>
+                  </span>
+                  <span>
+                    @Layout.User.star_total
+                  </span>
+                </span>
+              </div>
+              <div class="column is-half">
+                <span class="icon-text">
+                  <span class="icon">
+                    <span class="material-icons-outlined has-text-warning">
+                      assignment
+                    </span>
+                  </span>
+                  <span>
+                    @cfr
+                  </span>
+                </span>
+              </div>
+              <div class="column is-half">
+                <span class="icon-text">
+                  <span class="icon">
+                    <span class="material-icons-outlined has-text-success">
+                      trending_up
+                    </span>
+                  </span>
+                  <span>
+                    @kaizen
+                  </span>
+                </span>
+              </div>
+              <div class="column is-half">
+                <span class="icon-text">
+                  <span class="icon">
+                    <span class="material-icons-outlined has-text-danger">
+                      local_library
+                    </span>
+                  </span>
+                  <span>
+                    @educate
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          @if (Layout.ListNav != null && CheckAccess("okrs") || Layout.ListNav != null && CheckAccess("kpis"))
+          {
+            <hr class="my-2 mx-4">
+          }
+
+          @if (Layout.ListNav != null && CheckAccess("okrs"))
+          {
+            <div class="dropdown-item">
+              <Dropdown>
+                <Trigger>
+                  <a class="icon-text">
+                    <span class="icon">
+                      <span class="material-icons-outlined">
+                        track_changes
+                      </span>
+                    </span>
+                    <span class="mr-1">
+                      OKRs:
+                    </span>
+                    <span style="max-width: 100px; height: unset;">
+                      @cycleName
+                    </span>
+                    <span class="icon">
+                      <span class="material-icons-outlined">
+                        arrow_drop_down
+                      </span>
+                    </span>
+                  </a>
+                </Trigger>
+                <MenuContent>
+                  @if (shareStorage.OkrConfig == null || shareStorage.OkrConfig.cycles.Count == 0)
+                  {
+                    <a class="dropdown-item"
+                       style="height: auto; max-width: 150px;">
+                      Chưa có chu kỳ
+                    </a>
+                  }
+                  else
+                  {
+                    @foreach (var item in shareStorage.OkrConfig.cycles)
+                    {
+                      <a class="dropdown-item" @onclick="() => ChangeCycle(item.id)"
+                         style="height: auto; width: 150px;">
+                        @item.name
+                      </a>
+                    }
+                  }
+                </MenuContent>
+              </Dropdown>
+            </div>
+          }
+
+          <!--KPIs-->
+          @if (Layout.ListNav != null && CheckAccess("kpis"))
+          {
+            <div class="dropdown-item">
+              <Dropdown>
+                <Trigger>
+                  <a class="icon-text">
+                    <span class="icon image is-rounded">
+                      <img src="/images/kpis-icon.png" alt="" style="width: 14px; height: 14px;">
+                    </span>
+                    <span class="mr-1">
+                      KPIs:
+                    </span>
+                    <span style="max-width: 100px; height: unset;">
+                      @cycleKpisName
+                    </span>
+                    <span class="icon">
+                      <span class="material-icons-outlined">
+                        arrow_drop_down
+                      </span>
+                    </span>
+                  </a>
+                </Trigger>
+                <MenuContent>
+                  @if (shareStorage.KpisCycles.Count == 0)
+                  {
+                    <a class="dropdown-item"
+                       style="height: auto; max-width: 150px;">
+                      Chưa có chu kỳ
+                    </a>
+                  }
+                  else
+                  {
+                    @foreach (var item in shareStorage.KpisCycles)
+                    {
+                      <a class="dropdown-item" @onclick="() => ChangeKpisCycle(item.id)"
+                         style="height: auto; width: 150px;">
+                        @item.name
+                      </a>
+                    }
+                  }
+                </MenuContent>
+              </Dropdown>
+            </div>
+          }
+
+          <hr class="my-2 mx-4">
+
+          <div class="dropdown-item">
+            <a class="icon-text has-text-link" @onclick="() => account = true">
+              <span class="icon">
+                <span class="material-icons-outlined">
+                  person
+                </span>
+              </span>
+              <span>
+                Thiết lập tài khoản
+              </span>
+            </a>
+          </div>
+          <div class="dropdown-item" @onclick="Logout">
+            <a class="icon-text has-text-danger">
+              <span class="icon">
+                <span class="material-icons-outlined">
+                  logout
+                </span>
+              </span>
+              <span>
+                Đăng xuất
+              </span>
+            </a>
+          </div>
+        </MenuContent>
+      </Dropdown>
     </li>
   </ul>
 </section>
 
+@if (account)
+{
+  <Slider>
+    <Header>
+      <div class="columns is-variable is-2 is-mobile is-vcentered">
+        <div class="column">
+          <div class="has-text-weight-bold is-size-5">
+            Cài đặt
+          </div>
+        </div>
+        <div class="column is-narrow">
+          <Button Content="Trở về" IconLeft="keyboard_backspace" IsInverted Color="@ComponentModel.ColorType.Link" Onclick="CancelAccount" />
+        </div>
+      </div>
+    </Header>
+    <Body>
+      @if (Layout.User != null)
+      {
+        <div class="mb-4 has-text-weight-bold" @onclick="() => ToggleSection(1)">
+          <a class="icon-text">
+            <span>
+              Thông tin tài khoản
+            </span>
+            <span class="icon">
+              <span class="material-icons-outlined">
+                expand_more
+              </span>
+            </span>
+          </a>
+        </div>
+        @if (collapse.Contains(1))
+        {
+          <div class="field is-grouped">
+            <div class="control">
+              <div class="field avatar_upload">
+                <a class="image is-128x128 is-radius" onclick="document.getElementById('file_avatar').click()">
+                  <img src="@Layout.User.avatar" alt="IMG">
+                </a>
+                <FileUpload Cloud
+                            ImageCompressSize="2 * 1024000"
+                            Path="avatar"
+                            UploadToMain
+                            Accept="image/*"
+                            FileId="file_avatar"
+                            OnUpload="x => UploadAvatar(x[0])" />
+              </div>
+            </div>
+            <div class="control is-expanded">
+              <div class="field">
+                <label class="label">Địa chỉ email</label>
+                <div class="control">
+                  @Layout.User.email
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Chức danh</label>
+                @if (editArea == 1)
+                {
+                  <div class="control">
+                    <input class="input is_underline" @bind="@Layout.User.job_title" placeholder="Nhập chức danh..." />
+                  </div>
+                }
+                else
+                {
+                  <div class="control" @onclick="() => editArea = 1">
+                    @(Layout.User.job_title.IsEmpty() ? "Chưa có chức danh" : Layout.User.job_title)
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+          <div class="field is-grouped">
+            <div class="control is-expanded">
+              <div class="field">
+                <label class="label">Họ và tên lót</label>
+                <div class="control is-expanded">
+                  <input @bind="Layout.User.last_name" type="text" class="input" />
+                </div>
+              </div>
+            </div>
+            <div class="control is-expanded">
+              <label class="label">Tên</label>
+              <div class="control is-expanded">
+                <input @bind="Layout.User.first_name" type="text" class="input" />
+              </div>
+            </div>
+
+          </div>
+          <div class="field">
+            <label class="label">Nhập mật khẩu cũ</label>
+            <div class="control has-icons-right">
+              <input @bind="passwordOld" type="@(showPassOld ? "text" : "password")" class="input" placeholder="Nhập mật khẩu cũ nếu cần thay đổi" />
+              @if (passwordOld.Length > 0)
+              {
+                <a class="icon is-right has-text-black" @onclick="() => showPassOld = !showPassOld">
+                  <i class="material-icons-round is-size-6">visibility</i>
+                </a>
+              }
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Nhập mật khẩu mới</label>
+            <div class="control has-icons-right">
+              <input @bind="passwordNew" type="@(showPassNew ? "text" : "password")" class="input" placeholder="Nhập mật khẩu mới nếu cần thay đổi" />
+              @if (passwordNew.Length > 0)
+              {
+                <a class="icon is-right has-text-black" @onclick="() => showPassNew = !showPassNew">
+                  <i class="material-icons-round is-size-6">visibility</i>
+                </a>
+              }
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" @onclick="() => Layout.User.custom.email_notification = !Layout.User.custom.email_notification">
+              <a class="icon-text">
+                <span class="icon">
+                  @if (Layout.User.custom.email_notification)
+                  {
+                    <span class="material-icons">
+                      check_box
+                    </span>
+                  }
+                  else
+                  {
+                    <span class="material-icons-outlined">
+                      check_box_outline_blank
+                    </span>
+                  }
+                </span>
+                <span>
+                  Nhận thông báo Email
+                </span>
+              </a>
+            </label>
+          </div>
+        }
+        <hr class="my-2"/>
+        <div class=" has-text-weight-bold" @onclick="() => ToggleSection(3)">
+          <a class="icon-text">
+            <span>
+              Thiết lập khác
+            </span>
+            <span class="icon">
+              <span class="material-icons-outlined">
+                expand_more
+              </span>
+            </span>
+          </a>
+        </div>
+        @if (collapse.Contains(3))
+        {
+          <div class="field mt-4">
+            <label class="label">Phòng ban mặc định</label>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select @bind="Layout.User.department_default" class="is-family-code">
+                  <option value="">Không chọn</option>
+                  @foreach (var sl in departments)
+                  {
+                    <option value="@sl.id">@sl.name</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="field mt-4">
+            <label class="label">Trang mặc định khi vào phần mềm</label>
+            <div class="control">
+              <div class="select is-fullwidth">
+                <select @bind="Layout.User.page_default">
+                  <option value="">Không chọn</option>
+                  @foreach (var sl in pageList)
+                  {
+                    <option value="@sl.Key">@sl.Value</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+        }
+      }
+    </Body>
+    <Footer>
+      <div class="field is-grouped is-grouped-right">
+        <div class="control">
+          <Button Content="Hủy" IconLeft="cancel" Color="@ComponentModel.ColorType.Info" Onclick="CancelAccount" />
+        </div>
+        <div class="control">
+          <Button Content="Cập nhật" IconLeft="check" Color="@ComponentModel.ColorType.Link" Onclick="UpdateAccount" />
+        </div>
+      </div>
+    </Footer>
+  </Slider>
+}
+
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-  private string toggleActive = string.Empty;
-  private int count_blogs = 0;
-  private int count_okrs = 0;
-  private int count_plan = 0;
-  private int count_educate = 0;
-  private int count_hrm = 0;
-  private int count_other = 0;
-  private List<NotifyModel> database = new();
-  private List<NotifyModel> dataList = new();
 
-  protected override void OnInitialized()
+  private List<CompanyModel> companys = new();
+
+  private bool account;
+  private List<DepartmentModel.SelectList> departments = new();
+  private bool showPassOld = false;
+  private bool showPassNew = false;
+  private string passwordOld = string.Empty;
+  private string passwordNew = string.Empty;
+  private Dictionary<string, string> pageList = new();
+
+  private List<NavModel> navigationList { get; set; } = new();
+  private List<NavModel> searchList { get; set; } = new();
+  private NavModel currentNav { get; set; }
+  private bool toggleModule;
+  private List<string> modules { get; set; } = new();
+  private string cycleName = string.Empty;
+  private string cycleKpisName = string.Empty;
+
+  private List<string> workList = new() { "todolist", "okfs", "work" };
+  private List<string> hrmList = new() { "timekeeping" };
+  private int editArea = 0;
+
+  private List<int> collapse = new() { 1, 3 };
+  private List<NotificationService.NotiType> allNoty = new();
+
+  private int kaizen = 0;
+  private int cfr = 0;
+  private int educate = 0;
+
+  private SharedStorage shareStorage = new();
+
+  protected override async Task OnInitializedAsync()
   {
-    NewsNoti();
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    pageList = PageList();
+    departments = await DbDepartment.GetSelectListOfUser(Layout.Company.id, Layout.User.departments_id, null);
+    allNoty = NotificationService.GetAll().ToList();
+
+    navigationList = ModuleService.GetList(Layout.Company, Layout.User);
+    foreach (var item in navigationList)
+    {
+      if (item.childs.Count > 0)
+      {
+        foreach (var sub in item.childs)
+        {
+          if (sub.childs.Count > 0)
+          {
+            foreach (var subb in sub.childs)
+            {
+              var newSub = Shared.Clone(subb);
+              newSub.name = item.name + " / " + sub.name + " / " + newSub.name;
+              searchList.Add(newSub);
+            }
+          }
+          else
+          {
+            var newSub = Shared.Clone(sub);
+            newSub.name = item.name + " / " + newSub.name;
+            searchList.Add(newSub);
+          }
+        }
+      }
+      else
+      {
+        searchList.Add(item);
+      }
+    }
+
+    if (Layout.User != null && Layout.User.role < 3)
+    {
+      searchList.Add(new NavModel()
+        {
+          name = "Cấu hình",
+          link = "configs",
+        });
+    }
+    searchList.Add(new()
+      {
+        name = "Trang chủ",
+        link = "homepage",
+      });
+
+    var start = Convert.ToDateTime("2021-01-01");
+    var end = DateTime.Now;
+    var cfrsList = await DbOkrCfr.DataAchievement(Layout.Company.id, Layout.User.id, start, end);
+    cfr = cfrsList.Count;
+
+    var kaizenList = await DbKaizen.DataAchievement(Layout.Company.id, Layout.User.id, start, end);
+    kaizen = kaizenList.Count;
+
+    var educateList = await EducateService.GetListLearned(Layout.Company.id, Layout.User.id, 2);
+    educate = educateList.Count;
+
+    modules = ModuleService.GetModules();
+    companys = await DbMainCompany.GetAll();
   }
 
   protected override async Task OnParametersSetAsync()
   {
-    toggleActive = string.Empty;
-    await GetNoti();
-  }
-
-  private async Task GetNoti()
-  {
-    database = await DbNotify.GetList(Layout.Company.id, Layout.User.id);
-    count_blogs = database.Where(x => !x.read && x.type == 9).Count();;
-    count_other = database.Where(x => !x.read && x.type >= 10 && x.type <= 350).Count();
-    count_okrs = database.Where(x => !x.read && x.type >= 500 && x.type <= 550).Count();
-    count_educate = database.Where(x => !x.read && x.type >= 600 && x.type <= 650).Count();
-    count_plan = database.Where(x => !x.read && x.type >= 700 && x.type <= 750).Count();
-    count_hrm = database.Where(x => !x.read && x.type >= 800 && x.type <= 850).Count();
-    NotiList();
-  }
-
-  private void NotiList()
-  {
-    dataList = new();
-    if(!Shared.IsEmpty(toggleActive))
+    if (!string.IsNullOrEmpty(Layout.CycleId))
     {
-      if(toggleActive == "blogs")
-        dataList = database.Where(x => x.type == 9).ToList();
-      else if(toggleActive == "other")
-        dataList = database.Where(x => x.type >= 10 && x.type <= 350).ToList();
-      else if(toggleActive == "okrs")
-        dataList = database.Where(x => x.type >= 500 && x.type <= 550).ToList();
-      else if(toggleActive == "educate")
-        dataList = database.Where(x => x.type >= 600 && x.type <= 650).ToList();
-      else if(toggleActive == "plan")
-        dataList = database.Where(x => x.type >= 700 && x.type <= 750).ToList();
-      else if(toggleActive == "hrm")
-        dataList = database.Where(x => x.type >= 800 && x.type <= 850).ToList();
+      var cycle = shareStorage.OkrConfig.cycles.SingleOrDefault(x => x.id == Layout.CycleId);
+      if (cycle != null)
+        cycleName = cycle.name;
+      else if (shareStorage.OkrConfig.cycles.Count > 0)
+        await ChangeCycle(shareStorage.OkrConfig.cycles[0].id);
+      else
+        cycleName = "Chọn chu kỳ";
     }
-  }
-
-  private async Task Toggle(string type)
-  {
-    if(Shared.IsEmpty(toggleActive))
-      toggleActive = type;
-    else if(toggleActive != type)
-      toggleActive = type;
-    else if(toggleActive == type)
-      toggleActive = string.Empty;
-    await GetNoti();
-  }
-
-  private async Task Close()
-  {
-    toggleActive = string.Empty;
-    await GetNoti();
-  }
-
-  private async Task NewsNoti()
-  {
-    while (true)
+    else
     {
-      await Task.Delay(30000);
-      var news = await DbNotify.GetNews(Layout.Company.id, Layout.User.id);
-      if(news.Count > 0)
+      cycleName = "Chọn chu kỳ";
+    }
+
+    // kpis
+    if (!string.IsNullOrEmpty(Layout.CycleKpisId))
+    {
+      var cycle = shareStorage.KpisCycles.SingleOrDefault(x => x.id == Layout.CycleKpisId);
+      if (cycle != null)
+        cycleKpisName = cycle.name;
+      else if (shareStorage.KpisCycles.Count > 0)
+        await ChangeCycle(shareStorage.KpisCycles[0].id);
+      else
+        cycleKpisName = "Chọn chu kỳ";
+    }
+    else
+    {
+      cycleKpisName = "Chọn chu kỳ";
+    }
+
+    toggleModule = false;
+  }
+
+
+  private async Task ChangeCycle(string id)
+  {
+    Layout.User.custom.okrs_cycle = id;
+    await DbUser.Update(Layout.Company.id, Layout.User, globalService);
+    navigation.NavigateTo(navigation.Uri, true);
+  }
+
+  private async Task ChangeKpisCycle(string id)
+  {
+    Layout.User.custom.kpis_cycle = id;
+    await DbUser.Update(Layout.Company.id, Layout.User, globalService);
+    navigation.NavigateTo(navigation.Uri, true);
+  }
+
+  private async Task ChangeCompany(string id)
+  {
+    await JSRuntime.InvokeVoidAsync("setCookie", "_company", id);
+    navigation.NavigateTo(navigation.Uri, true);
+  }
+
+  private bool CheckAccess(string productId)
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, productId, out string message);
+  }
+
+  private async Task Logout()
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn đăng xuất khỏi phần mềm ?"))
+      return;
+
+    navigation.NavigateTo("/logout", true);
+  }
+
+  private string CheckActiveModule(string module)
+  {
+    var currentModule = navigation.Uri.Replace(navigation.BaseUri, "");
+
+    currentModule = currentModule.Split("/").First();
+    var check = module.Replace("#", "").Split("/").First();
+
+    return currentModule == check ? "is-active" : "";
+  }
+
+  private async Task RemoveFavorite(string item)
+  {
+    Layout.User.products_favorite.Remove(item);
+    await DbUser.Update(Layout.Company.id, Layout.User, globalService);
+  }
+
+  private async Task AddFavorite(string item)
+  {
+    Layout.User.products_favorite.Add(item);
+    await DbUser.Update(Layout.Company.id, Layout.User, globalService);
+  }
+
+  private void Navigate(NavModel nav)
+  {
+    navigation.NavigateTo(navigation.BaseUri + nav.link, false);
+  }
+
+  private Dictionary<string, string> PageList()
+  {
+    var results = new Dictionary<string, string>();
+    results.Add("/blogs", "Tin tức");
+    results.Add("/reports", "Thống kê");
+    results.Add("/teams", "Đội nhóm");
+    if (CheckAccess("todolist"))
+      results.Add("/todolist", "Todolist");
+    if (CheckAccess("work"))
+      results.Add("/work", "Kế hoạch");
+    if (CheckAccess("okrs"))
+      results.Add("/okr/overview", "OKRs");
+    if (CheckAccess("cfr"))
+      results.Add("/cfr", "Ghi nhận");
+    if (CheckAccess("kaizen"))
+      results.Add("/kaizen", "Kaizen");
+    if (CheckAccess("train"))
+      results.Add("/educate/course/list", "Đào tạo");
+    if (CheckAccess("timekeeping"))
+      results.Add("/hrm/timekeeping", "Chấm công");
+    if (CheckAccess("kpis"))
+      results.Add("/kpis/person", "KPIs");
+    return results;
+  }
+
+  private void UploadAvatar(string url)
+  {
+    Layout.User.avatar = url;
+  }
+
+  private async Task<bool> UpdateAccount()
+  {
+    bool _success = true;
+    try
+    {
+      if (string.IsNullOrEmpty(Layout.User.id))
       {
-        foreach (var item in news)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Dữ liệu không tồn tại hoặc đã bị xóa !");
+      }
+      else
+      {
+        // Cật nhật database công ty
+        await DbUser.Update(Layout.Company.id, Layout.User, globalService);
+
+        if (!string.IsNullOrEmpty(passwordNew))
         {
-          var type = DbNotify.Type(item.type);
-          var content = Shared.HtmlToText(item.name);
-          try
+          if (Layout.User.password == Handled.Shared.CreateMD5(passwordOld))
           {
-            await JSRuntime.InvokeVoidAsync("notification", "Fastdo - " + type.name, content, item.link);
+            // Cập nhật cho tất cả database
+            Layout.User.password = Handled.Shared.CreateMD5(passwordNew);
+            await DbMainUser.Update(Layout.User, globalService);
+            await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin thành công!");
           }
-          catch (Exception ex)
-          {
-            await JSRuntime.InvokeVoidAsync("console.log", "Error notification: " + ex.Message);
-          }
+          else
+            await JSRuntime.InvokeVoidAsync("tagline", false, "Mật khẩu cũ không chính xác!");
         }
-        await GetNoti();
-        StateHasChanged();
+        else
+        {
+          // Cập nhật cho tất cả database
+          await DbMainUser.Update(Layout.User, globalService);
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin thành công!");
+
+        }
+        passwordOld = string.Empty;
+        passwordNew = string.Empty;
+
+        editArea = 0;
       }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task CancelAccount()
+  {
+    Layout.User = await DbUser.Get(Layout.Company.id, Layout.User.id, globalService);
+    account = false;
+  }
+
+  private void ToggleEnableNoti(NotificationService.NotiType item)
+  {
+    var currentNoti = Layout.User.custom.notifications.FirstOrDefault(x => x.type_from == item.type_from);
+
+    if (currentNoti != null)
+      Layout.User.custom.notifications.RemoveAll(x => x.type_from == item.type_from);
+    else
+      Layout.User.custom.notifications.Add(item);
+  }
+
+  private void ToggleEnableAll(List<NotificationService.NotiType> list, bool selectAll)
+  {
+    if (selectAll)
+    {
+      foreach (var item in list)
+      {
+        Layout.User.custom.notifications.RemoveAll(x => x.type_from == item.type_from);
+      }
+    }
+    else
+    {
+      foreach (var item in list)
+      {
+        var exist = Layout.User.custom.notifications.FirstOrDefault(x => x.type_from == item.type_from);
+
+        if (exist == null)
+          Layout.User.custom.notifications.Add(item);
+      }
+    }
+  }
+
+  private void ToggleSection(int type)
+  {
+    if (collapse.Contains(type))
+      collapse.Remove(type);
+    else
+      collapse.Add(type);
   }
 }

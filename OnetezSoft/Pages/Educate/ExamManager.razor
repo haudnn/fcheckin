@@ -1,29 +1,18 @@
 ﻿@page "/educate/exam/manager"
 @inject IJSRuntime JSRuntime
+@inject GlobalService globalService
 @inject NavigationManager navigation
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<section class="p-4 @(_loaded ? "" : "is-loading")">
-  <div class="card p-5">
-    <ul class="columns is-vcentered is-variable is-2 mb-3">
+<section class="main_content @(_loaded ? "" : "is-loading")">
+  <div class="card flex_column is_fullheight">
+    <ul class="columns is-vcentered is-multiline is-variable is-2 mb-2">
       <li class="column">
         <h1 class="title is-5 has-text-info is-uppercase">
           @_title
         </h1>
       </li>
-    </ul>
-    <ul class="columns is-variable is-2 mb-3">
       <li class="column is-one-fifth">
         <div class="select is-fullwidth">
           <select @onchange="ChangeCourse">
@@ -35,7 +24,7 @@
           </select>
         </div>
       </li>
-      <li class="column is-one-fifth">
+      <li class="column is-narrow">
         <div class="select is-fullwidth">
           <select @bind="filterLesson">
             <option value="">Tất cả bài thi</option>
@@ -46,7 +35,7 @@
           </select>
         </div>
       </li>
-      <li class="column is-one-fifth">
+      <li class="column is-narrow">
         <div class="select is-fullwidth">
           <select @bind="filterCheck">
             <option value="">Tất cả tình trạng</option>
@@ -55,7 +44,7 @@
           </select>
         </div>
       </li>
-      <li class="column">
+      <li class="column is-narrow">
         <div class="control has-icons-right has_suggest">
           <input class="input" type="text" placeholder="Nhập tên nhân viên..."
                  autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
@@ -84,117 +73,118 @@
         </a>
       </li>
     </ul>
-
-    <table class="table is-fullwidth is-vcentered is-responsive">
-      <thead>
-        <tr>
-          <th>Khóa học</th>
-          <th width="20%">Bài thi</th>
-          <th width="160px">Chấm điểm</th>
-          <th width="20%">Học viên</th>
-          <th width="20%">Người chấm</th>
-          <th width="110px">Xử lý</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach (var item in dataList)
-        {
-          var user = Layout.UserList.SingleOrDefault(x => x.id == item.user);
-          var examiner = Layout.UserList.SingleOrDefault(x => x.id == item.examiner);
+    <div class="inner_section" style="flex:1">
+      <table class="table is-fullwidth is-vcentered is-responsive">
+        <thead>
           <tr>
-            <td>
-              <label class="td-label">Khóa học</label>
-              <div class="td-value">
-                @item.course_name
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Bài thi</label>
-              <div class="td-value">
-                @item.lesson_name
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Chấm điểm</label>
-              <div class="td-value">
-                @if (item.check)
-                {
-                  <span>@string.Format("{0}/{1}", item.point_exam, item.point_max)</span>
-                  <span class="ml-1">→</span>
-                  <span class="has-text-@(item.point_exam >= item.point_pass ? "success" : "danger")">
-                    @(item.point_exam >= item.point_pass ? "THI ĐẠT" : "KHÔNG ĐẠT")
-                  </span>
-                }
-                else
-                {
-                  <i>Chưa chấm bài</i>
-                }
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Học viên</label>
-              <div class="td-value">
-                @if (user != null)
-                {
-                  <div class="user_item">
-                    <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
-                    <span>@user.FullName</span>
-                  </div>
-                }
-                else
-                {
-                  <span>@item.user</span>
-                }
-                <div class="mt-1 is-size-7">
-                  Ngày nộp: @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
+            <th class="pt-0">Khóa học</th>
+            <th class="pt-0" width="20%">Bài thi</th>
+            <th class="pt-0" width="160px">Chấm điểm</th>
+            <th class="pt-0" width="20%">Học viên</th>
+            <th class="pt-0" width="20%">Người chấm</th>
+            <th class="pt-0" width="110px">Xử lý</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var item in dataList)
+          {
+            var user = allUser.SingleOrDefault(x => x.id == item.user);
+            var examiner = allUser.SingleOrDefault(x => x.id == item.examiner);
+            <tr>
+              <td>
+                <label class="td-label">Khóa học</label>
+                <div class="td-value">
+                  @item.course_name
                 </div>
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Người chấm</label>
-              <div class="td-value">
-                @if (examiner != null)
-                {
-                  <div class="user_item">
-                    <img class="image is-24x24 mr-2" src="@examiner.avatar" alt="IMG" />
-                    <span>@examiner.FullName</span>
-                  </div>
+              </td>
+              <td>
+                <label class="td-label">Bài thi</label>
+                <div class="td-value">
+                  @item.lesson_name
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Chấm điểm</label>
+                <div class="td-value">
+                  @if (item.check)
+                  {
+                    <span>@string.Format("{0}/{1}", item.point_exam, item.point_max)</span>
+                    <span class="ml-1">→</span>
+                    <span class="has-text-@(item.point_exam >= item.point_pass ? "success" : "danger")">
+                      @(item.point_exam >= item.point_pass ? "THI ĐẠT" : "KHÔNG ĐẠT")
+                    </span>
+                  }
+                  else
+                  {
+                    <i>Chưa chấm bài</i>
+                  }
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Học viên</label>
+                <div class="td-value">
+                  @if (user != null)
+                  {
+                    <div class="user_item">
+                      <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                      <span>@user.FullName</span>
+                    </div>
+                  }
+                  else
+                  {
+                    <span>@item.user</span>
+                  }
                   <div class="mt-1 is-size-7">
-                    Ngày chấm: @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date_check))
+                    Ngày nộp: @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
                   </div>
-                }
-                else
-                {
-                  <span>@item.examiner</span>
-                }
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Xử lý</label>
-              <div class="td-value">
-                <a class="icon-text has-text-@(item.check ? "danger" : "link")"
-                   href="/educate/exam/manager/@item.id">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">drive_file_rename_outline</i>
-                  </span>
-                  <span>@(item.check ? "Chấm lại" : "Chấm bài")</span>
-                </a>
-              </div>
-            </td>
-          </tr>
-        }
-        @if (dataList.Count == 0)
-        {
-          <tr>
-            <td colspan="6">
-              <div class="has-text-grey py-6">
-                Không tìm thấy dữ liệu
-              </div>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Người chấm</label>
+                <div class="td-value">
+                  @if (examiner != null)
+                  {
+                    <div class="user_item">
+                      <img class="image is-24x24 mr-2" src="@examiner.avatar" alt="IMG" />
+                      <span>@examiner.FullName</span>
+                    </div>
+                    <div class="mt-1 is-size-7">
+                      Ngày chấm: @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date_check))
+                    </div>
+                  }
+                  else
+                  {
+                    <span>@item.examiner</span>
+                  }
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Xử lý</label>
+                <div class="td-value">
+                  <a class="icon-text has-text-@(item.check ? "danger" : "link")"
+                     href="/educate/exam/manager/@item.id">
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">drive_file_rename_outline</i>
+                    </span>
+                    <span>@(item.check ? "Chấm lại" : "Chấm bài")</span>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          }
+          @if (dataList.Count == 0)
+          {
+            <tr>
+              <td colspan="6">
+                <div class="has-text-grey py-6">
+                  Không tìm thấy dữ liệu
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
 
@@ -203,7 +193,7 @@
   public LayoutMain Layout { get; set; }
 
   private bool _loaded = false;
-  private bool _success = false;
+  private bool success = false;
   private string _message = string.Empty;
   private string _title = "Chấm bài thi";
 
@@ -216,11 +206,14 @@
   private string filterUserId = string.Empty;
   private string filterUserSearch = string.Empty;
   private List<UserModel> userSuggests = new();
+  private List<UserModel> allUser = new();
 
   protected override async Task OnInitializedAsync()
   {
     // courseList.AddRange(await DbEducateCourse.GetList(Layout.Company.id, null, null, null, Layout.User.id));
     courseList = await DbEducateCourse.GetListByExaminer(Layout.Company.id, Layout.User.id);
+
+    allUser = await DbUser.GetAll(Layout.Company.id, globalService);
     await Search();
     _loaded = true;
   }
@@ -230,11 +223,23 @@
     _message = string.Empty;
   }
 
-  private async Task ChangeCourse(ChangeEventArgs e)
+  private async Task<bool> ChangeCourse(ChangeEventArgs e)
   {
-    filterCourse = e.Value.ToString();
-    var data = await DbEducateLesson.GetList(Layout.Company.id, filterCourse);
-    lessonList = data.Where(x => x.type == 2).ToList();
+    bool _success = true;
+    try
+    {
+      filterCourse = e.Value.ToString();
+      var data = await DbEducateLesson.GetList(Layout.Company.id, filterCourse);
+      lessonList = data.Where(x => x.type == 2).ToList();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeCourse()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private string UserSearch
@@ -246,7 +251,7 @@
       userSuggests = new();
       if (!string.IsNullOrEmpty(value))
       {
-        foreach (var item in Layout.UserList)
+        foreach (var item in allUser)
         {
           bool check = true;
           if (!Handled.Shared.SearchKeyword(filterUserSearch, item.FullName))
@@ -265,11 +270,23 @@
     userSuggests = new();
   }
 
-  private async Task Search()
+  private async Task<bool> Search()
   {
-    bool? check = null;
-    if (!string.IsNullOrEmpty(filterCheck))
-      check = Convert.ToBoolean(filterCheck);
-    dataList = await DbEducateExam.GetList(Layout.Company.id, Layout.User.id, filterCourse, filterLesson, filterUserId, check);
+    bool _success = true;
+    try
+    {
+      bool? check = null;
+      if (!string.IsNullOrEmpty(filterCheck))
+        check = Convert.ToBoolean(filterCheck);
+      dataList = await DbEducateExam.GetList(Layout.Company.id, Layout.User.id, filterCourse, filterLesson, filterUserId, check);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Search()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

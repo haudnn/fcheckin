@@ -37,8 +37,6 @@
 }
 
 .timesheet .card {
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
   border: 1px solid #e2e2e2;
   box-shadow: none;
   border-top-width: 0;
@@ -105,4 +103,633 @@
 
 .timesheet #scrollbox .table .is_over_day {
   background-color: #f3f3f3;
+}
+
+.timesheet #scrollbox .table > thead > tr > th:not(.sticky) {
+  font-weight: 500;
+  color: #293042;
+  padding-top: 3px;
+  padding-bottom: 3px;
+  border: 0px;
+  position: relative;
+}
+
+.timesheet #scrollbox .table > thead > tr > th::after {
+  content: "";
+  position: absolute;
+  right: 0px;
+  top: 0px;
+  bottom: 0px;
+  border-right: 1px dashed #8990a5;
+}
+
+.timesheet #scrollbox .table > thead > tr > th[rowspan="2"]::after {
+  display: none;
+}
+
+.timesheet #scrollbox .table > thead > tr:nth-child(2) > th::before {
+  content: "";
+  position: absolute;
+  left: 0px;
+  right: 0px;
+  top: 0px;
+  border-top: 1px dashed #8990a5;
+}
+
+.timesheet #scrollbox .table td.edited {
+  position: relative;
+}
+
+timesheet #scrollbox .table td.edited::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-top: 14px solid #680003;
+  border-left: 14px solid transparent;
+  position: absolute;
+  top: 0px;
+  right: 0px;
+}
+
+.timesheet #scrollbox .table td input {
+  border: 0px;
+  border-bottom: 1px solid #ddd;
+  padding: 3px 0px;
+}
+
+.timesheet #scrollbox .table td a {
+  color: inherit;
+}
+
+.timesheet-note .note-color {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+}
+
+.timesheet-note .is_edited {
+  border-top-right-radius: 0;
+  position: relative;
+  overflow: hidden;
+  width: 12px;
+  height: 12px;
+}
+
+  .timesheet-note .is_edited::after {
+    content: "";
+    display: block;
+    position: absolute;
+    background: #680003;
+    transform: rotate(45deg);
+    top: -7px;
+    right: -7px;
+    width: 12px;
+    height: 12px;
+  }
+
+.input.is_underline {
+  border-top-width: 0;
+  border-left-width: 0;
+  border-right-width: 0;
+  border-radius: 0 !important;
+  box-shadow: none;
+  height: 24px;
+}
+
+.timesheet #scrollbox .table .user::after {
+  border-right: 1px solid #635d57;
+}
+
+.filter-timesheet {
+  padding: 5px 10px;
+  border: 1px solid #dbdbdb;
+  border-radius: 5px;
+}
+
+  .filter-timesheet .icon {
+    color: #485fc7;
+  }
+
+.custom-calendar {
+  flex-grow: 1;
+  user-select: none;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+  .custom-calendar .calendar-note {
+    position: absolute;
+    left: 0;
+    top: 0px;
+    z-index: 9;
+    padding-bottom: 10px;
+    margin-bottom: 0;
+    width: 100%;
+  }
+
+    .custom-calendar .calendar-note li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+      .custom-calendar .calendar-note li:last-child {
+        margin-left: auto;
+      }
+
+      .custom-calendar .calendar-note li > span:first-child:not(.icon) {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+      }
+
+        .custom-calendar .calendar-note li > span:first-child:not(.icon).outside_sign {
+          width: 8px;
+          height: 8px;
+          background: #FF5449;
+          border-radius: 50%;
+        }
+
+        .custom-calendar .calendar-note li > span:first-child:not(.icon).is_valid {
+          background: rgba(174, 198, 255, 0.2509803922);
+        }
+
+        .custom-calendar .calendar-note li > span:first-child:not(.icon).is_error {
+          background: rgba(255, 84, 73, 0.2509803922);
+        }
+
+        .custom-calendar .calendar-note li > span:first-child:not(.icon).is_ovt {
+          background: rgba(255, 240, 73, 0.3764705882);
+        }
+
+      .custom-calendar .calendar-note li span.icon {
+        color: #FF5449;
+        width: fit-content;
+      }
+
+  .custom-calendar .calendar-header {
+    display: flex;
+    margin-top: 40px;
+    z-index: 9;
+  }
+
+    .custom-calendar .calendar-header li {
+      width: 14.2857142857%;
+      padding: 10px;
+      background-color: #8990A5;
+      color: white;
+    }
+
+      .custom-calendar .calendar-header li p {
+        text-align: right;
+      }
+
+      .custom-calendar .calendar-header li .is_today {
+        font-weight: 600;
+      }
+
+  .custom-calendar .calendar-body {
+    overflow: auto;
+    flex: 1 1 0%;
+  }
+
+    .custom-calendar .calendar-body:has(ul:nth-of-type(3)) {
+      min-width: calc(100% + 16px);
+    }
+
+    .custom-calendar .calendar-body .calendar-container {
+      display: flex;
+    }
+
+    .custom-calendar .calendar-body .calendar-item {
+      width: 14.2857142857%;
+      padding: 10px;
+      min-height: 150px;
+      border: 1px dashed #ebebeb;
+      align-self: stretch;
+    }
+
+      .custom-calendar .calendar-body .calendar-item.is_sun {
+        background: #C0C6DC50;
+      }
+
+      .custom-calendar .calendar-body .calendar-item.out {
+        opacity: 0.5;
+      }
+
+      .custom-calendar .calendar-body .calendar-item.is_selected.todo,
+      .custom-calendar .calendar-body .calendar-item.is_sun.is_selected.todo {
+        background: #e7ecff50;
+        opacity: 1;
+      }
+
+      .custom-calendar .calendar-body .calendar-item.is_sun.todo:not(:has(#todo_calendar_popup)) {
+        opacity: 0.5;
+        background: #F9FCFC;
+      }
+
+      .custom-calendar .calendar-body .calendar-item.is_today p.calendar-day {
+        position: relative;
+        z-index: 1;
+        color: white;
+      }
+
+        .custom-calendar .calendar-body .calendar-item.is_today p.calendar-day.is-todolist {
+          justify-content: center !important;
+          background-color: #aec6ff;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+        }
+
+        .custom-calendar .calendar-body .calendar-item.is_today p.calendar-day.is-keeping::after {
+          content: "";
+          display: block;
+          position: absolute;
+          top: -3px;
+          right: -4px;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          z-index: -1;
+          background-color: #aec6ff;
+        }
+
+      .custom-calendar .calendar-body .calendar-item p.calendar-day {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        justify-content: space-between;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+        .custom-calendar .calendar-body .calendar-item p.calendar-day:not(:has(.calendar-total)) {
+          justify-content: flex-end;
+        }
+
+        .custom-calendar .calendar-body .calendar-item p.calendar-day .calendar-total {
+          order: -1;
+        }
+
+          .custom-calendar .calendar-body .calendar-item p.calendar-day .calendar-total span {
+            font-size: 12px;
+          }
+
+      .custom-calendar .calendar-body .calendar-item p, .custom-calendar .calendar-body .calendar-item .calendar-link {
+        margin-bottom: 10px;
+        display: block;
+        border-radius: 5px;
+      }
+
+        .custom-calendar .calendar-body .calendar-item p *, .custom-calendar .calendar-body .calendar-item .calendar-link * {
+          font-size: 14px;
+        }
+
+        .custom-calendar .calendar-body .calendar-item p.calendar-shift, .custom-calendar .calendar-body .calendar-item .calendar-link.calendar-shift {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          width: fit-content;
+          max-width: 100%;
+        }
+
+          .custom-calendar .calendar-body .calendar-item p.calendar-shift:last-child, .custom-calendar .calendar-body .calendar-item .calendar-link.calendar-shift:last-child {
+            margin-bottom: 0;
+          }
+
+          .custom-calendar .calendar-body .calendar-item p.calendar-shift .tag, .custom-calendar .calendar-body .calendar-item .calendar-link.calendar-shift .tag {
+            width: fit-content;
+            padding-left: 10px;
+            padding-right: 10px;
+            background: rgba(174, 198, 255, 0.1254901961);
+            font-weight: 500;
+            border-radius: 5px;
+            font-size: 12px;
+            display: flex;
+            gap: 4px;
+          }
+
+            .custom-calendar .calendar-body .calendar-item p.calendar-shift .tag span, .custom-calendar .calendar-body .calendar-item .calendar-link.calendar-shift .tag span {
+              font-size: 12px;
+            }
+
+          .custom-calendar .calendar-body .calendar-item p.calendar-shift.is_error .tag, .custom-calendar .calendar-body .calendar-item .calendar-link.calendar-shift.is_error .tag {
+            background: rgba(255, 84, 73, 0.1254901961);
+          }
+
+          .custom-calendar .calendar-body .calendar-item p.calendar-shift.is_ovt .tag, .custom-calendar .calendar-body .calendar-item .calendar-link.calendar-shift.is_ovt .tag {
+            background: rgba(255, 240, 73, 0.1254901961);
+          }
+
+          .custom-calendar .calendar-body .calendar-item p.calendar-shift .outside_sign, .custom-calendar .calendar-body .calendar-item .calendar-link.calendar-shift .outside_sign {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            right: -3px;
+            top: -2px;
+            background: #FF5449;
+            border-radius: 50%;
+          }
+
+            .custom-calendar .calendar-body .calendar-item p.calendar-shift .outside_sign .material-icons, .custom-calendar .calendar-body .calendar-item .calendar-link.calendar-shift .outside_sign .material-icons {
+              font-size: 10px;
+            }
+
+          .custom-calendar .calendar-body .calendar-item p.calendar-shift .overdate_sign, .custom-calendar .calendar-body .calendar-item .calendar-link.calendar-shift .overdate_sign {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            right: -20px;
+            padding: 4px;
+            border-radius: 50%;
+          }
+
+        .custom-calendar .calendar-body .calendar-item p.calendar-total, .custom-calendar .calendar-body .calendar-item .calendar-link.calendar-total {
+          margin-bottom: 0;
+        }
+
+          .custom-calendar .calendar-body .calendar-item p.calendar-total .tag, .custom-calendar .calendar-body .calendar-item .calendar-link.calendar-total .tag {
+            min-width: 100%;
+            width: fit-content;
+            font-weight: 600;
+            background: rgba(95, 207, 230, 0.1254901961);
+          }
+
+
+.timelist .card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e2e2;
+  box-shadow: none;
+  border-top-width: 0;
+}
+
+  .timelist .card #scrollbox {
+    flex: 1 1 0%;
+    scrollbar-width: thin;
+    overflow: auto;
+  }
+
+    .timelist .card #scrollbox table {
+      width: 100% !important;
+      height: 1px;
+    }
+
+    .timelist .card #scrollbox thead th {
+      border: none;
+    }
+
+      .timelist .card #scrollbox thead th.is_today {
+        background-color: #87abff !important;
+      }
+
+    .timelist .card #scrollbox thead tr:first-child {
+      background-color: white;
+    }
+
+      .timelist .card #scrollbox thead tr:first-child th:first-child {
+        vertical-align: bottom;
+      }
+
+        .timelist .card #scrollbox thead tr:first-child th:first-child .checkbox {
+          height: 30px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+      .timelist .card #scrollbox thead tr:first-child th:last-child {
+        border: none;
+      }
+
+      .timelist .card #scrollbox thead tr:first-child th .button {
+        font-weight: 700;
+      }
+
+    .timelist .card #scrollbox thead tr:last-child th {
+      color: #293042;
+      font-weight: 500;
+      background: hsl(190deg, 76%, 84%);
+    }
+
+      .timelist .card #scrollbox thead tr:last-child th:has(.button) {
+        overflow: visible;
+      }
+
+        .timelist
+        .card
+        #scrollbox
+        thead
+        tr:last-child
+        th:has(.button)
+        .button
+        .dropdown
+        .button {
+          color: inherit;
+        }
+
+        .timelist
+        .card
+        #scrollbox
+        thead
+        tr:last-child
+        th:has(.button)
+        .button
+        .dropdown
+        .dropdown-menu
+        .dropdown-content
+        .dropdown-item {
+          font-weight: 400;
+        }
+
+      .timelist .card #scrollbox thead tr:last-child th:first-child {
+        padding-left: 0.5rem;
+      }
+
+      .timelist .card #scrollbox thead tr:last-child th.is_button .button {
+        font-weight: 700;
+      }
+
+    .timelist .card #scrollbox tbody tr:hover {
+      background-color: #f9f9f9;
+    }
+
+    .timelist .card #scrollbox tbody .timelist_cell {
+      overflow: hidden;
+      height: 100%;
+    }
+
+      .timelist .card #scrollbox tbody .timelist_cell.is_sunday .tag {
+        background-color: #d4dcff;
+      }
+
+      .timelist .card #scrollbox tbody .timelist_cell > div {
+        width: 100%;
+        max-width: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+        .timelist .card #scrollbox tbody .timelist_cell > div .tags {
+          width: 100%;
+          max-width: 100%;
+          flex: 1 1 0%;
+          align-items: flex-start;
+          align-content: flex-start;
+          justify-content: stretch;
+        }
+
+          .timelist .card #scrollbox tbody .timelist_cell > div .tags span {
+            width: 100%;
+            max-width: 100%;
+            font-size: 12px;
+            color: #4a4a4a;
+            font-weight: 500;
+            position: relative;
+          }
+
+            .timelist .card #scrollbox tbody .timelist_cell > div .tags span .outside_sign {
+              position: absolute;
+              width: 6px;
+              height: 6px;
+              right: -3px;
+              top: -2px;
+              background: #FF5449;
+              border-radius: 50%;
+            }
+
+            .timelist .card #scrollbox tbody .timelist_cell > div .tags span .delete {
+              background-color: #ffb9b9;
+            }
+
+.button.is_dash {
+  border-style: dashed;
+  width: fit-content;
+  border-radius: 50% !important;
+}
+
+.checkbox .text_1_line {
+  height: inherit;
+}
+
+.timelist_edit_cell {
+  position: absolute;
+  width: 300px;
+  transform: translateX(-150%);
+  top: 0;
+  left: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.3), 0px 4px 8px 3px rgba(0, 0, 0, 0.15);
+  max-height: 500px;
+  padding: 20px;
+}
+
+  .timelist_edit_cell .checkbox {
+    padding: 10px 0;
+    width: 100%;
+  }
+
+.timelist .header {
+  position: sticky;
+  top: 56px;
+  background-color: #fff;
+}
+
+.footer {
+  background: #fff;
+  border-top: 1px solid #dbdbdb;
+  position: sticky;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  z-index: 20;
+}
+
+.svg-coins {
+  width: 16px;
+  height: 16px;
+  fill: #d4af37;
+}
+
+.calendar-note {
+  padding-bottom: 10px;
+  margin-bottom: 0;
+  width: 100%;
+  position: sticky;
+  top: 103px;
+  z-index: 18;
+  background-color: white;
+}
+
+  .calendar-note li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+  }
+
+    .calendar-note li > span:first-child:not(.icon) {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+    }
+
+      .calendar-note li > span:first-child:not(.icon).outside_sign {
+        width: 8px;
+        height: 8px;
+        background: #ff5449;
+        border-radius: 50%;
+      }
+
+
+      .calendar-note li > span:first-child:not(.icon).is_error {
+        background: #af4e4a30;
+      }
+
+      .calendar-note li > span:first-child:not(.icon).is_ovt {
+        background: #ffe5a0;
+      }
+
+.tag:not(body).is-link.is-holiday {
+  background-color: #af4e4a30 !important;
+}
+
+.color-holiday {
+  color: #af4e4a !important;
+}
+
+
+.tag:not(body).is-link.is-week {
+  background-color: #ffe5a0 !important;
+}
+
+.color-week {
+  color: #333 !important;
+}
+
+
+.wrapper_row {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.container_buttons {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 10px;
 }

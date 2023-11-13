@@ -1,0 +1,113 @@
+﻿@inject IJSRuntime JSRuntime
+
+@if (model != null)
+{
+  <section class="modal is-active p-2">
+    <div class="modal-background"></div>
+    <section class="modal-card">
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          Xác nhận xoá KPIs
+        </div>
+        <a class="delete is-medium" @onclick="CancelRemove"></a>
+      </section>
+      <section class="modal-card-body" style="word-break: break-word;">
+        <span>Bạn đang thực hiện xoá KPIs</span>
+        <span class="has-text-black has-text-weight-bold">
+          @model.name.
+        </span>
+        @if (model.type == 2)
+        {
+          <span>
+            Việc này sẽ khiến dữ liệu của các <span class="has-text-black has-text-weight-bold">KPIs liên kết bên dưới</span> bị mất. Bạn có chắc chắn muốn xoá?
+          </span>
+        }
+        else if (model.type == 1)
+        {
+          <span>
+            Việc này sẽ ảnh hưởng đến dữ liệu của các <span class="has-text-black has-text-weight-bold">KPIs phía trên</span>. Bạn có chắc chắn muốn xoá?
+          </span>
+        }
+      </section>
+      <section class="modal-card-foot is-right">
+        <a class="button" @onclick="CancelRemove">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">close</i>
+          </span>
+          <span>Hủy</span>
+        </a>
+        <a class="button is-danger" @onclick="Remove">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">delete</i>
+          </span>
+          <span>Xoá</span>
+        </a>
+      </section>
+    </section>
+  </section>
+}
+
+
+@code {
+  [CascadingParameter]
+  private LayoutMain Layout { get; set; }
+  [Parameter]
+  public KpisModel model { get; set; }
+  [Parameter]
+  public KpisModel kpisRoot { get; set; }
+  [Parameter]
+  public List<KpisModel> database { get; set; } = new();
+  [Parameter]
+  public KpisCycleModel cycle { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnRemove { get; set; }
+
+  private async Task CancelRemove()
+  {
+    await OnRemove.InvokeAsync(false);
+  }
+
+  private async Task Remove()
+  {
+    var databaseOld = await DbKpis.GetList(Layout.Company.id, Layout.CycleKpisId);
+
+    var deleteList = KpisService.GetAllChild(database, new List<KpisModel>() { model }, model);
+
+    deleteList.Add(model);
+
+    await DbKpis.Delete(Layout.Company.id, deleteList.Select(i => i.id).ToList());
+
+    // lưu lịch sử kpis gốc
+    await KpisService.UpdateHistoryKpisRoot(kpisRoot, Layout.Company.id);
+
+    await KpisService.SyncData(Layout.Company.id, databaseOld, Layout.CycleKpisId, kpisRoot, model, true);
+
+    var listChild = database.Where(i => i.parent == model.id);
+
+    await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã xoá KPIs thành công!");
+
+    database = databaseOld.Where(i => i.id != model.id).ToList();
+
+    // Gửi thông báo
+    if (kpisRoot != null && cycle != null)
+    {
+      var treeUser = cycle.managers.Where(i => true).ToList();
+      treeUser.AddRange(kpisRoot.managers);
+      treeUser.AddRange(KpisService.GetViewerNoti(kpisRoot.viewerList));
+      treeUser = treeUser.Distinct().ToList();
+
+      var userPerform = new List<string>() { model.user };
+
+      // Thông báo cho người xem và quản lý
+      await KpisService.SendNotify(1012, treeUser, model, kpisRoot, Layout.Company.id, Layout.User.id, cycle);
+
+      // Thông báo cho người giám sát hoặc người thực hiện
+      if (model.type == 2)
+        await KpisService.SendNotify(1013, userPerform, model, kpisRoot, Layout.Company.id, Layout.User.id, cycle);
+      else if (model.type == 1)
+        await KpisService.SendNotify(1014, userPerform, model, kpisRoot, Layout.Company.id, Layout.User.id, cycle);
+    }
+
+    await OnRemove.InvokeAsync(true);
+  }
+}

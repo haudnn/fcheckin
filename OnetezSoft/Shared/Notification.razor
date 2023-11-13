@@ -1,412 +1,566 @@
-﻿@using System.Timers
+﻿@using Microsoft.AspNetCore.SignalR.Client;
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
+@inject HubService hubService
 
-@if (gift != null)
+@if (!title.IsEmpty())
 {
-  var buy = Layout.UserList.SingleOrDefault(x => x.id == gift.user_buy);
-
-  <div class="modal is-active">
-    <div class="modal-background"></div>
-    <div class="modal-card is_radius" style="width: 550px;">
-      <div class="modal-card-body has-text-centered gift_or_achi">
-        @if (!gift.view)
-        {
-          <div class="image">
-            <img src="/images/gift.gif" style="width: 250px; margin: 0px auto;" />
-          </div>
-          <div class="has-text-weight-bold">
-            Bạn đã nhận được một món quà từ
-            <span class="has-text-danger">
-              @(buy != null ? buy.FullName : "Tài khoản đã xóa")
-            </span>
-            <br />
-            Hãy khám phá xem đây là món quà gì nào?
-          </div>
-          <div class="py-3">
-            <a class="is-underlined has-text-black" @onclick="ViewGift">
-              Mở quà ngay
-            </a>
-          </div>
-        }
-        else
-        {
-          <div class="image">
-            <img src="@gift.image" style="width: 250px; margin: 0px auto;" />
-          </div>
-          <div class="has-text-weight-bold">
-            Thật tuyệt vời!
-            <br />
-            <span class="has-text-danger">
-              @(buy != null ? buy.FullName : "Tài khoản đã xóa")
-            </span>
-            đã tặng bạn
-            <span class="has-text-danger">@gift.quantity @gift.name</span>
-          </div>
-          <div class="py-3">
-            <a class="is-underlined has-text-black" @onclick="() => gift = null">
-              Tuyệt
-            </a>
-          </div>
-        }
-      </div>
-    </div>
-    <a class="modal-close is-large" @onclick="() => gift = null"></a>
-  </div>
+  <PageTitle>
+    @title
+  </PageTitle>
 }
 
-@if (achievement != null)
-{
-  var image = $"/images/achievement/{Shared.RandomInt(1, 17)}.gif";
 
-  <div class="modal is-active">
-    <div class="modal-background"></div>
-    <div class="modal-card is_radius" style="width: 550px;">
-      <div class="modal-card-body has-text-centered gift_or_achi">
-        <div class="image">
-          <img src="@image" style="width: 150px; margin: 0px auto;" />
-        </div>
-        <div class="has-text-grey has-text-weight-medium pt-3">
-          <p class="pb-2">Thật tuyệt vời! Bạn đã đạt được thành tựu mới trong tháng</p>
-          <p class="pb-2 is-size-6 has-text-weight-bold has-text-link">@achievement.name</p>
-          <div class="achi_@achievement.type">@achievement.star</div>
-          <p class="pb-2">@achievement.desc</p>
-          <p class="pb-2 has-text-warning">
-            <span class="icon-text">
-              <span class="is-size-6">+ @achievement.star</span>
+<PopupAchievement />
+@if (currentCMS != null)
+{
+  <CMSPopupNotification model="currentCMS" OnClose="CloseNotiCMS" category="category" />
+}
+
+<Dropdown Toggle="ToggleNoti"
+          OnToggle="ToggleNotiMenu"
+          DropdownClass="is-noti"
+          MenuClass="p-0 font_14"
+          MenuStyle="overflow:visible">
+  <Trigger>
+    <a class="button is-white">
+      <span class="icon">
+        <i class="material-icons-outlined is-size-6">
+          notifications
+        </i>
+      </span>
+      @if (countSum > 0)
+      {
+        <span>@countSum</span>
+      }
+    </a>
+  </Trigger>
+  <MenuContent>
+    <div class="field is-grouped px-5 py-4">
+      <div class="control">
+        <Dropdown CloseOnClickMenu=true
+                  MenuStyle="width:200px"
+                  OnToggle="e => { if(!e) Filter();}">
+          <Trigger>
+            <button class="button is-link is-inverted">
+              <p>@GetNotiName(notyType)</p>
               <span class="icon">
-                <i class="material-icons-outlined is-size-5">star_outline</i>
+                <span class="material-icons-outlined">
+                  arrow_drop_down
+                </span>
               </span>
-            </span>
-          </p>
-          <a class="button is-link is-outlined" @onclick="() => ViewAchievement(true)">
-            Xem thành tựu
-          </a>
-        </div>
-      </div>
-    </div>
-    <a class="modal-close is-large" @onclick="() => ViewAchievement(false)"></a>
-  </div>
-}
-
-<section id="notification" class="@(show ? "is-active" : "")">
-  <a class="is-toggle" @onclick="() => show = !show">
-    <span class="icon animated infinite @(news_all > 0 ? "tada" : "")">
-      <i class="material-icons-outlined is-size-4">notifications</i>
-    </span>
-    @if (news_all > 0)
-    {
-      <span class="is-count">@news_all</span>
-    }
-  </a>
-  <div class="card">
-    <div class="card-header">
-      <div class="card-header-title has-text-info">@title</div>
-      <div class="card-header-icon">
-        <a class="delete" @onclick="() => show = false"></a>
-      </div>
-    </div>
-    <div class="card-content">
-      <div class="columns is-variable is-0">
-        <div class="column is-narrow has_bg">
-          @if (CheckAccess("todolist"))
-          {
-            <a class="@(type == 200 ? "active" : "")" title="Todolist" @onclick="() => ChangeType(200)">
-              <i class="material-icons-outlined">check_box</i>
-              @if (news_todo > 0)
-              {
-                <b>@news_todo</b>
-              }
+            </button>
+          </Trigger>
+          <MenuContent>
+            <a class="dropdown-item" @onclick='() => notyType = string.Empty'>
+              Tất cả thông báo
             </a>
-          }
-          @if (CheckAccess("work"))
-          {
-            <a class="@(type == 700 ? "active" : "")" title="Kế hoạch" @onclick="() => ChangeType(700)">
-              <i class="material-icons-outlined">view_timeline</i>
-              @if (news_plan > 0)
-              {
-                <b>@news_plan</b>
-              }
+            <a class="dropdown-item" @onclick='() => notyType = "blogs"'>
+              Blogs
             </a>
-          }
-          @if (CheckAccess("okrs"))
-          {
-            <a class="@(type == 500 ? "active" : "")" title="OKRs - Ghi nhận" @onclick="() => ChangeType(500)">
-              <i class="material-icons-outlined">grade</i>
-              @if (news_cfrs > 0)
-              {
-                <b>@news_cfrs</b>
-              }
-            </a>
-          }
-          @if (CheckAccess("kaizen"))
-          {
-            <a class="@(type == 100 ? "active" : "")" title="Kaizen" @onclick="() => ChangeType(100)">
-              <i class="material-icons-outlined">show_chart</i>
-              @if (news_kaizen > 0)
-              {
-                <b>@news_kaizen</b>
-              }
-            </a>
-          }
-          @if(Company.products.Where(x => x.active).Count() > 0)
-          {
-            <a class="@(type == 300 ? "active" : "")" title="Đổi quà" @onclick="() => ChangeType(300)">
-              <i class="material-icons-outlined">card_giftcard</i>
-              @if (news_store > 0)
-              {
-                <b>@news_store</b>
-              }
-            </a>
-          }
-          @if (CheckAccess("train"))
-          {
-            <a class="@(type == 600 ? "active" : "")" title="Đào tạo" @onclick="() => ChangeType(600)">
-              <i class="material-icons-outlined">book</i>
-              @if (news_educate > 0)
-              {
-                <b>@news_educate</b>
-              }
-            </a>
-          }
-          <a class="@(type == 1 ? "active" : "")" title="Khác" @onclick="() => ChangeType(1)">
-            <i class="material-icons-outlined">settings</i>
-            @if (news_other > 0)
+            @if (CheckAccess("okr"))
             {
-              <b>@news_other</b>
-            }
-          </a>
-        </div>
-        <div class="column">
-          <div class="is-list scrolly">
-            @for (int i = 0; i < count; i++)
-            {
-              if (i >= dataList.Count) break;
-              var item = dataList[i];
-
-              <a class="is-block" @onclick="() => ViewItem(item)">
-                <div class="mb-1 @(item.read ? "" : "has-text-link")">
-                  @((MarkupString)item.name)
-                </div>
-                <div class="icon-text has-text-grey" style="margin-left: -6px;">
-                  <span class="icon">
-                    <i class="material-icons-outlined">schedule</i>
-                  </span>
-                  <span class="is-size-7">@Shared.ConvertDate(new DateTime(item.date))</span>
-                </div>
+              <a class="dropdown-item" @onclick='() => notyType = "okrs"'>
+                OKRs
               </a>
             }
-            @if (dataList.Count == 0)
+            @if (CheckAccess("cfr"))
             {
-              <div class="has-text-grey p-5">Không có thông báo mới</div>
+              <a class="dropdown-item" @onclick='() => notyType = "cfr"'>
+                Ghi nhận
+              </a>
             }
-          </div>
-          <div class="columns is-mobile is-gapless px-3 py-2" style="height: 40px;">
-            <div class="column is-half">
-              @if (count < dataList.Count)
-              {
-                <a class="icon-text has-text-link" @onclick="ViewMore">
-                  <span>Xem tất cả</span>
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">expand_more</i>
-                  </span>
-                </a>
-              }
-            </div>
-            <div class="column is-half has-text-right">
-              @if (dataList.Where(x => !x.read).Count() > 0)
-              {
-                <a class="icon-text has-text-link" @onclick="ReadAll">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">done</i>
-                  </span>
-                  <span>Đánh dấu đã xem</span>
-                </a>
-              }
-            </div>
-          </div>
-        </div>
+            @if (CheckAccess("train") || CheckAccess("educate"))
+            {
+              <a class="dropdown-item" @onclick='() => notyType = "educate"'>
+                Đào tạo
+              </a>
+            }
+            @if (CheckAccess("work"))
+            {
+              <a class="dropdown-item" @onclick='() => notyType = "plan"'>
+                Kế hoạch
+              </a>
+            }
+            @if (CheckAccess("checkin"))
+            {
+              <a class="dropdown-item" @onclick='() => notyType = "hrm"'>
+                Nhân sự
+              </a>
+            }
+            @if (CheckAccess("kpis"))
+            {
+              <a class="dropdown-item" @onclick='() => notyType = "kpis"'>
+                KPIs
+              </a>
+            }
+            <a class="dropdown-item" @onclick='() => notyType = "other"'>
+              Khác
+            </a>
+          </MenuContent>
+        </Dropdown>
+      </div>
+      <div class="control is-expanded has-icons-left">
+        <input @bind="Search"
+        @bind:event="oninput"
+               class="input is-rounded is-small"
+               type="text"
+               placeholder="Tìm thông báo"
+               autocomplete="off">
+        <span class="icon is-left">
+          <i class="material-icons-outlined is-size-5">
+            search
+          </i>
+        </span>
+      </div>
+      <div class="control is-expanded has-text-right">
+        <a @onclick="async () => {ReadAll(); Close();}" class="icon has-text-danger">
+          <span class="material-icons-outlined">close</span>
+        </a>
       </div>
     </div>
-  </div>
-</section>
+    @if (dataList.Any())
+    {
+      <div class="field pb-4 m-0"></div>
+      <div class="scrolly px-5 pb-4 is-mobile is-relative">
+        <Virtualize Items="dataList" Context="item" TItem="NotifyModel" OverscanCount="20">
+          <ItemContent>
+            @{
+              var sender = shareStorage.MemberList.FirstOrDefault(x => x.id == item.user_send);
+              var avatar = sender == null ? (item.user_send == "Chăm sóc khách hàng" || item.user_send == "Fastdo" ? "/images/favicon.png" : "/images/avatar.png") : sender.avatar;
+              var icon = GetIcon(item.type);
+            }
+            <a class="field is-grouped" @onclick="() => ViewItem(item, item.type)">
+              @if (!avatar.IsEmpty())
+              {
+                <div class="control">
+                  <div class="image is-rounded is-48x48"
+                       title="@(sender == null ? "Hệ thống" : sender.name)">
+                    <img src="@avatar">
+                  </div>
+                  @if (!string.IsNullOrEmpty(icon))
+                  {
+                    <span class="icon image is-rounded is-24x24">
+                      <img src="/images/modules/@(icon).png" alt="module icon" />
+                    </span>
+                  }
+                </div>
+              }
+              <div class="control is-expanded">
+                <div class="control is-expanded">
+                  <div class="@(item.read ? "has-text-grey" : "has-text-black")" style="word-break: break-word;">
+                    @((MarkupString)item.name)
+                  </div>
+                  <p style="opacity:0.6">
+                    @Shared.ConvertDate(new DateTime(item.date))
+                  </p>
+                </div>
+              </div>
+            </a>
+          </ItemContent>
+        </Virtualize>
+      </div>
+    }
+    else
+    {
+      <div style="min-height:50px" class="has-text-grey is-flex is-align-items-center is-justify-content-center">
+        Không có thông báo mới!
+      </div>
+    }
+    <div class="field is-grouped px-5 py-3">
+      <div class="control">
+        <a @onclick="ReadAll" class="has-text-link">
+          Đánh dấu đã đọc
+        </a>
+      </div>
+    </div>
+
+
+  </MenuContent>
+</Dropdown>
 
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-  [Parameter]
-  public UserModel User { get; set; }
-  [Parameter]
-  public CompanyModel Company { get; set; }
 
+  private string notyType = string.Empty;
+  private int countSum = 0;
+  private bool ToggleNoti;
   private List<NotifyModel> database = new();
   private List<NotifyModel> dataList = new();
-  private string title = "Tất cả thông báo";
-  private bool show = false;
-  private int count = 10;
-  private int type = 0;
-  private int news_all = 0;
-  private int news_other = 0;
-  private int news_kaizen = 0;
-  private int news_todo = 0;
-  private int news_plan = 0;
-  private int news_store = 0;
-  private int news_cfrs = 0;
-  private int news_educate = 0;
+  private NotificationModel currentCMS = null;
+  private CategoryModel category = null;
+  private List<NotificationService.NotiType> allNotyType = new();
 
-  protected override void OnInitialized()
-  {
-    CheckNoti();
-  }
+  private SharedStorage shareStorage = new();
 
-  protected override async Task OnParametersSetAsync()
+  private string title;
+  private string search;
+  private string Search
   {
-    show = false;
-    await GetNoti();
-    await GetGift();
-    await GetAchievement();
-  }
-
-  private async Task CheckNoti()
-  {
-    while (true)
+    get => search;
+    set
     {
-      await Task.Delay(30000);
-      var news = await DbNotify.GetNews(Company.id, User.id);
-      if(news.Count > 0)
+      search = value;
+      Filter();
+    }
+  }
+
+  private int currentCount;
+
+  protected override async Task OnInitializedAsync()
+  {
+    var hubConnection = hubService.GetHubConnection();
+
+    hubConnection.On<string, List<NotifyModel>>("DeliverNews", async (companyId, newNotis) =>
+    {
+      if(companyId == Layout.Company.id)
       {
-        foreach (var item in news)
+        await GetNewsManual(newNotis, false);
+        await InvokeAsync(StateHasChanged);
+      }
+    });
+
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    allNotyType = NotificationService.GetAll().ToList();
+    database = await DbNotify.GetList(Layout.Company.id, Layout.User.id);
+    Filter();
+    await ChangeUrlOldNoty();
+    await ChangeOKRsToCFRNoty();
+  }
+
+  protected override void OnParametersSet()
+  {
+    title = string.Empty;
+    notyType = string.Empty;
+  }
+
+  protected override void OnAfterRender(bool firstRender)
+  {
+    if (countSum > 0 && currentCount != countSum)
+    {
+      var news = database.Where(x => !x.read);
+      var sender = news.FirstOrDefault(x => !x.user_send.IsEmpty());
+      if (sender != null)
+      {
+        var user = shareStorage.MemberList.FirstOrDefault(x => x.id == sender.user_send);
+        title = $"👋 ({countSum}) thông báo mới" + (user == null ? "" : " từ " + user.name) + "!";
+      }
+      currentCount = countSum;
+      StateHasChanged();
+    }
+  }
+
+  private async Task ChangeUrlOldNoty()
+  {
+    var oldList = await DbNotify.GetList(Layout.Company.id, Layout.User.id);
+    foreach (var item in oldList)
+    {
+      if (item.link.Contains("config/"))
+      {
+        item.link = item.link.Replace("config/", "configs/");
+        await DbNotify.Update(Layout.Company.id, item);
+      }
+    }
+  }
+
+  private async Task ChangeOKRsToCFRNoty()
+  {
+    var oldList = await DbNotify.GetListByType(Layout.Company.id, new List<int>() { 500, 501, 502 });
+
+    foreach (var item in oldList)
+    {
+      if (item.type == 500)
+      {
+        item.type = 900;
+        await DbNotify.Update(Layout.Company.id, item);
+      }
+      else if (item.type == 501)
+      {
+        item.type = 901;
+        await DbNotify.Update(Layout.Company.id, item);
+      }
+      else if (item.type == 502)
+      {
+        item.type = 902;
+        await DbNotify.Update(Layout.Company.id, item);
+      }
+    }
+  }
+
+  private async Task GetNewsManual(List<NotifyModel> newsNotis, bool update)
+  {
+    if ((newsNotis == null || newsNotis.Count == 0) && update)
+    {
+      newsNotis = await DbNotify.GetNews(Layout.Company.id);
+    }
+
+    foreach (var item in newsNotis)
+    {
+      if (database.All(x => x.id != item.id) && item.user == Layout.User.id)
+      {
+        database.Insert(0, item);
+        var type = DbNotify.Type(item.type);
+        var content = Shared.HtmlToText(item.name);
+        try
         {
-          var type = DbNotify.Type(item.type);
-          var content = Shared.HtmlToText(item.name);
-          try
-          {
-            await JSRuntime.InvokeVoidAsync("notification", "FASTDO - " + type.name, content, item.link);
-          }
-          catch (Exception ex)
-          {
-            await JSRuntime.InvokeVoidAsync("console.log", "Error notification: " + ex.Message);
-          }
+          JSRuntime.InvokeVoidAsync("notification", "Fastdo - " + type.name, content, item.link);
         }
-        await GetNoti();
+        catch (Exception ex)
+        {
+          JSRuntime.InvokeVoidAsync("console.log", "Error notification: " + ex.ToString());
+        }
+      }
+    }
+
+    var newsCMS = await DbNotify.GetNewsCMS(Layout.Company.id, Layout.User.id);
+    if (newsCMS != null)
+    {
+      var getNoti = await DbMainNotification.Get(newsCMS.key);
+      if (getNoti.pin)
+      {
+        currentCMS = getNoti;
+        category = await DbMainCategory.Get(currentCMS.category);
+      }
+    }
+    // Filter
+    Filter();
+  }
+
+  private void Filter()
+  {
+    // Add to current Noti
+    countSum = database.Count(x => !x.read);
+    dataList = new();
+    if (!notyType.IsEmpty())
+    {
+      if (notyType == "blogs")
+        dataList = database.Where(x => x.type == 9).ToList();
+      else if (notyType == "other")
+        dataList = database.Where(x => x.type >= 10 && x.type <= 450).ToList();
+      else if (notyType == "okrs")
+        dataList = database.Where(x => x.type >= 503 && x.type <= 550).ToList();
+      else if (notyType == "educate")
+        dataList = database.Where(x => x.type >= 600 && x.type <= 650).ToList();
+      else if (notyType == "plan")
+        dataList = database.Where(x => x.type >= 700 && x.type <= 750).ToList();
+      else if (notyType == "hrm")
+        dataList = database.Where(x => x.type >= 800 && x.type <= 850).ToList();
+      else if (notyType == "cfr")
+        dataList = database.Where(x => x.type >= 900 && x.type <= 999).ToList();
+      else if (notyType == "kpis")
+        dataList = database.Where(x => x.type >= 1000 && x.type <= 1099).ToList();
+    }
+    else
+      dataList = database.Where(x => true).ToList();
+
+    // Search
+    var list = shareStorage.MemberList;
+    dataList = dataList.Where(x =>
+    {
+      if (search.IsEmpty())
+        return true;
+      else
+      {
+        var sender = list.FirstOrDefault(y => y.id == x.user_send);
+        return Shared.SearchKeyword(search, x.name + x.sub_title + x.key + x.link + (sender == null ? "" : sender.name));
+      }
+    }).ToList();
+
+    // Ẩn những thông báo bị disable
+    dataList = dataList.Where(x =>
+    {
+      var defaultList = allNotyType.Where(x => x.is_default);
+      if (defaultList.FirstOrDefault(y => y.type_from == x.type) != null)
+        return true;
+      else
+        return Layout.User.custom.notifications.FirstOrDefault(y => y.type_from == x.type) != null;
+    }).ToList();
+  }
+
+  private async Task ToggleNotiMenu(bool e)
+  {
+    ToggleNoti = e;
+    if(!ToggleNoti)
+    {
+      // Không cần chờ UI
+      await GetNewsManual(null,true);
+    }
+  }
+
+  private void ReadAll()
+  {
+    var cloneList = Shared.CloneList(database);
+    // Xử lý background
+    new Task( async () =>
+    {
+      foreach (var item in cloneList)
+      {
+        if (!item.read)
+        {
+          item.read = true;
+          await DbNotify.Update(Layout.Company.id, item);
+        }
+      }
+    }).Start();
+
+    database.ForEach(x => x.read = true);
+    title = string.Empty;
+    countSum = 0;
+  }
+
+  private async Task ViewItem(NotifyModel item, int type)
+  {
+    item.read = true;
+    await DbNotify.Update(Layout.Company.id, item);
+    if (!string.IsNullOrEmpty(item.link))
+      if (type != 400)
+        if (type < 1000 || type >= 1100)
+          navigation.NavigateTo(item.link, false);
+
+    //check chu kỳ thông báo KPIs
+    if (!string.IsNullOrEmpty(item.link) && type >= 1000 && type < 1100)
+    {
+      var checkKey = item.key.Split("@@@");
+      if(checkKey.Length >= 6)
+      {
+        var dataCycles = shareStorage.KpisCycles;
+        var cycleId = checkKey[5];
+        // Validate nếu KPIs đang xem thuộc chu kỳ khác
+        if (!Shared.IsEmpty(cycleId))
+        {
+          var cycleCheck = dataCycles.Find(i => i.id == cycleId);
+          if (cycleCheck != null)
+          {
+            if (Layout.CycleKpisId != cycleId)
+            {
+              // Confirm chuyển qua chu kỳ có KPIs đó
+              if (!await JSRuntime.InvokeAsync<bool>("confirm", $"KPIs này không thuộc chu kỳ {cycleCheck.name}, bạn có muốn đổi chu kỳ?"))
+                return;
+
+              Layout.CycleKpisId = cycleCheck.id;
+              Layout.User.custom.kpis_cycle = cycleCheck.id;
+              await DbUser.Update(Layout.Company.id, Layout.User, globalService);
+              navigation.NavigateTo(item.link, true);
+            }
+            else
+              navigation.NavigateTo(item.link, false);
+          }
+          else
+            await JSRuntime.InvokeVoidAsync("tagline", false, $"Chu kỳ KPIs này đã bị xoá hoặc không tồn tại!");
+        }
+      }
+      else
+        navigation.NavigateTo(item.link, false);
+    }
+
+    if (type == 400)
+    {
+      var getNoti = await DbMainNotification.Get(item.key);
+      if (getNoti.pin)
+      {
+        currentCMS = await DbMainNotification.Get(item.key);
+        category = await DbMainCategory.Get(currentCMS.category);
         StateHasChanged();
       }
     }
+
+    Close();
   }
 
-  private async Task GetNoti()
+  private string GetNotiName(string type)
   {
-    if (User != null)
+    if (notyType == string.Empty)
+      return "Tất cả thông báo";
+    if (notyType == "blogs")
+      return "Blogs";
+    if (notyType == "okrs")
+      return "OKRs";
+    if (notyType == "cfr")
+      return "Ghi nhận";
+    if (notyType == "educate")
+      return "Đào tạo";
+    if (notyType == "plan")
+      return "Kế hoạch";
+    if (notyType == "hrm")
+      return "Nhân sự";
+    if (notyType == "kpis")
+      return "KPIs";
+    if (notyType == "other")
+      return "Khác";
+
+    return "";
+  }
+
+  private string GetIcon(int type)
+  {
+    if (0 < type && type < 100)
     {
-      type = 0;
-      database = await DbNotify.GetList(Company.id, User.id);
-      dataList = database;
-      GetNewsCount();
+      return ModuleService.GetIcon("config", Layout.Company, Layout.User);
+
     }
-  }
-
-  private void GetNewsCount()
-  {
-    news_all = database.Where(x => !x.read).Count();
-    news_other = database.Where(x => !x.read && x.type >= 1 && x.type <= 90).Count();
-    news_kaizen = database.Where(x => !x.read && x.type >= 100 && x.type <= 190).Count();
-    news_todo = database.Where(x => !x.read && x.type >= 200 && x.type <= 290).Count();
-    news_plan = database.Where(x => !x.read && x.type >= 700 && x.type <= 790).Count();
-    news_store = database.Where(x => !x.read && x.type >= 300 && x.type <= 390).Count();
-    news_cfrs = database.Where(x => !x.read && x.type >= 500 && x.type <= 590).Count();
-    news_educate = database.Where(x => !x.read && x.type >= 600 && x.type <= 690).Count();
-  }
-
-  private void ChangeType(int typeId)
-  {
-    if (type == typeId)
+    if (100 <= type && type < 200)
     {
-      type = 0;
-      title = "Tất cả thông báo";
-      dataList = database;
+      return ModuleService.GetIcon("kaizen", Layout.Company, Layout.User);
     }
-    else
+    else if (200 <= type && type < 300)
     {
-      type = typeId;
-      dataList = database.Where(x => x.type >= type && x.type <= type + 90).ToList();
-      if (type == 1)
-        title = "Thông báo khác";
-      else if (type == 100)
-        title = "Thông báo Kaizen";
-      else if (type == 200)
-        title = "Thông báo TodoList";
-      else if (type == 300)
-        title = "Thông báo Đổi quà";
-      else if (type == 500)
-        title = "Thông báo OKRs - Ghi nhận";
-      else if (type == 600)
-        title = "Thông báo Đào Tạo";
-      else if (type == 700)
-        title = "Thông báo Kế hoạch";
+      return ModuleService.GetIcon("todolist", Layout.Company, Layout.User);
     }
-  }
-
-  private void ViewMore()
-  {
-    count = dataList.Count;
-  }
-
-  private async Task ReadAll()
-  {
-    foreach (var item in dataList)
+    else if (300 <= type && type < 400)
     {
-      if (!item.read)
-      {
-        item.read = true;
-        await DbNotify.Update(Company.id, item);
-      }
+      return ModuleService.GetIcon("gift", Layout.Company, Layout.User);
     }
-    GetNewsCount();
-  }
-
-  private async Task ViewItem(NotifyModel item)
-  {
-    item.read = true;
-    await DbNotify.Update(Company.id, item);
-
-    if (!string.IsNullOrEmpty(item.link))
+    else if (400 <= type && type < 500)
     {
-      show = false;
-      navigation.NavigateTo(item.link, false);
+      return ModuleService.GetIcon("okr", Layout.Company, Layout.User);
     }
-    else
-      show = true;
-  }
+    else if (600 <= type && type < 700)
+    {
+      return ModuleService.GetIcon("educate", Layout.Company, Layout.User);
+    }
+    else if (700 <= type && type < 800)
+    {
+      return ModuleService.GetIcon("work", Layout.Company, Layout.User);
+    }
+    else if (800 <= type && type < 900)
+    {
+      return ModuleService.GetIcon("checkin", Layout.Company, Layout.User);
+    }
+    else if (900 <= type && type < 999)
+    {
+      return ModuleService.GetIcon("cfr", Layout.Company, Layout.User);
+    }
+    else if (1000 <= type && type < 1099)
+    {
+      return ModuleService.GetIcon("kpis", Layout.Company, Layout.User);
+    }
 
-  private GiftExchangeModel gift = null;
-  private async Task GetGift()
-  {
-    gift = await DbGiftExchange.GetGiveNew(Company.id, User.id);
-  }
-
-  private async Task ViewGift()
-  {
-    gift.view = true;
-    await DbGiftExchange.Update(Layout.Company.id, gift);
-  }
-
-  private AchievementModel achievement = null;
-  private async Task GetAchievement()
-  {
-    achievement = await DbAchievement.GetNew(Company.id, User.id);
-  }
-
-  private async Task ViewAchievement(bool view)
-  {
-    achievement.view = true;
-    await DbAchievement.Update(Layout.Company.id, achievement);
-    achievement = null;
-    if (view)
-      navigation.NavigateTo($"/teams/personal/{User.id}?tab=3", false);
+    return "";
   }
 
   private bool CheckAccess(string productId)
   {
     return ProductService.CheckAccess(Layout.Company, Layout.User, productId, out string message);
+  }
+
+  private void Close()
+  {
+    title = string.Empty;
+    ToggleNoti = false;
+  }
+
+  private async Task CloseNotiCMS(string id)
+  {
+    var model = database.Where(x => x.key == id && x.user == Layout.User.id).FirstOrDefault();
+    if (model != null)
+    {
+      model.read = true;
+      await DbNotify.Update(Layout.Company.id, model);
+    }
+    currentCMS = null;
+    notyType = string.Empty;
+    category = null;
   }
 }

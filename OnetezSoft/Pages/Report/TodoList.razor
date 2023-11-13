@@ -1,77 +1,59 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
-<div class="card p-5 p-4-mobile">
-  <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3">
-    <li class="column is-full">
+<div class="card flex_column is_fullheight">
+  <ul class="columns is-multiline is-vcentered is-variable is-2 mb-2">
+    <li class="column">
       <h1 class="title is-5 has-text-info">
         DANH SÁCH TODOLIST
       </h1>
-    </li>
-    <li class="column">
-      <div class="field has-addons">
-        <div class="control">
-          <span class="button is-link">
-            <i class="material-icons-outlined">calendar_today</i>
-          </span>
-        </div>
-        <div class="control" style="width: 190px;">
-          <div class="input">
-            <DateRangePicker @bind-StartDate="filterStart" @bind-EndDate="filterEnd" OnRangeSelect="ChangePicker" />
-          </div>
-        </div>
-        <div class="control">
-          <div class="select is-fullwidth">
-            <select @onchange="ChangeDate">
-              <option value="1">Tuần này</option>
-              <option value="11">Tuần trước</option>
-              <option value="2">Tháng này</option>
-              <option value="22">Tháng trước</option>
-              <option value="3">Quý này</option>
-            </select>
-          </div>
-        </div>
-      </div>
     </li>
     <li class="column is-narrow">
       <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
     </li>
     <li class="column is-one-quarter">
-      <MemberSearch department="@filterDepartment" sources="Layout.UserList" OnUpdate="ChangeFilterUser" />
+      <MemberSearch department="@filterDepartment" sources="shareStorage.MemberList" OnUpdate="ChangeFilterUser" />
     </li>
-  </ul>
+    <li class="column is-narrow">
+      <_InputDate @bind-Start="filterStart"
+      @bind-End="filterEnd"
+                              IsRange
+                              HasDropdown
+                   ListOptions="new() {1,11,2,22,3,7}"
+                   OnRangeSelect="ChangePicker" />
+     </li>
+   </ul>
 
-  <div class="scrolly" style="max-height: 500px;">
-    <table class="table is-noborder is-fullwidth is-vcentered is-responsive mt-3">
-      <thead>
-        <tr class="has-text-weight-semibold">
-          <th>Thành viên</th>
-          <th width="190px">Ngày check-in</th>
-          <th width="190px">Ngày check-out</th>
-          <th width="120px">Hoàn thành</th>
-          <th width="70px"></th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach (var user in userList)
+   <div class="scrolly inner_section" style="flex:1">
+     <table class="table is-noborder is-fullwidth is-vcentered is-responsive sticky only_desktop">
+       <thead>
+         <tr class="is-size-7" style="border-bottom: 1px solid #DEDEDE;">
+           <th>Thành viên</th>
+           <th width="190px">Ngày check-in</th>
+           <th width="190px">Ngày check-out</th>
+           <th width="120px">Hoàn thành</th>
+           <th width="70px"></th>
+         </tr>
+       </thead>
+       <tbody>
+         @foreach (var user in userList)
         {
+          var canView = TodolistService.CheckIfAllowToView(
+                        Layout.Company.todolist.view_type, 
+                        user, UserService.ConvertToMember(Layout.User), departmentAll);
           var todolist = database.Where(x => x.user_create == user.id).ToList();
-          if (filterStart == null || filterEnd == null)
+          if (filterStart == 0 || filterEnd == 0)
             continue;
-          var start = filterStart.Value.DateTime;
-          var end = filterEnd.Value.DateTime;
-          <tr class="tr-hide">
-            <td colspan="5">
-              <hr class="m-0" />
-            </td>
-          </tr>
+          var start = new DateTime(filterStart);
+          var end = new DateTime(filterEnd);
           <tr>
             <td colspan="5">
               <div class="user_item">
                 <img class="image is-36x36 mr-2" src="@user.avatar" alt="IMG">
                 <div>
                   <p class="has-text-weight-semibold has-text-info is-size-6">
-                    @user.FullName
+                    @user.name
                   </p>
                   <p class="text_1_line has-text-grey is-size-7" style="width: 400px;">
                     @user.departments_name
@@ -80,53 +62,39 @@
               </div>
             </td>
           </tr>
-          for (DateTime date = end; date >= start; date = date.AddDays(-1))
+          @if(canView)
           {
-            // Ngày nghỉ
-            var dayOff = DbDayOff.CheckOff(Layout.DaysOff, date);
-            var item = todolist.SingleOrDefault(x => x.date == date.Ticks);
-            if (item != null)
+            for (DateTime date = end; date >= start; date = date.AddDays(-1))
             {
-              var progress = Shared.Progress(item.done, item.total);
-              <tr>
-                <td class="pl-6">
-                  <label class="td-label">Ngày</label>
-                  <div class="td-value">
-                    <a class="icon-text has-text-link" @onclick="() => ShowItems(item.id)">
-                      <span class="has-text-weight-semibold">@string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))</span>
-                      <span class="icon" title="Xem nhanh các công việc">
-                        <i class="material-icons-outlined is-size-5">
-                          @(showItems.Contains(item.id) ? "arrow_drop_down" : "arrow_right")
-                        </i>
-                      </span>
-                      @if (item.day_off)
-                      {
-                        <i class="has-text-grey">(Ngày nghỉ)</i>
-                      }
-                    </a>
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Ngày check-in</label>
-                  <div class="td-value">
-                    <span class="mr-3">@string.Format("{0:dd/MM - HH:mm}", new DateTime(item.date_checkin))</span>
-                    @if (item.ontime_checkin)
-                    {
-                      <span class="has-text-success">Đúng hạn</span>
-                    }
-                    else
-                    {
-                      <span class="has-text-danger">Trễ hạn</span>
-                    }
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Ngày check-out</label>
-                  <div class="td-value">
-                    @if (item.date_checkout > 0)
-                    {
-                      <span class="mr-3">@string.Format("{0:dd/MM - HH:mm}", new DateTime(item.date_checkout))</span>
-                      @if (item.ontime_checkout)
+              // Ngày nghỉ
+              var dayOff = DbDayOff.CheckOff(shareStorage.DayOffList, date);
+              var item = todolist.SingleOrDefault(x => x.date == date.Ticks);
+              if (item != null)
+              {
+                var progress = Shared.Progress(item.done, item.total);
+                <tr>
+                  <td class="pl-6">
+                    <label class="td-label">Ngày</label>
+                    <div class="td-value">
+                      <a class="icon-text has-text-link" @onclick="() => ShowItems(item.id)">
+                        <span class="has-text-weight-semibold">@string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))</span>
+                        <span class="icon" title="Xem nhanh các công việc">
+                          <i class="material-icons-outlined is-size-5">
+                            @(showItems.Contains(item.id) ? "arrow_drop_down" : "arrow_right")
+                          </i>
+                        </span>
+                        @if (item.day_off)
+                        {
+                          <i class="has-text-grey">(Ngày nghỉ)</i>
+                        }
+                      </a>
+                    </div>
+                  </td>
+                  <td>
+                    <label class="td-label">Ngày check-in</label>
+                    <div class="td-value">
+                      <span class="mr-3">@string.Format("{0:dd/MM - HH:mm}", new DateTime(item.date_checkin))</span>
+                      @if (item.ontime_checkin)
                       {
                         <span class="has-text-success">Đúng hạn</span>
                       }
@@ -134,71 +102,101 @@
                       {
                         <span class="has-text-danger">Trễ hạn</span>
                       }
-                    }
-                    else
-                    {
-                      <span>Chưa Check-out</span>
-                    }
-                  </div>
-                </td>
-                <td class="2">
-                  <label class="td-label">Hoàn thành</label>
-                  <div class="td-value has-text-weight-semibold">
-                    @string.Format("{0}/{1}", item.done, item.total) - @Shared.ConvertNumber(progress)%
-                  </div>
-                </td>
-              </tr>
-              if (showItems.Contains(item.id))
-              {
-                var items = DbTodoItem.GetList(Layout.Company.id, item.id);
-                foreach (var todo in items)
+                    </div>
+                  </td>
+                  <td>
+                    <label class="td-label">Ngày check-out</label>
+                    <div class="td-value">
+                      @if (item.date_checkout > 0)
+                      {
+                        <span class="mr-3">@string.Format("{0:dd/MM - HH:mm}", new DateTime(item.date_checkout))</span>
+                        @if (item.ontime_checkout)
+                        {
+                          <span class="has-text-success">Đúng hạn</span>
+                        }
+                        else
+                        {
+                          <span class="has-text-danger">Trễ hạn</span>
+                        }
+                      }
+                      else
+                      {
+                        <span>Chưa Check-out</span>
+                      }
+                    </div>
+                  </td>
+                  <td class="2">
+                    <label class="td-label">Hoàn thành</label>
+                    <div class="td-value has-text-weight-semibold">
+                      @string.Format("{0}/{1}", item.done, item.total) - @Shared.ConvertNumber(progress)%
+                    </div>
+                  </td>
+                </tr>
+                if (showItems.Contains(item.id))
                 {
-                  var type = DbTodolist.Type(todo.type);
-                  var level = DbTodolist.Level(todo.level);
-                  var status = DbTodolist.Status(todo.status);
-                  <tr>
-                    <td class="pl-6">
-                      <div class="ml-3 text_1_line" onclick="toggleText(this)">• @todo.name</div>
-                    </td>
-                    <td>
-                      <label class="has-text-grey">Phân loại:</label>
-                      <span class="@type.color">@type.name</span>
-                    </td>
-                    <td>
-                      <label class="has-text-grey">Ưu tiên:</label>
-                      <span class="@level.color">@level.name</span>
-                    </td>
-                    <td>
-                      <label class="td-label">Thời gian</label>
-                      <div class="td-value">
-                        <span>@todo.start - @todo.end</span>
-                      </div>
-                    </td>
-                    <td>
-                      <label class="td-label">Trạng thái</label>
-                      <div class="td-value @status.color">
-                        @status.name
-                      </div>
-                    </td>
-                  </tr>
+                  var items = allTodos.Where(x => x.todolist == item.id).ToList();
+                  foreach (var todo in items)
+                  {
+                    var type = DbTodolist.Type(todo.type);
+                    var level = DbTodolist.Level(todo.level);
+                    var status = DbTodolist.Status(todo.status);
+                    <tr>
+                      <td class="pl-6">
+                        <div class="ml-3 text_1_line" onclick="toggleText(this)">• @todo.name</div>
+                      </td>
+                      <td>
+                        <!--<label class="has-text-grey">Phân loại:</label>
+                        <span class="@type.color">@type.name</span>-->
+                      </td>
+                      <td>
+                        <label class="has-text-grey">Ưu tiên:</label>
+                        <span class="@level.color">@level.name</span>
+                      </td>
+                      <td>
+                        <label class="td-label">Thời gian</label>
+                        <div class="td-value">
+                          <span>@todo.start - @todo.end</span>
+                        </div>
+                      </td>
+                      <td>
+                        <label class="td-label">Trạng thái</label>
+                        <div class="td-value @status.color">
+                          @status.name
+                        </div>
+                      </td>
+                    </tr>
+                  }
                 }
               }
-            }
-            else if (date < DateTime.Now && !dayOff)
-            {
-              <tr>
-                <td class="pl-6">
-                  <label class="td-label">Ngày</label>
-                  <div class="td-value">
-                    <span class="has-text-weight-semibold has-text-grey">@string.Format("{0:dd/MM/yyyy}", date)</span>
-                  </div>
-                </td>
-                <td colspan="4" class="is-italic has-text-grey">
-                  Không nộp Todolist
-                </td>
-              </tr>
+              else if (date < DateTime.Now && !dayOff)
+              {
+                <tr>
+                  <td class="pl-6">
+                    <label class="td-label">Ngày</label>
+                    <div class="td-value">
+                      <span class="has-text-weight-semibold has-text-grey">@string.Format("{0:dd/MM/yyyy}", date)</span>
+                    </div>
+                  </td>
+                  <td colspan="4" class="is-italic has-text-grey">
+                    Không nộp Todolist
+                  </td>
+                </tr>
+              }
             }
           }
+          else
+          {
+            <tr>
+              <td class="pl-6 is-italic has-text-grey" colspan="100%">
+                Bạn không thể xem todolist của người này.
+              </td>
+            </tr>
+          }
+          <tr class="tr-hide">
+            <td colspan="5">
+              <hr class="m-0" />
+            </td>
+          </tr>
         }
       </tbody>
     </table>
@@ -209,63 +207,73 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   [Parameter]
-  public List<DepartmentModel> departmentAll { get; set; }
+  public List<DepartmentModel> departmentAll { get; set; } = new();
   [Parameter]
-  public List<DepartmentModel.SelectList> departments { get; set; }
+  public List<DepartmentModel.SelectList> departments { get; set; } = new();
 
   private List<TodolistModel> database = new();
   private List<string> showItems = new();
-  private List<UserModel> userList = new();
+  private List<MemberModel> userList = new();
   private string filterDepartment = string.Empty;
-  private DateTimeOffset? filterStart = null;
-  private DateTimeOffset? filterEnd = null;
+  private long filterStart { get; set; }
+  private long filterEnd { get; set; }
+
+  private List<TodolistModel.Todo> allTodos = new();
+
+  private SharedStorage shareStorage = new();
 
   protected override async Task OnInitializedAsync()
   {
+    allTodos = await DbTodoItem.GetList(Layout.Company.id, null);
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
     Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
-    filterStart = start;
-    filterEnd = end;
+    filterStart = start.Ticks;
+    filterEnd = end.Ticks;
 
     await ChangeFilterDepartment(Layout.User.department_default);
   }
 
   public async Task ChangePicker(DateRange range)
   {
-    filterStart = Convert.ToDateTime(range.Start.DateTime.ToString("yyyy-MM-dd"));
-    filterEnd = Convert.ToDateTime(range.End.DateTime.ToString("yyyy-MM-dd"));
-    await GetData();
-  }
-
-  private async Task ChangeDate(ChangeEventArgs e)
-  {
-    var type = Convert.ToInt32(e.Value);
-    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
-    filterStart = start;
-    filterEnd = end;
+    filterStart = range.Start.Ticks;
+    filterEnd = range.End.Ticks;
     await GetData();
   }
 
   private async Task ChangeFilterDepartment(string value)
   {
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    userList = shareStorage.MemberList;
     filterDepartment = value;
-    if (string.IsNullOrEmpty(value))
-      userList = Layout.UserList;
-    else
-      userList = Layout.UserList.Where(x => x.departments_id.Contains(filterDepartment)).ToList();
+    if (!string.IsNullOrEmpty(value))
+      userList = userList.Where(x => x.departments_id.Contains(filterDepartment)).ToList();
+
     await GetData();
   }
 
   private async Task ChangeFilterUser(string value)
   {
-    if(!string.IsNullOrEmpty(value))
-      userList = Layout.UserList.Where(x => x.id == value).ToList();
+    if (!string.IsNullOrEmpty(value))
+      userList = shareStorage.MemberList.Where(x => x.id == value).ToList();
     await GetData();
   }
 
-  private async Task GetData()
+  private async Task<bool> GetData()
   {
-    showItems.Clear();
-    database = await DbTodolist.GetList(Layout.Company.id, filterStart.Value.DateTime, filterEnd.Value.DateTime);
+    bool _success = true;
+    try
+    {
+      showItems.Clear();
+      database = await DbTodolist.GetList(Layout.Company.id, new DateTime(filterStart), new DateTime(filterEnd));
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetData()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void ShowItems(string id)

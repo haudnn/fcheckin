@@ -1,4 +1,6 @@
 @inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
 <section class="modal is-active">
   <div class="modal-background"></div>
@@ -12,41 +14,11 @@
       {
         var members = memberTodoList[item.id];
         <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3 is-mobile">
-          <li class="column is-narrow is-full-mobile" style="width: calc(100% - 560px);">
+          <li class="column is-narrow is-full-mobile" style="width: calc(100% - 310px);">
             <div class="field">
               <label class="label">Tiêu đề công việc</label>
               <div class="control">
                 <input @bind="item.name" class="input" type="text" placeholder="Nhập tiêu đề công việc">
-              </div>
-            </div>
-          </li>
-          <li class="column is-narrow is-full-mobile" style="width: 140px;">
-            <div class="field">
-              <label class="label">Độ ưu tiên</label>
-              <div class="control">
-                <div class="select is-fullwidth">
-                  <select @bind="item.level">
-                    @foreach (var sl in DbTodolist.Level())
-                    {
-                      <option value="@sl.id">@sl.name</option>
-                    }
-                  </select>
-                </div>
-              </div>
-            </div>
-          </li>
-          <li class="column is-narrow is-half-mobile" style="width: 110px;">
-            <div class="field">
-              <label class="label">Bắt đầu</label>
-              <div class="control">
-                <div class="select is-fullwidth">
-                  <select @bind="item.start">
-                    @foreach (var sl in Shared.TimeList())
-                    {
-                      <option value="@sl.name">@sl.name</option>
-                    }
-                  </select>
-                </div>
               </div>
             </div>
           </li>
@@ -69,7 +41,9 @@
             <div class="field">
               <label class="label">Ngày thực hiện</label>
               <div class="control">
-                <DatePicker value="item.date" css="button is-fullwidth" OnChange="x => item.date = x" />
+                <_InputDate 
+                  @bind-Start="item.date"
+                  IsRight/>
               </div>
             </div>
           </li>
@@ -86,13 +60,13 @@
           <li class="column is-full">
             <InputArea Value="@item.detail" OnInput="x => item.detail = x" title="Nhập mô tả chi tiết công việc" />
           </li>
-          @if(ProductService.CheckStorage(Layout.Company))
+          @if (ProductService.CheckStorage(Layout.Company))
           {
             <li class="column is-full">
               <div class="field is-grouped">
-                <div class="control">File đính kèm</div>
+                <div class="control">File đính kèm:</div>
                 <div class="control">
-                  <FileUpload Multiple="true" Small="true" Cloud="true" OnUpload="x => item.files.AddRange(x)" />
+                  <FileUpload Path="todolist/assign" Multiple="true" Small="true" Cloud="true" OnUpload="x => item.files.AddRange(x)" />
                 </div>
               </div>
               <FileViews Delete="true" Values="item.files" />
@@ -100,11 +74,11 @@
           }
           <li class="column is-one-quarter is-full-mobile">
             <MemberSelected title="Chọn người thực hiện" members="members" sources="userList"
-              OnUpdate="x => members = x" />
+                            OnUpdate="x => members = x" />
           </li>
           @foreach (var memberId in members)
           {
-            var member = UserService.GetMember(Layout.UserList, memberId);
+            var member = UserService.GetMember(shareStorage.MemberList, memberId);
             <li class="column is-narrow">
               <div class="icon-text">
                 <span class="image is-rounded is-24x24">
@@ -117,7 +91,7 @@
               </div>
             </li>
           }
-          @if(!string.IsNullOrEmpty(memberCheckout[item.id]))
+          @if (!string.IsNullOrEmpty(memberCheckout[item.id]))
           {
             <li class="column is-full has-text-danger has-text-centered">
               @memberCheckout[item.id] đã check-out Todolist vào ngày được chọn!
@@ -139,7 +113,7 @@
     </section>
     <section class="modal-card-foot py-2 has-background-white">
       <div class="field is-grouped is-grouped-right is-fullwidth">
-        <div class="control">  
+        <div class="control">
           <a class="button is-link" @onclick="Update">
             <span class="icon">
               <i class="material-icons-round is-size-6">done</i>
@@ -147,7 +121,7 @@
             <span>Giao việc</span>
           </a>
         </div>
-        <div class="control">  
+        <div class="control">
           <a class="button" @onclick="Cancel">
             <span class="icon">
               <i class="material-icons-round is-size-6">close</i>
@@ -163,15 +137,19 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-	[Parameter]
-	public EventCallback<bool> OnUpdate { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
   private List<TodolistModel.Todo> dataList = new();
   private Dictionary<string, List<string>> memberTodoList = new();
   private Dictionary<string, string> memberCheckout = new();
-  private List<UserModel> userList => Layout.UserList;
+  private List<MemberModel> userList = new();
+
+  private SharedStorage shareStorage = new();
 
   protected override async Task OnInitializedAsync()
   {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    userList = shareStorage.MemberList.Where(x => x.id != Layout.User.id).ToList();
     await Reset();
   }
 
@@ -185,32 +163,45 @@
   private async Task Cancel()
   {
     await Reset();
-    await OnUpdate.InvokeAsync(false); 
+    await OnUpdate.InvokeAsync(false);
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    var msg = await CheckRequired();
-    if(!string.IsNullOrEmpty(msg))
-      await JSRuntime.InvokeVoidAsync("tagline", false, msg);
-    else
+    bool _success = true;
+    try
     {
-      foreach (var item in dataList)
+      var msg = await CheckRequired();
+      if (!string.IsNullOrEmpty(msg))
+        await JSRuntime.InvokeVoidAsync("tagline", false, msg);
+      else
       {
-        foreach (var memberId in memberTodoList[item.id])
+        foreach (var item in dataList)
         {
-          var todo = Shared.Clone<TodolistModel.Todo>(item);
-          todo.id = Mongo.RandomId();
-          todo.user = memberId;
-          await DbTodoItem.Create(Layout.Company.id, todo);
-          // Gửi thông báo
-          await DbNotify.Create(Layout.Company.id, 201, todo.id, todo.user, Layout.User.id);
+          foreach (var memberId in memberTodoList[item.id])
+          {
+            var todo = Shared.Clone<TodolistModel.Todo>(item);
+            todo.id = Mongo.RandomId();
+            todo.user = memberId;
+            todo.start = "07:00";
+            await DbTodoItem.Create(Layout.Company.id, todo);
+            // Gửi thông báo
+            await DbNotify.Create(Layout.Company.id, 201, todo.id, todo.user, Layout.User.id);
+          }
         }
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã giao {dataList.Count} công việc thành công.");
+        await Reset();
+        await OnUpdate.InvokeAsync(true);
       }
-      await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã giao {dataList.Count} công việc thành công.");
-      await Reset();
-      await OnUpdate.InvokeAsync(true);
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   /// <summary>
@@ -218,11 +209,11 @@
   /// </summary>
   private async Task<string> CheckRequired()
   {
-    if(dataList.Any(x => Shared.IsEmpty(x.name)))
+    if (dataList.Any(x => Shared.IsEmpty(x.name)))
       return "Bạn cần nhập tiêu đề công việc!";
-    if(memberTodoList.Any(x => x.Value.Count == 0))
+    if (memberTodoList.Any(x => x.Value.Count == 0))
       return "Bạn cần nhập người được giao việc!";
-    if(dataList.Count > 0)
+    if (dataList.Count > 0)
       return await ListCheckout();
     return null;
   }
@@ -233,23 +224,32 @@
   private async Task<string> ListCheckout()
   {
     string msg = string.Empty;
-    foreach (var item in dataList)
+    try
     {
-      var checkouts = new List<string>();
-      foreach (var memberId in memberTodoList[item.id])
+      foreach (var item in dataList)
       {
-        var todolist = await DbTodolist.GetbyDay(Layout.Company.id, memberId, new DateTime(item.date));
-        if(todolist != null && todolist.status == 3)
-          checkouts.Add(UserService.GetMember(Layout.UserList, memberId).name);
-      }
+        var checkouts = new List<string>();
+        foreach (var memberId in memberTodoList[item.id])
+        {
+          var todolist = await DbTodolist.GetbyDay(Layout.Company.id, memberId, new DateTime(item.date));
+          if (todolist != null && todolist.status == 3)
+            checkouts.Add(UserService.GetMember(shareStorage.MemberList, memberId).name);
+        }
 
-      if(checkouts.Count > 0)
-      {
-        memberCheckout[item.id] = string.Join(", ", checkouts);
-        msg = "Bạn không thể giao việc cho thành viên đã check-out vào ngày được chọn";
+        if (checkouts.Count > 0)
+        {
+          memberCheckout[item.id] = string.Join(", ", checkouts);
+          msg = "Bạn không thể giao việc cho thành viên đã check-out vào ngày được chọn";
+        }
+        else
+          memberCheckout[item.id] = string.Empty;
       }
-      else
-        memberCheckout[item.id] = string.Empty;
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ListCheckout()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
     }
     return msg;
   }
@@ -257,16 +257,16 @@
   private async Task AddItem()
   {
     var item = new TodolistModel.Todo()
-    {
-      id = Mongo.RandomId(),
-      type = 2,
-      level = 1,
-      status = 1,
-      start = "08:30",
-      end = "17:30",
-      date = DateTime.Today.Ticks,
-      assign_user = Layout.User.id
-    };
+      {
+        id = Mongo.RandomId(),
+        type = 2,
+        level = 1,
+        status = 1,
+        start = "08:30",
+        end = "17:30",
+        date = DateTime.Today.Ticks,
+        assign_user = Layout.User.id
+      };
     dataList.Add(item);
     memberTodoList.Add(item.id, new());
     memberCheckout.Add(item.id, "");
@@ -285,7 +285,7 @@
 
   private void AddMember(string todoId, string userId)
   {
-    if(!memberTodoList[todoId].Contains(userId))
+    if (!memberTodoList[todoId].Contains(userId))
       memberTodoList[todoId].Add(userId);
   }
 }

@@ -1,11 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+﻿using MongoDB.Driver;
 using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -51,7 +49,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<OkrCheckinModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
@@ -72,13 +70,13 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Danh sách check-in nháp của 1 OKRs
     /// </summary>
-    public static List<OkrCheckinModel> GetDraft(string companyId, string okr)
+    public static async Task<List<OkrCheckinModel>> GetDraft(string companyId, string okr)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<OkrCheckinModel>(_collection);
 
-      var results = collection.Find(x => x.okr == okr && x.draft).ToList();
+      var results = await collection.FindAsync(x => x.okr == okr && x.draft).Result.ToListAsync();
 
       return results.OrderByDescending(x => x.date_create).ToList();
     }
@@ -86,7 +84,7 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Danh sách check-in của 1 OKRs
     /// </summary>
-    public static List<OkrCheckinModel> GetList(string companyId, string cycle, string okr, bool? checkin)
+    public static async Task<List<OkrCheckinModel>> GetList(string companyId, string cycle, string okr, bool? checkin)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
@@ -102,13 +100,17 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<OkrCheckinModel>.Sort.Descending("date_create");
 
-      return collection.Find(filtered).Sort(sorted).ToList();
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      result = result.OrderByDescending(x => x.date_create).ToList();
+
+      return result;
     }
 
     /// <summary>
     /// Danh sách check-in của OKRs theo thời gian
     /// </summary>
-    public static async Task<List<OkrCheckinModel>> GetList(string companyId, string cycle, 
+    public static async Task<List<OkrCheckinModel>> GetList(string companyId, string cycle,
       DateTime? start, DateTime? end)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
@@ -126,7 +128,9 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<OkrCheckinModel>.Sort.Descending("date_create");
 
-      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      return (from x in result orderby x.date_create descending select x).ToList();
     }
 
 
@@ -141,7 +145,7 @@ namespace OnetezSoft.Data
         foreach (var kr in keyResults)
         {
           var checkin = keyCheckin.SingleOrDefault(x => x.id == kr.id);
-          if(checkin != null)
+          if (checkin != null)
             total += Handled.Shared.Progress(checkin.result, kr.target);
         }
 

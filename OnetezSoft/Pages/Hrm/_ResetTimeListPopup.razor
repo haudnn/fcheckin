@@ -1,0 +1,253 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<section class="modal is-active">
+  <div class="modal-background"></div>
+  <div class="modal-card p-4">
+    <div class="modal-card-head">
+      <div class="modal-card-title">Đặt lại phân ca</div>
+      <a class="delete is-medium" @onclick="Cancel"></a>
+    </div>
+    <div style="overflow: visible" class="modal-card-body">
+      <p class="mb-2">
+        <span style="text-decoration: underline" class="has-text-weight-bold">Lưu ý:</span> Thao tác này sẽ <span class="has-text-weight-bold">xóa dữ liệu phân ca</span> của nhân viên trong khoảng thời gian được áp dụng, vui lòng cân nhắc kỹ trước khi thực hiện.
+      </p>
+      <div>
+        <div class="field">
+          <div class="control">
+            <div class="columns is-vcentered is-multiline is-variable">
+              <div class="column is-5 is-full-mobile">
+                <div class="select is-fullwidth">
+                  <select @onchange="ChangeDepartment">
+                    <option value="">Phòng ban</option>
+                    @foreach (var item in departmentAll)
+                    {
+                      <option value="@item.id" selected="@(filterDepartment == item.id)">@item.name</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              <div class="column is-7 is-full-mobile">
+                <form class="control has-icons-right" @onsubmit="GetList">
+                  <input @bind="filterKeyword" style="border-radius: 9999px" class="input" type="text" placeholder="Nhập tên nhân viên,nhấn Enter để tìm...">
+                  <span class="icon is-right">
+                    <i class="material-icons-outlined is-size-5">search</i>
+                  </span>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <div class="control">
+            <label class="checkbox has-text-link">
+              @if (!isSelectedAll)
+              {
+                <input type="checkbox" @onchange="() => ToggleCheckAll(true)">
+                <span class="has-text-weight-medium">Chọn tất cả (@checkList.Count())</span>
+              }
+              else
+              {
+                <input type="checkbox" @onchange="() => ToggleCheckAll(false)" checked>
+                <span class="has-text-weight-medium">Bỏ chọn tất cả (@checkList.Count())</span>
+              }
+            </label>
+            <ul class="is-flex is-flex-direction-column mt-3 scrolly" style="max-height: 300px;">
+              @foreach (var user in userSelect)
+              {
+                <li class="is-flex is-align-items-center">
+                  <div class="is-flex is-align-items-center" style="gap: 0 10px; width: 350px">
+                    @if (checkList.Contains(user.id))
+                    {
+                      <input type="checkbox" @onchange="() => CheckItem(user.id)" checked />
+                    }
+                    else
+                    {
+                      <input type="checkbox" @onchange="() => CheckItem(user.id)" />
+                    }
+                    <div class="user_item p-1">
+                      <span class="image is-24x24 mr-2 is-radius">
+                        <img src="@user.avatar" alt="IMG" />
+                      </span>
+                      <span class="has-text-weight-bold text_1_line has-text-link">@user.name</span>
+                    </div>
+                  </div>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+        <div class="field">
+          <div class="control">
+            <div class="columns is-vcentered is-multiline is-variable">
+              <div class="column is-half is-full-mobile">
+                <div class="is-flex is-flex-direction-column">
+                  <p class="mb-2 has-text-weight-medium is-secondary-20">
+                    Ngày áp dụng
+                  </p>
+                  <_InputDate Start="startDate.Ticks"
+                              StartChanged="e => DateTodoNaviStart(e)"
+                                                      HasNavigate
+                                                      ShowDateWeek />
+                 </div>
+               </div>
+               <div class="column is-half is-full-mobile">
+                 <div class="is-flex is-flex-direction-column">
+                   <p class="mb-2 has-text-weight-medium is-secondary-20">
+                     Ngày kết thúc
+                   </p>
+                   <_InputDate Start="endDate.Ticks"
+                               StartChanged="e => DateTodoNaviEnd(e)"
+                                                      HasNavigate
+                                                      ShowDateWeek />
+                 </div>
+               </div>
+             </div>
+           </div>
+         </div>
+       </div>
+     </div>
+     <section class="modal-card-foot is-right" style="background-color: #fff;">
+       <a class="button is-danger" @onclick="Cancel">
+         <span class="icon">
+           <i class="material-icons-round is-size-6">close</i>
+         </span>
+         <span>Hủy</span>
+       </a>
+       <a class="button is-link @(isLoading ? "is-loading" : "")" @onclick="OnUpdate">
+         <span class="icon">
+           <i class="material-icons-round is-size-6">check</i>
+         </span>
+         <span>
+           Áp dụng
+         </span>
+       </a>
+     </section>
+   </div>
+ </section>
+
+ @code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public EventCallback<bool> UpdateConfirm { get; set; }
+  [Parameter]
+  public List<MemberModel> users { get; set; } = new();
+  [Parameter]
+  public List<DepartmentModel> departmentAll { get; set; } = new();
+
+  private List<MemberModel> userSelect = new();
+  private List<string> checkList = new();
+  private bool isSelectedAll = false;
+  private DateTimeOffset startDate = DateTime.Today.AddDays(1);
+  private DateTimeOffset endDate = DateTime.Today.AddDays(2);
+  private string filterKeyword = string.Empty;
+  private string filterDepartment = string.Empty;
+  private bool isLoading = false;
+
+
+  protected override void OnInitialized()
+  {
+    userSelect = users.ToList();
+  }
+
+  private void GetList()
+  {
+    userSelect = new();
+    userSelect = users.Where(x =>
+    {
+      return (string.IsNullOrEmpty(filterDepartment) ? true : x.departments_id.Contains(filterDepartment)) &&
+      (string.IsNullOrEmpty(filterKeyword) ? true : Shared.SearchKeyword(filterKeyword, x.name));
+    }).ToList();
+  }
+
+  private async Task Cancel()
+  {
+    await UpdateConfirm.InvokeAsync(false);
+  }
+
+  private void ToggleCheckAll(bool value)
+  {
+    if (value)
+      checkList = users.Select(x => x.id).ToList();
+    else
+      checkList = new();
+
+    isSelectedAll = value;
+  }
+
+  private void CheckItem(string id)
+  {
+    if (checkList.Contains(id))
+      checkList.Remove(id);
+    else
+      checkList.Add(id);
+  }
+
+
+  private void DateTodoNaviStart(long date)
+  {
+    startDate = new DateTime(date);
+  }
+
+  private void DateTodoNaviEnd(long date)
+  {
+    endDate = new DateTime(date);
+  }
+
+  private async Task OnUpdate()
+  {
+    isLoading = true;
+    try
+    {
+      if (await IsValidDate())
+      {
+        if (checkList.Count == 0)
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn nhân viên áp dụng nào!");
+        else
+        {
+          await DbHrmTimeList.Reset(Layout.Company.id, checkList, startDate.DateTime.Ticks, endDate.DateTime.Ticks);
+          startDate = DateTime.Today.AddDays(1);
+          endDate = DateTime.Today.AddDays(2);
+          userSelect = new();
+          checkList = new();
+          await UpdateConfirm.InvokeAsync(true);
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đặt lại phân ca cho nhân viên thành công!");
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnUpdate()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
+    finally
+    {
+      isLoading = false;
+    }
+  }
+
+
+  private async Task<bool> IsValidDate()
+  {
+    var timeNow = DateTime.Today.Ticks;
+    var start = startDate.DateTime.Ticks;
+    var end = endDate.DateTime.Ticks;
+
+    if (start > end)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu!");
+    else if (start <= timeNow)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày bắt đầu phải lớn hơn hoặc bằng ngày hiện tại!");
+    else
+      return true;
+    return false;
+  }
+
+
+  private void ChangeDepartment(ChangeEventArgs e)
+  {
+    filterDepartment = e.Value.ToString();
+    GetList();
+  }
+}

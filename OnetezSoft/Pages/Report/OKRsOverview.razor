@@ -1,7 +1,9 @@
 @inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
-<div class="card p-5 p-4-mobile">
-  <ul class="columns is-vcentered is-variable is-2 mb-3">
+<div class="card flex_column">
+  <ul class="columns is-vcentered is-variable is-2 mb-2">
     <li class="column">
       <h1 class="title is-5 has-text-info">
         TỔNG QUAN OKRs
@@ -11,7 +13,7 @@
       <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
     </li>
     <li class="column is-one-quarter">
-      <MemberSearch department="@filterDepartment" sources="Layout.UserList" OnUpdate="ChangeFilterUser" />
+      <MemberSearch department="@filterDepartment" sources="shareStorage.MemberList" OnUpdate="ChangeFilterUser" />
     </li>
   </ul>
   <div class="field is-grouped is-grouped-multiline">
@@ -79,47 +81,49 @@
       </a>
     </div>
   </div>
-  <ul class="columns is-multiline is-variable is-2">
-    @foreach (var item in chartList)
-    {
-      <li class="column is-full pt-5">
-        <h2 class="title is-6 has-text-info">@item.Value</h2>
-      </li>
-      <li class="@(chartOkrProgress ? "column is-half pl-5" : "is-hidden")">
-        <div style="height: 150px;">
-          <canvas id="chartOkrProgress_@item.Key" height="150"></canvas>
-        </div>
-        <div class="has-text-weight-semibold pt-2 pl-6 ml-4">O - Tiến độ</div>
-      </li>
-      <li class="@(chartOkrConfident ? "column is-half pl-5" : "is-hidden")">
-        <div style="height: 150px;">
-          <canvas id="chartOkrConfident_@item.Key" height="150"></canvas>
-        </div>
-        <div class="has-text-weight-semibold pt-2 pl-6 ml-4">O - Tự tin</div>
-      </li>
-      <li class="@(chartKrProgress ? "column is-half pl-5" : "is-hidden")">
-        <div style="height: 150px;">
-          <canvas id="chartKrProgress_@item.Key" height="150"></canvas>
-        </div>
-        <div class="has-text-weight-semibold pt-2 pl-6 ml-4">KRs - Tiến độ</div>
-      </li>
-      <li class="@(chartKrConfident ? "column is-half pl-5" : "is-hidden")">
-        <div style="height: 150px;">
-          <canvas id="chartKrConfident_@item.Key" height="150"></canvas>
-        </div>
-        <div class="has-text-weight-semibold pt-2 pl-6 ml-4">KRs - Tự tin</div>
-      </li>
-    }
-  </ul>
+  <div class="inner_section" style="flex:1">
+    <ul class="columns is-multiline is-variable is-2">
+      @foreach (var item in chartList)
+      {
+        <li class="column is-full">
+          <h2 class="title is-6 has-text-info">@item.Value</h2>
+        </li>
+        <li class="@(chartOkrProgress ? "column is-half pl-5" : "is-hidden")">
+          <div style="height: 150px;">
+            <canvas id="chartOkrProgress_@item.Key" height="150"></canvas>
+          </div>
+          <div class="has-text-weight-semibold pt-2 pl-6 ml-4">O - Tiến độ</div>
+        </li>
+        <li class="@(chartOkrConfident ? "column is-half pl-5" : "is-hidden")">
+          <div style="height: 150px;">
+            <canvas id="chartOkrConfident_@item.Key" height="150"></canvas>
+          </div>
+          <div class="has-text-weight-semibold pt-2 pl-6 ml-4">O - Tự tin</div>
+        </li>
+        <li class="@(chartKrProgress ? "column is-half pl-5" : "is-hidden")">
+          <div style="height: 150px;">
+            <canvas id="chartKrProgress_@item.Key" height="150"></canvas>
+          </div>
+          <div class="has-text-weight-semibold pt-2 pl-6 ml-4">KRs - Tiến độ</div>
+        </li>
+        <li class="@(chartKrConfident ? "column is-half pl-5" : "is-hidden")">
+          <div style="height: 150px;">
+            <canvas id="chartKrConfident_@item.Key" height="150"></canvas>
+          </div>
+          <div class="has-text-weight-semibold pt-2 pl-6 ml-4">KRs - Tự tin</div>
+        </li>
+      }
+    </ul>
+  </div>
 </div>
 
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   [Parameter]
-  public List<DepartmentModel> departmentAll { get; set; }
+  public List<DepartmentModel> departmentAll { get; set; } = new();
   [Parameter]
-  public List<DepartmentModel.SelectList> departments { get; set; }
+  public List<DepartmentModel.SelectList> departments { get; set; } = new();
 
   Dictionary<string, string> chartList = new();
   private bool chartOkrProgress = true;
@@ -130,10 +134,12 @@
   private string filterUserId = string.Empty;
   private string filterDepartment = null;
 
+  private SharedStorage shareStorage = new();
 
   protected override async Task OnInitializedAsync()
   {
-    filterDepartment = Layout.User.department_default; 
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    filterDepartment = Layout.User.department_default;
     await ChangeFilterDepartment(filterDepartment);
   }
 
@@ -146,7 +152,7 @@
 
   private async Task ChangeFilterUser(string value)
   {
-    if(!string.IsNullOrEmpty(value))
+    if (!string.IsNullOrEmpty(value))
       filterUserId = value;
     await GetData();
   }
@@ -169,10 +175,10 @@
 
     if (!string.IsNullOrEmpty(filterUserId))
     {
-      var userInfo = Layout.UserList.FirstOrDefault(x => x.id == filterUserId);
-      if(userInfo != null)
+      var userInfo = shareStorage.MemberList.FirstOrDefault(x => x.id == filterUserId);
+      if (userInfo != null)
       {
-        chartList.Add(userInfo.id, userInfo.FullName);
+        chartList.Add(userInfo.id, userInfo.name);
         await ChartDepartment(filterUserId, new List<string>() { filterUserId });
       }
     }
@@ -202,71 +208,83 @@
       }
     }
   }
-  
-  private async Task ChartDepartment(string id, List<string> members_id)
+
+  private async Task<bool> ChartDepartment(string id, List<string> members_id)
   {
-    var okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, members_id);
-
-    var labelProgress = ("Trên 75%,Từ 50% - 75%,Từ 25% - 50%,Dưới 25%").Split(",");
-    var labelConfident = ("Rất tốt,Ổn,Không ổn,Chưa nhập").Split(",");
-
-    int chartCount = 4;
-    var dataOkrProgress = new int[chartCount];
-    var dataOkrConfident = new int[chartCount];
-    var dataKrProgress = new int[chartCount];
-    var dataKrConfident = new int[chartCount];
-    foreach (var okr in okrList)
+    bool _success = true;
+    try
     {
-      // OKRs - Tiến độ
-      var progress = DbOkr.GetProgress(okr.key_results);
-      if (progress < 25)
-        dataOkrProgress[3]++;
-      else if (progress < 50)
-        dataOkrProgress[2]++;
-      else if (progress < 75)
-        dataOkrProgress[1]++;
-      else if (progress >= 75)
-        dataOkrProgress[0]++;
+      var okrList = await DbOkr.GetList(Layout.Company.id, Layout.CycleId, members_id);
 
-      // OKRs - Tự tin
-      if (okr.confident == 0)
-        dataOkrConfident[3]++;
-      else if (okr.confident == 3)
-        dataOkrConfident[2]++;
-      else if (okr.confident == 2)
-        dataOkrConfident[1]++;
-      else if (okr.confident == 1)
-        dataOkrConfident[0]++;
+      var labelProgress = ("Trên 75%,Từ 50% - 75%,Từ 25% - 50%,Dưới 25%").Split(",");
+      var labelConfident = ("Rất tốt,Ổn,Không ổn,Chưa nhập").Split(",");
 
-      foreach (var kr in okr.key_results)
+      int chartCount = 4;
+      var dataOkrProgress = new int[chartCount];
+      var dataOkrConfident = new int[chartCount];
+      var dataKrProgress = new int[chartCount];
+      var dataKrConfident = new int[chartCount];
+      foreach (var okr in okrList)
       {
-        // KRs - Tiến độ
-        var progressKr = Shared.Progress(kr.result, kr.target);
-        if (progressKr < 25)
-          dataKrProgress[3]++;
-        else if (progressKr < 50)
-          dataKrProgress[2]++;
-        else if (progressKr < 75)
-          dataKrProgress[1]++;
-        else if (progressKr >= 75)
-          dataKrProgress[0]++;
+        // OKRs - Tiến độ
+        var progress = DbOkr.GetProgress(okr.key_results);
+        if (progress < 25)
+          dataOkrProgress[3]++;
+        else if (progress < 50)
+          dataOkrProgress[2]++;
+        else if (progress < 75)
+          dataOkrProgress[1]++;
+        else if (progress >= 75)
+          dataOkrProgress[0]++;
 
-        // KRs - Tự tin
-        if (kr.confident == 0)
-          dataKrConfident[3]++;
-        else if (kr.confident == 3)
-          dataKrConfident[2]++;
-        else if (kr.confident == 2)
-          dataKrConfident[1]++;
-        else if (kr.confident == 1)
-          dataKrConfident[0]++;
+        // OKRs - Tự tin
+        if (okr.confident == 0)
+          dataOkrConfident[3]++;
+        else if (okr.confident == 3)
+          dataOkrConfident[2]++;
+        else if (okr.confident == 2)
+          dataOkrConfident[1]++;
+        else if (okr.confident == 1)
+          dataOkrConfident[0]++;
+
+        foreach (var kr in okr.key_results)
+        {
+          // KRs - Tiến độ
+          var progressKr = Shared.Progress(kr.result, kr.target);
+          if (progressKr < 25)
+            dataKrProgress[3]++;
+          else if (progressKr < 50)
+            dataKrProgress[2]++;
+          else if (progressKr < 75)
+            dataKrProgress[1]++;
+          else if (progressKr >= 75)
+            dataKrProgress[0]++;
+
+          // KRs - Tự tin
+          if (kr.confident == 0)
+            dataKrConfident[3]++;
+          else if (kr.confident == 3)
+            dataKrConfident[2]++;
+          else if (kr.confident == 2)
+            dataKrConfident[1]++;
+          else if (kr.confident == 1)
+            dataKrConfident[0]++;
+        }
       }
-    }
 
-    var colors = "#48c774,#3298dc,#ffdd57,#f14668";
-    await JSRuntime.InvokeAsync<string>("chartDoughnut", "chartOkrProgress_" + id, labelProgress, dataOkrProgress, colors);
-    await JSRuntime.InvokeAsync<string>("chartDoughnut", "chartOkrConfident_" + id, labelConfident, dataOkrConfident, colors);
-    await JSRuntime.InvokeAsync<string>("chartDoughnut", "chartKrProgress_" + id, labelProgress, dataKrProgress, colors);
-    await JSRuntime.InvokeAsync<string>("chartDoughnut", "chartKrConfident_" + id, labelConfident, dataKrConfident, colors);
+      var colors = "#48c774,#3298dc,#ffdd57,#f14668";
+      await JSRuntime.InvokeAsync<string>("chartDoughnut", "chartOkrProgress_" + id, labelProgress, dataOkrProgress, colors);
+      await JSRuntime.InvokeAsync<string>("chartDoughnut", "chartOkrConfident_" + id, labelConfident, dataOkrConfident, colors);
+      await JSRuntime.InvokeAsync<string>("chartDoughnut", "chartKrProgress_" + id, labelProgress, dataKrProgress, colors);
+      await JSRuntime.InvokeAsync<string>("chartDoughnut", "chartKrConfident_" + id, labelConfident, dataKrConfident, colors);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChartDepartment()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

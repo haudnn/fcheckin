@@ -1,0 +1,51 @@
+﻿@inject IJSRuntime JSRuntime
+@using Microsoft.AspNetCore.Http.Features
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor Http
+
+@if (showCookie)
+{
+  <div id="cookieConsent" class="" role="alert">
+    Chúng tôi cần bạn cấp quyền truy cập cookie tối ưu việc trải nghiệm của bạn trong quá trình sử dụng sản phẩm. Mọi thông tin dữ liệu sẽ được bảo mật và chỉ sử dụng cho mục đích tăng trải nghiệm.
+    <button type="button" class="button is-link accept-policy" data-dismiss="alert" aria-label="Close" data-cookie-string="@cookieString" @onclick="AcceptMessage">
+      Cho phép
+    </button>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutLogin Layout { get; set; }
+  private ITrackingConsentFeature consentFeature;
+  private bool showCookie;
+  private string cookieString;
+
+  protected override async Task OnInitializedAsync()
+  {
+    try
+    {
+      consentFeature = Http.HttpContext.Features.Get<ITrackingConsentFeature>();
+      showCookie = !consentFeature?.CanTrack ?? false;
+      cookieString = consentFeature?.CreateConsentCookie();
+    }
+    catch(Exception ex)
+    {
+      return;
+    }
+  }
+
+  private void AcceptMessage()
+  {
+    try
+    {
+      // JsInterop call to store the consent cookies.
+      JSRuntime.InvokeVoidAsync("CookieFunction.acceptMessage", cookieString);
+      showCookie = false;
+      StateHasChanged();
+    }
+    catch(Exception ex)
+    {
+      return;
+    }
+  }
+}

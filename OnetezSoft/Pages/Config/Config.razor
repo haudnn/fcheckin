@@ -1,0 +1,358 @@
+﻿@page "/configs"
+@page "/configs/{module}"
+@page "/configs/{module}/{method}"
+@page "/configs/{module}/{method}/{feature}"
+@inject NavigationManager navigation
+@inject IJSRuntime JSRuntime
+
+@if (!CheckAccess())
+{
+  <PopupNoRole />
+}
+else
+{
+  <section class="main_content homepage config">
+    @if (!Layout.IsMobile || current.IsEmpty())
+    {
+      <div class="card" id="sidebar" style="height:calc(100vh - 51px);overflow:visible; @(Layout.IsMobile ? "width:100vw" : "width:230px")">
+        <div class="control has-icons-left has-icons-right mx-2 mb-2">
+          <input type="text"
+                 class="input is-small is-rounded"
+          @bind="@Search"
+          @bind:event="oninput"
+                 placeholder="Tên thiết lập..." />
+          <span class="icon is-left"><i class="material-icons-outlined is-size-5">search</i></span>
+          <a class="icon is-right has-text-danger" @onclick="ClearText">
+            <i class="material-icons-outlined">
+              close
+            </i>
+          </a>
+        </div>
+        <div class="scrolly is-mobile" style="width:100%; max-height:calc(100% - 35px - 1rem)">
+          <ul style="width:100%">
+            @foreach (var item in filter.childs)
+            {
+              if (item.childs.Count == 0)
+              {
+                <li class="@(item.active ? "is-active" : "")">
+                  <a class="button is-white" @onclick="() => GoToModule(item)">
+                    <span>@item.name</span>
+                  </a>
+                </li>
+              }
+              else
+              {
+                <li class="@(item.active ? "is-active" : "")">
+                  <a class="button is-white" @onclick="() => item.active = !item.active">
+                    <span>@item.name</span>
+                    <span class="icon">
+                      <i class="material-icons is-size-6">arrow_right</i>
+                    </span>
+                  </a>
+                  <ul style="width:100%">
+                    @foreach (var child in item.childs)
+                    {
+                      <li class="@(child.active ? "is-active" : "") ml-4">
+                        <a class="button is-white" @onclick="() => GoToModule(child)">
+                          <span>@child.name</span>
+                        </a>
+                      </li>
+                    }
+                  </ul>
+                </li>
+              }
+            }
+          </ul>
+        </div>
+      </div>
+    }
+    @if (!Layout.IsMobile || !current.IsEmpty())
+    {
+      @if (Layout.IsMobile)
+      {
+        <div class="header-sticky sticked m-0 pl-0 " style="width:100%">
+          <div class="header-title icon-text">
+            <a class="icon has-text-link" @onclick="() => current = string.Empty">
+              <i class="material-icons-outlined is-size-5">arrow_back</i>
+            </a>
+            <h1 class="is-size-6 has-text-dark has-text-weight-semibold">Cấu hình</h1>
+          </div>
+        </div>
+      }
+      <div class="card flex_column is_fullheight" style="flex:1;@(Layout.IsMobile ? "margin-top:45px" : "overflow:hidden")">
+        @if (currentModule != null)
+        {
+          if (unsupportMobile.Contains(currentModule.link) && Layout.IsMobile)
+          {
+            <div>
+              Trang này không hỗ trợ thiết bị điện thoại. Vui lòng sử dụng thiết bị khác để tiếp tục sử dụng.
+            </div>
+          }
+          else
+          {
+            Type type = GetTypeByName(currentModule.icon);
+            if (type != null)
+            {
+              if (currentModule.icon == "OkrStarList")
+              {
+                var param = new Dictionary<string, object>();
+                param.Add("isPlus", currentModule.link.Contains("true"));
+
+                <DynamicComponent Type="@type" Parameters="param" />
+              }
+              else
+              {
+                <DynamicComponent Type="@type" />
+              }
+            }
+          }
+        }
+      </div>
+    }
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string module { get; set; }
+  [Parameter]
+  public string method { get; set; }
+  [Parameter]
+  public string feature { get; set; }
+
+  private NavModel nav;
+  private NavModel filter;
+  private string current;
+  private NavModel currentModule;
+
+  private string search;
+  private string Search
+  {
+    get => search;
+    set
+    {
+      if (search != value)
+      {
+        search = value;
+
+        if (search.IsEmpty() || search.Trim().IsEmpty())
+        {
+          filter = Shared.Clone(nav);
+          return;
+        }
+
+        filter = Shared.Clone(nav);
+        filter.childs = new();
+
+        foreach (var item in nav.childs)
+        {
+          var newItem = Shared.Clone(item);
+          newItem.childs = new();
+
+          if (Shared.SearchKeyword(search, item.name))
+          {
+            filter.childs.Add(newItem);
+          }
+          if (item.childs.Count > 0)
+          {
+            foreach (var child in item.childs)
+            {
+              if (Shared.SearchKeyword(search, child.name))
+              {
+                filter.childs.Remove(newItem);
+                newItem.childs.Add(Shared.Clone(child));
+                newItem.active = true;
+                filter.childs.Add(newItem);
+              }
+            }
+          }
+          if (filter.childs.Contains(newItem) && item.childs.Count > 0 && newItem.childs.Count == 0)
+          {
+            newItem.childs = Shared.CloneList(item.childs);
+            newItem.active = true;
+          }
+        }
+      }
+    }
+  }
+
+  private List<string> unsupportMobile = new() { "GiftCategory", "Banners", "Quotes" };
+
+  private Dictionary<string, Dictionary<string, object>> parameters = new();
+
+  protected override void OnInitialized()
+  {
+    nav = ModuleService.GetConfig(Layout.Company, Layout.User);
+    filter = Shared.Clone(nav);
+  }
+
+  protected override void OnParametersSet()
+  {
+    if (currentModule == null)
+    {
+      NavModel urlModule = null;
+      if (!module.IsEmpty())
+      {
+        var url = navigation.Uri.Replace(navigation.BaseUri, "");
+        foreach (var item in nav.childs)
+        {
+          if (item.childs.Count > 0)
+          {
+            foreach (var sub in item.childs)
+            {
+              if (sub.childs.Count > 0)
+              {
+                urlModule = sub.childs.FirstOrDefault(x => x.link == url);
+              }
+              else
+              {
+                if (sub.link == url)
+                  urlModule = sub;
+              }
+            }
+          }
+          else
+          {
+            if (item.link == url)
+              urlModule = item;
+          }
+        }
+        if (urlModule != null)
+        {
+          GoToModule(urlModule);
+        }
+        else
+        {
+          GoToDefault();
+        }
+      }
+      else
+      {
+        GoToDefault();
+      }
+    }
+  }
+
+  private void GoToDefault()
+  {
+    var defaultNav = filter.childs.FirstOrDefault();
+    if (defaultNav != null)
+      if (defaultNav.childs.Count == 0)
+      {
+        GoToModule(defaultNav);
+        current = defaultNav.icon;
+      }
+      else
+      {
+        GoToModule(defaultNav.childs.FirstOrDefault());
+        current = defaultNav.childs.FirstOrDefault().icon;
+      }
+
+    if (Layout.IsMobile)
+      current = string.Empty;
+  }
+
+  private Type GetTypeByName(string name)
+  {
+    var result = Type.GetType($"OnetezSoft.Pages.Config.{name}");
+    if (result == null)
+      result = Type.GetType($"OnetezSoft.Pages.Hrm.{name}");
+    return result;
+  }
+
+  private void GoToModule(NavModel item)
+  {
+    currentModule = item;
+    current = item.icon;
+
+    navigation.NavigateTo(currentModule.link, false);
+    ActiveNav();
+  }
+
+  private void ActiveNav()
+  {
+    currentModule.active = false;
+
+    // De-active
+    foreach (var sub in filter.childs)
+    {
+      if (sub.childs.Count > 0)
+      {
+        foreach (var subchild in sub.childs)
+        {
+          if (subchild.active)
+            subchild.active = false;
+        }
+      }
+      else
+      {
+        if (sub.active)
+          sub.active = false;
+      }
+    }
+
+    // Reactive
+    foreach (var sub in filter.childs)
+    {
+      if (sub.childs.Count > 0)
+      {
+        foreach (var subchild in sub.childs)
+        {
+          if (subchild.link == currentModule.link)
+          {
+            if (!subchild.icon.IsEmpty())
+            {
+              if (subchild.link == currentModule.link)
+              {
+                subchild.active = true;
+                sub.active = true;
+                break;
+              }
+            }
+            else
+            {
+              subchild.active = true;
+              sub.active = true;
+              break;
+            }
+          }
+        }
+      }
+      else
+      {
+        if (sub.link == currentModule.link)
+        {
+          sub.active = true;
+          break;
+        }
+      }
+    }
+  }
+
+  private void ClearText()
+  {
+    search = string.Empty;
+    filter = Shared.Clone(nav);
+  }
+
+
+  private bool CheckAccess()
+  {
+    if (Layout.User.role == 1) return true;
+    if (Layout.User.role_manage.system) return true;
+    if (Layout.User.role_manage.okrs) return true;
+    if (Layout.User.role_manage.kaizen) return true;
+    if (Layout.User.role_manage.educate) return true;
+    if (Layout.User.role_manage.store) return true;
+    if (Layout.User.role_manage.other) return true;
+    if (Layout.User.role_manage.hrrecords) return true;
+    if (Layout.User.role_manage.timekeeping) return true;
+    if (Layout.User.role_manage.storage) return true;
+    if (Layout.User.role_manage.cfr) return true;
+    if (Layout.User.role_manage.kpis) return true;
+    if (Layout.User.role_manage.todolist) return true;
+    return false;
+  }
+}

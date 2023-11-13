@@ -13,40 +13,75 @@
       </h1>
     </li>
     <li class="column is-narrow">
-      <div class="control has-icons-left" style="width: 120px;">
-        <div class="select is-small has-text-weight-medium">
-          <select @onchange="ChangeStatus">
-            <option value="0">Trạng thái</option>
-            <option value="1">Đã kích hoạt</option>
-            <option value="2">Chưa kích hoạt</option>
-          </select>
+      <div class="field has-addons">
+        <div class="control">
+          <span class="button is-small is-static">
+            <span class="icon has-text-dark">
+              <i class="material-icons-round is-size-6">filter_list</i>
+            </span>
+            <span>Trạng thái</span>
+          </span>
         </div>
-        <span class="icon is-left has-text-dark">
-          <i class="material-icons-round is-size-6">filter_list</i>
-        </span>
+        <div class="control">
+          <div class="select is-small has-text-weight-medium">
+            <select @onchange="ChangeStatus">
+              <option value="0">Đã kích hoạt</option>
+              <option value="1">Chưa kích hoạt</option>
+            </select>
+          </div>
+        </div>
       </div>
     </li>
     <li class="column is-narrow">
-      <div class="control has-icons-left" style="width: 250px;" title="Nhấn Enter để tìm">
-        <input @bind="filterKeyword" @onkeyup="ChangeKeyword" type="text" class="input is-small"
-          placeholder="Tên, số điện thoại, email tổ chức" />
+      <div class="field has-addons">
+        <div class="control">
+          <span class="button is-small is-static">
+            <span class="icon has-text-dark">
+              <i class="material-icons-round is-size-6">sort_by_alpha</i>
+            </span>
+            <span>Sắp xếp</span>
+          </span>
+        </div>
+        <div class="control">
+          <div class="select is-small has-text-weight-medium">
+            <select @onchange="ChangeSort">
+              <option value="0">Ngày tạo</option>
+              <option value="1">Truy cập</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </li>
+    <li class="column is-one-quarter">
+      <form @onsubmit="GetList" class="control has-icons-left" title="Nhấn Enter để tìm">
+        <input @bind="filterKeyword" type="text" class="input is-small"
+               placeholder="ID, Tên, số điện thoại, email tổ chức" />
         <span class="icon is-left has-text-dark">
           <i class="material-icons-round is-size-6">search</i>
         </span>
-      </div>
+      </form>
     </li>
   </ul>
-  
+
   <section>
-    @foreach (var item in dataList)
-    {
-      <_CompanyInfo company="item" products="productList" />
-    }
-    @if (dataList.Count == 0)
+    @if (dataList == null)
     {
       <div class="has-text-grey has-text-centered py-6">
-        Không tìm thấy dữ liệu phù hợp
+        Đang tải dữ liệu...
       </div>
+    }
+    else
+    {
+      foreach (var item in onlineList)
+      {
+        <_CompanyInfo company="dataList[item.Key]" products="productList" online="item.Value" />
+      }
+      if (dataList.Count == 0)
+      {
+        <div class="has-text-grey has-text-centered py-6">
+          Không tìm thấy dữ liệu phù hợp
+        </div>
+      }
     }
   </section>
 </section>
@@ -56,58 +91,76 @@
   [CascadingParameter]
   public LayoutAdmin Layout { get; set; }
   private string _title = "Danh sách tổ chức";
-  private List<CompanyModel> dataList = new();
+  private Dictionary<string, CompanyModel> dataList = null;
+  private Dictionary<string, long> onlineList = new();
   private List<ProductModel> productList = new();
   private string filterKeyword = string.Empty;
-  private int filterStatus = 0;
-  
+  private int status = 0;
+  private int sortBy = 0;
+
   protected override async Task OnParametersSetAsync()
   {
     productList = await DbMainProduct.GetList();
     await GetList();
   }
-  
-  private async Task GetList()
+
+  private async Task<bool> GetList()
   {
-    // Danh sách công ty
-    var data = await DbMainCompany.GetAll();
-
-    if(filterStatus == 1)
-      dataList = data.Where(x => x.status).ToList();
-    else if(filterStatus == 2)
-      dataList = data.Where(x => !x.status).ToList();
-    else
-      dataList = data;
-
-    if(!string.IsNullOrEmpty(filterKeyword))
+    bool _success = true;
+    try
     {
-      var results = new List<CompanyModel>();
-      foreach (var item in dataList)
+      // Danh sách công ty
+      var data = await DbMainCompany.GetAll();
+
+      if (status == 0)
+        data.RemoveAll(x => !x.status);
+      else if (status == 1)
+        data.RemoveAll(x => x.status);
+
+      if (!string.IsNullOrEmpty(filterKeyword))
       {
-        if(Shared.SearchKeyword(filterKeyword, item.name + item.phone + item.email))
-          results.Add(item);
+        var list = new List<CompanyModel>();
+        foreach (var item in data)
+        {
+          if (Shared.SearchKeyword(filterKeyword, item.name + item.phone + item.email))
+            list.Add(item);
+        }
+        data = list;
       }
-      dataList = results;
+
+      dataList = new();
+      onlineList = new();
+      foreach (var item in data)
+      {
+        var online = await DbUser.GetOnline(item.id);
+        dataList.Add(item.id, item);
+        onlineList.Add(item.id, online);
+      }
+
+      if (sortBy == 1)
+        onlineList = onlineList.OrderByDescending(x => x.Value).ToDictionary(x => x.Key, x => x.Value);
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
-  
 
   private async Task ChangeStatus(ChangeEventArgs e)
   {
-    filterStatus = Convert.ToInt32(e.Value);
+    status = Convert.ToInt32(e.Value);
     await GetList();
   }
 
-  private async Task ChangeKeyword(KeyboardEventArgs args)
+  private async Task ChangeSort(ChangeEventArgs e)
   {
-    if (args.Key == "Enter")
-    {
-      await GetList();
-    }
-    else if (args.Key == "Escape")
-    {
-      filterKeyword = string.Empty;
-      await GetList();
-    }
+    sortBy = Convert.ToInt32(e.Value);
+    await GetList();
   }
+
+
 }

@@ -1,5 +1,6 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 @{
   var status = WorkService.Status(model.status);
@@ -9,33 +10,52 @@
   var dateE = Shared.DateToDay(new DateTime(model.date_end));
 }
 
-<ul id="task_@model.id" class="task_gantt is_item is_sub columns is-gapless is-size-7">
+<ul id="task_@model.id"
+    class="task_gantt is_item is_sub columns is-gapless is-size-7"
+    style="">
   <li class="column is-narrow" style="box-shadow: inset 4px 0px 0px 0px @priority.color;">
     <div class="icon-text item_title pl-0">
-      <a class="item_name has-text-weight-medium has-text-@(model.status == 4 ? "success is-line-through " : "black")"
-        @onclick="View" title="@model.name">
-        @model.name
-      </a>
+      @if(!edit)
+      {
+        <a class="item_name has-text-weight-medium has-text-@(model.status == 4 ? "success is-line-through " : "black")"
+          @onclick="View" title="@model.name">
+          @model.name
+        </a>
+      }
+      else
+      {
+        <input class="input is-small is_underline item_name has-text-weight-medium has-text-@(model.status == 4 ? "success is-line-through " : "black")"
+        @bind-value="model.name" autofocus="false" @onfocusout="UpdateTitle" @onclick:stopPropagation />
+      }
+      @if (EditMode && !edit)
+      {
+        <span class="icon is_hover">
+          <a 
+            class="material-icons-round is-size-7 has-text-dark" title="Thêm công việc phụ" 
+            @onclick="() => edit = true"
+            @onclick:stopPropagation>
+            edit
+          </a>
+        </span>
+      }
+      @if(isEdit)
+      {
+        <Dropdown CloseOnClickMenu=true DropdownClass="is-right icon is-hoverable is_hover">
+          <Trigger>
+            <a class="icon">
+              <i class="material-icons-outlined is-size-6">more_horiz</i>
+            </a>
+          </Trigger>
+          <MenuContent>
+            <a class="dropdown-item has-text-danger" @onclick="Delete">Xóa việc phụ này</a>
+          </MenuContent>
+        </Dropdown>
+      }
       @if(deadline != null)
       {
         <span class="tag" style="background: @(deadline.color + "30"); color: #555; overflow: visible;">
           @deadline.name
         </span>
-      }
-      @if(isEdit)
-      {
-        <div class="dropdown is-hoverable is-right icon is_hover">
-          <div class="dropdown-trigger">
-            <span class="icon">
-              <i class="material-icons-outlined is-size-6">more_horiz</i>
-            </span>
-          </div>
-          <div class="dropdown-menu">
-            <div class="dropdown-content">
-              <a class="dropdown-item has-text-danger" @onclick="Delete">Xóa việc phụ này</a>
-            </div>
-          </div>
-        </div>
       }
     </div>
   </li>
@@ -52,7 +72,19 @@
         var time = string.Format("Từ ngày {0:dd/MM/yyyy, HH:mm} đến ngày {1:dd/MM/yyyy, HH:mm}", 
           new DateTime(model.date_start), new DateTime(model.date_end));
         <div class="is_timeline" style="width: @(column * 40)px">
-          <a class="item_task @status.color" @onclick="View" title="@time"></a>
+          <div class="item_task pl-1 @status.color" title="@time">
+            <_InputDate 
+              @bind-Start="taskStart"
+              @bind-End="taskEnd"
+              HasTime
+              Minimal
+              IsRange
+              Format="dd/MM"
+              DefaultString="Thời gian"
+              OnRangeClose="UpdateDate"
+              ShowIcon=false
+              InputClass="has-text-white has-background-transparent" />
+           </div>
           <div class="item_members">
             <_MemberList members="model.members" sources="members" isEdit="isEdit" isTask="true"
               OnUpdate="UpdateMembers" />
@@ -71,7 +103,7 @@
   [Parameter]
   public WorkPlanModel.Task parent { get; set; }
   [Parameter]
-  public List<UserModel> members { get; set; }
+  public List<MemberModel> members { get; set; } = new();
   [Parameter]
   public DateTime dayStart { get; set; }
   [Parameter]
@@ -82,47 +114,123 @@
   public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
   [Parameter]
   public EventCallback OnView { get; set; }
-  
+  [Parameter]
+  public bool EditMode { get; set; }
+  [Parameter]
+  public bool edit { get; set; }
+  private string oldTitle;
+
+  private long taskStart = 0;
+  private long taskEnd = 0;
+
+  protected override void OnInitialized()
+  {
+    oldTitle = model.name;
+    taskStart = model.date_start;
+    taskEnd = model.date_end;
+  }
+
   private async Task View()
   {
     await OnView.InvokeAsync();
   }
 
-  private async Task Delete()
+  private async Task<bool> Delete()
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa \"{model.name}\".\nBạn có chắc chắn muốn thực hiện?"))
-      return;
-    await DbWorkTask.Delete(Layout.Company.id, model.id);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc phụ thành công!");
-    await WorkService.CreateLog(Layout.Company.id, "Xóa công việc phụ", model.name, parent.plan_id, parent.id, Layout.User);
-    await OnUpdate.InvokeAsync(model);
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa \"{model.name}\".\nBạn có chắc chắn muốn thực hiện?"))
+        return _success;
+      await DbWorkTask.Delete(Layout.Company.id, model.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc phụ thành công!");
+      await WorkService.CreateLog(Layout.Company.id, "Xóa công việc phụ", model.name, parent.plan_id, parent.id, Layout.User);
+
+      await OnUpdate.InvokeAsync(null);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Delete()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task UpdateDate(DateRange range)
+  private async Task<bool> UpdateDate(DateRange range)
   {
-    model.date_start = range.Start.Ticks;
-    model.date_end = range.End.Ticks;
-    await DbWorkTask.Update(Layout.Company.id, model);
-    await OnUpdate.InvokeAsync(model);
+    bool _success = true;
+    try
+    {
+      model.date_start = range.Start.Ticks;
+      model.date_end = range.End.Ticks;
+      await DbWorkTask.Update(Layout.Company.id, model);
+      await OnUpdate.InvokeAsync(model);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateDate()", ex.ToString(), Layout.User.id, Layout.Company.name);
+
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task ChangeStatus(int id)
+  private async Task<bool> UpdateMembers()
   {
-    model.status = id;
-    await DbWorkTask.Update(Layout.Company.id, model);
-    await OnUpdate.InvokeAsync(model);
+    bool _success = true;
+    try
+    {
+      var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+      var userList = shareStorage.MemberList;
+
+      var old = await DbWorkTask.Get(Layout.Company.id, model.id);
+      await DbWorkTask.Update(Layout.Company.id, model);
+      // Lưu lịch sử
+      await WorkService.LogTaskMembers(Layout.Company.id, old, model, Layout.User, userList);
+      await OnUpdate.InvokeAsync(model);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateMembers()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task UpdateLabels()
+  private async Task UpdateTitle()
   {
-    await DbWorkTask.Update(Layout.Company.id, model);
-  }
-
-  private async Task UpdateMembers()
-  {
-    var old = await DbWorkTask.Get(Layout.Company.id, model.id);
-    await DbWorkTask.Update(Layout.Company.id, model);
-    // Lưu lịch sử
-    await WorkService.LogTaskMembers(Layout.Company.id, old, model, Layout.User, Layout.UserList);
+    edit = false;
+    if (string.IsNullOrEmpty(oldTitle))
+    {
+      if (string.IsNullOrEmpty(model.name))
+      {
+        await OnUpdate.InvokeAsync(null);
+      }
+      else
+      {
+        oldTitle = model.name;
+        await DbWorkTask.Update(Layout.Company.id, model);
+        await OnUpdate.InvokeAsync(model);
+      }
+    }
+    else
+    {
+      if (string.IsNullOrEmpty(model.name))
+      {
+        model.name = oldTitle;
+      }
+      else
+      {
+        oldTitle = model.name;
+        await DbWorkTask.Update(Layout.Company.id, model);
+        await OnUpdate.InvokeAsync(model);
+      }
+    }
   }
 }

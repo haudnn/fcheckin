@@ -54,7 +54,7 @@
 
           <div class="card mt-5">
             <div class="card-image">
-              @if(item.date > DateTime.Now.AddDays(-7).Ticks)
+              @if (item.date > DateTime.Now.AddDays(-7).Ticks)
               {
                 <span class="tag is-rounded is-danger">Tin mới</span>
               }
@@ -69,12 +69,12 @@
               <h3 class="font_14 text_2_line mt-2">
                 <a class="has-text-black has-text-weight-medium" href="@link" target="@target">@item.name</a>
               </h3>
-              @if(cat != null)
+              @if (cat != null)
               {
                 <span class="tag is-rounded has-text-weight-semibold my-2" style="background: @cat.color; color: #fff">
                   @cat.name
                 </span>
-              } 
+              }
             </div>
           </div>
         }
@@ -114,7 +114,7 @@
   protected override async Task OnParametersSetAsync()
   {
     model = await DbBlog.Get(Layout.Company.id, Id);
-    if(model != null)
+    if (model != null)
     {
       _title = model.name;
       category = GetCategory(model.category).name;
@@ -134,7 +134,7 @@
   private CompanyModel.Category GetCategory(string id)
   {
     var result = categorys.FirstOrDefault(x => x.id == id);
-    if(result != null)
+    if (result != null)
       return result;
     else
       return new CompanyModel.Category() { name = "Chi tiết" };

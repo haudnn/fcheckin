@@ -1,5 +1,4 @@
-﻿@page "/config/gift/banner"
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
 <PageTitle>Quản lý banner ưu đãi</PageTitle>
@@ -10,139 +9,119 @@
 }
 else
 {
-  <section class="columns is-gapless has_menu_left">
-    <div class="column is-narrow">
-      <div class="card p-3 menu_left">
-        <a href="/config/gift">
-          Cửa hàng
-        </a>
-        <a href="/config/gift/exchange">
-          Đơn hàng
-        </a>
-        <a href="/config/gift/category">
-          Danh mục
-        </a>
-        <a class="is-active" href="/config/gift/banner">
-          Ưu đãi
-        </a>
+  <ul class="columns is-vcentered is-variable is-2 mb-2">
+    <li class="column">
+      <h1 class="title is-5 has-text-info">
+        QUẢN LÝ BANNER ƯU ĐÃI
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <a class="button is-link" @onclick="() => EditItem(null)">
+        <span class="icon">
+          <span class="material-icons-outlined is-size-6">add</span>
+        </span>
+        <span>Thêm mới</span>
+      </a>
+    </li>
+  </ul>
+  <ul class="columns is-variable is-2 mb-2">
+    <li class="column">
+      <input @bind="filterKey" type="text" class="input" placeholder="Từ khóa: tiêu đề, sản phẩm..." />
+    </li>
+    <li class="column is-one-third is-hidden">
+      <div class="select is-fullwidth">
+        <select @onchange="ChangeDepartment" class="is-family-code">
+          @foreach (var item in departments)
+          {
+            <option value="@item.id">@item.name</option>
+          }
+        </select>
       </div>
-    </div>
-    <div class="column">
-      <div class="card p-5">
-        <ul class="columns is-vcentered">
-          <li class="column">
-            <h1 class="title is-5 has-text-info">
-              QUẢN LÝ BANNER ƯU ĐÃI
-            </h1>
-          </li>
-          <li class="column is-narrow">
-            <a class="button is-link" @onclick="() => EditItem(null)">
-              <span class="icon">
-                <span class="material-icons-outlined is-size-6">add</span>
-              </span>
-              <span>Thêm mới</span>
-            </a>
-          </li>
-        </ul>
-        <ul class="columns is-variable is-2">
-          <li class="column">
-            <input @bind="filterKey" type="text" class="input" placeholder="Từ khóa: tiêu đề, sản phẩm..." />
-          </li>
-          <li class="column is-one-third is-hidden">
-            <div class="select is-fullwidth">
-              <select @onchange="ChangeDepartment" class="is-family-code">
-                @foreach (var item in departments)
-                {
-                  <option value="@item.id">@item.name</option>
-                }
-              </select>
-            </div>
-          </li>
-          <li class="column is-narrow">
-            <a class="button is-link is-outlined" @onclick="Search">
-              <span class="icon">
-                <i class="material-icons-outlined">search</i>
-              </span>
-              <span>Tìm kiếm</span>
-            </a>
-          </li>
-        </ul>
-        <table class="table is-fullwidth is-vcentered is-responsive mt-5">
-          <thead>
-            <tr>
-              <th width="60px">Hình</th>
-              <th width="25%">Tiêu đề</th>
-              <th>Sản phẩm</th>
-              <th width="80px" align="center">Ghim</th>
-              <th width="70px" align="center">Xử lý</th>
-            </tr>
-          </thead>
-          <tbody>
-            @foreach (var item in dataList)
-            {
-              <tr>
-                <td align="center">
-                  <a class="image is-square" href="@item.image" target="_blank">
-                    <img src="@item.image" alt="IMG" />
-                  </a>
-                </td>
-                <td>
-                  <label class="td-label">Tiêu đề</label>
-                  <div class="td-value">
-                    <a class="has-text-weight-semibold" @onclick="() => EditItem(item)">
-                      @item.name
-                    </a>
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Sản phẩm</label>
-                  <div class="td-value">
-                    <div class="text_1_line" onclick="toggleText(this)">
-                      @item.products
-                    </div>
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Ghim</label>
-                  <div class="td-value">
-                    <a class="icon" @onclick="() => ToggleItem(item)">
-                      @if (item.pin)
-                      {
-                        <span class="material-icons-outlined is-size-4 has-text-success">
-                          toggle_on
-                        </span>
-                      }
-                      else
-                      {
-                        <span class="material-icons-outlined is-size-4 has-text-black">
-                          toggle_off
-                        </span>
-                      }
-                    </a>
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Xử lý</label>
-                  <div class="td-value">
-                    <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
-                      <i class="material-icons-outlined is-size-5">
-                        edit
-                      </i>
-                    </a>
-                    <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
-                      <i class="material-icons-outlined is-size-5">
-                        delete
-                      </i>
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
+    </li>
+    <li class="column is-narrow">
+      <a class="button is-link is-outlined" @onclick="Search">
+        <span class="icon">
+          <i class="material-icons-outlined">search</i>
+        </span>
+        <span>Tìm kiếm</span>
+      </a>
+    </li>
+  </ul>
+  <div id="scrollbox" class="scrolly inner_section" style="flex:1">
+    <table class="table is-fullwidth is-vcentered is-responsive sticky only_desktop">
+      <thead>
+        <tr>
+          <th class="sticky" style="left:0" width="60px">Hình</th>
+          <th class="sticky last" style="left:60px" width="25%">Tiêu đề</th>
+          <th class="">Sản phẩm</th>
+          <th class="" width="80px" align="center">Ghim</th>
+          <th class="" width="70px" align="center">Xử lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in dataList)
+        {
+          <tr>
+            <td align="center" class="sticky" style="left:0">
+              <a class="image is-square" href="@item.image" target="_blank">
+                <img src="@item.image" alt="IMG" />
+              </a>
+            </td>
+            <td class="sticky last" style="left:60px">
+              <label class="td-label">Tiêu đề</label>
+              <div class="td-value">
+                <a class="has-text-weight-semibold" @onclick="() => EditItem(item)">
+                  @item.name
+                </a>
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Sản phẩm</label>
+              <div class="td-value">
+                <div class="text_1_line" onclick="toggleText(this)">
+                  @item.products
+                </div>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Ghim</label>
+              <div class="td-value">
+                <a class="icon" @onclick="() => ToggleItem(item)">
+                  @if (item.pin)
+                  {
+                    <span class="material-icons-outlined is-size-4 has-text-success">
+                      toggle_on
+                    </span>
+                  }
+                  else
+                  {
+                    <span class="material-icons-outlined is-size-4 has-text-black">
+                      toggle_off
+                    </span>
+                  }
+                </a>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Xử lý</label>
+              <div class="td-value">
+                <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    edit
+                  </i>
+                </a>
+                <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    delete
+                  </i>
+                </a>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 }
 
 @if (model != null)
@@ -156,7 +135,7 @@ else
         </div>
         <a class="delete" @onclick="() => model = null"></a>
       </div>
-      <form @onsubmit="Update" class="modal-card-body">
+      <form @onsubmit="Update" class="modal-card-body scrolly">
         <div class="field">
           <label class="label">Tiêu đề *</label>
           <div class="control">
@@ -165,20 +144,22 @@ else
         </div>
         <div class="field">
           <label class="label">Hình ảnh *</label>
-          <div class="control">
-            <a class="image is-square">
-              <img src="@model.image" />
-            </a>
+          <div class="field has-addons">
+            <div class="control">
+              <a class="image is-square">
+                <img src="@model.image" />
+              </a>
+            </div>
+            <div class="control is-expanded">
+              <input @bind="model.image" class="input" type="text" placeholder="Nhập link hình..." />
+            </div>
+            <FileUpload Path="gift/banner" IsLeft="true" Cloud Accept="image/*" Size="400" OnUpload="x => model.image = x[0]" />
           </div>
-          <div class="control is-expanded">
-            <input @bind="model.image" class="input" type="text" placeholder="Nhập link hình..." />
-          </div>
-          <FileUpload Accept="image/*" Size="400" OnUpload="x => model.image = x[0]" />
         </div>
         <div class="field">
           <label class="label">Sản phẩm liên quan</label>
           <div class="control">
-            <input @bind="model.products" type="text" class="input" placeholder="Tên sản phẩn 1, tên sản phẩm 2...." />
+            <input @bind="model.products" type="text" class="input" placeholder="Tên sản phẩm 1, tên sản phẩm 2...." />
           </div>
         </div>
         <div class="field mt-5">
@@ -210,7 +191,7 @@ else
 
   protected override async Task OnInitializedAsync()
   {
-    var departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    var departmentAll = await DbDepartment.GetAll(Layout.Company.id);
     departments = departmentAll.Where(x => x.parent == null).ToList();
     if (departments.Count == 1)
       departments = departmentAll.Where(x => x.parent == departments[0].id).ToList();
@@ -220,10 +201,28 @@ else
 
     await Search();
   }
-
-  private async Task Search()
+  
+  protected override async Task OnAfterRenderAsync(bool firstRender)
   {
-    dataList = await DbGiftBanner.GetList(Layout.Company.id, filterKey, filterDepartment);
+    if (firstRender)
+      await JSRuntime.InvokeVoidAsync("dragScrollX");
+  }
+
+  private async Task<bool> Search()
+  {
+    bool _success = true;
+    try
+    {
+      dataList = await DbGiftBanner.GetList(Layout.Company.id, filterKey, filterDepartment);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Search()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task ChangeDepartment(ChangeEventArgs e)
@@ -232,20 +231,44 @@ else
     await Search();
   }
 
-  private async Task DeleteItem(GiftBannerModel item)
+  private async Task<bool> DeleteItem(GiftBannerModel item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
-      return;
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+        return false;
 
-    dataList.Remove(item);
-    await DbGiftBanner.Delete(Layout.Company.id, item.id);
-    Files.DeleteFile(item.image);
+      dataList.Remove(item);
+      await DbGiftBanner.Delete(Layout.Company.id, item.id);
+      Files.DeleteFile(item.image);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task ToggleItem(GiftBannerModel item)
+  private async Task<bool> ToggleItem(GiftBannerModel item)
   {
-    item.pin = !item.pin;
-    await DbGiftBanner.Update(Layout.Company.id, item);
+    bool _success = true;
+    try
+    {
+      item.pin = !item.pin;
+      await DbGiftBanner.Update(Layout.Company.id, item);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ToggleItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void EditItem(GiftBannerModel item)
@@ -253,9 +276,9 @@ else
     if (item == null)
     {
       model = new()
-      {
-        department = filterDepartment
-      };
+        {
+          department = filterDepartment
+        };
     }
     else
     {
@@ -263,24 +286,36 @@ else
     }
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (StringHelper.IsEmpty(model.name) || StringHelper.IsEmpty(model.image))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập các trường bắt buộc (*)");
-    else
+    bool _success = true;
+    try
     {
-      model.products = !string.IsNullOrEmpty(model.products) ? model.products.ToLower() : string.Empty;
-      if (string.IsNullOrEmpty(model.id))
-      {
-        model = await DbGiftBanner.Create(Layout.Company.id, model);
-        dataList.Insert(0, model);
-      }
+      if (StringHelper.IsEmpty(model.name) || StringHelper.IsEmpty(model.image))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập các trường bắt buộc (*)");
       else
       {
-        model = await DbGiftBanner.Update(Layout.Company.id, model);
+        model.products = !string.IsNullOrEmpty(model.products) ? model.products.ToLower() : string.Empty;
+        if (string.IsNullOrEmpty(model.id))
+        {
+          model = await DbGiftBanner.Create(Layout.Company.id, model);
+          dataList.Insert(0, model);
+        }
+        else
+        {
+          model = await DbGiftBanner.Update(Layout.Company.id, model);
+        }
+        model = null;
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật banner ưu đãi thành công!");
       }
-      model = null;
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật banner ưu đãi thành công!");
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿using MongoDB.Bson.Serialization.Attributes;
 namespace OnetezSoft.Models
 {
-   public class ImageModel
-   {
-      public string id { get; set; }
+  [BsonIgnoreExtraElements]
+  public class ImageModel
+  {
+    public string id { get; set; }
 
-      public string link { get; set; }
-   }
+    public string link { get; set; }
+  }
 }

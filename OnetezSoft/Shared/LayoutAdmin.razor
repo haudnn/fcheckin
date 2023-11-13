@@ -2,9 +2,10 @@
 @inject IJSRuntime JSRuntime
 @inject ProtectedLocalStorage storage
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <CascadingValue Value="this">
-  <main id="main" class="columns is-gapless is-multiline has-background-white">
+  <main id="main" class="client columns is-gapless is-multiline has-background-white">
     @if (User != null && User.active)
     {
       if (User.is_admin && navigation.Uri.Contains("/admin"))
@@ -58,6 +59,11 @@
 
   public long MaxFileSize = 10 * 1024000;
 
+  public async Task Tagline(string message = "Đã xảy ra lỗi không mong muốn. Vui lòng thử lại hoặc liên hệ với chúng tôi!")
+  {
+    await JSRuntime.InvokeVoidAsync("tagline", false, message);
+  }
+
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
     if (firstRender)
@@ -66,21 +72,15 @@
       {
         var cookieUser = await JSRuntime.InvokeAsync<string>("getCookie", "_user");
         if (!string.IsNullOrEmpty(cookieUser))
-          User = await DbMainUser.GetbySession(cookieUser);
+          User = await DbMainUser.GetbySession(cookieUser, globalService);
 
-        if(User != null)
-        {
-          User.online = DateTime.Now.Ticks;
-          await DbMainUser.Update(User);
-        }
-        else
-        {
+        if(User == null)
           navigation.NavigateTo("/logout", true);
-        }
+
       }
       catch (Exception ex)
       {
-        await JSRuntime.InvokeAsync<string>("console.warn", "LayoutAdmin: " + ex.Message);
+        await JSRuntime.InvokeAsync<string>("console.warn", "LayoutAdmin: " + ex.ToString());
         navigation.NavigateTo("/", true);
       }
       StateHasChanged();

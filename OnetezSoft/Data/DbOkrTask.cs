@@ -1,11 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+﻿using MongoDB.Driver;
 using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -48,7 +46,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<OkrTaskModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
@@ -67,19 +65,19 @@ namespace OnetezSoft.Data
     }
 
 
-    public static List<OkrTaskModel> GetAll(string companyId, string cycle, string user)
+    public static async Task<List<OkrTaskModel>> GetAll(string companyId, string cycle, string user)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<OkrTaskModel>(_collection);
 
-      var results = collection.Find(x => x.cycle == cycle && x.user == user).ToList();
+      var results = await collection.FindAsync(x => x.cycle == cycle && x.user == user).Result.ToListAsync();
 
       return results.OrderBy(x => x.start).ToList();
     }
 
 
-    public static async Task<List<OkrTaskModel>> GetList(string companyId, string cycle, string user, 
+    public static async Task<List<OkrTaskModel>> GetList(string companyId, string cycle, string user,
       DateTime? dateStart, DateTime? dateEnd)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
@@ -104,11 +102,13 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<OkrTaskModel>.Sort.Ascending("start");
 
-      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      return (from x in result orderby x.start select x).ToList();
     }
 
 
-    public static List<OkrTaskModel> GetList(string companyId, string cycle, string okr, string kr)
+    public static async Task<List<OkrTaskModel>> GetList(string companyId, string cycle, string okr, string kr)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
@@ -122,7 +122,11 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<OkrTaskModel>.Sort.Ascending("start");
 
-      return collection.Find(filtered).Sort(sorted).ToList();
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      result = result.OrderBy(x => x.start).ToList();
+
+      return result;
     }
 
 

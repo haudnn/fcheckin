@@ -167,11 +167,11 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   [Parameter]
-  public List<string> members_selected { get; set; }
+  public List<string> members_selected { get; set; } = new();
   [Parameter]
-  public List<string> members { get; set; }
+  public List<string> members { get; set; } = new();
   [Parameter]
-  public List<UserModel> sources { get; set; }
+  public List<UserModel> sources { get; set; } = new();
   [Parameter]
   public string department { get; set; }
   [Parameter]
@@ -187,9 +187,9 @@
   private List<MemberModel> suggests = new();
   private List<DepartmentModel.SelectList> departments = new();
 
-  protected override void OnInitialized()
+  protected override async Task OnInitializedAsync()
   {
-    departments = DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+    departments = await DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
     departments.RemoveAll(x => x.level > 1);
   }
 

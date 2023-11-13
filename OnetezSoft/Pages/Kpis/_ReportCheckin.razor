@@ -1,0 +1,291 @@
+﻿@inject GlobalService globalService
+
+<div class="inner_section p-4 h-full">
+  <div class="field is-grouped">
+    <div class="control is-expanded">
+      <div class="dropdown is-hoverable">
+        <div class="dropdown-trigger">
+          <div class="icon-text">
+            <p class="has-text-weight-semibold font_14 has-text-black" style="overflow: unset;">
+              Tình hình check-in
+            </p>
+            <span class="icon has-text-info">
+              <i class="material-icons-outlined is-size-6">info</i>
+            </span>
+          </div>
+        </div>
+        <div class="dropdown-menu" style="width: 350px;">
+          <div class="dropdown-content">
+            <div class="dropdown-item">
+              <span>
+                Tình hình check-in của cây KPIs được thể hiện qua các chỉ số,
+              </span>
+              <span class="has-text-weight-bold">theo thời gian</span>
+              <span>:</span>
+              <p>- Tổng số lần check-in của nhân viên </p>
+              <p>
+                - Tần suất check-in trên 1 KPIs nhập liệu = Tổng số lần check-in / Số lượng KPIs nhập liệu
+              </p>
+              <p>
+                - Lần check-in gần nhất
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="control">
+      <_InputDate Minimal IsRange IsRight=true
+      @bind-Start="filterStart"
+      @bind-End="filterEnd"
+                  OnRangeSelect="Filter"
+                  Format="dd/MM" />
+    </div>
+
+    <div class="control">
+      <Dropdown CloseOnClickMenu=true>
+        <Trigger>
+          <div class="field is-grouped is-fullwidth is-clickable has-text-link">
+            <div class="control font_12">
+              @if (typeDate == 1)
+              {
+                <span>Tuần này</span>
+              }
+              else if (typeDate == 11)
+              {
+                <span>Tuần trước</span>
+              }
+              else if (typeDate == 2)
+              {
+                <span>Tháng này</span>
+              }
+              else if (typeDate == 22)
+              {
+                <span>Tháng trước</span>
+              }
+              else if (typeDate == 3)
+              {
+                <span>Quý này</span>
+              }
+              else if (typeDate == 7)
+              {
+                <span>Quý trước</span>
+              }
+            </div>
+
+            <div class="control is-expanded has-text-right">
+              <span class="icon">
+                <i class="material-icons-outlined">arrow_drop_down</i>
+              </span>
+            </div>
+          </div>
+        </Trigger>
+        <MenuContent>
+          <a class="dropdown-item" @onclick="() => ChangeDate(1)">
+            Tuần này
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeDate(11)">
+            Tuần trước
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeDate(2)">
+            Tháng này
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeDate(22)">
+            Tháng trước
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeDate(3)">
+            Quý này
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeDate(7)">
+            Quý trước
+          </a>
+        </MenuContent>
+      </Dropdown>
+    </div>
+  </div>
+
+  <ul class="mt-2 columns is-vcentered is-variable is-2 font_12">
+    <li class="column is-4">
+      <div class="indicator-card has-text-grey">
+        <p class="mb-1">Check-in trung bình</p>
+        <span class="has-text-black has-text-weight-semibold">@avgageCheckin</span>
+        <span>lần/KPIs</span>
+      </div>
+    </li>
+
+    <li class="column is-4">
+      <div class="indicator-card has-text-grey">
+        <p class="mb-1">Tổng lần check-in</p>
+        <span class="has-text-black has-text-weight-semibold">@totalCheckin</span>
+        <span>lần</span>
+      </div>
+    </li>
+
+    <li class="column is-4">
+      <div class="indicator-card has-text-grey">
+        <p class="mb-1">Check-in gần nhất</p>
+        <span class="has-text-black has-text-weight-semibold">
+          @(dateCheckinNearest > 0 ? new DateTime(dateCheckinNearest).ToString("dd'/'MM'/'yyyy") : "-")
+        </span>
+      </div>
+    </li>
+  </ul>
+
+  <ul class="columns kpis-list-check is-mobile is-multiline is-vertical is-1 scrolly font_12">
+    <li class="column is-5 font_12 has-text-weight-semibold has-text-info">
+      <span class="mr-1">Nhân viên</span>
+      @if (totalCheckin > 0)
+      {
+        <span>@($"({countNotCheckin} chưa check-in)")</span>
+      }
+    </li>
+    <li class="column is-3 font_12 has-text-centered has-text-weight-semibold has-text-info">
+      Số lần check-in
+    </li>
+    <li class="column is-4 has-text-centered font_12 has-text-weight-semibold has-text-info">
+      Check-in gần nhất
+    </li>
+  </ul>
+
+  <ul class="columns kpis-list-report is-mobile is-multiline is-vertical is-1 scrolly font_12">
+    @if (countCheckinList.Count == filterList.Count)
+    {
+      var index = 0;
+      foreach (var checkin in filterList)
+      {
+        var user = UserService.GetMember(userList, checkin.user_create);
+
+        <li class="column is-5">
+          <div class="user_item">
+            <img class="image is-24x24 mr-2" title="@user.name" src="@user.avatar" alt="IMG">
+            <span class="text_1_line has-text-black">@user.name</span>
+          </div>
+        </li>
+
+        <li class="column is-3 has-text-centered has-text-black">
+          @(countCheckinList[index])
+        </li>
+
+        <li class="column is-4 has-text-centered has-text-black">
+          <span class="has-text-black">
+            @(checkin.date_confirm > 0 ? new DateTime(checkin.date_confirm).ToString("dd'/'MM'/'yyyy") : "-")
+          </span>
+        </li>
+
+        index++;
+      }
+    }
+  </ul>
+</div>
+
+@code {
+  [CascadingParameter]
+  private LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<KpisCheckinModel> confirmList { get; set; } = new();
+  [Parameter]
+  public List<KpisModel> dataKpisInput { get; set; } = new();
+
+  private long filterStart = DateTime.Today.Ticks;
+  private long filterEnd = DateTime.Today.Ticks;
+  private double avgageCheckin = 0;
+  private int totalCheckin = 0;
+  private int countNotCheckin = 0;
+  private List<string> countCheckinList = new();
+  private long dateCheckinNearest;
+  private int typeDate = 1;
+  private List<MemberModel> userList = new();
+  private List<MemberModel> userKpis = new();
+  private List<KpisCheckinModel> filterList = new();
+
+
+  protected override async Task OnInitializedAsync()
+  {
+    userList = await globalService.GetUserList(Layout.Company.id);
+  }
+
+  protected override void OnParametersSet()
+  {
+    GetUserKpis();
+    ChangeDate(1);
+  }
+
+  private void GetUserKpis()
+  {
+    userKpis.Clear();
+    foreach (var kpis in dataKpisInput)
+    {
+      var user = userList.FirstOrDefault(i => i.id == kpis.user);
+      if (user != null)
+        userKpis.Add(user);
+    }
+    userKpis = userKpis.DistinctBy(i => i.id).ToList();
+  }
+
+  private void ChangeDate(int e)
+  {
+    typeDate = e;
+    Shared.GetTimeSpan(typeDate, out DateTime start, out DateTime end);
+    filterStart = start.Ticks;
+    filterEnd = end.Ticks;
+    Filter();
+  }
+
+  private void Filter()
+  {
+    dateCheckinNearest = 0;
+    countNotCheckin = 0;
+    totalCheckin = 0;
+    avgageCheckin = 0;
+    filterList.Clear();
+    countCheckinList.Clear();
+
+    var dataFilter = confirmList.Where(i => filterStart <= i.date_confirm && i.date_confirm <= new DateTime(filterEnd).AddDays(1).AddTicks(-1).Ticks)
+                                .OrderByDescending(i => i.date_confirm).ToList();
+
+
+    totalCheckin = dataFilter.Count;
+    if (dataKpisInput.Any())
+    {
+      avgageCheckin = Convert.ToDouble(totalCheckin) / Convert.ToDouble(dataKpisInput.Count);
+      avgageCheckin = Math.Round(avgageCheckin, 3);
+    }
+
+    if (dataFilter.FirstOrDefault() != null)
+      dateCheckinNearest = dataFilter.FirstOrDefault().date_confirm;
+
+    foreach (var checkin in dataFilter)
+    {
+      var userCheck = filterList.Select(i => i.user_create).ToList();
+      if (!userCheck.Contains(checkin.user_create))
+      {
+        filterList.Add(checkin);
+
+        //đếm số lần checkin
+        var countCheckin = dataFilter.Where(i => i.user_create == checkin.user_create).ToList().Count;
+        countCheckinList.Add(countCheckin.ToString());
+      }
+    }
+
+    var userCheckin = filterList.Select(i => i.user_create).ToList();
+    // kiểm tra người chưa checkin
+    var userNotCheckin = userKpis.Where(i => !userCheckin.Contains(i.id)).ToList();
+    countNotCheckin = userNotCheckin.Count;
+
+    foreach (var item in userNotCheckin)
+    {
+      var user = userList.FirstOrDefault(i => i.id == item.id);
+      if (user != null)
+      {
+        var notCheckin = new KpisCheckinModel()
+          {
+            user_create = user.id,
+            date_confirm = 0
+          };
+
+        filterList.Add(notCheckin);
+        countCheckinList.Add("-");
+      }
+    }
+  }
+}

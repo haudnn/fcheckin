@@ -1,11 +1,9 @@
+using MongoDB.Driver;
+using OnetezSoft.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
 
 namespace OnetezSoft.Data
 {
@@ -54,23 +52,23 @@ namespace OnetezSoft.Data
     {
       var collection = _db.GetCollection<TransactionModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
     /// <summary>
     /// Lấy dữ liệu yêu cầu nạp tiền
     /// </summary>
-    public static List<TransactionModel> GetListRequest(string keyword, int status, 
+    public static async Task<List<TransactionModel>> GetListRequest(string keyword, int status,
       DateTimeOffset? dateS, DateTimeOffset? dateE)
     {
       var collection = _db.GetCollection<TransactionModel>(_collection);
 
       var builder = Builders<TransactionModel>.Filter;
-      
+
       var filtered = builder.Eq("type", 1);
 
-      if(status != 0)
+      if (status != 0)
         filtered = filtered & builder.Eq("status", status);
       if (dateS != null)
         filtered = filtered & builder.Gte("date", dateS.Value.Ticks);
@@ -79,7 +77,9 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<TransactionModel>.Sort.Descending("date");
 
-      var list = collection.Find(filtered).Sort(sorted).ToList();
+      var list = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      list = list.OrderByDescending(x => x.date).ToList();
 
       var results = new List<TransactionModel>();
 
@@ -87,7 +87,7 @@ namespace OnetezSoft.Data
       {
         foreach (var item in list)
         {
-          if(Handled.Shared.SearchKeyword(keyword, item.id + item.customer.name + item.customer.email))
+          if (Handled.Shared.SearchKeyword(keyword, item.id + item.customer.name + item.customer.email))
             results.Add(item);
         }
       }
@@ -101,16 +101,16 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Lấy dữ liệu mua sản phẩm
     /// </summary>
-    public static List<TransactionModel> GetListPurchase(string keyword, string product, 
+    public static async Task<List<TransactionModel>> GetListPurchase(string keyword, string product,
       DateTimeOffset? dateS, DateTimeOffset? dateE)
     {
       var collection = _db.GetCollection<TransactionModel>(_collection);
 
       var builder = Builders<TransactionModel>.Filter;
-      
+
       var filtered = builder.Eq("type", 3);
 
-      if(!string.IsNullOrEmpty(product))
+      if (!string.IsNullOrEmpty(product))
         filtered = filtered & builder.Eq("product", product);
       if (dateS != null)
         filtered = filtered & builder.Gte("date", dateS.Value.Ticks);
@@ -119,7 +119,9 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<TransactionModel>.Sort.Descending("date");
 
-      var list = collection.Find(filtered).Sort(sorted).ToList();
+      var list = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      list = list.OrderByDescending(x => x.date).ToList();
 
       var results = new List<TransactionModel>();
 
@@ -127,7 +129,7 @@ namespace OnetezSoft.Data
       {
         foreach (var item in list)
         {
-          if(Handled.Shared.SearchKeyword(keyword, item.id + item.customer.name + item.customer.email + item.content))
+          if (Handled.Shared.SearchKeyword(keyword, item.id + item.customer.name + item.customer.email + item.content))
             results.Add(item);
         }
       }
@@ -141,13 +143,13 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Lấy dữ liệu hệ thống nạp tiền
     /// </summary>
-    public static List<TransactionModel> GetListRecharge(string keyword, DateTimeOffset? dateS, 
+    public static async Task<List<TransactionModel>> GetListRecharge(string keyword, DateTimeOffset? dateS,
       DateTimeOffset? dateE)
     {
       var collection = _db.GetCollection<TransactionModel>(_collection);
 
       var builder = Builders<TransactionModel>.Filter;
-      
+
       var filtered = builder.Eq("type", 2) & builder.Gt("money", 0);
 
       if (dateS != null)
@@ -157,7 +159,9 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<TransactionModel>.Sort.Descending("date");
 
-      var list = collection.Find(filtered).Sort(sorted).ToList();
+      var list = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      list = list.OrderByDescending(x => x.date).ToList();
 
       var results = new List<TransactionModel>();
 
@@ -165,7 +169,7 @@ namespace OnetezSoft.Data
       {
         foreach (var item in list)
         {
-          if(Handled.Shared.SearchKeyword(keyword, item.id + item.customer.name + item.customer.email))
+          if (Handled.Shared.SearchKeyword(keyword, item.id + item.customer.name + item.customer.email))
             results.Add(item);
         }
       }
@@ -179,13 +183,13 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Lấy dữ liệu hệ thống rút tiền
     /// </summary>
-    public static List<TransactionModel> GetListCashout(string keyword, DateTimeOffset? dateS, 
+    public static async Task<List<TransactionModel>> GetListCashout(string keyword, DateTimeOffset? dateS,
       DateTimeOffset? dateE)
     {
       var collection = _db.GetCollection<TransactionModel>(_collection);
 
       var builder = Builders<TransactionModel>.Filter;
-      
+
       var filtered = builder.Eq("type", 2) & builder.Lt("money", 0);
 
       if (dateS != null)
@@ -195,7 +199,9 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<TransactionModel>.Sort.Descending("date");
 
-      var list = collection.Find(filtered).Sort(sorted).ToList();
+      var list = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      list = list.OrderByDescending(x => x.date).ToList();
 
       var results = new List<TransactionModel>();
 
@@ -203,7 +209,7 @@ namespace OnetezSoft.Data
       {
         foreach (var item in list)
         {
-          if(Handled.Shared.SearchKeyword(keyword, item.id + item.customer.name + item.customer.email))
+          if (Handled.Shared.SearchKeyword(keyword, item.id + item.customer.name + item.customer.email))
             results.Add(item);
         }
       }
@@ -217,18 +223,18 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Lấy dữ liệu giao dịch của một khách hàng
     /// </summary>
-    public static List<TransactionModel> GetListOfCustomer(string customerId, int type, int status,
+    public static async Task<List<TransactionModel>> GetListOfCustomer(string customerId, int type, int status,
       DateTimeOffset? dateS, DateTimeOffset? dateE)
     {
       var collection = _db.GetCollection<TransactionModel>(_collection);
 
       var builder = Builders<TransactionModel>.Filter;
-      
+
       var filtered = builder.Eq("customer.id", customerId);
 
-      if(type != 0)
+      if (type != 0)
         filtered = filtered & builder.Eq("type", type);
-      if(status != 0)
+      if (status != 0)
         filtered = filtered & builder.Eq("status", status);
       if (dateS != null)
         filtered = filtered & builder.Gte("date", dateS.Value.Ticks);
@@ -237,7 +243,11 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<TransactionModel>.Sort.Descending("date");
 
-      return collection.Find(filtered).Sort(sorted).ToList();
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      result = result.OrderByDescending(x => x.date).ToList();
+
+      return result;
     }
   }
 }

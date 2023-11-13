@@ -55,7 +55,7 @@
     {
       <li class="column is-one-third">
         <a class="card_product @(item.show ? "" : "is_opacity")" @onclick="() => EditItem(item)"
-          style="background-color: @item.color; background-image: url('@item.cover')">
+           style="background-color: @item.color; background-image: url('@item.cover')">
           <img class="item_icon" src="@item.icon" />
           <span class="item_title">@item.title</span>
           <span class="item_desc">@item.desc</span>
@@ -81,110 +81,168 @@
     await GetList();
   }
 
-  private async Task GetList()
+  private async Task<bool> GetList()
   {
-    dataList = await DbMainProduct.GetAll();
-    await CreateData();
+    bool _success = true;
+    try
+    {
+      dataList = await DbMainProduct.GetAll();
+      await CreateData();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   /// <summary>
   /// Tạo dữ liệu ban đầu
   /// </summary>
-  private async Task CreateData()
+  private async Task<bool> CreateData()
   {
-    var okrs = new ProductModel()
-      {
-        id = "okrs",
-        title = "fOKRs",
-        color = "#c4e6ff",
-        icon = "/images/icon/fOKRs.png",
-        cover = "/images/illustrations/fokrs.png"
-      };
-    var work = new ProductModel()
-      {
-        id = "work",
-        title = "fWork",
-        color = "#ffb852",
-        icon = "/images/icon/fWork.png",
-        cover = "/images/illustrations/fwork.png"
-      };
-    var todolist = new ProductModel()
-      {
-        id = "todolist",
-        title = "fTodolist",
-        color = "#fdb7af",
-        icon = "/images/icon/fTodo.png",
-        cover = "/images/illustrations/ftodolist.png"
-      };
-    var train = new ProductModel()
-      {
-        id = "train",
-        title = "fTrain",
-        color = "#94b7ff",
-        icon = "/images/icon/fEdu.png",
-        cover = "/images/illustrations/ftodolist.png"
-      };
-    var kaizen = new ProductModel()
-      {
-        id = "kaizen",
-        title = "fKaizen",
-        color = "#ffc4c4",
-        icon = "/images/icon/fKaizen.png",
-        cover = "/images/illustrations/fkaizen.png"
-      };
-    var space = new ProductModel()
-      {
-        id = "space",
-        title = "fSpace",
-        color = "#83fac1",
-        icon = "/images/icon/fSpace.png",
-        cover = "/images/illustrations/fspace.png"
-      };
-    var timekeeping = new ProductModel()
-      {
-        id = "timekeeping",
-        title = "Chấm công",
-        color = "#83FAC1",
-        icon = "/images/icon/fTimekeeping.png",
-        cover = "/images/illustrations/ftimekeeping.png"
-      };
-    var storage = new ProductModel()
-      {
-        id = "storage",
-        title = "fStorage",
-        color = "#B6EBF5",
-        icon = "/images/icon/fstorage.png",
-        cover = "/images/illustrations/fstorage.png"
-      };
+    bool _success = true;
+    try
+    {
+      var okrs = new ProductModel()
+        {
+          id = "okrs",
+          title = "fOKRs",
+          color = "#c4e6ff",
+          icon = "/images/icon/fOKRs.png",
+          cover = "/images/illustrations/fokrs.png"
+        };
+      var work = new ProductModel()
+        {
+          id = "work",
+          title = "fWork",
+          color = "#ffb852",
+          icon = "/images/icon/fWork.png",
+          cover = "/images/illustrations/fwork.png"
+        };
+      var todolist = new ProductModel()
+        {
+          id = "todolist",
+          title = "fTodolist",
+          color = "#fdb7af",
+          icon = "/images/icon/fTodo.png",
+          cover = "/images/illustrations/ftodolist.png"
+        };
+      var train = new ProductModel()
+        {
+          id = "train",
+          title = "fTrain",
+          color = "#94b7ff",
+          icon = "/images/icon/fEdu.png",
+          cover = "/images/illustrations/ftodolist.png"
+        };
+      var kaizen = new ProductModel()
+        {
+          id = "kaizen",
+          title = "fKaizen",
+          color = "#ffc4c4",
+          icon = "/images/icon/fKaizen.png",
+          cover = "/images/illustrations/fkaizen.png"
+        };
+      var space = new ProductModel()
+        {
+          id = "space",
+          title = "fSpace",
+          color = "#83fac1",
+          icon = "/images/icon/fSpace.png",
+          cover = "/images/illustrations/fspace.png"
+        };
+      var timekeeping = new ProductModel()
+        {
+          id = "timekeeping",
+          title = "Chấm công",
+          color = "#83FAC1",
+          icon = "/images/icon/fTimekeeping.png",
+          cover = "/images/illustrations/ftimekeeping.png"
+        };
+      var storage = new ProductModel()
+        {
+          id = "storage",
+          title = "fStorage",
+          color = "#B6EBF5",
+          icon = "/images/icon/fstorage.png",
+          cover = "/images/illustrations/fstorage.png"
+        };
+      var cfr = new ProductModel()
+        {
+          id = "cfr",
+          title = "fCfr",
+          color = "#FFB852",
+          icon = "/images/icon/fCfr.png",
+          cover = "/images/illustrations/fcfr.png"
+        };
+      var kpis = new ProductModel()
+        {
+          id = "kpis",
+          title = "fKPIs",
+          color = "#BFD4FF",
+          icon = "/images/icon/fKpis.png",
+          cover = "/images/illustrations/fkpis.png"
+        };
 
-    if(!dataList.Any(x => x.id == "okrs"))
-      await DbMainProduct.Create(okrs);
+      if (!dataList.Any(x => x.id == "okrs"))
+        await DbMainProduct.Create(okrs);
 
-    if(!dataList.Any(x => x.id == "work"))
-      await DbMainProduct.Create(work);
-    
-    if(!dataList.Any(x => x.id == "todolist"))
-      await DbMainProduct.Create(todolist);
-    
-    if(!dataList.Any(x => x.id == "train"))
-      await DbMainProduct.Create(train);
-    
-    if(!dataList.Any(x => x.id == "kaizen"))
-      await DbMainProduct.Create(kaizen);
-    
-    if(!dataList.Any(x => x.id == "space"))
-      await DbMainProduct.Create(space);
-    
-    if(!dataList.Any(x => x.id == "timekeeping"))
-      await DbMainProduct.Create(timekeeping);
-    
-    if(!dataList.Any(x => x.id == "storage"))
-      await DbMainProduct.Create(storage);
+      if (!dataList.Any(x => x.id == "work"))
+        await DbMainProduct.Create(work);
+
+      if (!dataList.Any(x => x.id == "todolist"))
+        await DbMainProduct.Create(todolist);
+
+      if (!dataList.Any(x => x.id == "train"))
+        await DbMainProduct.Create(train);
+
+      if (!dataList.Any(x => x.id == "kaizen"))
+        await DbMainProduct.Create(kaizen);
+
+      if (!dataList.Any(x => x.id == "space"))
+        await DbMainProduct.Create(space);
+
+      if (!dataList.Any(x => x.id == "timekeeping"))
+        await DbMainProduct.Create(timekeeping);
+
+      if (!dataList.Any(x => x.id == "storage"))
+        await DbMainProduct.Create(storage);
+
+      if (!dataList.Any(x => x.id == "cfr"))
+        await DbMainProduct.Create(cfr);
+
+      if (!dataList.Any(x => x.id == "kpis"))
+        await DbMainProduct.Create(kpis);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "CreateData()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task EditItem(ProductModel item)
+  private async Task<bool> EditItem(ProductModel item)
   {
-    model = await DbMainProduct.Get(item.id);
+    bool _success = true;
+    try
+    {
+      model = await DbMainProduct.Get(item.id);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "EditItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task OnUpdate(bool isUpdate)

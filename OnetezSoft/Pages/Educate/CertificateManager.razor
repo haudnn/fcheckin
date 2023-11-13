@@ -1,30 +1,19 @@
 ﻿@page "/educate/certificate/manager"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<section class="p-4 @(_loaded ? "" : "is-loading")">
-  <div class="card p-5">
-    <ul class="columns is-vcentered is-variable is-2 mb-3">
+<section class="main_content @(_loaded ? "" : "is-loading")">
+  <div class="card flex_column is_fullheight">
+    <ul class="columns is-vcentered is-multiline is-variable is-2 mb-2">
       <li class="column">
         <h1 class="title is-5 has-text-info is-uppercase">
           @_title
         </h1>
       </li>
-    </ul>
-    <ul class="columns is-variable is-2 mb-3">
-      <li class="column is-one-quarter">
+      <li class="column is-one-fifth">
         <div class="select is-fullwidth">
           <select @bind="filterCourse">
             <option value="">Tất cả khóa học</option>
@@ -35,7 +24,7 @@
           </select>
         </div>
       </li>
-      <li class="column is-one-quarter">
+      <li class="column is-narrow">
         <div class="select is-fullwidth">
           <select @bind="filterStatus">
             <option value="">Tất cả trạng thái</option>
@@ -46,7 +35,7 @@
           </select>
         </div>
       </li>
-      <li class="column">
+      <li class="column is-narrow">
         <div class="control has-icons-right has_suggest">
           <input class="input" type="text" placeholder="Nhập tên nhân viên..."
                  autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
@@ -56,7 +45,7 @@
               <li class="rsitem" @onclick="() => UserSelected(item)">
                 <div class="user_item">
                   <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
-                  <span>@item.FullName</span>
+                  <span>@item.name</span>
                 </div>
               </li>
             }
@@ -75,116 +64,117 @@
         </a>
       </li>
     </ul>
-
-    <table class="table is-fullwidth is-vcentered is-responsive">
-      <thead>
-        <tr>
-          <th>Khóa học</th>
-          <th width="12%">Tiến độ học</th>
-          <th width="12%">Bài thi đạt</th>
-          <th width="20%">Học viên</th>
-          <th width="150px">Ngày bắt đầu</th>
-          <th width="150px">Trạng thái</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach (var item in dataList)
-        {
-          var user = Layout.UserList.SingleOrDefault(x => x.id == item.user);
-          var status = DbEducateLearned.Status(item.status);
-          var done = item.lessons.Where(x => x.done).Count();
-          var examPass = item.lessons.Where(x => x.type > 1 && x.pass).Count();
-          var examTotal = item.lessons.Where(x => x.type > 1).Count();
-
+    <div class="inner_section scrolly" style="flex:1">
+      <table class="table is-fullwidth is-vcentered is-responsive">
+        <thead>
           <tr>
-            <td>
-              <label class="td-label">Khóa học</label>
-              <div class="td-value">
-                <div class="text_1_line" onclick="toggleText(this)">
-                  @item.course_name
-                </div>
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Tiến độ học</label>
-              <div class="td-value">
-                @string.Format("{0:0}%", Shared.Progress(done, item.lessons.Count)) bài giảng
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Bài thi đạt</label>
-              <div class="td-value">
-                @string.Format("{0}/{1}", examPass, examTotal) bài thi
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Học viên</label>
-              <div class="td-value">
-                @if (user != null)
-                {
-                  <div class="user_item">
-                    <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
-                    <span>@user.FullName</span>
+            <th class="pt-0">Khóa học</th>
+            <th class="pt-0" width="12%">Tiến độ học</th>
+            <th class="pt-0" width="12%">Bài thi đạt</th>
+            <th class="pt-0" width="20%">Học viên</th>
+            <th class="pt-0" width="150px">Ngày bắt đầu</th>
+            <th class="pt-0" width="150px">Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var item in dataList)
+          {
+            var user = userList.SingleOrDefault(x => x.id == item.user);
+            var status = DbEducateLearned.Status(item.status);
+            var done = item.lessons.Where(x => x.done).Count();
+            var examPass = item.lessons.Where(x => x.type > 1 && x.pass).Count();
+            var examTotal = item.lessons.Where(x => x.type > 1).Count();
+
+            <tr>
+              <td>
+                <label class="td-label">Khóa học</label>
+                <div class="td-value">
+                  <div class="text_1_line" onclick="toggleText(this)">
+                    @item.course_name
                   </div>
-                }
-                else
-                {
-                  <span>@item.user</span>
-                }
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Ngày bắt đầu</label>
-              <div class="td-value">
-                @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Trạng thái</label>
-              <div class="td-value">
-                <div class="select is-fullwidth @status.color">
-                  <select @onchange="@((ChangeEventArgs e) => ChangeStatus(item, Convert.ToInt32(e.Value)))">
-                    @foreach (var sl in statusList)
-                    {
-                      @* if (item.status == sl.id)
-                      {
-                        <option value="@sl.id" selected>@sl.name</option>
-                      }
-                      else
-                      {
-                        <option value="@sl.id">@sl.name</option>
-                      } *@
-                      if (item.status == sl.id)
-                      {
-                        <option value="@sl.id" selected>
-                          @StatusName(sl, item.lessons.Count, done, examPass, examTotal)
-                        </option>
-                      }
-                      else
-                      {
-                        <option value="@sl.id">
-                          @StatusName(sl, item.lessons.Count, done, examPass, examTotal)
-                        </option>
-                      }
-                    }
-                  </select>
                 </div>
-              </div>
-            </td>
-          </tr>
-        }
-        @if (dataList.Count == 0)
-        {
-          <tr>
-            <td colspan="6">
-              <div class="has-text-grey py-6">
-                Không tìm thấy dữ liệu !
-              </div>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
+              </td>
+              <td>
+                <label class="td-label">Tiến độ học</label>
+                <div class="td-value">
+                  @string.Format("{0:0}%", Shared.Progress(done, item.lessons.Count)) bài giảng
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Bài thi đạt</label>
+                <div class="td-value">
+                  @string.Format("{0}/{1}", examPass, examTotal) bài thi
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Học viên</label>
+                <div class="td-value">
+                  @if (user != null)
+                  {
+                    <div class="user_item">
+                      <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                      <span>@user.name</span>
+                    </div>
+                  }
+                  else
+                  {
+                    <span>@item.user</span>
+                  }
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Ngày bắt đầu</label>
+                <div class="td-value">
+                  @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Trạng thái</label>
+                <div class="td-value">
+                  <div class="select is-fullwidth @status.color">
+                    <select @onchange="@((ChangeEventArgs e) => ChangeStatus(item, Convert.ToInt32(e.Value)))">
+                      @foreach (var sl in statusList)
+                      {
+                        @* if (item.status == sl.id)
+                    {
+                    <option value="@sl.id" selected>@sl.name</option>
+                    }
+                    else
+                    {
+                    <option value="@sl.id">@sl.name</option>
+                    } *@
+                        if (item.status == sl.id)
+                        {
+                          <option value="@sl.id" selected>
+                            @StatusName(sl, item.lessons.Count, done, examPass, examTotal)
+                          </option>
+                        }
+                        else
+                        {
+                          <option value="@sl.id">
+                            @StatusName(sl, item.lessons.Count, done, examPass, examTotal)
+                          </option>
+                        }
+                      }
+                    </select>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          }
+          @if (dataList.Count == 0)
+          {
+            <tr>
+              <td colspan="6">
+                <div class="has-text-grey py-6">
+                  Không tìm thấy dữ liệu !
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
 
@@ -193,7 +183,7 @@
   public LayoutMain Layout { get; set; }
 
   private bool _loaded = false;
-  private bool _success = false;
+  private bool success = false;
   private string _message = string.Empty;
   private string _title = "Cấp chứng chỉ";
 
@@ -203,11 +193,16 @@
   private int filterStatus = 0;
   private string filterUserId = string.Empty;
   private string filterUserSearch = string.Empty;
-  private List<UserModel> userSuggests = new();
+  private List<MemberModel> userSuggests = new();
   private List<StaticModel> statusList = new();
+
+  private List<MemberModel> userList = new();
 
   protected override async Task OnInitializedAsync()
   {
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    userList = shareStorage.MemberList;
+
     courseList = await DbEducateCourse.GetListByExaminer(Layout.Company.id, Layout.User.id);
     statusList.AddRange(DbEducateLearned.Status());
 
@@ -230,10 +225,10 @@
       userSuggests = new();
       if (!string.IsNullOrEmpty(value))
       {
-        foreach (var item in Layout.UserList)
+        foreach (var item in userList)
         {
           bool check = true;
-          if (!Handled.Shared.SearchKeyword(filterUserSearch, item.FullName))
+          if (!Handled.Shared.SearchKeyword(filterUserSearch, item.name))
             check = false;
           if (check)
             userSuggests.Add(item);
@@ -242,82 +237,107 @@
     }
   }
 
-  private void UserSelected(UserModel item)
+  private void UserSelected(MemberModel item)
   {
-    filterUserSearch = item.FullName;
+    filterUserSearch = item.name;
     filterUserId = item.id;
     userSuggests = new();
   }
 
-  private async Task Search()
+  private async Task<bool> Search()
   {
-    dataList = await DbEducateLearned.GetListByExaminer(Layout.Company.id, Layout.User.id, filterCourse, filterUserId, filterStatus);
+    bool _success = true;
+    try
+    {
+      dataList = await DbEducateLearned.GetListByExaminer(Layout.Company.id, Layout.User.id, filterCourse, filterUserId, filterStatus);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Search()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private string StatusName(StaticModel status, int lessons, int done, int examPass, int examTotal)
   {
-    if(status.id == 1 && done == lessons && examPass == examTotal)
+    if (status.id == 1 && done == lessons && examPass == examTotal)
       return "Đã học xong";
     return status.name;
   }
 
-  private async Task ChangeStatus(EducateLearnedModel item, int status)
+  private async Task<bool> ChangeStatus(EducateLearnedModel item, int status)
   {
-    _success = false;
-    if (status == 1)
+    bool _success = true;
+    try
     {
-      item.status = 1;
-      item.certificate_image = string.Empty;
-      item.certificate_color = string.Empty;
-      item = await DbEducateLearned.Update(Layout.Company.id, item);
-    }
-    else if (status == 3)
-    {
-      item.status = 3;
-      item.certificate_image = string.Empty;
-      item.certificate_color = string.Empty;
-      item = await DbEducateLearned.Update(Layout.Company.id, item);
-    }
-    else if (status == 2)
-    {
-      var done = item.lessons.Where(x => x.done).Count();
-      var examTotal = item.lessons.Where(x => x.type > 1).Count();
-      var examPass = item.lessons.Where(x => x.type > 1 && x.pass).Count();
-
-      if (done == item.lessons.Count)
+      success = false;
+      if (status == 1)
       {
-        if(examPass == examTotal)
+        item.status = 1;
+        item.certificate_image = string.Empty;
+        item.certificate_color = string.Empty;
+        item = await DbEducateLearned.Update(Layout.Company.id, item);
+      }
+      else if (status == 3)
+      {
+        item.status = 3;
+        item.certificate_image = string.Empty;
+        item.certificate_color = string.Empty;
+        item = await DbEducateLearned.Update(Layout.Company.id, item);
+      }
+      else if (status == 2)
+      {
+        var done = item.lessons.Where(x => x.done).Count();
+        var examTotal = item.lessons.Where(x => x.type > 1).Count();
+        var examPass = item.lessons.Where(x => x.type > 1 && x.pass).Count();
+
+        if (done == item.lessons.Count)
         {
-          var certificate = DbEducateCertificate.GetDefault(Layout.Company.id);
+          if (examPass == examTotal)
+          {
+            var certificate = await DbEducateCertificate.GetDefault(Layout.Company.id);
 
-          item.status = 2;
-          item.certificate_image = certificate != null ? certificate.image : string.Empty;
-          item.certificate_color = certificate != null ? certificate.color : string.Empty;
-          item.certificate_date = DateTime.Now.Ticks;
-          item = await DbEducateLearned.Update(Layout.Company.id, item);
+            item.status = 2;
+            item.certificate_image = certificate != null ? certificate.image : string.Empty;
+            item.certificate_color = certificate != null ? certificate.color : string.Empty;
+            item.certificate_date = DateTime.Now.Ticks;
+            item = await DbEducateLearned.Update(Layout.Company.id, item);
 
-          // Tính thành tựu
-          await DbEducateLearned.Achievement(Layout.Company.id, item.user);
+            // Tính thành tựu
+            await DbEducateLearned.Achievement(Layout.Company.id, item.user, globalService);
 
-          _message = "Đã cấp chứng chỉ cho học viên !";
-          _success = true;
+            _message = "Đã cấp chứng chỉ cho học viên !";
+            await JSRuntime.InvokeVoidAsync("tagline", true, _message);
+            success = true;
 
-          // Gửi thông báo chuông
-          await DbNotify.Create(Layout.Company.id, 600, item.id, item.user, Layout.User.id);
+            // Gửi thông báo chuông
+            await DbNotify.Create(Layout.Company.id, 600, item.id, item.user, Layout.User.id);
+          }
+          else
+          {
+            _message = "Học viên này không hoàn thành tất cả bài thi !";
+            await JSRuntime.InvokeVoidAsync("tagline", false, _message);
+            _message = string.Empty;
+          }
         }
         else
         {
-          _message = "Học viên này không hoàn thành tất cả bài thi !";
-          await Task.Delay(5000);
+          _message = "Học viên này chưa hoàn thành 100% bài giảng !";
+          await JSRuntime.InvokeVoidAsync("tagline", false, _message);
           _message = string.Empty;
         }
       }
-      else
-      {
-        _message = "Học viên này chưa hoàn thành 100% bài giảng !";
-        await Task.Delay(5000);
-        _message = string.Empty;
-      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeStatus()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

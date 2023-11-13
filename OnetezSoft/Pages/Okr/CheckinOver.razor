@@ -4,69 +4,79 @@
 
 <PageTitle>@_title</PageTitle>
 
+<div class="tabs">
+  <div class="tabs_name">
+    <a class="icon-tex px-0 has-text-link has-text-weight-normal is-size-6" href="/okr/checkin/@okr.user_create">
+      <span class="icon">
+        <span class="material-icons-outlined">
+          keyboard_backspace
+        </span>
+      </span>
+      <span>
+        Trở về
+      </span>
+    </a>
+    <span class="icon-text">
+      <span>
+        Chi tiết OKRs
+      </span>
+    </span>
+  </div>
+  <ul>
+    <li class="">
+      <a class="has-text-weight-normal" href="/okr/checkin/@okr.id/info">Check-in 1:1</a>
+    </li>
+    <li class="">
+      <a class="has-text-weight-normal" href="/okr/checkin/@okr.id/feedback">Phản hồi</a>
+    </li>
+    <li class="is-active">
+      <a class="has-text-weight-normal" href="/okr/checkin/@okr.id/overview">Tổng quan</a>
+    </li>
+  </ul>
+</div>
+
 @if (okr != null)
 {
-  <section class="columns is-gapless has_menu_left">
-    <div class="column is-narrow">
-      <div class="card p-3 menu_left">
-        <a class="button is-transparent has-text-link mb-5" href="/okr/checkin/@okr.user_create">
-          <span class="icon">
-            <i class="material-icons-outlined">
-              arrow_back
-            </i>
-          </span>
-          <span>Trở về</span>
-        </a>
-        <a href="/okr/checkin/@okr.id/info">
-          Check-in<br />1:1
-        </a>
-        <a href="/okr/checkin/@okr.id/feedback">
-          Phản hồi
-        </a>
-        <a class="is-active" href="/okr/checkin/@okr.id/overview">
-          Tổng quan
-        </a>
+  <section class="main_content" style="gap:0;">
+    <div class="card flex_column">
+      <ul class="columns is-vcentered is-variable is-2 mb-2">
+        <li class="column is-narrow">
+          <h1 class="title is-5 has-text-info">
+            TIẾN ĐỘ OKRs
+          </h1>
+        </li>
+      </ul>
+      <div style="flex:1" class="inner_section">
+        <canvas id="chartLine" height="210"></canvas>
       </div>
     </div>
-    <div class="column">
-      <div class="card p-5">
-        <ul class="columns is-vcentered is-variable is-2 mb-3">
-          <li class="column is-narrow">
-            <h1 class="title is-5 has-text-info">
-              TIẾN ĐỘ OKRs
-            </h1>
-          </li>
-        </ul>
-        <div style="height: 210px;">
-          <canvas id="chartLine" height="210"></canvas>
-        </div>
-      </div>
 
-      <div class="card p-5">
-        <ul class="columns is-vcentered is-variable is-2 mb-3">
-          <li class="column">
-            <h1 class="title is-5 has-text-info">
-              CHI TIẾT OKRs
-            </h1>
+    <div class="card flex_column">
+      <ul class="columns is-vcentered is-variable is-2 mb-2">
+        <li class="column">
+          <h1 class="title is-5 has-text-info">
+            CHI TIẾT OKRs
+          </h1>
+        </li>
+        @if (okr.next_checkin != 0)
+        {
+          <li class="column is-narrow">
+            <span>Lần check-in tiếp theo:</span>
+            <span class="has-text-weight-semibold">
+              @string.Format("{0:dd/MM/yyy}", new DateTime(okr.next_checkin))
+            </span>
           </li>
-          @if (okr.next_checkin != 0)
-          {
-            <li class="column is-narrow">
-              <span>Lần check-in tiếp theo:</span>
-              <span class="has-text-weight-semibold">
-                @string.Format("{0:dd/MM/yyy}", new DateTime(okr.next_checkin))
-              </span>
-            </li>
-          }
-        </ul>
+        }
+      </ul>
+      <div class="inner_section">
         <table class="table is-fullwidth is-noborder is-responsive">
           <thead>
-            <tr>
-              <th>Mục tiêu</th>
-              <th width="160px">Kết Quả Then Chốt</th>
-              <th width="200px" align="center">Tiến độ</th>
-              <th width="90px" align="center">Thay đổi</th>
-              <th width="90px" align="center">Tự tin</th>
+            <tr class="is-size-7" style="border-bottom: 1px solid #DEDEDE;">
+              <th class="pt-0">Mục tiêu</th>
+              <th class="pt-0" width="160px">Kết Quả Then Chốt</th>
+              <th class="pt-0" width="200px" align="center">Tiến độ</th>
+              <th class="pt-0" width="90px" align="center">Thay đổi</th>
+              <th class="pt-0" width="90px" align="center">Tự tin</th>
             </tr>
           </thead>
           <tbody>
@@ -168,25 +178,27 @@
           </tbody>
         </table>
       </div>
+    </div>
 
-      @if (okrRelated.Count > 0)
-      {
-        <div class="card p-5">
-          <ul class="columns is-vcentered is-variable is-2 mb-3">
-            <li class="column is-narrow">
-              <h1 class="title is-5 has-text-info">
-                OKRs LIÊN QUAN
-              </h1>
-            </li>
-          </ul>
-          <table class="table is-fullwidth is-noborder is-responsive mt-5">
+    @if (okrRelated.Count > 0)
+    {
+      <div class="card flex_column">
+        <ul class="columns is-vcentered is-variable is-2 mb-2">
+          <li class="column is-narrow">
+            <h1 class="title is-5 has-text-info">
+              OKRs LIÊN QUAN
+            </h1>
+          </li>
+        </ul>
+        <div class="inner_section">
+          <table class="table is-fullwidth is-noborder is-responsive">
             <thead>
-              <tr>
-                <th>Mục tiêu</th>
-                <th width="160px">Kết Quả Then Chốt</th>
-                <th width="200px" align="center">Tiến độ</th>
-                <th width="90px" align="center">Thay đổi</th>
-                <th width="90px" align="center">Tự tin</th>
+              <tr class="is-size-7" style="border-bottom: 1px solid #DEDEDE;">
+                <th class="pt-0">Mục tiêu</th>
+                <th class="pt-0" width="160px">Kết Quả Then Chốt</th>
+                <th class="pt-0" width="200px" align="center">Tiến độ</th>
+                <th class="pt-0" width="90px" align="center">Thay đổi</th>
+                <th class="pt-0" width="90px" align="center">Tự tin</th>
               </tr>
             </thead>
             <tbody>
@@ -200,7 +212,7 @@
 
                 <tr>
                   <td>
-                    <a class="has-text-weight-semibold has-text-link" href="/okr/checkin/@item.id/overview">
+                    <a class="has-text-weight-semibold has-text-link" href="/okr/checkin/@key[1]">
                       @item.name
                     </a>
                     <i class="has-text-grey">→ @key[2]</i>
@@ -289,20 +301,20 @@
             </tbody>
           </table>
         </div>
-      }
-    </div>
+      </div>
+    }
   </section>
 }
 else
 {
-  <section class="p-4">
-    <div class="card p-5">
+  <section class="main_content">
+    <div class="card">
       Dữ liệu không tồn tại hoặc đã bị xóa
     </div>
   </section>
 }
 
-@if(!CheckAccess())
+@if (!CheckAccess())
 {
   <div class="modal is-active">
     <div class="modal-background"></div>
@@ -329,6 +341,12 @@ else
   private Dictionary<string, OkrModel> okrRelated = new();
   private List<string> okrsShow = new();
   private List<OkrCheckinModel> dataList = new();
+  private string msgAccess = string.Empty;
+
+  private bool CheckAccess()
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, "okrs", out msgAccess);
+  }
 
   protected override async Task OnInitializedAsync()
   {
@@ -339,7 +357,7 @@ else
       {
         var okr = await DbOkr.Get(Layout.Company.id, this.okr.parent);
         if (okr != null)
-          okrRelated.Add($"{this.okr.id}|{okr.id}|OKR cấp trên", okr);
+          okrRelated.TryAdd($"{this.okr.id}|{okr.id}|OKR cấp trên", okr);
       }
       foreach (var kr in okr.key_results)
       {
@@ -347,18 +365,18 @@ else
         {
           var okr = await DbOkr.Get(Layout.Company.id, cross.okr);
           if (okr != null)
-            okrRelated.Add($"{this.okr.id}|{cross.id}|OKR liên kết", okr);
+            okrRelated.TryAdd($"{this.okr.id}|{cross.user}|OKR liên kết", okr);
         }
       }
-
-      await Chart();
     }
   }
 
-  private string msgAccess = string.Empty;
-  private bool CheckAccess()
+  protected override async Task OnAfterRenderAsync(bool firstRender)
   {
-    return ProductService.CheckAccess(Layout.Company, Layout.User, "okrs", out msgAccess);
+    if (okr != null && firstRender)
+    {
+      await Chart();
+    }
   }
 
   private void ShowKeys(string id)
@@ -369,26 +387,38 @@ else
       okrsShow.Add(id);
   }
 
-  private async Task Chart()
+  private async Task<bool> Chart()
   {
-    dataList.AddRange(DbOkrCheckin.GetList(Layout.Company.id, Layout.CycleId, okr.id, true));
-    dataList = dataList.OrderBy(x => x.date_create).ToList();
-
-    int chartCount = dataList.Count + 1;
-
-    var chartLabel = new string[chartCount];
-    var chartDatas = new int[chartCount];
-
-    chartLabel[0] = string.Format("{0:dd/MM}", new DateTime(okr.date_create));
-    chartDatas[0] = 0;
-
-    for (int i = 0; i < dataList.Count; i++)
+    bool _success = true;
+    try
     {
-      var checkin = dataList[i];
-      chartLabel[i + 1] = string.Format("{0:dd/MM}", new DateTime(checkin.date_create));
-      chartDatas[i + 1] = (int)DbOkrCheckin.GetProgress(checkin.key_results, okr.key_results);
-    }
+      dataList.AddRange(await DbOkrCheckin.GetList(Layout.Company.id, Layout.CycleId, okr.id, true));
+      dataList = dataList.OrderBy(x => x.date_create).ToList();
 
-    await JSRuntime.InvokeAsync<string>("runChartLine", "Tiến độ (%)", chartLabel, chartDatas);
+      int chartCount = dataList.Count + 1;
+
+      var chartLabel = new string[chartCount];
+      var chartDatas = new int[chartCount];
+
+      chartLabel[0] = string.Format("{0:dd/MM}", new DateTime(okr.date_create));
+      chartDatas[0] = 0;
+
+      for (int i = 0; i < dataList.Count; i++)
+      {
+        var checkin = dataList[i];
+        chartLabel[i + 1] = string.Format("{0:dd/MM}", new DateTime(checkin.date_create));
+        chartDatas[i + 1] = (int)DbOkrCheckin.GetProgress(checkin.key_results, okr.key_results);
+      }
+
+      await JSRuntime.InvokeAsync<string>("runChartLine", "Tiến độ (%)", chartLabel, chartDatas);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Chart()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

@@ -1,15 +1,21 @@
+using DocumentFormat.OpenXml.EMMA;
+using DocumentFormat.OpenXml.Office2010.Excel;
+using OnetezSoft.Data;
+using OnetezSoft.Handled;
+using OnetezSoft.Models;
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Security.Policy;
 using System.Threading.Tasks;
-using OnetezSoft.Data;
-using OnetezSoft.Models;
 
 namespace OnetezSoft.Services
 {
   public class WorkService
   {
+    private static object id;
+
     /// <summary>
     /// Kiểm tra quyền của nhân viên trong kế hoạch
     /// </summary>
@@ -17,9 +23,9 @@ namespace OnetezSoft.Services
     public static int RoleInPlan(WorkPlanModel plan, string userId)
     {
       var member = plan.members.Where(x => x.id == userId).SingleOrDefault();
-      if(member != null)
+      if (member != null)
         return member.role;
-      return 0; 
+      return 0;
     }
 
     /// <summary>
@@ -27,11 +33,11 @@ namespace OnetezSoft.Services
     /// </summary>
     public static bool ViewInPlan(WorkPlanModel plan, string userId)
     {
-      if(!plan.is_private)
+      if (!plan.is_private)
         return true;
-      if(plan.members.Where(x => x.id == userId).Count() > 0)
+      if (plan.members.Where(x => x.id == userId).Count() > 0)
         return true;
-      return false; 
+      return false;
     }
 
     /// <summary>
@@ -50,7 +56,7 @@ namespace OnetezSoft.Services
     public static async Task<bool> RemoveMemberInPlan(string companyId, string planId, string userId)
     {
       var plan = await DbWorkPlan.Get(companyId, planId);
-      if(plan != null && !CheckPlanSingleManager(plan, userId))
+      if (plan != null && !CheckPlanSingleManager(plan, userId))
       {
         plan.members.RemoveAll(x => x.id == userId);
         await DbWorkPlan.Update(companyId, plan);
@@ -70,7 +76,7 @@ namespace OnetezSoft.Services
     public static async Task<bool> DeleteSection(string companyId, string planId, string sectionId)
     {
       var plan = await DbWorkPlan.Get(companyId, planId);
-      if(plan != null)
+      if (plan != null)
       {
         // Xóa nhóm công việc
         plan.sections.RemoveAll(x => x.id == sectionId);
@@ -87,11 +93,46 @@ namespace OnetezSoft.Services
         var tasks = await DbWorkTask.GetListInPlan(companyId, planId, sectionId);
         foreach (var item in tasks)
           await DbWorkTask.Delete(companyId, item.id);
-          
+
         return true;
       }
       return false;
     }
+
+
+    public static async Task<bool> DeleteSheet(string companyId, string planId, string sheetId)
+    {
+      var plan = await DbWorkPlan.Get(companyId, planId);
+      if (plan != null)
+      {
+        // Xoá sheet
+        plan.sheets.RemoveAll(x => x.id == sheetId);
+        int newPosition = 1;
+        foreach (var sheet in plan.sheets.OrderBy(x => x.possition).ToList())
+        {
+          sheet.possition = newPosition;
+          newPosition++;
+        }
+        await DbWorkPlan.Update(companyId, plan);
+        // Lấy tất cả nhóm công việc thuộc sheet này
+        var sections = plan.sections.Where(x => x.sheet == sheetId).ToList();
+        foreach (var section in sections)
+        {
+          // Xoá nhóm công việc
+          plan.sections.RemoveAll(x => x.id == section.id);
+          await DbWorkPlan.Update(companyId, plan);
+          // Xóa công viêc trong nhóm này
+          var tasks = await DbWorkTask.GetListInPlan(companyId, planId, section.id);
+          foreach (var item in tasks)
+            await DbWorkTask.Delete(companyId, item.id);
+        }
+        return true;
+      }
+
+      return false;
+    }
+
+
 
     /// <summary>
     /// Xóa tòa bộ dữ liệu kế hoạch
@@ -115,7 +156,7 @@ namespace OnetezSoft.Services
     {
       var status = WorkService.Status(statusId);
       var reviews = task.members.Where(x => x.role == 1).Select(x => x.id).ToList();
-      if(statusId != 4)
+      if (statusId != 4)
       {
         // Cập nhật database
         task.status = statusId;
@@ -123,20 +164,20 @@ namespace OnetezSoft.Services
         // Lưu lịch sử
         await WorkService.CreateLog(companyId, "Cập nhật trạng thái", status.name, task.plan_id, task.id, user);
         // Thông báo cho người nhận xét
-        if(statusId == 3)
+        if (statusId == 3)
         {
           foreach (var memberId in reviews)
             await DbNotify.ForPlan(companyId, 711, task.plan_id, task.id, memberId, user.id);
         }
         return "Đã chuyển trạng thái công việc.";
       }
-      else if(statusId == 4)
+      else if (statusId == 4)
       {
         // Người nhận xét chuyển trạng thái hoặc không có người nhận xét
-        if(reviews.Count == 0 || reviews.Contains(user.id))
+        if (reviews.Count == 0 || reviews.Contains(user.id))
         {
           // Cập nhật database
-          if(task.status != 4)
+          if (task.status != 4)
             task.date_done = DateTime.Now.Ticks;
           task.status = 4;
           await DbWorkTask.Update(companyId, task);
@@ -149,9 +190,12 @@ namespace OnetezSoft.Services
           var subTasks = await DbWorkTask.GetListInTask(companyId, task.plan_id, task.id);
           foreach (var sub in subTasks)
           {
-            sub.status = 4;
-            sub.date_done = DateTime.Now.Ticks;
-            await DbWorkTask.Update(companyId, sub);
+            if (sub.status != 4)
+            {
+              sub.status = 4;
+              sub.date_done = DateTime.Now.Ticks;
+              await DbWorkTask.Update(companyId, sub);
+            }
           }
 
           return "Đã chuyển trạng thái công việc.";
@@ -167,7 +211,7 @@ namespace OnetezSoft.Services
           // Thông báo cho người nhận xét
           foreach (var memberId in reviews)
             await DbNotify.ForPlan(companyId, 711, task.plan_id, task.id, memberId, user.id);
-            
+
           return "Chờ người nhận xét review công việc.";
         }
       }
@@ -179,11 +223,11 @@ namespace OnetezSoft.Services
     /// </summary>
     public static bool RoleEditTask(WorkPlanModel plan, WorkPlanModel.Task task, string userId)
     {
-      if(string.IsNullOrEmpty(task.id))
+      if (string.IsNullOrEmpty(task.id))
         return true;
-      if(RoleInPlan(plan, userId) == 1)
+      if (RoleInPlan(plan, userId) == 1)
         return true;
-      if(task.members.Where(x => x.id == userId).Count() > 0)
+      if (task.members.Where(x => x.id == userId).Count() > 0)
         return true;
       return false;
     }
@@ -194,7 +238,7 @@ namespace OnetezSoft.Services
     public static async Task UpdateSubTaskCount(string companyId, string taskId, int Count)
     {
       var task = await DbWorkTask.Get(companyId, taskId);
-      if(task != null)
+      if (task != null)
       {
         task.sub_task = Count;
         await DbWorkTask.Update(companyId, task);
@@ -207,11 +251,11 @@ namespace OnetezSoft.Services
     public static int CheckDeadline(WorkPlanModel.Task task)
     {
       var now = DateTime.Now;
-      if(task.status == 5)
+      if (task.status == 5 || (task.date_start == 0 && task.date_end == 0))
         return 0;
-      if(task.status < 4 && now.Ticks <= task.date_end && task.date_end <= now.AddDays(1).Ticks)
+      if (task.status < 4 && now.Ticks <= task.date_end && task.date_end <= now.AddDays(1).Ticks)
         return 1;
-      else if(task.date_end < task.date_done || task.date_end < now.Ticks && task.status < 4)
+      else if (task.date_end < task.date_done || task.date_end < now.Ticks && task.status < 4)
         return 2;
       else
         return 0;
@@ -223,10 +267,10 @@ namespace OnetezSoft.Services
     public static StaticModel TaskDeadline(WorkPlanModel.Task task)
     {
       var check = CheckDeadline(task);
-      if(check == 1)
+      if (check == 1)
         return new StaticModel() { id = 1, name = "Sắp hết hạn", color = "#BCB51F" };
-      else if(check == 2)
-        return new StaticModel() { id= 2, name = "Trễ hạn", color = "#FF5449" };
+      else if (check == 2)
+        return new StaticModel() { id = 2, name = "Trễ hạn", color = "#FF5449" };
       else
         return null;
     }
@@ -240,7 +284,7 @@ namespace OnetezSoft.Services
       result.total = tasks.Where(x => x.status <= 4).Count();
       result.done = tasks.Where(x => x.status == 4).Count();
       result.ontime = tasks.Where(x => x.status == 4 && x.date_end >= x.date_done).Count();
-      result.late = tasks.Where(x => x.date_end < x.date_done || 
+      result.late = tasks.Where(x => x.date_end < x.date_done ||
         (x.date_end < DateTime.Now.Ticks && x.status < 4)).Count();
 
       return result;
@@ -265,75 +309,240 @@ namespace OnetezSoft.Services
     /// <summary>
     /// Tạo lịch sử chỉnh sửa khi cập nhật người tham gia
     /// </summary>
-    public static async Task LogTaskMembers(string companyId, WorkPlanModel.Task old, WorkPlanModel.Task task, 
-      UserModel userEdit, List<UserModel> userList)
+    public static async Task LogTaskMembers(string companyId, WorkPlanModel.Task old, WorkPlanModel.Task task, UserModel userEdit, List<UserModel> userList)
     {
-      if(old != null)
+      if (old != null)
       {
         // Các thành viên mới thêm vào
         var addList = new List<string>();
         foreach (var item in task.members)
         {
-          if(old.members.Where(x => x.id == item.id).Count() == 0)
+          if (old.members.Where(x => x.id == item.id).Count() == 0)
           {
             var user = UserService.GetUser(userList, item.id);
-            if(user != null)
+            if (user != null)
             {
               addList.Add(user.FullName);
-              if(string.IsNullOrEmpty(task.parent_id))
-                await DbNotify.ForPlan(companyId, 713, task.plan_id, task.id, user.id, "");
+              if (string.IsNullOrEmpty(task.parent_id))
+                await DbNotify.ForPlan(companyId, 713, task.plan_id, task.id, user.id, userEdit.id);
               else
-                await DbNotify.ForPlan(companyId, 715, task.plan_id, task.id, user.id, "");
+                await DbNotify.ForPlan(companyId, 715, task.plan_id, task.id, user.id, userEdit.id);
             }
           }
         }
-        if(addList.Count > 0 && string.IsNullOrEmpty(task.parent_id))
-          await WorkService.CreateLog(companyId, "Thêm người tham gia", 
+        if (addList.Count > 0
+          && string.IsNullOrEmpty(task.parent_id))
+          await CreateLog(companyId, "Thêm người tham gia",
             String.Join(", ", addList), task.plan_id, task.id, userEdit);
 
         // Các thành viên đã xóa
         var removeList = new List<string>();
         foreach (var item in old.members)
         {
-          if(task.members.Where(x => x.id == item.id).Count() == 0)
+          if (task.members.Where(x => x.id == item.id).Count() == 0)
           {
             var user = UserService.GetUser(userList, item.id);
-            if(user != null)
+            if (user != null)
             {
               removeList.Add(user.FullName);
-              if(string.IsNullOrEmpty(task.parent_id))
-                await DbNotify.ForPlan(companyId, 714, task.plan_id, task.id, user.id, "");
+              if (string.IsNullOrEmpty(task.parent_id))
+                await DbNotify.ForPlan(companyId, 714, task.plan_id, task.id, user.id, userEdit.id);
               else
-                await DbNotify.ForPlan(companyId, 716, task.plan_id, task.id, user.id, "");
+                await DbNotify.ForPlan(companyId, 716, task.plan_id, task.id, user.id, userEdit.id);
             }
-          } 
+          }
         }
-        if(removeList.Count > 0 && string.IsNullOrEmpty(task.parent_id))
-          await WorkService.CreateLog(companyId, "Xóa người tham gia", 
+        if (removeList.Count > 0 && string.IsNullOrEmpty(task.parent_id))
+          await WorkService.CreateLog(companyId, "Xóa người tham gia",
             String.Join(", ", removeList), task.plan_id, task.id, userEdit);
       }
       else
       {
         // Các thành viên mới thêm vào
         var addList = new List<string>();
-        foreach (var item in task.members)
+        foreach (var item in task.members.Where(x => x.id != userEdit.id))
         {
           var user = UserService.GetUser(userList, item.id);
-          if(user != null)
+          if (user != null)
           {
             addList.Add(user.FullName);
-            if(string.IsNullOrEmpty(task.parent_id))
-              await DbNotify.ForPlan(companyId, 713, task.plan_id, task.id, user.id, "");
+            if (string.IsNullOrEmpty(task.parent_id))
+              await DbNotify.ForPlan(companyId, 713, task.plan_id, task.id, user.id, userEdit.id);
             else
-              await DbNotify.ForPlan(companyId, 715, task.plan_id, task.id, user.id, "");
+              await DbNotify.ForPlan(companyId, 715, task.plan_id, task.id, user.id, userEdit.id);
           }
         }
-        if(addList.Count > 0 && string.IsNullOrEmpty(task.parent_id))
-          await WorkService.CreateLog(companyId, "Thêm người tham gia", 
-            String.Join(", ", addList), task.plan_id, task.id, userEdit); 
+        if (addList.Count > 0 && string.IsNullOrEmpty(task.parent_id))
+          await WorkService.CreateLog(companyId, "Thêm người tham gia",
+            String.Join(", ", addList), task.plan_id, task.id, userEdit);
       }
     }
 
+    public static async Task LogTaskMembers(string companyId, WorkPlanModel.Task old, WorkPlanModel.Task task, UserModel userEdit, List<MemberModel> userList)
+    {
+      if (old != null)
+      {
+        // Các thành viên mới thêm vào
+        var addList = new List<string>();
+        foreach (var item in task.members)
+        {
+          if (old.members.Where(x => x.id == item.id).Count() == 0)
+          {
+            var user = UserService.GetMember(userList, item.id);
+            if (user != null)
+            {
+              addList.Add(user.name);
+              if (string.IsNullOrEmpty(task.parent_id))
+                await DbNotify.ForPlan(companyId, 713, task.plan_id, task.id, user.id, userEdit.id);
+              else
+                await DbNotify.ForPlan(companyId, 715, task.plan_id, task.id, user.id, userEdit.id);
+            }
+          }
+        }
+        if (addList.Count > 0
+          && string.IsNullOrEmpty(task.parent_id))
+          await CreateLog(companyId, "Thêm người tham gia",
+            String.Join(", ", addList), task.plan_id, task.id, userEdit);
+
+        // Các thành viên đã xóa
+        var removeList = new List<string>();
+        foreach (var item in old.members)
+        {
+          if (task.members.Where(x => x.id == item.id).Count() == 0)
+          {
+            var user = UserService.GetMember(userList, item.id);
+            if (user != null)
+            {
+              removeList.Add(user.name);
+              if (string.IsNullOrEmpty(task.parent_id))
+                await DbNotify.ForPlan(companyId, 714, task.plan_id, task.id, user.id, userEdit.id);
+              else
+                await DbNotify.ForPlan(companyId, 716, task.plan_id, task.id, user.id, userEdit.id);
+            }
+          }
+        }
+        if (removeList.Count > 0 && string.IsNullOrEmpty(task.parent_id))
+          await WorkService.CreateLog(companyId, "Xóa người tham gia",
+            String.Join(", ", removeList), task.plan_id, task.id, userEdit);
+      }
+      else
+      {
+        // Các thành viên mới thêm vào
+        var addList = new List<string>();
+        foreach (var item in task.members.Where(x => x.id != userEdit.id))
+        {
+          var user = UserService.GetMember(userList, item.id);
+          if (user != null)
+          {
+            addList.Add(user.name);
+            if (string.IsNullOrEmpty(task.parent_id))
+              await DbNotify.ForPlan(companyId, 713, task.plan_id, task.id, user.id, userEdit.id);
+            else
+              await DbNotify.ForPlan(companyId, 715, task.plan_id, task.id, user.id, userEdit.id);
+          }
+        }
+        if (addList.Count > 0 && string.IsNullOrEmpty(task.parent_id))
+          await WorkService.CreateLog(companyId, "Thêm người tham gia",
+            String.Join(", ", addList), task.plan_id, task.id, userEdit);
+      }
+    }
+    public static async Task HandleSyncPlan(List<string> companys)
+    {
+      foreach (string id in companys)
+      {
+        // Lấy tất cả kế hoạch của công ty này
+        List<WorkPlanModel> plans = await DbWorkPlan.GetAll(id);
+        // Cập nhật lại theo sheet
+        foreach (WorkPlanModel plan in plans)
+        {
+          if (plan.sheets == null || plan.sheets.Count == 0)
+          {
+            string idSheet = Mongo.RandomId();
+            // Tạo sheet
+            plan.sheets = new() { new() { id = idSheet, name = "Sheet 1", possition = 1 } };
+            // Nếu đã có nhóm công việc
+            if (plan.sections.Any())
+            {
+              foreach (WorkPlanModel.Section section in plan.sections)
+              {
+                section.sheet = idSheet;
+              }
+            }
+            // Cập nhật lại kế hoạch
+            await DbWorkPlan.Update(id, plan);
+            // Cập nhật lại state
+            await DbMainCompany.ChangeStateSync(id);
+          }
+          else
+          {
+            if (plan.sections.Any(x => x.sheet.IsEmpty()))
+            {
+              var emptySections = plan.sections.Where(x => x.sheet.IsEmpty()).ToList();
+              emptySections.ForEach(x => x.sheet = plan.sheets.FirstOrDefault().id);
+              // Cập nhật lại kế hoạch
+              await DbWorkPlan.Update(id, plan);
+              // Cập nhật lại state
+              await DbMainCompany.ChangeStateSync(id);
+            }
+          }
+        }
+      }
+    }
+
+    // Hàm restore nhóm công việc bị mất
+    public static async Task RestoreSectionPlan(string companyId, string planId)
+    {
+      WorkPlanModel plan = await DbWorkPlan.Get(companyId, planId);
+
+      if (plan != null)
+      {
+        string idSheet = Mongo.RandomId();
+        int countSheet = plan.sheets.Count;
+
+        plan.sheets.Add(new WorkPlanModel.Sheet { id = idSheet, isDefault = false, name = "Sheet không tiêu đề", possition = countSheet++ });
+        // Lấy tất cả công việc + nhóm công việc + công việc phụ thuộc kế hoạch này
+        List<WorkPlanModel.Task> tasks = await DbWorkTask.GetListTaskByPlan(companyId, planId);
+        // Nếu có tasks
+        if (tasks.Any())
+        {
+          // Lấy công việc
+          var parents = tasks.Where(x => x.parent_id == null);
+          // Lấy nhóm công việc
+          foreach (var item in parents)
+          {
+            // Nếu nhóm công việc khác null
+            if (!string.IsNullOrEmpty(item.section_id))
+            {
+              // Kiểm tra plan hiện tại có nhóm công việc này hay không?
+              var isSection = plan.sections.FirstOrDefault(x => x.id == item.section_id);
+              int countSections = plan.sections.Count;
+              // Nếu không có
+              if (isSection == null)
+                plan.sections.Add(new WorkPlanModel.Section { id = item.section_id, name = "Khôi phục nhóm công việc", pos = countSheet++, sheet = idSheet });
+              else
+                continue;
+            }
+          }
+
+        }
+
+        await DbWorkPlan.Update(companyId, plan);
+      }
+
+    }
+
+
+    #region Các hàm convert
+    public static MemberModel ConvertToMember(List<MemberModel> list, WorkPlanModel.Member member)
+    {
+      return list.FirstOrDefault(x => x.id == member.id);
+    }
+
+    public static UserModel ConverToUser(List<UserModel> list, WorkPlanModel.Member member)
+    {
+      return list.FirstOrDefault(x => x.id == member.id);
+    }
+    #endregion
 
     #region Dữ liệu cố định
 
@@ -401,7 +610,7 @@ namespace OnetezSoft.Services
         return result;
       return new StaticModel();
     }
-    
+
 
     /// <summary>
     /// Danh sách độ ưu tiên
@@ -426,9 +635,9 @@ namespace OnetezSoft.Services
       var result = Priority().SingleOrDefault(x => x.id == id);
       if (result != null)
         return result;
-      return new StaticModel() { id = id, color = "#dddddd"};
+      return new StaticModel() { id = id, color = "#dddddd" };
     }
-    
+
 
     /// <summary>
     /// Danh sách quyền trong kế hoạch
@@ -451,7 +660,7 @@ namespace OnetezSoft.Services
         return result;
       return new StaticModel();
     }
-    
+
 
     /// <summary>
     /// Danh sách quyền trong công việc
@@ -474,7 +683,26 @@ namespace OnetezSoft.Services
         return result;
       return new StaticModel();
     }
-    
-    #endregion 
+
+    public static List<StaticModel> Duration()
+    {
+      var list = new List<StaticModel>();
+      list.Add(new() { id = 0, name = "Thời hạn" });
+      list.Add(new() { id = 1, name = "Sắp hết hạn" });
+      list.Add(new() { id = 2, name = "Trễ hạn" });
+      return list;
+    }
+
+    public static StaticModel Duration(int id)
+    {
+      var result = Duration().SingleOrDefault(x => x.id == id);
+      if (result != null)
+        return result;
+      return new StaticModel();
+    }
+
+
+
+    #endregion
   }
 }

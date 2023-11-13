@@ -1,5 +1,4 @@
-﻿@page "/config/educate/certificate"
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
 <PageTitle>@_title</PageTitle>
@@ -10,121 +9,107 @@
 }
 else
 {
-  <section class="columns is-gapless has_menu_left">
-    <div class="column is-narrow">
-      <div class="card p-3 menu_left">
-        <a href="/config/educate/category">
-          Danh mục
-        </a>
-        <a class="is-active" href="/config/educate/certificate">
-          Mẫu<br />Chứng chỉ
-        </a>
-      </div>
-    </div>
-    <div class="column">
-      <div class="card p-5">
-        <ul class="columns is-vcentered">
-          <li class="column">
-            <h1 class="title is-5 has-text-info is-uppercase">
-              @_title
-            </h1>
-          </li>
-          <li class="column is-narrow">
-            <a class="button is-link" @onclick="() => EditItem(null)">
-              <span class="icon">
-                <span class="material-icons-outlined is-size-6">add</span>
-              </span>
-              <span>Thêm mới</span>
-            </a>
-          </li>
-        </ul>
-        <ul class="columns is-variable is-2">
-          <li class="column">
-            <input @bind="filterKey" type="text" class="input" placeholder="Từ khóa: tên chứng chỉ..." />
-          </li>
-          <li class="column is-narrow">
-            <a class="button is-link is-outlined" @onclick="GetList">
-              <span class="icon">
-                <i class="material-icons-outlined">search</i>
-              </span>
-              <span>Tìm kiếm</span>
-            </a>
-          </li>
-        </ul>
-        <table class="table is-fullwidth is-vcentered is-responsive mt-5">
-          <thead>
-            <tr>
-              <th width="150px">Hình</th>
-              <th>Tên mẫu chứng chỉ</th>
-              <th width="10%">Ngày đăng</th>
-              <th width="10%">Áp dụng</th>
-              <th width="70px" align="center">Xử lý</th>
-            </tr>
-          </thead>
-          <tbody>
-            @foreach (var item in dataList)
-            {
-              <tr>
-                <td>
-                  <a class="image" href="@item.image" target="_blank">
-                    <img src="@item.image" alt="IMG" />
-                  </a>
-                </td>
-                <td>
-                  <label class="td-label">Tên mẫu</label>
-                  <div class="td-value">
-                    <a class="has-text-weight-semibold" @onclick="() => EditItem(item)">
-                      @item.name
-                    </a>
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Ngày đăng</label>
-                  <div class="td-value">
-                    @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Áp dụng</label>
-                  <div class="td-value">
-                    <a class="icon" @onclick="() => ToggleItem(item)">
-                      @if (item.pin)
-                      {
-                        <span class="material-icons-outlined is-size-4 has-text-success">
-                          check_box
-                        </span>
-                      }
-                      else
-                      {
-                        <span class="material-icons-outlined is-size-4 has-text-black">
-                          check_box_outline_blank
-                        </span>
-                      }
-                    </a>
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Xử lý</label>
-                  <div class="td-value">
-                    <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
-                      <i class="material-icons-outlined is-size-5">
-                        edit
-                      </i>
-                    </a>
-                    <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
-                      <i class="material-icons-outlined is-size-5">
-                        delete
-                      </i>
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
+  <ul class="columns is-vcentered is-variable is-2 mb-2">
+    <li class="column">
+      <h1 class="title is-5 has-text-info is-uppercase">
+        @_title
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <a class="button is-link" @onclick="() => EditItem(null)">
+        <span class="icon">
+          <span class="material-icons-outlined is-size-6">add</span>
+        </span>
+        <span>Thêm mới</span>
+      </a>
+    </li>
+  </ul>
+  <ul class="columns is-variable is-2 mb-2">
+    <li class="column">
+      <input @bind="filterKey" type="text" class="input" placeholder="Từ khóa: tên chứng chỉ..." />
+    </li>
+    <li class="column is-narrow">
+      <a class="button is-link is-outlined" @onclick="GetList">
+        <span class="icon">
+          <i class="material-icons-outlined">search</i>
+        </span>
+        <span>Tìm kiếm</span>
+      </a>
+    </li>
+  </ul>
+  <div class="scrolly inner_section" style="flex:1">
+    <table class="table is-fullwidth is-vcentered is-responsive sticky only_desktop">
+      <thead>
+        <tr>
+          <th class="sticky" width="150px">Hình</th>
+          <th class="sticky">Tên mẫu chứng chỉ</th>
+          <th class="" width="10%">Ngày đăng</th>
+          <th class="" width="10%">Áp dụng</th>
+          <th class="" width="70px" align="center">Xử lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in dataList)
+        {
+          <tr>
+            <td>
+              <a class="image" href="@item.image" target="_blank">
+                <img src="@item.image" alt="IMG" />
+              </a>
+            </td>
+            <td>
+              <label class="td-label">Tên mẫu</label>
+              <div class="td-value">
+                <a class="has-text-weight-semibold" @onclick="() => EditItem(item)">
+                  @item.name
+                </a>
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Ngày đăng</label>
+              <div class="td-value">
+                @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Áp dụng</label>
+              <div class="td-value">
+                <a class="icon" @onclick="() => ToggleItem(item)">
+                  @if (item.pin)
+                  {
+                    <span class="material-icons-outlined is-size-4 has-text-success">
+                      check_box
+                    </span>
+                  }
+                  else
+                  {
+                    <span class="material-icons-outlined is-size-4 has-text-black">
+                      check_box_outline_blank
+                    </span>
+                  }
+                </a>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Xử lý</label>
+              <div class="td-value">
+                <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    edit
+                  </i>
+                </a>
+                <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    delete
+                  </i>
+                </a>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
 }
 
 @if (current != null)
@@ -153,7 +138,7 @@ else
                   <div class="control is-expanded">
                     <input @bind="current.image" class="input" type="text" placeholder="Nhập link hình..." />
                   </div>
-                  <FileUpload Accept="image/*" Size="400" OnUpload="x => current.image = x[0]" />
+                  <FileUpload Accept="image/*" Path="education/certificate" Cloud Size="400" OnUpload="x => current.image = x[0]" />
                 </div>
               </div>
               <div class="field is-grouped">
@@ -223,36 +208,72 @@ else
     GetList();
   }
 
-  private void GetList()
+  private async Task<bool> GetList()
   {
-    dataList = DbEducateCertificate.GetList(Layout.Company.id, filterKey);
-  }
-
-  private async Task DeleteItem(EducateCertificateModel item)
-  {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
-      return;
-
-    dataList.Remove(item);
-    await DbEducateCertificate.Delete(Layout.Company.id, item.id);
-    Files.DeleteFile(item.image);
-  }
-
-  private async Task ToggleItem(EducateCertificateModel item)
-  {
-    if (!item.pin)
+    bool _success = true;
+    try
     {
-      foreach (var other in dataList)
+      dataList = await DbEducateCertificate.GetList(Layout.Company.id, filterKey);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> DeleteItem(EducateCertificateModel item)
+  {
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+        return false;
+
+      dataList.Remove(item);
+      await DbEducateCertificate.Delete(Layout.Company.id, item.id);
+      Files.DeleteFile(item.image);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> ToggleItem(EducateCertificateModel item)
+  {
+    bool _success = true;
+    try
+    {
+      if (!item.pin)
       {
-        if(other.id != item.id && other.pin)
+        foreach (var other in dataList)
         {
-          other.pin = false;
-          await DbEducateCertificate.Update(Layout.Company.id, other);
+          if (other.id != item.id && other.pin)
+          {
+            other.pin = false;
+            await DbEducateCertificate.Update(Layout.Company.id, other);
+          }
         }
       }
+      item.pin = !item.pin;
+      item = await DbEducateCertificate.Update(Layout.Company.id, item);
     }
-    item.pin = !item.pin;
-    item = await DbEducateCertificate.Update(Layout.Company.id, item);
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ToggleItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task EditItem(EducateCertificateModel item)
@@ -268,35 +289,47 @@ else
     await JSRuntime.InvokeVoidAsync("setFocus", "input_name");
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (StringHelper.IsEmpty(current.name) || StringHelper.IsEmpty(current.image))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập các trường bắt buộc (*)");
-    else
+    bool _success = true;
+    try
     {
-      if (string.IsNullOrEmpty(current.id))
-      {
-        current = await DbEducateCertificate.Create(Layout.Company.id, current);
-        dataList.Insert(0, current);
-      }
+      if (StringHelper.IsEmpty(current.name) || StringHelper.IsEmpty(current.image))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Nhập các trường bắt buộc (*)");
       else
       {
-        current = await DbEducateCertificate.Update(Layout.Company.id, current);
-      }
-
-      if (current.pin)
-      {
-        foreach (var other in dataList)
+        if (string.IsNullOrEmpty(current.id))
         {
-          if (other.id != current.id && other.pin)
+          current = await DbEducateCertificate.Create(Layout.Company.id, current);
+          dataList.Insert(0, current);
+        }
+        else
+        {
+          current = await DbEducateCertificate.Update(Layout.Company.id, current);
+        }
+
+        if (current.pin)
+        {
+          foreach (var other in dataList)
           {
-            other.pin = false;
-            await DbEducateCertificate.Update(Layout.Company.id, other);
+            if (other.id != current.id && other.pin)
+            {
+              other.pin = false;
+              await DbEducateCertificate.Update(Layout.Company.id, other);
+            }
           }
         }
+        dataList = dataList.OrderByDescending(x => x.pin).ToList();
+        current = null;
       }
-      dataList = dataList.OrderByDescending(x => x.pin).ToList();
-      current = null;
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

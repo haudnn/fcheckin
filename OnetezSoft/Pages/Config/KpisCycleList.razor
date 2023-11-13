@@ -1,0 +1,223 @@
+﻿@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
+
+<PageTitle>@_title</PageTitle>
+
+
+@if (Layout.User.role != 1 && !(Layout.User.role_manage.kpis && Layout.User.role == 2))
+{
+  <PopupNoRole />
+}
+else
+{
+  <ul class="columns is-vcentered">
+    <li class="column">
+      <h1 class="title is-5 has-text-info is-uppercase">
+        Quản lý chu kỳ
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <Button Content="Tạo chu kỳ" IconLeft="add"
+              Color="@ComponentModel.ColorType.Link" Onclick="CreateItem" />
+    </li>
+  </ul>
+  <div class="inner_section scrolly" style="flex: 1;">
+    <table class="table is-fullwidth is-vcentered is-responsive">
+      <thead class="is-hidden-mobile">
+        <tr class="is_bg has-text-grey">
+          <th width="25%">Chu kỳ</th>
+          <th width="20%" align="center">Ngày bắt đầu</th>
+          <th width="20%" align="center">Ngày kết thúc</th>
+          <th width="25%">Người quản lý chu kỳ</th>
+          <th width="10%" align="center">Xử lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (dataList.Any())
+        {
+          foreach (var item in dataList)
+          {
+            <tr>
+              <td>
+                <label class="td-label">Chu kỳ</label>
+                <div class="td-value">
+                  <span class="is-word-break">
+                    @item.name
+                  </span>
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Ngày bắt đầu</label>
+                @if (item.start_date > 0)
+                {
+                  <span class="td-value">
+                    @(
+                        new DateTime(item.start_date).ToString("dd'/'MM'/'yyyy")
+                        )
+                  </span>
+                }
+              </td>
+              <td align="center">
+                <label class="td-label">Ngày kết thúc</label>
+                @if (item.end_date > 0)
+                {
+                  <span class="td-value">
+                    @(
+                        new DateTime(item.end_date).ToString("dd'/'MM'/'yyyy")
+                        )
+                  </span>
+                }
+              </td>
+              <td>
+                <label class="td-label">Người quản lý chu kỳ</label>
+                <div class="td-value">
+                  @if (item.managers.Any())
+                  {
+                    <MemberDropdown headerContent="Người quản lý chu kỳ" numberView="5" members="item.managers" sources="userList" />
+                  }
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Xử lý</label>
+                <div class="td-value">
+                  <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                    <i class="material-icons-outlined is-size-5">
+                      edit
+                    </i>
+                  </a>
+                  <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                    <i class="material-icons-outlined is-size-5">
+                      delete
+                    </i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          }
+        }
+        else
+        {
+          <tr>
+            <td colspan="6" align="center">
+              <p class="mt-6">
+                Không có dữ liệu chu kỳ!
+              </p>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+@if (current != null && !isDelete)
+{
+  <_CycleKPIsPopup model="current" OnUpdate="OnUpdate" />
+}
+
+@if (current != null && isDelete)
+{
+  <section class="modal is-active p-2">
+    <div class="modal-background"></div>
+    <section class="modal-card">
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          Xác nhận xoá chu kỳ
+        </div>
+        <a class="delete is-medium" @onclick="CancelRemove"></a>
+      </section>
+      <section class="modal-card-body" style="word-break: break-word;">
+        Bạn có chắc chắn muốn xóa
+        <span class="has-text-black has-text-weight-bold">
+          @current.name
+        </span>
+      </section>
+      <section class="modal-card-foot is-right">
+        <a class="button" @onclick="CancelRemove">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">close</i>
+          </span>
+          <span>Hủy</span>
+        </a>
+        <a class="button is-danger" @onclick="Remove">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">delete</i>
+          </span>
+          <span>Xoá</span>
+        </a>
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private string _title = "Quản lý chu kỳ";
+  private KpisCycleModel current = null;
+  private List<KpisCycleModel> dataList = new();
+  private bool isDelete;
+  private List<MemberModel> userList = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    userList = await globalService.GetUserList(Layout.Company.id);
+    await GetData();
+  }
+
+  private void CreateItem()
+  {
+    current = new();
+  }
+
+  private void EditItem(KpisCycleModel item)
+  {
+    current = item;
+  }
+
+  private void DeleteItem(KpisCycleModel item)
+  {
+    current = item;
+    isDelete = true;
+  }
+
+  private async Task GetData()
+  {
+    dataList = await DbKpisCycle.GetList(Layout.Company.id);
+  }
+
+  private async Task OnUpdate(bool check)
+  {
+    current = null;
+    if (check)
+      await GetData();
+  }
+
+  private void CancelRemove()
+  {
+    isDelete = false;
+    current = null;
+  }
+
+  private async Task Remove()
+  {
+    await DbKpisCycle.Delete(Layout.Company.id, current.id);
+    await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã xoá chu kỳ thành công!");
+    await SendNotify(1002);
+    await GetData();
+    await Layout.RefreshData();
+    isDelete = false;
+    current = null;
+
+    await Layout.RefreshData();
+  }
+
+  private async Task SendNotify(int notifyType)
+  {
+    // Gửi thông báo chuông
+    var targetList = userList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.kpis));
+    foreach (var user in targetList)
+      await DbNotify.Create(Layout.Company.id, notifyType, current.name, user.id, Layout.User.id);
+  }
+}

@@ -1,10 +1,11 @@
 ﻿@page "/educate/course/list/detail/{Id}"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
-<section class="p-4">
+<section class="main_content">
   @if (current != null)
   {
     <ul class="columns is-multiline">
@@ -109,115 +110,121 @@
       <li class="column is-four-fifths">
         @if (!string.IsNullOrEmpty(current.content))
         {
-          <div class="card p-5 mb-5">
-            <h2 class="is-size-5 has-text-weight-bold has-text-info mb-5">
+          <div class="">
+            <h2 class="is-size-5 has-text-weight-bold has-text-info mb-2">
               VỀ KHÓA HỌC NÀY
             </h2>
-            <article class="content_less @(showContent ? "is-show" : "")">
-              <div class="content">
-                @((MarkupString)current.content)
-              </div>
-              @if (!showContent && current.content.Length > 300)
-              {
-                <a class="is-italic toggle" @onclick="() => showContent = true">Xem thêm</a>
-              }
-            </article>
+            <div class="inner_section">
+              <article class="content_less @(showContent ? "is-show" : "")">
+                <div class="content">
+                  @((MarkupString)current.content)
+                </div>
+                @if (!showContent && current.content.Length > 300)
+                {
+                  <a class="is-italic toggle" @onclick="() => showContent = true">Xem thêm</a>
+                }
+              </article>
+            </div>
           </div>
         }
-        @if(current.files.Count > 0)
+        @if (current.files.Count > 0)
         {
-          <div class="card p-5 mb-5">
-            <h2 class="is-size-5 has-text-weight-bold has-text-info mb-5">
+          <div class="mt-5">
+            <h2 class="is-size-5 has-text-weight-bold has-text-info mb-2">
               TÀI LIỆU KHÓA HỌC
             </h2>
-            <div class="field">
-              <label class="label">File đính kèm</label>
-              <div class="control">
-                <FileViews Values="current.files" />
+            <div class="inner_section">
+              <div class="field">
+                <label class="label">File đính kèm</label>
+                <div class="control">
+                  <FileViews Values="current.files" />
+                </div>
               </div>
             </div>
           </div>
         }
-        <div class="card p-5">
-          <h2 class="is-size-5 has-text-weight-bold has-text-info mb-5">
+        <div class="mt-5">
+          <h2 class="is-size-5 has-text-weight-bold has-text-info mb-2">
             THÀNH PHẦN KHÓA HỌC
           </h2>
-          <ul class="course_lesson">
-            @for (int i = 0; i < dataList.Count; i++)
-            {
-              var item = dataList[i];
-              var type = DbEducateLesson.Type(item.type);
+         <div class="inner_section">
+            <ul class="course_lesson">
+              @for (int i = 0; i < dataList.Count; i++)
+              {
+                var item = dataList[i];
+                var type = DbEducateLesson.Type(item.type);
 
-              <li class="lesson_item pb-3 @(showList.Contains(item.id) ? "is-active" : "")">
-                <div class="field is-grouped mb-0">
-                  <div class="control is-expanded has-text-weight-semibold">
-                    <a class="has-text-info" @onclick="() => ToogleItem(item.id)">
-                      @string.Format("{0}. {1}", i + 1, item.name)
-                    </a>
+                <li class="lesson_item pb-3 @(showList.Contains(item.id) ? "is-active" : "")">
+                  <div class="field is-grouped mb-0">
+                    <div class="control is-expanded has-text-weight-semibold">
+                      <a class="has-text-info" @onclick="() => ToogleItem(item.id)">
+                        @string.Format("{0}. {1}", i + 1, item.name)
+                      </a>
+                    </div>
+                    <div class="control">
+                      <a class="icon-text has-text-info" @onclick="() => ToogleItem(item.id)">
+                        <span>@item.time phút</span>
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-4">
+                            @(showList.Contains(item.id) ? "arrow_drop_down" : "arrow_right")
+                          </i>
+                        </span>
+                      </a>
+                    </div>
                   </div>
-                  <div class="control">
-                    <a class="icon-text has-text-info" @onclick="() => ToogleItem(item.id)">
-                      <span>@item.time phút</span>
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-4">
-                          @(showList.Contains(item.id) ? "arrow_drop_down" : "arrow_right")
-                        </i>
-                      </span>
-                    </a>
-                  </div>
-                </div>
-                <div class="item_desc pl-3 ml-1 mt-2 font_13">
-                  @if (item.type == 1)
-                  {
-                    if (string.IsNullOrEmpty(item.video))
+                  <div class="item_desc pl-3 ml-1 mt-2 font_13">
+                    @if (item.type == 1)
+                    {
+                      if (string.IsNullOrEmpty(item.video))
+                      {
+                        <div class="has-text-success has-text-weight-medium">
+                          @type.name
+                        </div>
+                        <div class="text_3_line">
+                          @((MarkupString)item.content)
+                        </div>
+                      }
+                      else
+                      {
+                        <div class="columns is-gapless">
+                          <div class="column is-narrow">
+                            <div class="image is-square is_radius is_video has-background-grey" style="width: 78px;">
+                            </div>
+                          </div>
+                          <div class="column is-four-fifths ml-4">
+                            <div class="has-text-success has-text-weight-medium">
+                              @type.name video
+                            </div>
+                            <div class="text_3_line">
+                              @Shared.HtmlToText(item.content)
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    }
+                    else
                     {
                       <div class="has-text-success has-text-weight-medium">
                         @type.name
                       </div>
-                      <div class="text_3_line">
-                        @((MarkupString)item.content)
-                      </div>
+                      <div>@item.content</div>
                     }
-                    else
-                    {
-                      <div class="columns is-gapless">
-                        <div class="column is-narrow">
-                          <div class="image is-square is_radius is_video has-background-grey" style="width: 78px;">
-                          </div>
-                        </div>
-                        <div class="column is-four-fifths ml-4">
-                          <div class="has-text-success has-text-weight-medium">
-                            @type.name video
-                          </div>
-                          <div class="text_3_line">
-                            @Shared.HtmlToText(item.content)
-                          </div>
-                        </div>
-                      </div>
-                    }
-                  }
-                  else
-                  {
-                    <div class="has-text-success has-text-weight-medium">
-                      @type.name
-                    </div>
-                    <div>@item.content</div>
-                  }
-                </div>
-              </li>
-            }
-          </ul>
+                  </div>
+                </li>
+              }
+            </ul>
+         </div>
         </div>
       </li>
 
       <li class="column is-one-fifth">
-        <h2 class="is-size-6 has-text-weight-semibold has-text-info mb-4 text_1_line">
+        <h2 class="is-size-5 has-text-weight-bold has-text-info mb-4 text_1_line mb-2">
           KHÓA HỌC LIÊN QUAN
         </h2>
         @foreach (var item in recommend)
         {
           var link = "/educate/course/list/detail/" + item.id;
-          var teacher = Layout.UserList.SingleOrDefault(x => x.id == item.teacher);
+          var teacher = shareStorage.MemberList.SingleOrDefault(x => x.id == item.teacher);
           var review = Shared.Review(item.reviews.Select(x => x.point).Sum(), item.reviews.Count);
 
           <div class="card has_image">
@@ -230,10 +237,10 @@
               <ul class="columns is-multiline is-mobile is-vcentered is-variable is-1">
                 <li class="column is-10">
                   <div class="user_item has-text-weight-semibold">
-                    @if(teacher != null)
+                    @if (teacher != null)
                     {
                       <img class="image is-32x32" src="@teacher.avatar" alt="IMG" />
-                      <span class="has-text-link text_1_line">@teacher.FullName</span>
+                      <span class="has-text-link text_1_line">@teacher.name</span>
                     }
                     else
                     {
@@ -303,18 +310,18 @@
   }
   else
   {
-    <div class="card p-5">
-      <h1 class="title is-5 has-text-info is-uppercase">
+    <div class="card is_fullheight flex_column">
+      <h1 class="title is-5 has-text-info is-uppercase mb-2">
         @_title
       </h1>
-      <div class="py-6 has-text-grey">
+      <div class="py-6 has-text-grey inner_section is-flex is-align-items-center" style="flex:1">
         Dữ liệu không tồn tại hoặc đã bị xóa !
       </div>
     </div>
   }
 </section>
 
-@if(!CheckAccess())
+@if (!CheckAccess())
 {
   <div class="modal is-active">
     <div class="modal-background"></div>
@@ -345,14 +352,17 @@
   private UserModel teacher = null;
   private bool showContent = false;
 
+  private SharedStorage shareStorage = new();
+
   protected override async Task OnParametersSetAsync()
   {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
     current = await DbEducateCourse.Get(Layout.Company.id, Id);
     if (current != null)
     {
       _title = "Khóa học: " + current.name;
       dataList = await DbEducateLesson.GetList(Layout.Company.id, current.id);
-      teacher = await DbUser.Get(Layout.Company.id, current.teacher);
+      teacher = await DbUser.Get(Layout.Company.id, current.teacher, globalService);
       var categoryId = current.category.Count > 0 ? current.category[0] : null;
       category = await DbEducateCategory.Get(Layout.Company.id, categoryId);
       recommend = DbEducateCourse.GetList(Layout.Company.id, categoryId, "random", 2, out int total);
@@ -365,17 +375,29 @@
     return ProductService.CheckAccess(Layout.Company, Layout.User, "train", out msgAccess);
   }
 
-  private async Task Bookmark(EducateCourseModel item)
+  private async Task<bool> Bookmark(EducateCourseModel item)
   {
-    if (item.bookmarks.Contains(Layout.User.id))
+    bool _success = true;
+    try
     {
-      item.bookmarks.Remove(Layout.User.id);
+      if (item.bookmarks.Contains(Layout.User.id))
+      {
+        item.bookmarks.Remove(Layout.User.id);
+      }
+      else
+      {
+        item.bookmarks.Add(Layout.User.id);
+      }
+      await DbEducateCourse.Update(Layout.Company.id, item);
     }
-    else
+    catch (Exception ex)
     {
-      item.bookmarks.Add(Layout.User.id);
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Bookmark()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
     }
-    await DbEducateCourse.Update(Layout.Company.id, item);
+    return _success;
   }
 
   private void ToogleItem(string id)
@@ -386,65 +408,77 @@
       showList.Add(id);
   }
 
-  private async Task Learned()
+  private async Task<bool> Learned()
   {
-    if(dataList.Count > 0)
+    bool _success = true;
+    try
     {
-      var learned = await DbEducateLearned.Get(Layout.Company.id, current.id, Layout.User.id);
-      if(learned != null)
+      if (dataList.Count > 0)
       {
-        var lessons = new List<EducateLearnedModel.Lesson>();
-        foreach (var lesson in dataList)
+        var learned = await DbEducateLearned.Get(Layout.Company.id, current.id, Layout.User.id);
+        if (learned != null)
         {
-          var item = learned.lessons.SingleOrDefault(x => x.id == lesson.id);
-          lessons.Add(new()
+          var lessons = new List<EducateLearnedModel.Lesson>();
+          foreach (var lesson in dataList)
           {
-            id = lesson.id,
-            type = lesson.type,
-            done = item != null ? item.done : false,
-            pass = item != null ? item.pass : false,
-            date = item != null ? item.date : 0
-          });
+            var item = learned.lessons.SingleOrDefault(x => x.id == lesson.id);
+            lessons.Add(new()
+              {
+                id = lesson.id,
+                type = lesson.type,
+                done = item != null ? item.done : false,
+                pass = item != null ? item.pass : false,
+                date = item != null ? item.date : 0
+              });
+          }
+          learned.lessons = lessons;
+
+          await DbEducateLearned.Update(Layout.Company.id, learned);
+
+          var undone = lessons.Where(x => !x.done).ToList();
+          if (undone.Count > 0)
+            navigation.NavigateTo($"/educate/course/list/learn/{undone[0].id}", false);
+          else
+            navigation.NavigateTo($"/educate/course/list/learn/{lessons[0].id}", false);
         }
-        learned.lessons = lessons;
-
-        await DbEducateLearned.Update(Layout.Company.id, learned);
-
-        var undone = lessons.Where(x => !x.done).ToList();
-        if(undone.Count > 0)
-          navigation.NavigateTo($"/educate/course/list/learn/{undone[0].id}", false);
         else
-          navigation.NavigateTo($"/educate/course/list/learn/{lessons[0].id}", false);
+        {
+          learned = new EducateLearnedModel();
+          learned.course = current.id;
+          learned.course_name = current.name;
+          learned.teacher = current.teacher;
+          learned.user = Layout.User.id;
+          learned.lessons = new();
+          foreach (var lesson in dataList)
+          {
+            learned.lessons.Add(new()
+              {
+                id = lesson.id,
+                type = lesson.type,
+                done = false,
+                pass = false,
+                date = 0
+              });
+          }
+          await DbEducateLearned.Create(Layout.Company.id, learned);
+
+          // Cập nhật số lượng người học
+          current.learned++;
+          await DbEducateCourse.Update(Layout.Company.id, current);
+
+          navigation.NavigateTo($"/educate/course/list/learn/{learned.lessons[0].id}", false);
+        }
       }
       else
-      {
-        learned = new EducateLearnedModel();
-        learned.course = current.id;
-        learned.course_name = current.name;
-        learned.teacher = current.teacher;
-        learned.user = Layout.User.id;
-        learned.lessons = new();
-        foreach (var lesson in dataList)
-        {
-          learned.lessons.Add(new()
-          {
-            id = lesson.id,
-            type = lesson.type,
-            done = false,
-            pass = false,
-            date = 0
-          });
-        }
-        await DbEducateLearned.Create(Layout.Company.id, learned);
-
-        // Cập nhật số lượng người học
-        current.learned++;
-        await DbEducateCourse.Update(Layout.Company.id, current);
-
-        navigation.NavigateTo($"/educate/course/list/learn/{learned.lessons[0].id}", false);
-      }
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Khóa học này chưa có bài học nào !");
     }
-    else
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Khóa học này chưa có bài học nào !");
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Learned()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

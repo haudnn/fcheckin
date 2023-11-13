@@ -1,8 +1,9 @@
 ﻿@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
 
-<div class="card" style="height: calc(100vh - 142px);">
-  <div class="p-5" style="height: 50%;">
-    <ul class="header columns is-vcentered is-multiline is-variable is-2" style="z-index: 19;">
+<div class="card">
+  <div class="flex_column mb-5" style="flex:1">
+    <ul class="columns is-vcentered is-multiline is-variable is-2" style="z-index: 19;">
       <li class="column">
         <h1 class="title is-5 has-text-info is-uppercase text_1_line" style="height:auto; overflow: unset">
           Thống kê đăng ký ca làm
@@ -10,30 +11,22 @@
       </li>
 
       <li class="column is-narrow">
-        <div class="field has-addons">
-          <div class="control">
-            <span class="button is-link">
-              <i class="material-icons-outlined">calendar_today</i>
-            </span>
-          </div>
-          <div class="control is-expanded">
-            <div class="input" style="width: 190px; z-index:12">
-              <DateRangePicker aria-readonly="true" readonly @bind-StartDate="startDateShift" @bind-EndDate="endDateShift" OnRangeSelect="() => ChangeDateRangeShift()" />
-            </div>
-          </div>
-        </div>
-      </li>
-    </ul>
+        <_InputDate @bind-Start="startDateShift"
+        @bind-End="endDateShift"
+                                  IsRange
+                     OnRangeSelect="e => ChangeDateRangeShift()" />
+       </li>
+     </ul>
 
-    <h6 class="mb-3 has-text-weight-medium">
-      Từ @(new DateTime(startDateShift.Value.Ticks).ToString("dd'/'MM'/'yyyy")) đến @(new DateTime(endDateShift.Value.Ticks).ToString("dd'/'MM'/'yyyy"))
+     <h6 class="mb-3 has-text-weight-medium mb-2">
+       Từ @(new DateTime(startDateShift).ToString("dd'/'MM'/'yyyy")) đến @(new DateTime(endDateShift).ToString("dd'/'MM'/'yyyy"))
     </h6>
-
-    <div id="scrollbox1" class="table-container" style="overflow: auto; height: calc(100% - 60px);">
+    <div id="scrollbox1" class="inner_section flex_column" style="flex:1">
+      <div class="table-container scrolly scrollx" style="overflow: auto;flex:1">
       @if (dataList.Any() && workList.Any())
       {
-        var from = new DateTime(startDateShift.Value.Ticks);
-        var to = new DateTime(endDateShift.Value.Ticks);
+        var from = new DateTime(startDateShift);
+        var to = new DateTime(endDateShift);
         if (selectList.Any() && workByShift.Any())
         {
           <table class="table is-fullwidth is-vcentered sticky" style="width: max-content;">
@@ -111,10 +104,10 @@
         </div>
       }
     </div>
+    </div>
   </div>
-
-  <div class="p-5" style="height: 50%;">
-    <ul class="header columns is-vcentered is-multiline is-variable is-2" style="z-index: 19;">
+  <div class="flex_column" style="flex:1">
+    <ul class="columns is-vcentered is-multiline is-variable is-2" style="z-index: 19;">
       <li class="column">
         <h1 class="title is-5 has-text-info is-uppercase text_1_line" style="height:auto; overflow: unset">
           Thống kê theo nhân viên
@@ -122,25 +115,17 @@
       </li>
 
       <li class="column is-narrow">
-        <div class="field has-addons">
-          <div class="control">
-            <span class="button is-link">
-              <i class="material-icons-outlined">calendar_today</i>
-            </span>
-          </div>
-          <div class="control is-expanded">
-            <div class="input" style="width: 190px; z-index:12">
-              <DateRangePicker aria-readonly="true" readonly @bind-StartDate="startDateUser" @bind-EndDate="endDateUser" OnRangeSelect="() => ChangeDateRangeUser()" />
-            </div>
-          </div>
-        </div>
-      </li>
+        <_InputDate @bind-Start="startDateUser"
+        @bind-End="endDateUser"
+                                  IsRange
+                     OnRangeSelect="e => ChangeDateRangeUser()" />
+       </li>
 
-      <li class="column is-narrow">
-        <div class="select is-fullwidth">
-          <select @onchange="ChangeDepartment">
-            <option value="" selected="@string.IsNullOrEmpty(selectDepart)">Phòng ban</option>
-            @foreach (var item in departments)
+       <li class="column is-narrow">
+         <div class="select is-fullwidth">
+           <select @onchange="ChangeDepartment">
+             <option value="" selected="@string.IsNullOrEmpty(selectDepart)">Phòng ban</option>
+             @foreach (var item in departments)
             {
               <option value="@item.id" selected="@(selectDepart == item.id)">@item.name</option>
             }
@@ -158,11 +143,11 @@
       </li>
     </ul>
 
-    <h6 class="mb-3 has-text-weight-medium">
-      Từ @(new DateTime(startDateUser.Value.Ticks).ToString("dd'/'MM'/'yyyy")) đến @(new DateTime(endDateUser.Value.Ticks).ToString("dd'/'MM'/'yyyy"))
+    <h6 class="mb-3 has-text-weight-medium mb-2">
+      Từ @(new DateTime(startDateUser).ToString("dd'/'MM'/'yyyy")) đến @(new DateTime(endDateUser).ToString("dd'/'MM'/'yyyy"))
     </h6>
-
-    <div id="scrollbox2" class="table-container" style="overflow: auto; height: calc(100% - 60px);">
+    <div id="scrollbox2" class="inner_section flex_column" style="flex:1">
+      <div class="table-container scrolly scrollx" style="overflow: auto;flex:1">
       @if (dataList.Any() && workList.Any())
       {
         if (selectUsers.Any() && workByUser.Any())
@@ -202,7 +187,7 @@
                   <td class="sticky" style="left: 0; width:200px;">
                     <p class="user_item" style="width:180px;">
                       <span class="text_1_line">
-                        @user.FullName
+                        @user.name
                       </span>
                     </p>
                   </td>
@@ -217,7 +202,7 @@
                     <td align="center">
                       @if (registerUser != null)
                       {
-                        var shiftId = registerUser.shifts_register.Where(i => i.day >= startDateUser.Value.Ticks && i.day <= endDateUser.Value.Ticks)
+                        var shiftId = registerUser.shifts_register.Where(i => i.day >= startDateUser && i.day <= endDateUser)
                         .SelectMany(i => i.shifts_id).Where(i => i == shift.id).ToList();
                         <span class="tag has-text-weight-medium"
                               style="width:100px;background-color:#B6EBF530;">
@@ -252,6 +237,7 @@
         </div>
       }
     </div>
+    </div>
   </div>
 </div>
 
@@ -273,17 +259,17 @@
   [Parameter]
   public HrmRulesModel dataRules { get; set; }
 
-  private DateTimeOffset? startDateShift = DateTime.Today;
-  private DateTimeOffset? endDateShift = DateTime.Today;
+  private long startDateShift;
+  private long endDateShift;
 
-  private DateTimeOffset? startDateUser = DateTime.Today;
-  private DateTimeOffset? endDateUser = DateTime.Today;
+  private long startDateUser;
+  private long endDateUser;
 
   private List<HrmTimeListRegisterModel.ShiftRegister> selectList = new();
   private bool showDetail;
-  private List<UserModel> users = new();
-  private List<UserModel> usersModel = new();
-  private List<UserModel> selectUsers = new();
+  private List<MemberModel> users = new();
+  private List<MemberModel> usersModel = new();
+  private List<MemberModel> selectUsers = new();
   private HrmWorkShiftModel workShiftSelect;
   private List<HrmWorkShiftModel> workByShift = new();
   private List<HrmWorkShiftModel> workByUser = new();
@@ -293,20 +279,20 @@
   private List<DepartmentModel> departments = new();
 
 
-  protected override void OnInitialized()
+  protected override async Task OnInitializedAsync()
   {
     Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
-    startDateShift = start;
-    endDateShift = end;
-    startDateUser = start;
-    endDateUser = end;
+    startDateShift = start.Ticks;
+    endDateShift = end.Ticks;
+    startDateUser = start.Ticks;
+    endDateUser = end.Ticks;
 
-    departments = DbDepartment.GetAll(Layout.Company.id);
+    departments = await DbDepartment.GetAll(Layout.Company.id);
 
     if (dataList.Any())
     {
       selectList = dataList.SelectMany(i => i.shifts_register)
-                           .Where(i => i.day >= startDateShift.Value.Ticks && i.day <= endDateShift.Value.Ticks).ToList();
+                           .Where(i => i.day >= startDateShift && i.day <= endDateShift).ToList();
     }
 
     var usersId = dataList.Where(x => x.shifts_register.Any())
@@ -314,9 +300,10 @@
 
     usersId.AddRange(dataRules.register_shift.users);
 
-    usersModel = Layout.UserList.Where(i => usersId.Distinct().Contains(i.id)).ToList();
-    workByShift = workList.Where(i => !i.is_deleted || (i.is_deleted && i.time_delete >= startDateShift.Value.Ticks)).ToList();
-    workByUser = workList.Where(i => !i.is_deleted || (i.is_deleted && i.time_delete >= startDateUser.Value.Ticks)).ToList();
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    usersModel = shareStorage.MemberList.Where(i => usersId.Distinct().Contains(i.id)).ToList();
+    workByShift = workList.Where(i => !i.is_deleted || (i.is_deleted && i.time_delete >= startDateShift)).ToList();
+    workByUser = workList.Where(i => !i.is_deleted || (i.is_deleted && i.time_delete >= startDateUser)).ToList();
     Filter();
   }
 
@@ -334,19 +321,19 @@
 
   private void ChangeDateRangeShift()
   {
-    workByShift = workList.Where(i => !i.is_deleted || (i.is_deleted && i.time_delete >= startDateShift.Value.Ticks)).ToList();
+    workByShift = workList.Where(i => !i.is_deleted || (i.is_deleted && i.time_delete >= startDateShift)).ToList();
     selectList = dataList.SelectMany(i => i.shifts_register)
-                         .Where(i => i.day >= startDateShift.Value.Ticks && i.day <= endDateShift.Value.Ticks).ToList();
+                         .Where(i => i.day >= startDateShift && i.day <= endDateShift).ToList();
   }
 
 
   private void ChangeDateRangeUser()
   {
-    workByUser = workList.Where(i => !i.is_deleted || (i.is_deleted && i.time_delete >= startDateUser.Value.Ticks)).ToList();
+    workByUser = workList.Where(i => !i.is_deleted || (i.is_deleted && i.time_delete >= startDateUser)).ToList();
     Filter();
   }
 
-  private void ShowDetail(HrmWorkShiftModel workShift, DateTime date)
+  private async Task ShowDetail(HrmWorkShiftModel workShift, DateTime date)
   {
     showDetail = true;
     workShiftSelect = workShift;
@@ -355,7 +342,9 @@
                                       && x.shifts_register.Find(i => i.day == (selectDay.Ticks)) != null
                                       && x.shifts_register.Find(i => i.day == (selectDay.Ticks)).shifts_id.Contains(workShiftSelect.id))
                           .Select(i => i.id).ToList();
-    users = Layout.UserList.Where(i => usersId.Contains(i.id)).ToList();
+
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    users = shareStorage.MemberList.Where(i => usersId.Contains(i.id)).ToList();
   }
 
   /// <summary>Đổi phòng ban</summary>
@@ -373,7 +362,7 @@
     selectUsers = usersModel.Where(x =>
     {
       return (string.IsNullOrEmpty(selectDepart) ? true : x.departments_id.Contains(selectDepart)) &&
-             (string.IsNullOrEmpty(filterKeyword) ? true : Shared.SearchKeyword(filterKeyword, x.FullName));
+        (string.IsNullOrEmpty(filterKeyword) ? true : Shared.SearchKeyword(filterKeyword, x.name));
     }).ToList();
 
     StateHasChanged();

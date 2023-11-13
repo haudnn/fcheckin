@@ -6,6 +6,7 @@ using OnetezSoft.Services;
 
 namespace OnetezSoft.Models;
 
+[BsonIgnoreExtraElements]
 public class HrmTimesheetModel
 {
   [BsonId]

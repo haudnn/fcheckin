@@ -1,11 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using OnetezSoft.Models;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
 using MongoDB.Driver;
+using OnetezSoft.Models;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -62,10 +60,10 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<EducateCategoryModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
-    public static List<EducateCategoryModel> GetList(string companyId, string keyword)
+    public static async Task<List<EducateCategoryModel>> GetList(string companyId, string keyword)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
@@ -73,7 +71,9 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<EducateCategoryModel>.Sort.Ascending("name");
 
-      var list = collection.Find(new BsonDocument()).Sort(sorted).ToList();
+      var list = await collection.FindAsync(new BsonDocument()).Result.ToListAsync();
+
+      list = list.OrderBy(x => x.name).ToList();
 
       var results = new List<EducateCategoryModel>();
 

@@ -15,6 +15,7 @@
 <head>
   <base href="~/" />
   <title>@title</title>
+  <meta charset="utf-8" />
   <meta http-equiv="refresh" content="7200" />
   <meta name="tilte" content="@title" />
   <meta name="description" content="@desc" />
@@ -26,16 +27,16 @@
   <link rel="stylesheet" href="css/animate.min.css" />
   <link rel="stylesheet" href="css/icon.material.css" />
   <link rel="stylesheet" href="css/effect.css" />
-  <link rel="stylesheet" href="css/app.css" />
-  <link rel="stylesheet" href="css/mobile.css" />
-  <link rel="stylesheet" href="css/timekeeping.css" />
-  <link rel="stylesheet" href="css/storage.css" />
+  <link rel="stylesheet" href="css/bingmap.css" />
+  <link rel="stylesheet" href="css/connect.css" />
+  <link rel="stylesheet" href="css/kpis.css" />
+  <link rel="stylesheet" href="css/appv2.10.css" />
   <link rel="stylesheet" href="css/dragdrop.css" />
   <link rel="stylesheet" href="css/quill.snow.css" />
   <link rel="stylesheet" href="css/quill.bubble.css" />
   <link rel="stylesheet" href="OnetezSoft.styles.css">
   <link rel="stylesheet" href="_content/BlazorDateRangePicker/daterangepicker.min.css" />
-
+  
   <meta property="og:type" content="website" />
   <meta property="og:url" content="@domain" />
   <meta property="og:title" content="@title" />
@@ -58,6 +59,7 @@
   <meta name="msapplication-TileColor" content="#565c7c" />
   <meta name="msapplication-tap-highlight" content="no" />
   <link rel="manifest" href="/manifest.json" />
+
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-9YRJ7TXE9X"></script>
   <script>
@@ -66,45 +68,59 @@
     gtag('js', new Date());
     gtag('config', 'G-9YRJ7TXE9X');
   </script>
+  <!-- Bing map -->
+  <script type='text/javascript' src='https://www.bing.com/api/maps/mapcontrol?callback=GetMap' async></script>
+  <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-_Pd-sBj6Ib4EHH0wo2mSbvrMEQ0oErc&v=3"></script>
   <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
 </head>
 <body>
+  <noscript>
+  <!-- anchor linking to external file -->
+  <a>Thiết bị của bạn không hỗ trợ hoặc đã vô hiệu hoá javaScript.</a>
+</noscript>
   <component type="typeof(App)" render-mode="ServerPrerendered" />
 
   <div id="blazor-error-ui">
     <div class="modal is-active">
-      <div class="modal-background"></div>
       <div class="modal-content">
         <div class="field has-addons">
           <div class="control">
-            <span class="button is-white is-loading">
+            <span class="button is-white">
               <span class="icon">
-                <i class="material-icons-outlined is-size-5">refresh</i>
+                <i class="material-icons-outlined is-size-5">support_agent</i>
               </span>
             </span>
           </div>
-          <div class="control is-expanded">
-            <div class="button is-white is-fullwidth pl-1 has-text-weight-medium">
-              Ohh! Mất kết nối rồi
+          <div class="control is-expanded" onclick="document.location.reload()">
+            <div class="button is-white is-fullwidth pl-1">
+              Có gì đó đã xảy ra, vui lòng thử lại sau!
             </div>
-          </div>
-          <div class="control">
-            <a class="button is-link is-light" title="Tải lại trang" onclick="document.location.reload()">
-              Thử lại
-            </a>
           </div>
         </div>
       </div>
     </div>
+
   </div>
 
-  <script src="_framework/blazor.server.js"></script>
+  <script src="~/js/app.js"></script>
   <script src="~/js/chart.min.js"></script>
   <script src="~/js/quill.js"></script>
-  <script src="~/js/app.js"></script>
+  <script src="~/js/mention.js"></script>
+  <script src="~/js/bingmap.js"></script>
+  <script src="_framework/blazor.server.js" autostart="false"></script>
+  <script src="~/js/boot.js"></script>
+
   <script src="_content/BlazorDateRangePicker/clickAndPositionHandler.js"></script>
   <script src="_content/Blazored.TextEditor/quill-blot-formatter.min.js"></script>
   <script src="_content/Blazored.TextEditor/Blazored-BlazorQuill.js"></script>
-</script>
+
+  <script>
+        window.CookieFunction = {
+            acceptMessage: function (cookieString) {
+                document.cookie = cookieString;
+            }
+        };    
+   </script>
+
 </body>
 </html>

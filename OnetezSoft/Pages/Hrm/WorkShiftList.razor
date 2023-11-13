@@ -1,162 +1,183 @@
-@page "/hrm/setup/work-shift"
+@page "/config/timekeeping/work-shift"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
 @if (_access)
 {
-  <section class="p-4">
-    <div class="card p-5">
-      <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
-        <li class="column">
-          <h1 class="title is-5 has-text-info is-uppercase">
-            @_title
-          </h1>
-        </li>
-        <li class="column is-narrow">
-          <a class="button is-link" @onclick="() => EditItem(null)">
-            <span class="icon">
-              <span class="material-icons-outlined is-size-6">add</span>
-            </span>
-            <span>Thêm mới</span>
-          </a>
-        </li>
-      </ul>
-      <table class="table is-fullwidth is-vcentered is-responsive mt-5">
-        <thead>
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-2">
+    <li class="column">
+      <h1 class="title is-5 has-text-info is-uppercase">
+        @_title
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <a class="button is-link" @onclick="() => EditItem(null)">
+        <span class="icon">
+          <span class="material-icons-outlined is-size-6">add</span>
+        </span>
+        <span>Thêm mới</span>
+      </a>
+    </li>
+  </ul>
+  <div id="scrollbox" class="scrolly inner_section" style="flex:1">
+    <table class="table is-fullwidth sticky only_desktop is-vcentered is-responsive">
+      <thead>
+        <tr>
+          <th class="sticky last" style="left:0" width="30%">Tên ca làm việc</th>
+          <th class="" width="10%" align="center">Thời gian của ca</th>
+          <th class="" width="10%" align="center">Ca qua ngày</th>
+          <th class="" width="10%" align="center">Ca làm theo giờ</th>
+          <th class="" width="10%">Thời gian nghỉ</th>
+          <th class="" width="10%" align="center">Số công của ca</th>
+          <th class="" width="10%" align="center">Ngày tạo</th>
+          <th class="" width="10%" align="right">Xử lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in dataList)
+        {
           <tr>
-            <th>Tên ca làm việc</th>
-            <th width="20%" align="center">Giờ bắt đầu</th>
-            <th width="20%" align="center">Giờ kết thúc</th>
-            <th width="120px" align="center">Ca qua ngày</th>
-            <th width="20%" align="center">Số công</th>
-            <th width="12%" >Ngày tạo</th>
-            <th width="70px">Xử lý</th>
-          </tr>
-        </thead>
-        <tbody>
-          @foreach (var item in dataList)
-          {
-            <tr>
-              <td>
-																<label class="td-label">Tên ca làm việc</label>
-                <div class="has-text-dark text_1_line td-value">
-                  <span>@item.name</span>
+            <td class="sticky last" style="left:0">
+              <label class="td-label">Tên ca làm việc</label>
+              <div class="td-value">
+                <div class="tag p-2" style="background-color: @(Shared.IsEmpty(item.color) ? "#48484830" : (item.color + "30")); cursor: pointer" @onclick="() => viewItem = item">
+                  <span style="color: @item.color" class="text_1_line has-text-weight-medium">@item.name</span>
                 </div>
-              </td>
-              <td align="center">
-															<label class="td-label">Giờ bắt đầu</label>
-															<div class="td-value">
-																<span>@item.checkin</span>
-															</div>
-              </td>
-              <td align="center">
-																<label class="td-label">Giờ kết thúc</label>
-																<div class="td-value">
-																	<span>@item.checkout</span>
-																</div>
-              </td>
-              <td align="center">
-																<label class="td-label">Ca qua ngày</label>
-																<div class="td-value">
-																	<span class="material-icons-outlined @(item.is_overday ? "has-text-success" : "has-text-grey")">
-																			@(item.is_overday ? "check_box" : "check_box_outline_blank")
-																	</span>
-																</div>
-              </td>
-              <td align="center">
-																<label class="td-label">Số công</label>
-                <div class="td-value">
-																	<span>@item.value</span>
-																</div>
-              </td>
-              <td>
-																<label class="td-label">Ngày tạo</label>
-																<div class="td-value">
-																	<span>@string.Format("{0:dd/MM/yyyy}", new DateTime(item.created))</span>
-																</div>
-              </td>
-              <td>
-															<label class="td-label">Số công</label>
-															<div class="td-value">
-																 <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+              </div>
+
+            </td>
+            <td align="center">
+              <label class="td-label">Thời gian của ca</label>
+              <div class="td-value">
+                <div class="tag p-2" style="background-color: #aec6ff20">
+                  <span style="color: #4a4a4a" class="text_1_line has-text-weight-medium">@(item.checkin + " - " + item.checkout)</span>
+                </div>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Ca qua ngày</label>
+              <div class="td-value">
+                <span class="material-icons-outlined @(item.is_overday ? "has-text-success" : "has-text-grey")">
+                  @(item.is_overday ? "check_box" : "check_box_outline_blank")
+                </span>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Ca làm theo giờ</label>
+              <div class="td-value">
+                <span class="material-icons-outlined @(item.is_byhour ? "has-text-success" : "has-text-grey")">
+                  @(item.is_byhour ? "check_box" : "check_box_outline_blank")
+                </span>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Thời gian nghỉ</label>
+              <div class="td-value">
+                <div class="is-flex is-flex-wrap-wrap" style="gap: 10px">
+                  @foreach (var time in item.break_times)
+                  {
+                    <div class="tag p-2" style="background-color: #48484830">
+                      <span style="color: #484848" class="text_1_line has-text-weight-medium">@(time.start + " - " + time.end)</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Số công của ca</label>
+              <div class="td-value">
+                <span>@item.value</span>
+              </div>
+            </td>
+            <td align="center">
+              <label class="td-label">Ngày tạo</label>
+              <div class="td-value">
+                <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(item.created))</span>
+              </div>
+            </td>
+            <td align="right">
+              <label class="td-label">Số công</label>
+              <div class="td-value">
+                <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
                   <i class="material-icons-outlined is-size-5">
                     delete
                   </i>
                 </a>
-															</div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
-  </section>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
   <WorkShiftPopup model="editItem" OnUpdate="OnUpdate" />
-		@if (useList != null && useList.Count > 0)
-	{
-  <section class="modal is-active">
-    <div class="modal-background"></div>
-    <section class="modal-card">
-      <section class="modal-card-head">
-        <div class="modal-card-title">
-          Xóa ca làm việc
-        </div>
-        <a class="delete is-medium" @onclick="() => useList = null"></a>
-      </section>
-      <section class="modal-card-body">
-        <div class="pb-2">
-          Ca làm việc <strong>@deleteItem</strong> đang được áp dụng cho <strong>@useList.Count</strong> nhân viên.
-        </div>
-        <div class="pb-5 has-text-danger">
-          Bạn cần thay đổi ca làm việc của @useList.Count nhân viên này trước khi xóa!
-        </div>
-        <ul class="columns is-multiline is-vcentered is-variable is-1">
-          @foreach (var item in useList)
-          {
-            var user = UserService.GetUser(Layout.UserList, item.id);
-            if (user != null)
+  <_WorkShiftPopupDetail item="viewItem" OnClose="() => viewItem = null"></_WorkShiftPopupDetail>
+  @if (useList != null && useList.Count > 0)
+  {
+    <section class="modal is-active">
+      <div class="modal-background"></div>
+      <section class="modal-card">
+        <section class="modal-card-head">
+          <div class="modal-card-title">
+            Xóa ca làm việc
+          </div>
+          <a class="delete is-medium" @onclick="() => useList = null"></a>
+        </section>
+        <section class="modal-card-body">
+          <div class="pb-2">
+            Ca làm việc <strong>@deleteItem</strong> đang được áp dụng cho <strong>@useList.Count</strong> nhân viên.
+          </div>
+          <div class="pb-5 has-text-danger">
+            Bạn cần thay đổi ca làm việc của @useList.Count nhân viên này trước khi xóa!
+          </div>
+          <ul class="columns is-multiline is-vcentered is-variable is-1">
+            @foreach (var item in useList)
             {
-              var department = departmentAll.Find(i => i.id == user.department_default);
-              <li class="column is-2">
-                @user.id
-              </li>
-              <li class="column is-5">
-                <div class="user_item">
-                  <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
-                  <span class="text_1_line">@user.FullName</span>
-                </div>
-              </li>
-              <li class="column is-5 is-size-7">
-                <div class="text_1_line">
-                  <span>@(department != null ? department.name : "")</span>
-                </div>
-              </li>
-              <li class="column is-full">
-                <hr class="m-0">
-              </li>
+              var user = UserService.GetMember(shareStorage.MemberList, item.id);
+              if (user != null)
+              {
+                var department = departmentAll.Find(i => i.id == user.department_default);
+                <li class="column is-2">
+                  @user.id
+                </li>
+                <li class="column is-5">
+                  <div class="user_item">
+                    <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                    <span class="text_1_line">@user.name</span>
+                  </div>
+                </li>
+                <li class="column is-5 is-size-7">
+                  <div class="text_1_line">
+                    <span>@(department != null ? department.name : "")</span>
+                  </div>
+                </li>
+                <li class="column is-full">
+                  <hr class="m-0">
+                </li>
+              }
             }
-          }
-        </ul>
-      </section>
-      <section class="modal-card-foot is-right">
-        <a class="button is-white has-text-link" @onclick="() => useList = null">
-          <span class="icon">
-            <i class="material-icons-round is-size-6">close</i>
-          </span>
-          <span>Hủy</span>
-        </a>
-        <a class="button is-static">
-          <span class="icon">
-            <i class="material-icons-round is-size-6">delete</i>
-          </span>
-          <span>Xóa</span>
-        </a>
+          </ul>
+        </section>
+        <section class="modal-card-foot is-right">
+          <a class="button is-white has-text-link" @onclick="() => useList = null">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">close</i>
+            </span>
+            <span>Hủy</span>
+          </a>
+          <a class="button is-static">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">delete</i>
+            </span>
+            <span>Xóa</span>
+          </a>
+        </section>
       </section>
     </section>
-  </section>
-	}
+  }
 }
 else
 {
@@ -167,29 +188,38 @@ else
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-  private string _title = "Ca làm việc";
+  private string _title = "Ca làm";
   private bool _access = false;
   private List<HrmWorkShiftModel> dataList = new();
   private HrmWorkShiftModel editItem = null;
   private string deleteItem = string.Empty;
   private List<HrmTimeListModel> useList = null;
   private List<DepartmentModel> departmentAll = new();
+  private HrmWorkShiftModel viewItem = null;
 
+  private SharedStorage shareStorage = new();
 
   protected override async Task OnInitializedAsync()
   {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
     // Quyền truy cập trang
     _access = Layout.User.role == 1 || (Layout.User.role == 2 && Layout.User.role_manage.timekeeping);
 
     dataList = await DbHrmWorkShift.GetWorkList(Layout.Company.id);
-    departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    departmentAll = await DbDepartment.GetAll(Layout.Company.id);
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+      await JSRuntime.InvokeVoidAsync("dragScrollX");
   }
 
   private async Task EditItem(HrmWorkShiftModel item)
   {
     if (_access)
     {
-      if(item == null)
+      if (item == null)
         editItem = new();
       else
         editItem = item;
@@ -202,25 +232,25 @@ else
   {
     if (_access)
     {
-					var isUsed = await DbHrmTimekeeping.CheckTimekeeping(Layout.Company.id, DateTime.Today.Ticks, item.id, item.is_overday);
-					if (isUsed)
-					{
-						await JSRuntime.InvokeVoidAsync("tagline", false, "Hiện tại đã có nhân viên chấm công, bạn không thể xoá!");
-						return;
-					}
-					else
-					{
-						deleteItem = item.name;
-						if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc chắn muốn xóa {item.name} không?"))
-							return;
-						await DbHrmWorkShift.Delete(Layout.Company.id, item.id);
-						dataList.Remove(item);
-						await SendNotify(item);
-						await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa ca làm việc thành công!");
-					}
+      var isUsed = await DbHrmTimekeeping.CheckTimekeeping(Layout.Company.id, DateTime.Today.Ticks, item.id, item.is_overday);
+      if (isUsed)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Hiện tại đã có nhân viên chấm công, bạn không thể xoá!");
+        return;
+      }
+      else
+      {
+        deleteItem = item.name;
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc chắn muốn xóa {item.name} không?"))
+          return;
+        await DbHrmWorkShift.Delete(Layout.Company.id, item.id);
+        dataList.Remove(item);
+        await SendNotify(item);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa ca làm việc thành công!");
+      }
     }
     else
-     await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có quyền xóa dữ liệu này!");
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có quyền xóa dữ liệu này!");
   }
 
   private async Task OnUpdate(bool isUpdate)
@@ -232,7 +262,7 @@ else
   private async Task SendNotify(HrmWorkShiftModel item)
   {
     // Gủi thông báo chuông
-    var targetList = Layout.UserList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
+    var targetList = shareStorage.MemberList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
     foreach (var user in targetList)
       await DbNotify.Create(Layout.Company.id, 802, item.name, user.id, Layout.User.id);
   }

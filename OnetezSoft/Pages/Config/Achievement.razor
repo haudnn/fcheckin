@@ -1,0 +1,266 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (Layout.User.role != 1 && !Layout.User.role_manage.other)
+{
+  <PopupNoRole />
+}
+else
+{
+  <ul class="columns is-vcentered is-variable is-2 mb-2">
+    <li class="column">
+      <h1 class="title is-5 has-text-info is-uppercase">
+        Danh sách thành tựu
+      </h1>
+    </li>
+  </ul>
+  <div id="scrollbox" class="inner_section scrolly table-container" style="flex:1;overflow: auto !important;">
+    <table class="table is-fullwidth is-vcentered is-responsive sticky only_desktop">
+      <thead>
+        <tr>
+          <th class="sticky last" style="left:0;">Tên thành tựu</th>
+          <th width="20%">Mô tả</th>
+          <th align="center" width="140px">Điều kiện áp dụng</th>
+          <th align="center" width="100px">Số sao</th>
+          <th width="90px">Cập nhật</th>
+          <th width="70px" align="center">Xử lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var group in parent)
+        {
+          <tr style="background:#ecf1ff">
+            <td class="p-2 sticky last" style="left:0">
+              <span class="icon-text is-fullwidth">
+                <span class="has-text-weight-bold has-text-link">
+                  @group.name
+                </span>
+              </span>
+            </td>
+            <td class="p-2" colspan="6">
+              <i class="is-size-7 has-text-weight-normal ml-2 text_1_line" style="display:inline-block">
+                @group.des
+              </i>
+            </td>
+          </tr>
+          @foreach (var item in dataList.Where(x => x.parent == group.id))
+          {
+            <tr>
+              @if (editList.Contains(item.id))
+              {
+                <td class="sticky last" style="left:0">
+                  <span class="icon-text">
+                    <span class="icon image is-48x48">
+                      <img src="@item.image" alt="Ảnh đại diện" />
+                    </span>
+                    <span class="has-text-weight-semibold">
+                      <input class="input" type="text" @bind="@item.name" />
+                    </span>
+                  </span>
+                </td>
+                <td>
+                  <label class="td-label">Mô tả</label>
+                  <div class="td-value">
+                    <input class="input" type="text" @bind="@item.des" />
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Điều kiện áp dụng</label>
+                  <div class="td-value">
+                    <input class="input has-text-centered" type="number" @bind="@item.apply" max="31" />
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Số sao thành tựu</label>
+                  <div class="td-value">
+                    <input class="input has-text-centered" type="number" @bind="@item.star" />
+                  </div>
+                </td>
+              }
+              else
+              {
+                <td class="sticky last" style="left:0">
+                  <span class="icon-text">
+                    <span class="icon image is-48x48">
+                      <img src="@item.image" alt="Ảnh đại diện" />
+                    </span>
+                    <span class="has-text-weight-semibold">@item.name</span>
+                  </span>
+                </td>
+                <td>
+                  <label class="td-label">Mô tả</label>
+                  <div class="td-value">
+                    <span class="text_1_line">
+                      @item.des
+                    </span>
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Điều kiện áp dụng</label>
+                  <div class="td-value">
+                    @item.apply
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Số sao thành tựu</label>
+                  <div class="td-value">
+                    @item.star sao
+                  </div>
+                </td>
+              }
+              <td>
+                <label class="td-label">Trạng thái</label>
+                <div class="td-value">
+                  @(new DateTime(item.update).ToString("dd/MM/yy"))
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Xử lý</label>
+                <div class="td-value">
+                  @if (editList.Contains(item.id))
+                  {
+                    <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => Update(item)">
+                      <i class="material-icons-outlined is-size-5">
+                        check
+                      </i>
+                    </a>
+                  }
+                  else
+                  {
+                    <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item.id)">
+                      <i class="material-icons-outlined is-size-5">
+                        edit
+                      </i>
+                    </a>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private List<AchievementModel.Option> parent = new();
+  private List<AchievementModel.Option> dataList = new();
+
+  private bool _loaded = false;
+  private bool success = false;
+  private string _message = string.Empty;
+  private string _title = "Cấu hình chu kỳ";
+
+  private List<string> editList = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    parent = AchievementService.GetGroup();
+
+    dataList = await DbAchievementConfig.GetAll(Layout.Company.id);
+
+    var check = await DbAchievementConfig.GetAll(Layout.Company.id, true);
+
+    if(check.Count == 0)
+    {
+      await CreateDefault();
+    }
+    await AsyncData();
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+    {
+      _loaded = true;
+      await JSRuntime.InvokeVoidAsync("dragScrollX");
+      await InvokeAsync(StateHasChanged);
+    }
+  }
+
+  private async Task CreateDefault()
+  {
+    var defaultList = AchievementService.GetDefault();
+
+    foreach(var item in defaultList)
+    {
+      item.id = Mongo.RandomId();
+      item.is_active = true;
+      item.update = DateTime.Now.Ticks;
+
+      await DbAchievementConfig.Create(Layout.Company.id, item);
+
+      dataList.Add(item);
+    }
+  }
+
+  public async Task AsyncData()
+  {
+    var list = await DbAchievement.GetAll(Layout.Company.id);
+
+    foreach(var item in list)
+    {
+      if (string.IsNullOrEmpty(item.type_id))
+      {
+        var option = dataList.FirstOrDefault(x => x.parent == item.type && (x.name == item.name || x.star == item.star));
+
+        if(option != null)
+        {
+          item.type_id = option.id;
+          await DbAchievement.Update(Layout.Company.id, item);
+        }
+      }
+    }
+  }
+
+  private async Task Add(AchievementModel.Option group)
+  {
+    var newItem = new AchievementModel.Option()
+    {
+      id = Mongo.RandomId(),
+      name = "Thành tựu mới",
+      is_active = true,
+      parent = group.id,
+    };
+
+    newItem = await DbAchievementConfig.Create(Layout.Company.id, newItem);
+    editList.Add(newItem.id);
+    dataList.Add(newItem);
+  }
+
+  private void EditItem(string id)
+  {
+    if (!editList.Contains(id))
+      editList.Add(id);
+  }
+
+  private async Task Update(AchievementModel.Option option)
+  {
+    if(editList.Contains(option.id))
+    {
+      editList.Remove(option.id);
+
+      option.update = DateTime.Now.Ticks;
+
+      await DbAchievementConfig.Update(Layout.Company.id, option);
+    }
+  }
+
+  private async Task Delete(AchievementModel.Option option)
+  {
+    if (editList.Contains(option.id))
+    {
+      editList.Remove(option.id);
+
+      dataList.RemoveAll(x => x.id == option.id);
+    }
+
+    await DbAchievementConfig.Delete(Layout.Company.id, option.id);
+  }
+}

@@ -1,6 +1,8 @@
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
-<div class="card p-5 p-4-mobile">
-  <ul class="columns is-vcentered is-variable is-2 mb-3">
+<div class="card is_fullheight flex_column" style="height:100%">
+  <ul class="columns is-vcentered is-variable is-1 mb-2">
     <li class="column">
       <h1 class="title is-5 has-text-info">
         TIẾN ĐỘ OKRs
@@ -10,11 +12,11 @@
       <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
     </li>
     <li class="column is-one-quarter">
-      <MemberSearch department="@filterDepartment" sources="Layout.UserList" OnUpdate="ChangeFilterUser" />
+      <MemberSearch department="@filterDepartment" sources="shareStorage.MemberList" OnUpdate="ChangeFilterUser" />
     </li>
   </ul>
-  <div class="scrolly pr-2" style="max-height: 400px">
-    <table class="table is-fullwidth is-vcentered is-noborder is-responsive mt-3">
+  <div class="scrolly inner_section pr-2 expand_height">
+    <table class="table is-fullwidth is-vcentered is-noborder is-responsive">
       <tbody>
         @foreach (var item in dataList)
         {
@@ -84,7 +86,7 @@
                   <label class="td-label">Mục tiêu</label>
                   <div class="td-value">
                     <div class="is-flex">
-                      <a class="has-text-weight-semibold has-text-link" href="/cfr/checkin/@okr.id/overview">
+                      <a class="has-text-weight-semibold has-text-link" href="/okr/checkin/@okr.id/overview">
                         @okr.name
                       </a>
                       @if (okr.done)
@@ -188,9 +190,9 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   [Parameter]
-  public List<DepartmentModel> departmentAll { get; set; }
+  public List<DepartmentModel> departmentAll { get; set; } = new();
   [Parameter]
-  public List<DepartmentModel.SelectList> departments { get; set; }
+  public List<DepartmentModel.SelectList> departments { get; set; } = new();
 
   private List<ProgressModel> dataList = new();
   private List<OkrModel> progressOkrs = new();
@@ -200,9 +202,15 @@
 
   private string filterDepartment = null;
 
+  private List<MemberModel> userList = new();
+
+  private SharedStorage shareStorage = new();
+
   protected override async Task OnInitializedAsync()
   {
-    filterDepartment = Layout.User.department_default; 
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    userList = shareStorage.MemberList;
+    filterDepartment = Layout.User.department_default;
     await ChangeFilterDepartment(filterDepartment);
   }
 
@@ -210,17 +218,17 @@
   {
     filterDepartment = value;
     if (string.IsNullOrEmpty(filterDepartment))
-      userListId = (from x in Layout.UserList select x.id).ToList();
+      userListId = (from x in userList select x.id).ToList();
     else
-      userListId = (from x in Layout.UserList
-                          where x.departments_id.Contains(filterDepartment)
-                          select x.id).ToList();
+      userListId = (from x in userList
+                    where x.departments_id.Contains(filterDepartment)
+                    select x.id).ToList();
     await GetData();
   }
 
   private async Task ChangeFilterUser(string value)
   {
-    if(!string.IsNullOrEmpty(value))
+    if (!string.IsNullOrEmpty(value))
       userListId = new() { value };
     await GetData();
   }
@@ -241,33 +249,45 @@
       showKeys.Add(id);
   }
 
-  private async Task GetData()
+  private async Task<bool> GetData()
   {
-    await Task.Delay(1); 
-    dataList.Clear();
-    progressOkrs = DbOkr.GetList(Layout.Company.id, Layout.CycleId, userListId);
-    foreach (var userId in userListId)
+    bool _success = true;
+    try
     {
-      var user = Layout.UserList.SingleOrDefault(x => x.id == userId);
-      if (user != null)
+      await Task.Delay(1);
+      dataList.Clear();
+      progressOkrs = await DbOkr.GetList(Layout.Company.id, Layout.CycleId, userListId);
+      foreach (var userId in userListId)
       {
-        double totalProgress = 0;
-        var okrList = progressOkrs.Where(x => x.user_create == user.id).ToList();
-        foreach (var okr in okrList)
+        var user = userList.SingleOrDefault(x => x.id == userId);
+        if (user != null)
         {
-          totalProgress += DbOkr.GetProgress(okr.key_results);
-        }
-
-        dataList.Add(new ProgressModel()
+          double totalProgress = 0;
+          var okrList = progressOkrs.Where(x => x.user_create == user.id).ToList();
+          foreach (var okr in okrList)
           {
-            id = user.id,
-            name = user.FullName,
-            avatar = user.avatar,
-            departments = user.departments_name,
-            value = totalProgress > 0 ? totalProgress / okrList.Count : 0
-          });
+            totalProgress += DbOkr.GetProgress(okr.key_results);
+          }
+
+          dataList.Add(new ProgressModel()
+            {
+              id = user.id,
+              name = user.name,
+              avatar = user.avatar,
+              departments = user.departments_name,
+              value = totalProgress > 0 ? totalProgress / okrList.Count : 0
+            });
+        }
       }
+      dataList = dataList.OrderByDescending(x => x.value).ToList();
     }
-    dataList = dataList.OrderByDescending(x => x.value).ToList();
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetData()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

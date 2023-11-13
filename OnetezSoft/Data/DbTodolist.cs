@@ -1,11 +1,11 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+﻿using MongoDB.Driver;
 using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
+using OnetezSoft.Services;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -34,6 +34,7 @@ namespace OnetezSoft.Data
       int point = 10;
 
       var day = string.Format("{0:yyyy-MM-dd}", new DateTime(model.date));
+
       var config = await DbMainCompany.Get(companyId);
       var checkin = Convert.ToDateTime(day + " " + config.todolist.time_checkin).AddDays(config.todolist.day_checkin);
       var checkout = Convert.ToDateTime(day + " " + config.todolist.time_checkout);
@@ -63,11 +64,11 @@ namespace OnetezSoft.Data
       }
 
       // Todo chưa hoàn thành thì trừ điểm
-      var todoItems = DbTodoItem.GetList(companyId, model.id);
+      var todoItems = await DbTodoItem.GetList(companyId, model.id);
       model.total = todoItems.Count;
       model.done = todoItems.Where(x => x.status == 4).Count();
       point -= todoItems.Where(x => x.status < 4).Count();
-      
+
       // Cập nhật điểm Todolist
       model.point = point > 0 ? point : 0;
 
@@ -118,7 +119,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<TodolistModel>(_collection);
 
-      var result = await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      var result = await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
 
       return result;
     }
@@ -135,7 +136,7 @@ namespace OnetezSoft.Data
       var filtered = builder.Eq("user_create", user)
          & builder.Eq("date", date.Ticks);
 
-      var result = await collection.Find(filtered).FirstOrDefaultAsync();
+      var result = await collection.FindAsync(filtered).Result.FirstOrDefaultAsync();
 
       // Chuẩn hóa dữ liệu cũ và mới
       if (result != null && result.todos != null && result.todos.Count > 0)
@@ -155,7 +156,7 @@ namespace OnetezSoft.Data
     }
 
 
-    public static async Task<List<TodolistModel>> GetList(string companyId, string user, DateTime? start, DateTime? end)
+    public static async Task<List<TodolistModel>> GetList(string companyId, string user, DateTime? start, DateTime? end, bool isCalendar = false)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
@@ -163,17 +164,19 @@ namespace OnetezSoft.Data
 
       var builder = Builders<TodolistModel>.Filter;
 
-      var filtered = builder.Eq("user_create", user)
-        & builder.Gt("status", 1);
+
+      var filtered = builder.Eq("user_create", user);
+      if (!isCalendar)
+        filtered &= builder.Gt("status", 1);
 
       if (start != null)
-        filtered = filtered & builder.Gte("date", start.Value.Ticks);
+        filtered &= builder.Gte("date", start.Value.Ticks);
       if (end != null)
-        filtered = filtered & builder.Lt("date", end.Value.AddDays(1).Ticks);
+        filtered &= builder.Lt("date", end.Value.AddDays(1).Ticks);
 
-      var sorted = Builders<TodolistModel>.Sort.Descending("date");
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
 
-      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+      return (from x in result orderby x.date descending select x).ToList();
     }
 
 
@@ -194,7 +197,9 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<TodolistModel>.Sort.Descending("date");
 
-      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      return result.OrderByDescending(x => x.date).ToList();
     }
 
 
@@ -215,8 +220,8 @@ namespace OnetezSoft.Data
         & builder.Gte("status", 2)
         & builder.Eq("ontime_checkin", true);
 
-      var database = await collection.Find(filtered).ToListAsync();
-      var daysOff = DbDayOff.GetAll(companyId);
+      var database = await collection.FindAsync(filtered).Result.ToListAsync();
+      var daysOff = await DbDayOff.GetAll(companyId);
 
       int day = 0;
       var today = Convert.ToDateTime(DateTime.Now.ToShortDateString());
@@ -246,27 +251,31 @@ namespace OnetezSoft.Data
     }
 
 
+
+
     /// <summary>
     /// Tính thành tựu Todolist
     /// </summary>
-    public static async Task<bool> Achievement(string companyId, string user)
+    public static async Task<bool> Achievement(string companyId, string user, GlobalService globalService)
     {
       Handled.Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
 
       var day = await DataAchievement(companyId, user, start, end);
 
-      var achievement = DbAchievement.Todolist(day);
+      var achievement = await DbAchievement.GetOption(companyId, "todolist", day);
+
       if (achievement != null)
       {
         var model = new AchievementModel()
         {
           user = user,
           name = achievement.name,
-          desc = achievement.color,
-          star = Convert.ToInt32(achievement.icon),
-          type = "todolist"
+          desc = achievement.des,
+          star = achievement.star,
+          type_id = achievement.id,
+          type = "todolist",
         };
-        await DbAchievement.Create(companyId, model);
+        await DbAchievement.Create(companyId, model, globalService);
         return true;
       }
       return false;
@@ -287,6 +296,7 @@ namespace OnetezSoft.Data
         id = 1,
         name = "Todo",
         color = "",
+        icon = "#fff"
       });
 
       list.Add(new StaticModel
@@ -294,6 +304,7 @@ namespace OnetezSoft.Data
         id = 2,
         name = "Pending",
         color = "is-warning",
+        icon = "#ffe08a"
       });
 
       list.Add(new StaticModel
@@ -301,6 +312,7 @@ namespace OnetezSoft.Data
         id = 3,
         name = "Doing",
         color = "is-link",
+        icon = "#355caa"
       });
 
       list.Add(new StaticModel
@@ -308,6 +320,7 @@ namespace OnetezSoft.Data
         id = 4,
         name = "Done",
         color = "is-success",
+        icon = "#48c78e"
       });
 
       list.Add(new StaticModel
@@ -315,6 +328,7 @@ namespace OnetezSoft.Data
         id = 5,
         name = "Cancel",
         color = "is-dark",
+        icon = "#363636"
       });
 
       return list;
@@ -330,7 +344,7 @@ namespace OnetezSoft.Data
                   select s;
       if (query.Count() > 0)
         return query.FirstOrDefault();
-      return new StaticModel();
+      return new StaticModel() { name = "Tất cả" };
     }
 
 
@@ -346,6 +360,7 @@ namespace OnetezSoft.Data
         id = 1,
         name = "Bình thường",
         color = "has-text-success",
+        icon = "#48c78e"
       });
 
       list.Add(new StaticModel
@@ -353,6 +368,7 @@ namespace OnetezSoft.Data
         id = 2,
         name = "Quan trọng",
         color = "has-text-warning",
+        icon = "#ffe08a"
       });
 
       list.Add(new StaticModel
@@ -360,6 +376,7 @@ namespace OnetezSoft.Data
         id = 3,
         name = "Rất quan trọng",
         color = "has-text-danger",
+        icon = "#f14668"
       });
 
       return list;
@@ -466,6 +483,126 @@ namespace OnetezSoft.Data
       return new StaticModel() { name = "Tất cả trạng thái" };
     }
 
+
+    public static List<StaticModel> ViewList()
+    {
+      var list = new List<StaticModel>();
+
+      list.Add(new StaticModel
+      {
+        id = 1,
+        name = "Danh sách",
+        icon = "line_weight"
+      });
+
+      list.Add(new StaticModel
+      {
+        id = 2,
+        name = "Bảng",
+        icon = "dashboard"
+      });
+
+      list.Add(new StaticModel
+      {
+        id = 3,
+        name = "Lịch",
+        icon = "calendar_today"
+      });
+
+      return list;
+    }
+
+    public static StaticModel ViewList(int id)
+    {
+      var query = from s in AssignStatus()
+                  where s.id == id
+                  select s;
+      return query.FirstOrDefault();
+    }
+
+
+    public static List<StaticModel> Cycles()
+    {
+      var list = new List<StaticModel>();
+
+      list.Add(new StaticModel
+      {
+        id = 1,
+        name = "ngày",
+
+      });
+
+      list.Add(new StaticModel
+      {
+        id = 2,
+        name = "tuần",
+      });
+
+      list.Add(new StaticModel
+      {
+        id = 3,
+        name = "tháng",
+      });
+
+      list.Add(new StaticModel
+      {
+        id = 4,
+        name = "năm",
+      });
+
+      return list;
+    }
+
+
+    public static List<StaticModel> Weeks()
+    {
+      var list = new List<StaticModel>();
+
+      list.Add(new StaticModel
+      {
+        id = 2,
+        name = "T2",
+
+      });
+
+      list.Add(new StaticModel
+      {
+        id = 3,
+        name = "T3",
+      });
+
+      list.Add(new StaticModel
+      {
+        id = 4,
+        name = "T4",
+      });
+
+      list.Add(new StaticModel
+      {
+        id = 5,
+        name = "T5",
+      });
+
+      list.Add(new StaticModel
+      {
+        id = 6,
+        name = "T6",
+      });
+
+      list.Add(new StaticModel
+      {
+        id = 7,
+        name = "T7",
+      });
+
+
+      list.Add(new StaticModel
+      {
+        id = 8,
+        name = "CN",
+      });
+      return list;
+    }
     #endregion
   }
 }

@@ -167,9 +167,9 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   [Parameter]
-  public List<string> members { get; set; }
+  public List<string> members { get; set; } = new();
   [Parameter]
-  public List<UserModel> sources { get; set; }
+  public List<MemberModel> sources { get; set; } = new();
   [Parameter]
   public string department { get; set; }
   [Parameter]
@@ -191,9 +191,9 @@
   private List<MemberModel> suggests = new();
   private List<DepartmentModel.SelectList> departments = new();
 
-  protected override void OnInitialized()
+  protected override async Task OnInitializedAsync()
   {
-    departments = DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+    departments = await DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
     departments.RemoveAll(x => x.level > 1);
     usersTemp = members.Where(i => true).ToList();
   }
@@ -260,10 +260,10 @@
         bool check = true;
         if (!string.IsNullOrEmpty(department) && !item.departments_id.Contains(department))
           check = false;
-        if (!Shared.SearchKeyword(keyword, item.id + item.email + item.FullName))
+        if (!Shared.SearchKeyword(keyword, item.id + item.email + item.name))
           check = false;
         if (check)
-          results.Add(UserService.ConvertToMember(item));
+          results.Add(item);
       }
     }
     return results;
@@ -288,10 +288,10 @@
     var results = new List<MemberModel>();
     for (int i = 0; i < members.Count; i++)
     {
-      var item = UserService.GetUser(sources, members[i]);
-      if (!string.IsNullOrEmpty(item.id))
+      var item = sources.FirstOrDefault(x => x.id == members[i]);
+      if (item != null && !string.IsNullOrEmpty(item.id))
       {
-        results.Add(UserService.ConvertToMember(item));
+        results.Add(item);
         if (results.Count == 5)
           break;
       }

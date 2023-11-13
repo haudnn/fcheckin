@@ -2,6 +2,7 @@
 @layout LayoutAdmin
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
@@ -68,7 +69,7 @@
       <li class="column is-narrow">
         <div class="control is-expanded has-icons-left" style="width: 200px;">
           <input @bind="filterKey" @onkeyup="ChangeKeyword" type="text" class="input is-small"
-          placeholder="Email, họ và tên..." />
+                 placeholder="Email, họ và tên..." />
           <span class="icon is-left has-text-dark">
             <i class="material-icons-round is-size-6">search</i>
           </span>
@@ -201,10 +202,10 @@ else
     company = await DbMainCompany.Get(Id);
     if (company != null)
     {
-      memberList = DbUser.GetAll(company.id);
+      memberList = await DbUser.GetAll(company.id,globalService);
       productList = await DbMainProduct.GetList();
       productActive = company.products.Where(x => x.active && x.id != "storage").ToList();
-      
+
       await GetList();
     }
   }
@@ -242,7 +243,7 @@ else
 
   private async Task GetList()
   {
-    dataList = await DbUser.GetList(company.id, filterKey, null, filterStatus);
+    dataList = await DbUser.GetList(company.id, filterKey, null, filterStatus, globalService);
     if (!string.IsNullOrEmpty(filterProduct))
       dataList = dataList.Where(x => x.products.Contains(filterProduct)).ToList();
     if (filterRole != 0)
@@ -253,84 +254,136 @@ else
       dataList = dataList.OrderBy(x => x.first_name).ToList();
   }
 
-  private async Task AccessProduct(UserModel item, CompanyModel.Product product)
+  private async Task<bool> AccessProduct(UserModel item, CompanyModel.Product product)
   {
-    if (item.active)
+    bool _success = true;
+    try
     {
-      var access = ProductService.CheckAccess(item.products, product.id);
-      if (access)
+      if (item.active)
       {
-        // Có quyền rồi → Thì xóa
-        item.products.Remove(product.id);
-        await DbUser.Update(company.id, item);
-      }
-      else if (product.used < product.total)
-      {
-        // Chưa có → Thì thêm quyền sử dụng
-        item.products.Add(product.id);
-        await DbUser.Update(company.id, item);
+        var access = ProductService.CheckAccess(item.products, product.id);
+        if (access)
+        {
+          // Có quyền rồi → Thì xóa
+          item.products.Remove(product.id);
+          await DbUser.Update(company.id, item, globalService);
+        }
+        else if (product.used < product.total)
+        {
+          // Chưa có → Thì thêm quyền sử dụng
+          item.products.Add(product.id);
+          await DbUser.Update(company.id, item, globalService);
+        }
+        else
+        {
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Đã hết số lượng người dùng sản phẩm " + product.title);
+        }
+        company = await CompanyService.UpdateProductAccess(company.id, globalService);
+        await globalService.Update(company.id);
       }
       else
-      {
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Đã hết số lượng người dùng sản phẩm " + product.title);
-      }
-      company = await CompanyService.UpdateProductAccess(company.id);
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Người dùng này đã bị vô hiệu hóa.");
     }
-    else
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Người dùng này đã bị vô hiệu hóa.");
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "AccessProduct()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task ActiveItem(UserModel item)
+  private async Task<bool> ActiveItem(UserModel item)
   {
-    // Xóa quyền dùng sản phẩm khi hủy kích hoạt
-    if (item.active)
-      item.products = new();
-    item.active = !item.active;
-    await DbUser.Update(company.id, item);
-    company = await CompanyService.UpdateProductAccess(company.id);
+    bool _success = true;
+    try
+    {
+      // Xóa quyền dùng sản phẩm khi hủy kích hoạt
+      if (item.active)
+        item.products = new();
+      item.active = !item.active;
+      await DbUser.Update(company.id, item, globalService);
+      company = await CompanyService.UpdateProductAccess(company.id, globalService);
+      await globalService.Update(company.id);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ActiveItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task EditItem(UserModel item)
   {
-    model = await DbUser.Get(company.id, item.id);
+    model = await DbUser.Get(company.id, item.id, globalService);
   }
 
-  private async Task DeleteItem(UserModel item)
+  private async Task<bool> DeleteItem(UserModel item)
   {
-    if (item.role == 1)
+    bool _success = true;
+    try
     {
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể xóa tài khoản Admin");
-    }
-    else
-    {
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?"))
-        return;
-
-      // Xóa trong databse tổ chức
-      item.delete = true;
-      await DbUser.Update(company.id, item);
-      dataList.Remove(item);
-
-      // Cập nhật trong database chính
-      var user = await DbMainUser.Get(item.id);
-      if (user != null && user.companys != null)
+      if (item.role == 1)
       {
-        user.companys.RemoveAll(x => x.id == company.id);
-        await DbMainUser.Update(user);
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể xóa tài khoản Admin");
       }
+      else
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?"))
+          return false;
 
-      company = await CompanyService.UpdateProductAccess(company.id);
+        // Xóa trong databse tổ chức
+        item.delete = true;
+        await DbUser.Update(company.id, item, globalService);
+        dataList.Remove(item);
+
+        // Cập nhật trong database chính
+        var user = await DbMainUser.Get(item.id, null);
+        if (user != null && user.companys != null)
+        {
+          user.companys.RemoveAll(x => x.id == company.id);
+          await DbMainUser.Update(user, globalService);
+        }
+
+        company = await CompanyService.UpdateProductAccess(company.id, globalService);
+        await globalService.Update(company.id);
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task OnUpdate(bool isUpdate)
+  private async Task<bool> OnUpdate(bool isUpdate)
   {
-    if (isUpdate)
+    bool _success = true;
+    try
     {
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin tài khoản NDSP!");
-      await GetList();
+      if (isUpdate)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin tài khoản NDSP!");
+        await GetList();
+      }
+      model = null;
+      company = await CompanyService.UpdateProductAccess(company.id, globalService);
+      await globalService.Update(company.id);
     }
-    model = null;
-    company = await CompanyService.UpdateProductAccess(company.id);
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnUpdate()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

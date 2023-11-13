@@ -1,0 +1,420 @@
+﻿@using System;
+@inject IJSRuntime JSRuntime;
+@inject NavigationManager navigation;
+
+
+@if (isLoading)
+{
+  <LoadingModel />
+}
+else
+{
+  <div style="top: @(isTeam ? "150px" : "24px")" class="customize-possition">
+    <_InputDate @bind-Start="filterDateS"
+    @bind-End="filterDateE"
+                InputClass="is-default-pointer"
+                        HasNavigate
+                ShowCalendar=false
+                Format="MM/yyyy"
+                NavigateType="2"
+                offEdit="true"
+                OnRangeSelect="DateTodoNaviMonth" />
+  </div>
+
+  <CascadingValue Value="this">
+    <div class="custom-calendar">
+      <ul style="z-index: 0" class="calendar-header mt-0">
+        @for (int i = 2; i <= 8; i++)
+        {
+          var dayOfWeek = (int)DateTime.Today.DayOfWeek == 0 ? 8 : (int)DateTime.Today.DayOfWeek + 1;
+          <li style="padding: 5px;">
+            <p style="text-align: center" class="@(dayOfWeek == i ? "is_today" : "" )">
+              @(i == 8 ? "Chủ nhật" : "Thứ " + i)
+            </p>
+          </li>
+        }
+      </ul>
+
+      <div id="scroll-calendar" class="calendar-body">
+        @foreach (var row in dateRange)
+        {
+          <ul class="calendar-container">
+            @foreach (var col in row)
+            {
+              var todos = database.FirstOrDefault(x => x.date == col.Ticks);
+              var isToday = col == DateTime.Today;
+              if (todos == null)
+              {
+                <li id="todo_@(col.Ticks)" @onclick:stopPropagation="true" @onclick="() => ViewDetail(null, null, null, col)" style="position: relative; cursor: pointer !important"
+                    class="@(isToday ? "is_today" : "") todo calendar-item @(currentDate.Ticks == col.Ticks && model != null ? "is_selected" : "")">
+                  <div style="min-height: 25px" class="is-flex is-align-items-center is-justify-content-flex-end">
+                    @if (User.id == Layout.User.id && !isTeam)
+                    {
+                      <span @onclick:stopPropagation="true" class="calendar-icon-add mr-3" @onclick="() => Add(col, new())">
+                        <span class="icon">
+                          <i class="material-icons-outlined font_12">add</i>
+                        </span>
+                      </span>
+                    }
+                    <p class="calendar-day todo mb-0 is-todolist">
+                      <span class="font_12"> @col.Day</span>
+                    </p>
+                  </div>
+                  @if (showPopup && model == null && currentDate.Ticks == col.Ticks)
+                  {
+                    <_TodoCalendarPopup currentDate="currentDate"
+                    @bind-currentTodo="currentTodo"
+                    @bind-currentTodoList="currentTodoList"
+                    @bind-currentTodos="currentTodos"
+                                        OnOff="OffViewDetail"
+                                        OnUpdate="e => showPopup = e"
+                                        OnCreate="e => model = e" />
+                  }
+                </li>
+              }
+              else
+              {
+                var items = allTodos.Where(x => x.todolist == todos.id).ToList();
+                if (filterStatus > 0)
+                {
+                  items.RemoveAll(x => x.status != filterStatus);
+                }
+                items = TodolistService.SortByStatus(items);
+                <li id="todo_@(col.Ticks)"
+                @onclick:stopPropagation="true"
+                @onclick="() => ViewDetail(items, null, todos, col)"
+                    style="gap: 5px; position: relative; cursor: pointer !important"
+                    class="is-flex is-flex-direction-column calendar-item @(isToday ? "is_today" : "")  todo @(currentDate.Ticks == col.Ticks && model != null ? "is_selected" : "")">
+                  <div style="min-height: 25px" class="mb-0 field is-grouped is-justify-content-space-between">
+                    <div style="flex: 1; gap: 0 5px" class="control is-flex is-align-items-center">
+                      @if (todos.date_checkout > 0)
+                      {
+                        <span style="font-size: 10px; line-height: 24px" class="has-text-weight-medium is-secondary-60">Đã check-out</span>
+                      }
+                      else
+                      {
+                        if (todos.date_checkin > 0)
+                        {
+                          <span style="font-size: 10px; line-height: 24px" class="has-text-weight-medium is-secondary-60">Đã check-in</span>
+                        }
+                      }
+                    </div>
+                    <div class="control">
+                      <div style="width: 100%" class="is-flex is-align-items-center">
+                        @if (User.id == Layout.User.id && !isTeam)
+                        {
+                          if (todos.date_checkout == 0)
+                          {
+                            <span class="calendar-icon-add mr-3"
+                            @onclick:stopPropagation="true"
+                            @onclick="() => Add(col, todos)">
+                              <span class="icon">
+                                <i class="material-icons-outlined font_12">add</i>
+                              </span>
+                            </span>
+                          }
+                        }
+                        <p class="calendar-day todo mb-0 is-todolist">
+                          <span class="font_12"> @col.Day</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  @foreach (var todo in items.Take(4))
+                  {
+                    var getStatus = statusList.FirstOrDefault(x => x.id == todo.status);
+                    @if (getStatus != null)
+                    {
+                      var status = getStatus.name.ToLower();
+                      <div @onclick:stopPropagation="true"
+                      @onclick="() => ViewDetail(items, todo, todos, col)"
+                           style="width: 100%;"
+                           class="is-flex container-todo-item @status is-align-items-center">
+                        <p class="font_12 dot-item"></p>
+                        <p style="flex: 1" class="text_1_line font_12 text-todo has-text-weight-medium">@todo.name</p>
+                        <p class="font_12 has-text-weight-medium">@todo.start-@todo.end</p>
+                      </div>
+                    }
+                  }
+                  @if (items.Count() > 4)
+                  {
+                    <span @onclick="() => ViewDetail(items, null, todos, col)"
+                          class="is-block has-text-link font_12 is-pointer has-text-centered">
+                      Tất cả @items.Count() công việc
+                    </span>
+                  }
+
+                  @if (showPopup && model == null && currentDate.Ticks == col.Ticks)
+                  {
+                    var isEdit = Layout.User.id == User.id && !isTeam;
+                    <_TodoCalendarPopup currentDate="currentDate"
+                    @bind-currentTodo="currentTodo"
+                    @bind-currentTodoList="currentTodoList"
+                    @bind-currentTodos="currentTodos"
+                                        OnUpdate="e => showPopup = e"
+                                        OnCreate="e => model = e"
+                                        OnOff="OffViewDetail"
+                                        isEdit="isEdit" />
+                  }
+                </li>
+              }
+            }
+          </ul>
+        }
+      </div>
+    </div>
+  </CascadingValue>
+}
+
+
+
+@if (model != null)
+{
+  <_TodoFormPopup @ref="child" model="model" OnUpdate="UpdateItem" OnClose="ClosePopup" currentDate="currentDate" />
+}
+
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public bool isTeam { get; set; }
+  [Parameter]
+  public UserModel User { get; set; }
+
+  private List<StaticModel> statusList = new();
+  private List<UserModel> userList = new();
+  private List<List<DateTime>> dateRange = new();
+  private long filterDateS;
+  private long filterDateE;
+  private List<TodolistModel> database = new();
+  private TodolistModel.Todo currentTodo = null;
+  private List<TodolistModel.Todo> currentTodos = new();
+  private DateTime currentDate = new();
+  private TodolistModel currentTodoList = new();
+  public TodolistModel.Todo model = null;
+
+  private int dateType = 2;
+  private int filterStatus = 0;
+  private bool showPopup;
+  private bool isLoading = false;
+
+  public _TodoFormPopup child;
+  private List<TodolistModel.Todo> allTodos = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    allTodos = await DbTodoItem.GetList(Layout.Company.id, null);
+    Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
+    filterDateS = start.Ticks;
+    filterDateE = end.Ticks;
+
+    if (filterDateS > 0 && filterDateE > 0)
+    {
+      SetupDateRange();
+      await GetTodolist();
+    }
+    statusList = DbTodolist.Status();
+
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+    {
+      await JSRuntime.InvokeVoidAsync("dragScroll", "scroll-calendar");
+    }
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    if (isTeam)
+      await GetTodolist();
+  }
+
+  private void SetupDateRange()
+  {
+    if (filterDateS == 0 || filterDateE == 0)
+      return;
+
+    dateRange = new();
+    var startDate = new DateTime(filterDateS);
+    var endDate = new DateTime(filterDateE);
+    int totalDays = (int)Math.Round((endDate - startDate).TotalDays, 0);
+
+    List<DateTime> row = new();
+    var startDayOfWeek = (int)startDate.DayOfWeek == 0 ? 7 : (int)startDate.DayOfWeek;
+    var enddayOfWeek = (int)endDate.DayOfWeek == 0 ? 7 : (int)endDate.DayOfWeek;
+
+    if (startDayOfWeek > 1)
+    {
+      startDate = startDate.AddDays(-startDayOfWeek + 1);
+    }
+    if (enddayOfWeek < 7)
+    {
+      endDate = endDate.AddDays(7 - enddayOfWeek);
+    }
+
+    var date = startDate;
+
+    while (date.Ticks <= endDate.Ticks)
+    {
+      if (row.Count < 7)
+      {
+        row.Add(date);
+      }
+      if (row.Count == 7)
+      {
+        dateRange.Add(row);
+        row = new();
+      }
+      date = date.AddDays(1);
+    }
+  }
+
+  private bool CheckOutOfRange(DateTime date)
+  {
+    long startOfMonthTicks = filterDateS;
+    long endOfMonthTicks = filterDateE;
+
+    long dateTicks = date.Ticks;
+
+    if (dateTicks >= startOfMonthTicks && dateTicks <= endOfMonthTicks)
+      return false;
+    return true;
+  }
+
+  private async Task GetTodolist()
+  {
+    try
+    {
+      isLoading = true;
+      SetupDateRange();
+      var first = dateRange.FirstOrDefault()?.FirstOrDefault() ?? new DateTime(filterDateS);
+      var last = dateRange.LastOrDefault()?.LastOrDefault() ?? new DateTime(filterDateE);
+      database = await DbTodolist.GetList(Layout.Company.id, User.id, first, last, true);
+      await TodolistService.AutoConfirm(database, Layout.Company.todolist.time_confirm, Layout.Company.id);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetTodolist()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
+    finally
+    {
+      isLoading = false;
+    }
+  }
+
+  private void ViewDetail(List<TodolistModel.Todo> _todos, TodolistModel.Todo _todo, TodolistModel _todolist, DateTime _date)
+  {
+    showPopup = true;
+    currentTodo = _todo;
+    currentTodos = _todos == null ? new() : _todos;
+    currentTodoList = _todolist == null ? new() : _todolist;
+    currentDate = _date;
+  }
+
+
+  private void Add(DateTime date, TodolistModel currentAdd)
+  {
+    string start = "08:30";
+    string end = "09:30";
+
+    if (date.ToString("yyyy-MM-dd") == DateTime.Now.ToString("yyyy-MM-dd"))
+    {
+      start = string.Format("{0:HH:30}", DateTime.Now);
+      end = string.Format("{0:HH:30}", DateTime.Now.AddHours(1));
+    }
+    var item = new TodolistModel.Todo()
+      {
+        id = Mongo.RandomId(),
+        type = 1,
+        level = 1,
+        date = date.Date.Ticks,
+        status = 1,
+        start = start,
+        end = end
+      };
+    model = item;
+    currentDate = date;
+    currentTodoList = currentAdd;
+  }
+
+  private async Task UpdateItem(TodolistModel.Todo item)
+  {
+    if (Shared.IsEmpty(currentTodoList.id))
+    {
+      currentTodoList = new TodolistModel();
+      currentTodoList.date = currentDate.Ticks;
+      currentTodoList.user_create = Layout.User.id;
+      currentTodoList = await DbTodolist.Create(Layout.Company.id, currentTodoList);
+    }
+    // Tạo mới công việc
+    if (string.IsNullOrEmpty(item.todolist))
+    {
+      if (item.is_loop)
+      {
+        var randomId = Mongo.RandomId();
+        item.id = randomId;
+        item.parentId = randomId;
+      }
+      item.user = Layout.User.id;
+      item.date = currentTodoList.date;
+      item.todolist = currentTodoList.id;
+      if (item.is_loop)
+        await TodolistService.HandleCreateTodoLoop(item, Layout.Company.id, Layout.User.id);
+      await DbTodoItem.Create(Layout.Company.id, item);
+      await DbTodolist.Update(Layout.Company.id, currentTodoList);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo mới todolist thành công!");
+    }
+    // Chỉnh sửa công việc
+    else
+    {
+      await DbTodoItem.Update(Layout.Company.id, item);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Cập nhật todolist thành công!");
+    }
+
+
+    await DbTodolist.Update(Layout.Company.id, currentTodoList);
+    await GetTodolist();
+
+    currentTodos.RemoveAll(x => x.id == item.id);
+    currentTodos.Add(item);
+    model = null;
+    StateHasChanged();
+  }
+
+
+  private async Task DateTodoNaviMonth()
+  {
+    SetupDateRange();
+    await GetTodolist();
+    OffViewDetail();
+    model = null;
+  }
+
+  private async Task ClosePopup()
+  {
+    OffViewDetail();
+    await GetTodolist();
+    model = null;
+  }
+
+  private void OffViewDetail()
+  {
+    currentTodo = null;
+    currentTodos = new();
+    currentTodoList = new();
+    currentDate = new();
+  }
+
+
+  private async Task ChangeFilterStatus(int value)
+  {
+    filterStatus = value;
+    await GetTodolist();
+  }
+
+}

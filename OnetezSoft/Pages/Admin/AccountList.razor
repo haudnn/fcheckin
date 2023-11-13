@@ -2,21 +2,68 @@
 @layout LayoutAdmin
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
 <section class="px-4">
   <ul class="columns is-vcentered is-multiline is-variable is-2 mb-4">
-    <li class="column">
+    <li class="column is-narrow">
       <h1 class="title is-5">
         @_title:
         <span class="has-text-weight-normal">@total.ToString() tài khoản</span>
       </h1>
     </li>
+    <li class="column">
+      <Dropdown>
+        <Trigger>
+          <div class="avatar_list">
+            @{
+              var count = 0;
+            }
+            @foreach(var row in onlineList)
+            {
+              var user = dataList.FirstOrDefault(x => x.id == row.Key);
+              if(user != null && count < 10)
+              {
+                <a class="image is-rounded is-24x24" title="@user.FullName">
+                  <img src="@user.avatar" alt="IMG">
+                </a>
+                count++;
+              }
+            }
+            @if (onlineList.Count > 10)
+            {
+              <a class="image is-rounded is-24x24 has-background-grey-light is-size-7 has-text-white"
+                 style="justify-content: center; align-items: center;">
+                +@(onlineList.Count - 10)
+              </a>
+            }
+          </div>
+        </Trigger>
+        <MenuContent>
+          @foreach(var row in onlineList)
+          {
+            var user = dataList.FirstOrDefault(x => x.id == row.Key);
+            if(user != null)
+            {
+              <a class="dropdown-item">
+                <div class="icon-text">
+                  <span class="icon image is-24x24 is-rounded mr-2">
+                    <img src="@user.avatar" alt="IMG">
+                    </span>
+                  <span class="has-text-dark">@user.FullName</span>
+                </div>
+              </a>
+            }
+          }
+        </MenuContent>
+      </Dropdown>
+    </li>
     <li class="column is-one-third">
       <div class="control has-icons-left" title="Nhấn Enter để tìm">
         <input @bind="filterKeyword" @onkeyup="ChangeKeyword" type="text" class="input is-small"
-          placeholder="Tìm theo ID, email, tên khách hàng, công ty" />
+               placeholder="Tìm theo ID, email, tên khách hàng, công ty" />
         <span class="icon is-left has-text-dark">
           <i class="material-icons-round is-size-6">search</i>
         </span>
@@ -25,7 +72,7 @@
     <li class="column is-narrow">
       <div class="field has-addons">
         <div class="control">
-           <span class="button is-small is-static">Sắp xếp</span>
+          <span class="button is-small is-static">Sắp xếp</span>
         </div>
         <div class="control is-expanded">
           <div class="select is-small is-full">
@@ -62,7 +109,7 @@
         var avatar = item.avatar.StartsWith("/") ? ConfigSystem.Domain + item.avatar : item.avatar;
         <tr>
           <td>
-            @if(item.delete)
+            @if (item.delete)
             {
               <del class="has-text-grey">@item.id</del>
             }
@@ -88,17 +135,19 @@
           <td>
             <label class="td-label">Tổ chức</label>
             <div class="td-value">
-              @string.Join(", ", companys)
+              <div class="text_2_line">
+                @string.Join(", ", companys)
+              </div>
             </div>
           </td>
           <td align="center">
             <label class="td-label">Loại</label>
             <div class="td-value has-text-weight-semibold is-uppercase">
-              @if(item.is_admin)
+              @if (item.is_admin)
               {
                 <span class="has-text-danger mr-2">Admin</span>
               }
-              @if(item.is_customer)
+              @if (item.is_customer)
               {
                 <span class="has-text-link">Khách</span>
               }
@@ -166,23 +215,44 @@
   public LayoutAdmin Layout { get; set; }
   private string _title = "Quản lý tài khoản";
   private List<UserModel> dataList = new();
+  private Dictionary<string,string> onlineList = new();
   private string filterKeyword = string.Empty;
   private int orderby = 1;
   private int paging = 1;
   private int size = 50;
   private int total = 0;
 
-  protected override void OnParametersSet()
+  protected override async Task OnInitializedAsync()
+  {
+    onlineList = await globalService.GetOnline();
+    await GetOnline();
+    await GetList();
+  }
+
+  protected override async Task OnParametersSetAsync()
   {
     var uri = navigation.ToAbsoluteUri(navigation.Uri);
     if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("p", out var outPage))
       paging = Convert.ToInt32(outPage);
-    GetList();
+
+    await GetList();
   }
 
-  private void GetList()
+  private async Task<bool> GetList()
   {
-    dataList = DbMainUser.GetAll(filterKeyword, orderby, paging, size, out total);
+    bool _success = true;
+    try
+    {
+      dataList = DbMainUser.GetAll(filterKeyword, orderby, paging, size, out total);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void ChangeKeyword(KeyboardEventArgs args)
@@ -210,40 +280,98 @@
     //GetList();
   }
 
-  private async Task AvatarItem(UserModel item)
+  private async Task<bool> AvatarItem(UserModel item)
   {
-    item.avatar = $"https://avatars.dicebear.com/api/micah/{Mongo.RandomId()}.svg?background=pink";
-    await DbMainUser.Update(item);
-  }
-
-  private async Task UpdateItem(UserModel item)
-  {
-    await DbMainUser.Update(item);
-    await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã cập nhật tài khoản {item.email}");
-  }
-
-  private async Task ActiveItem(UserModel item)
-  {
-    item.active = !item.active;
-    await DbMainUser.Update(item);
-  }
-
-  private async Task DeleteItem(UserModel item)
-  {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa vĩnh viễn tài khoản {item.email} ?"))
-      return;
-    
-    int count = 0;
-    if(item.companys != null)
+    bool _success = true;
+    try
     {
-      foreach (var company in item.companys)
-      {
-        await DbUser.Delete(company.id, item.id);
-        count++;
-      }
+      item.avatar = $"https://avatars.dicebear.com/api/micah/{Mongo.RandomId()}.svg?background=pink";
+      await DbMainUser.Update(item, globalService);
     }
-    await DbMainUser.Delete(item.id);
-    await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã xóa tài khoản {item.email} khỏi {count} tổ chức");
-    dataList.Remove(item);
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "AvatarItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> UpdateItem(UserModel item)
+  {
+    bool _success = true;
+    try
+    {
+      await DbMainUser.Update(item, globalService);
+      await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã cập nhật tài khoản {item.email}");
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> ActiveItem(UserModel item)
+  {
+    bool _success = true;
+    try
+    {
+      item.active = !item.active;
+      await DbMainUser.Update(item, globalService);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ActiveItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> DeleteItem(UserModel item)
+  {
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa vĩnh viễn tài khoản {item.email} ?"))
+        return false;
+
+      int count = 0;
+      if (item.companys != null)
+      {
+        foreach (var company in item.companys)
+        {
+          await DbUser.Delete(company.id, item.id);
+          await globalService.Update(company.id);
+          count++;
+        }
+      }
+      await DbMainUser.Delete(item.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã xóa tài khoản {item.email} khỏi {count} tổ chức");
+      dataList.Remove(item);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task GetOnline()
+  {
+    while (true)
+    {
+      await Task.Delay(30000);
+      onlineList = await globalService.GetOnline();
+    }
   }
 }

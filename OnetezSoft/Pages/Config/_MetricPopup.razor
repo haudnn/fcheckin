@@ -1,0 +1,112 @@
+﻿@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
+
+@if (modelEdit != null)
+{
+  <Slider Size="@ComponentModel.SizeType.Normal">
+    <Header>
+      <div class="columns is-variable is-2 is-mobile is-vcentered">
+        <div class="column">
+          <div class="has-text-weight-bold is-size-5">
+            <span>@(Shared.IsEmpty(modelEdit.id) ? "Tạo chỉ số KPIs" : "Chỉnh sửa chỉ số KPIs")</span>
+          </div>
+        </div>
+        <div class="column is-narrow">
+          <span class="icon-text has-text-danger is-clickable" @onclick="Cancel">
+            <span class="icon">
+              <span class="material-icons-outlined">close</span>
+            </span>
+            <span>Đóng</span>
+          </span>
+        </div>
+      </div>
+    </Header>
+    <Body>
+      <ul class="columns is-multiline is-vcentered">
+        <li class="column is-half">
+          <span class="mb-2">Tên chỉ số KPIs (*)</span>
+          <input @bind="modelEdit.name" class="is-fullwidth input is_bg mt-2" type="text" placeholder="Nhập tên chỉ số KPIs" />
+        </li>
+        <li class="column is-half">
+          <span class="mb-2">Đơn vị (*)</span>
+          <input @bind="modelEdit.units" class="is-fullwidth input is_bg mt-2" type="text" placeholder="Nhập đơn vị" />
+        </li>
+        <li class="column is-full">
+          <span>Mô tả</span>
+          <textarea @bind="modelEdit.description" class="textarea is_bg mt-2" rows="6" placeholder="Nhập mô tả..." />
+        </li>
+      </ul>
+    </Body>
+    <Footer>
+      <div class="field is-grouped is-grouped-right">
+        <div class="control">
+          <Button Content="Huỷ" Color="@ComponentModel.ColorType.Info" IconLeft="cancel" Onclick="Cancel" />
+        </div>
+        <div class="control">
+          <Button Content="Cập nhật" IconLeft="check"
+                  Color="@ComponentModel.ColorType.Link" Onclick="Update" />
+        </div>
+      </div>
+    </Footer>
+  </Slider>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public KpisMetricModel model { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; } = new();
+  private KpisMetricModel modelEdit;
+
+
+  protected override void OnInitialized()
+  {
+    modelEdit = Shared.Clone(model);
+  }
+  private async Task Update()
+  {
+    if (Shared.IsEmpty(modelEdit.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Bạn chưa nhập Tên chỉ số KPIs!");
+    else if (Shared.IsEmpty(modelEdit.units))
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Bạn chưa nhập Đơn vị!");
+    else
+    {
+      model = Shared.Clone(modelEdit);
+
+      if (Shared.IsEmpty(model.id))
+      {
+        await DbKpisMetric.Create(Layout.Company.id, model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã tạo chỉ số KPIs thành công!");
+        await SendNotify(1003);
+      }
+      else
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Các thay đổi này sẽ bắt đầu áp dụng cho cây KPIs mới kể từ ngày {DateTime.Now.ToString("dd'/'MM'/'yyyy")}, Bạn có muốn tiếp tục? "))
+          return;
+        await DbKpisMetric.Update(Layout.Company.id, model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Cập nhật chỉ số KPIs thành công!");
+        await SendNotify(1004);
+      }
+
+      model = Shared.Clone(modelEdit);
+      await OnUpdate.InvokeAsync(true);
+    }
+  }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+  }
+
+
+  private async Task SendNotify(int notifyType)
+  {
+    // Gửi thông báo chuông
+    var targetList = await globalService.GetUserList(Layout.Company.id);
+    targetList = targetList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.kpis)).ToList();
+    foreach (var user in targetList)
+      await DbNotify.Create(Layout.Company.id, notifyType, model.name, user.id, Layout.User.id);
+  }
+}

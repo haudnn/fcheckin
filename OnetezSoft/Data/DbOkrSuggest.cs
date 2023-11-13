@@ -1,11 +1,9 @@
-﻿using System;
+﻿using MongoDB.Driver;
+using OnetezSoft.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
 
 namespace OnetezSoft.Data
 {
@@ -49,7 +47,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<SuggestModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
@@ -68,13 +66,13 @@ namespace OnetezSoft.Data
     }
 
 
-    public static List<SuggestModel> GetAll(string companyId, string cycle)
+    public static async Task<List<SuggestModel>> GetAll(string companyId, string cycle)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<SuggestModel>(_collection);
 
-      var results = collection.Find(x => x.cycle == cycle && !x.draft).ToList();
+      var results = await collection.FindAsync(x => x.cycle == cycle && !x.draft).Result.ToListAsync();
 
       return results.OrderByDescending(x => x.date).ToList();
     }
@@ -96,9 +94,9 @@ namespace OnetezSoft.Data
       else
         filtered = filtered & builder.Eq("department", department);
 
-      var sorted = Builders<SuggestModel>.Sort.Descending("date");
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
 
-      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+      return (from x in result orderby x.date descending select x).ToList();
     }
 
 
@@ -116,7 +114,9 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<SuggestModel>.Sort.Ascending("date");
 
-      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      return (from x in result orderby x.date select x).ToList();
     }
   }
 }

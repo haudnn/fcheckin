@@ -4,7 +4,8 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models
 {
-	public class HrmDayOffModel
+  [BsonIgnoreExtraElements]
+  public class HrmDayOffModel
 	{
 		[BsonId]
 		public string id { get; set; }

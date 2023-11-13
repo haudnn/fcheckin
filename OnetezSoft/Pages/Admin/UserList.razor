@@ -2,6 +2,7 @@
 @layout LayoutAdmin
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
@@ -160,13 +161,25 @@
     await GetList();
   }
 
-  private async Task GetList()
+  private async Task<bool> GetList()
   {
-    dataList = await DbMainUser.GetListAdmin();
-    if (filterStatus == 1)
-      dataList = dataList.Where(x => x.active).ToList();
-    else if (filterStatus == 2)
-      dataList = dataList.Where(x => !x.active).ToList();
+    bool _success = true;
+    try
+    {
+      dataList = await DbMainUser.GetListAdmin();
+      if (filterStatus == 1)
+        dataList = dataList.Where(x => x.active).ToList();
+      else if (filterStatus == 2)
+        dataList = dataList.Where(x => !x.active).ToList();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task ChangeStatus(ChangeEventArgs e)
@@ -175,33 +188,69 @@
     await GetList();
   }
 
-  private async Task ActiveItem(UserModel item)
+  private async Task<bool> ActiveItem(UserModel item)
   {
-    item.active = !item.active;
-    await DbMainUser.Update(item);
-  }
-
-  private async Task DeleteItem(UserModel item)
-  {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?"))
-      return;
-
-    item.is_admin = false;
-    await DbMainUser.Update(item);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa tài khoản " + item.email);
-    dataList.Remove(item);
-  }
-
-  private async Task EditItem(UserModel item)
-  {
-    if (item == null)
+    bool _success = true;
+    try
     {
-      model = new UserModel();
-      model = new() { companys = new(), role_manage = new(), is_admin = true, active = true };
-      model.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
+      item.active = !item.active;
+      await DbMainUser.Update(item, globalService);
     }
-    else
-      model = await DbMainUser.Get(item.id); ;
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ActiveItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> DeleteItem(UserModel item)
+  {
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?"))
+        return false;
+
+      item.is_admin = false;
+      await DbMainUser.Update(item, globalService);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa tài khoản " + item.email);
+      dataList.Remove(item);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> EditItem(UserModel item)
+  {
+    bool _success = true;
+    try
+    {
+      if (item == null)
+      {
+        model = new UserModel();
+        model = new() { companys = new(), role_manage = new(), is_admin = true, active = true };
+        model.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
+      }
+      else
+        model = await DbMainUser.Get(item.id, null);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "EditItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task OnUpdate(bool isUpdate)

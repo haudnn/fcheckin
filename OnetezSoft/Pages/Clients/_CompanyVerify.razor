@@ -1,4 +1,6 @@
 ﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
 @if (model != null)
 {
@@ -70,7 +72,7 @@
                   </div>
                   <div class="py-6">
                     <input @bind="verify" class="input_code has-text-danger" type="text"
-                         maxlength="6" placeholder="______">
+                           maxlength="6" placeholder="______">
                   </div>
                   <div class="has-text-weight-medium is-italic">
                     <span>Không nhận được mã xác thực?</span>
@@ -137,27 +139,38 @@
   private async Task<bool> Verify()
   {
     await JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email xác nhận...");
-
     model.status = false;
     model.verify = Shared.RandomInt(100000, 999999).ToString();
-    await DbMainCompany.Update(model);
-
+    Console.WriteLine(model.verify);
     bool send = EmailService.CompanyActive(Layout.User.email, model.verify, model.name, out message);
     await JSRuntime.InvokeVoidAsync("tagline", send, message);
     return send;
   }
 
-  private async Task Active()
+  private async Task<bool> Active()
   {
-    if (string.IsNullOrEmpty(verify))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập mã xác thực.");
-    else if (verify != model.verify)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Mã xác thực không chính xác.");
-    else
+    bool _success = true;
+    try
     {
-      model.status = true;
-      await DbMainCompany.Update(model);
-      return;
+      if (string.IsNullOrEmpty(verify))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập mã xác thực.");
+      else if (verify != model.verify)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Mã xác thực không chính xác.");
+      else
+      {
+        model.status = true;
+        await DbMainCompany.Update(model);
+        await globalService.Update(model.id);
+        return false;
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Active()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

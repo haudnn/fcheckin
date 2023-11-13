@@ -2,6 +2,7 @@
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class NotifyModel
   {
     [BsonId]
@@ -10,9 +11,9 @@ namespace OnetezSoft.Models
     public string name { get; set; }
     // Link
     public string link { get; set; }
-    // Người nhận
     // id người gửi
     public string user_send { get; set; }
+    // Người nhận
     public string user { get; set; }
     // Avatar người gửi
     public string avatar { get; set; }

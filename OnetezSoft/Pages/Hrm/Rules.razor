@@ -1,366 +1,419 @@
-@page "/hrm/setup/rules"
+@page "/config/timekeeping/rules"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
-
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
 @if (_access && rules != null)
 {
-  <section class="p-4 dayoff">
-    <div class="tabs is-boxed mb-0">
-      <ul style="font-size:14px;">
-        <li class="@(tab == 1 ? "is-active" : "")">
-          <a @onclick="() => ChangeTab(1)">
-            <span>Chung</span>
-          </a>
-        </li>
-        <li class="@(tab == 2 ? "is-active" : "")">
-          <a @onclick="() => ChangeTab(2)">
-            <span>Đơn từ</span>
-          </a>
-        </li>
-      </ul>
+  <div class="tabs mt-0">
+    <div class="tabs_name ">
+      <div class="title is-5 has-text-info is-uppercase">
+        Quy định
+      </div>
     </div>
-    <div class="card p-5 ">
-      <div class="mb-6">
-        @if (tab == 1)
-        {
-          <div class="has-text-weight-semibold mb-2">
-            Quy định chấm công
+    <ul>
+      <li class="@(tab == 1 ? "is-active" : "")">
+        <a @onclick="() => ChangeTab(1)">
+          <span class="font_14 has-text-weight-medium">Chung</span>
+        </a>
+      </li>
+      <li class="@(tab == 2 ? "is-active" : "")">
+        <a @onclick="() => ChangeTab(2)">
+          <span class="font_14 has-text-weight-medium">Đơn từ</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+  <div class="scrolly inner_section" style="flex:1">
+    <div class="">
+      @if (tab == 1)
+      {
+        <div class="has-text-weight-semibold mb-2">
+          Quy định chấm công
+        </div>
+        <div class="is-flex is-align-items-center" style="gap:0 10px">
+          <div>
+            <a class="icon-text" @onclick="() => rules.check_in_out.is_in_early = !rules.check_in_out.is_in_early">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-5  @(rules.check_in_out.is_in_early ? "has-text-link	" : "has-text-grey")">
+                  @(rules.check_in_out.is_in_early ? "toggle_on" : "toggle_off")
+                </span>
+              </span>
+              <span class="has-text-weight-medium">
+                Hạn chế check-in sớm
+              </span>
+            </a>
           </div>
-          <div class="is-flex is-align-items-center" style="gap:0 10px">
-            <div>
-              <a class="icon-text" @onclick="() => rules.check_in_out.is_in_early = !rules.check_in_out.is_in_early">
-                <span class="icon">
-                  <span class="material-icons-outlined is-size-5  @(rules.check_in_out.is_in_early ? "has-text-link	" : "has-text-grey")">
-                    @(rules.check_in_out.is_in_early ? "toggle_on" : "toggle_off")
-                  </span>
-                </span>
-                <span class="has-text-weight-medium">
-                  Hạn chế check-in sớm
-                </span>
-              </a>
+          @if (rules.check_in_out.is_in_early)
+          {
+            <div class="is-flex is-align-items-center" style="gap:0 10px;">
+              <input class="input is_underline has-text-centered" type="text" @bind="rules.check_in_out.in_early" style="width: 60px;" />
+              <span>phút</span>
             </div>
-            @if (rules.check_in_out.is_in_early)
-            {
-              <div class="is-flex is-align-items-center" style="gap:0 10px;">
-                <input class="input is_underline has-text-centered" type="text" @bind="rules.check_in_out.in_early" style="width: 60px;" />
+          }
+          else
+          {
+            <div style="opacity:0.5">
+              <div class="is-flex is-align-items-center" style="gap: 10px">
+                <p class="has-text-centered">@rules.check_in_out.in_early</p>
                 <span>phút</span>
               </div>
+            </div>
+          }
+        </div>
+        <p class="is-size-7 is-italic has-text-grey mb-2" style="padding-left:24px">
+          @(rules.check_in_out.is_in_early && rules.check_in_out.in_early > 0 ? $"Nhân viên được phép check-in sớm trước {rules.check_in_out.in_early} phút so với giờ bắt đầu ca" : "Nhân viên được phép check-in sớm không giới hạn so với giờ bắt đầu ca")
+        </p>
+
+        <div class="is-flex is-align-items-center" style="gap:0 10px">
+          <div>
+            <a class="icon-text" @onclick="() => rules.check_in_out.is_in_late = !rules.check_in_out.is_in_late">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-5 @(rules.check_in_out.is_in_late ? "has-text-link	" : "has-text-grey")">
+                  @(rules.check_in_out.is_in_late ? "toggle_on" : "toggle_off")
+                </span>
+              </span>
+              <span class="has-text-weight-medium">
+                Ghi nhận công check-in trễ
+              </span>
+            </a>
+          </div>
+          @if (rules.check_in_out.is_in_late)
+          {
+            <div class="is-flex is-align-items-center" style="gap :0 10px;">
+              <input class="input is_underline has-text-centered" type="text" @bind="rules.check_in_out.in_late" style="width: 60px;" />
+              <span>phút</span>
+            </div>
+          }
+          else
+          {
+            <div style="opacity:0.5">
+              <div class="is-flex is-align-items-center" style="gap: 10px">
+                <p class="has-text-centered">@rules.check_in_out.in_late</p>
+                <span>phút</span>
+              </div>
+            </div>
+          }
+        </div>
+        <p class="is-size-7 is-italic has-text-grey mb-2" style="padding-left:24px">
+          @(rules.check_in_out.is_in_late ? $"Nhân viên được phép check-in trễ tối đa {rules.check_in_out.in_late} phút so với giờ bắt đầu ca" : "Nhân viên được phép check-in trễ không giới hạn so với giờ bắt đầu ca")
+          <span class="has-text-danger has-text-weight-medium">mà vẫn được tính công</span> (Ngoại trừ những ca tính công theo giờ).
+        </p>
+
+        <div class="is-flex is-align-items-center" style="gap:0 10px">
+          <div>
+            <a class="icon-text" @onclick="() => rules.check_in_out.is_out_early = !rules.check_in_out.is_out_early">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-5 @(rules.check_in_out.is_out_early ? "has-text-link	" : "has-text-grey")">
+                  @(rules.check_in_out.is_out_early ? "toggle_on" : "toggle_off")
+                </span>
+              </span>
+              <span class="has-text-weight-medium">
+                Ghi nhận công check-out sớm
+              </span>
+            </a>
+          </div>
+          @if (rules.check_in_out.is_out_early)
+          {
+            <div class="is-flex is-align-items-center" style="gap:0 10px;">
+              <input class="input is_underline has-text-centered" type="text" @bind="rules.check_in_out.out_early" style="width: 60px;" />
+              <span>phút</span>
+            </div>
+          }
+          else
+          {
+            <div style="opacity:0.5">
+              <div class="is-flex is-align-items-center" style="gap: 10px">
+                <p class="has-text-centered" style="width:100%">
+                  @rules.check_in_out.out_early
+                </p>
+                <span>phút</span>
+              </div>
+            </div>
+          }
+        </div>
+        <p class="is-size-7 is-italic has-text-grey mb-2" style="padding-left:24px">
+          @(rules.check_in_out.is_out_early ? $"Nhân viên được phép check-out sớm tối đa {rules.check_in_out.out_early} phút so với giờ kết thúc ca" : "Nhân viên được phép check-out sớm không giới hạn so với giờ kết thúc ca")
+          <span class="has-text-danger has-text-weight-medium">mà vẫn được tính công</span> (Ngoại trừ những ca tính công theo giờ).
+        </p>
+
+        <div class="is-flex is-align-items-center" style="gap:0 10px">
+          <div>
+            <a class="icon-text" @onclick="() => rules.is_check_device = !rules.is_check_device">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-5 @(rules.is_check_device ? "has-text-link	" : "has-text-grey")">
+                  @(rules.is_check_device ? "toggle_on" : "toggle_off")
+                </span>
+              </span>
+              <span class="has-text-weight-medium">
+                Kiểm tra thiết bị chấm công
+              </span>
+            </a>
+          </div>
+        </div>
+        <p class="is-size-7 is-italic has-text-grey mb-2" style="padding-left:24px">
+          Kiểm tra thiết bị chấm công của nhân viên và mỗi nhân viên chỉ được đăng ký
+          <span class="has-text-danger has-text-weight-medium">1 thiết bị chấm công</span>.
+        </p>
+
+        <div class="has-text-weight-semibold mt-4 mb-2">
+          Quy định làm ngoài giờ
+        </div>
+        <div class="is-flex is-align-items-center" style="gap:0 10px">
+          <div @onclick="() => rules.overtime.is_active = !rules.overtime.is_active">
+            <a class="icon-text">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-5 @(rules.overtime.is_active ? "has-text-link	" : "has-text-grey")">
+                  @(rules.overtime.is_active ? "toggle_on" : "toggle_off")
+                </span>
+              </span>
+              <span class="has-text-weight-medium">
+                Làm thêm tối thiểu
+              </span>
+            </a>
+          </div>
+          @if (rules.overtime.is_active)
+          {
+            <div lass="is-flex is-align-items-center" style="gap :0 10px;">
+              <input class="input is_underline has-text-centered" type="text" @bind="rules.overtime.min_minutes" style="width: 60px;" />
+              <span>phút</span>
+            </div>
+          }
+          else
+          {
+            <div style="opacity:0.5">
+              <div class="is-flex is-align-items-center" style="gap: 10px">
+                <p class="has-text-centered">@rules.overtime.min_minutes</p>
+                <span>phút</span>
+              </div>
+            </div>
+          }
+        </div>
+        <p class="is-size-7 is-italic has-text-grey mb-2" style="padding-left:24px">
+          Nhân viên có thể chấm công ngoài ca được phân với số phút tối thiểu để <span class="has-text-danger has-text-weight-medium">ghi nhận giờ làm thêm</span>.
+        </p>
+        <div class="is-flex is-align-items-center" style="gap:0 10px">
+          <div @onclick="() => rules.overtime.is_show = !rules.overtime.is_show">
+            <a class="icon-text">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-5 @(rules.overtime.is_show ? "has-text-link	" : "has-text-grey")">
+                  @(rules.overtime.is_show ? "toggle_on" : "toggle_off")
+                </span>
+              </span>
+              <span class="has-text-weight-medium">
+                Hiển thị trên bảng công
+              </span>
+            </a>
+          </div>
+        </div>
+
+
+        <div class="has-text-weight-semibold mt-4 mb-2">
+          Quy định phân ca
+        </div>
+        <ul class="columns is-variable is-2 is-vcentered">
+          <li class="column is-narrow is-flex" @onclick="() => rules.register_shift.has_register_shifts = !rules.register_shift.has_register_shifts">
+            <a class="icon-text">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-5 @(rules.register_shift.has_register_shifts ? "has-text-link	" : "has-text-grey")">
+                  @(rules.register_shift.has_register_shifts ? "toggle_on" : "toggle_off")
+                </span>
+              </span>
+              <span class="has-text-weight-medium">
+                Cho phép đăng ký ca làm
+              </span>
+            </a>
+          </li>
+        </ul>
+        <p class="is-size-7 is-italic has-text-grey mt-1 mb-2" style="padding-left:24px">
+          Nhân viên được phép đăng ký ca làm và quản lý phê duyệt bảng đăng ký ca
+        </p>
+        <ul class="columns is-variable is-2 is-vcentered" style="padding-left:24px">
+          <li class="column is-narrow is-flex">
+            @if (rules.register_shift.has_register_shifts)
+            {
+              <span class="has-text-weight-medium mr-2">
+                Nhân viên áp dụng
+              </span>
+              <_MemberDayOff members="rules.register_shift.users" sources="shareStorage.MemberList.Where(x => x.role != 1 && !(x.role == 2 && x.role_manage.timekeeping)).ToList()"
+                             isEdit="true" isUp="true" />
             }
             else
             {
-              <div style="opacity:0.5">
-                <div class="is-flex is-align-items-center" style="gap: 10px">
-                  <p class="has-text-centered">@rules.check_in_out.in_early</p>
-                  <span>phút</span>
-                </div>
-              </div>
-            }
-          </div>
-          <p class="is-size-7 is-italic has-text-grey mb-2" style="padding-left:24px">
-            @(rules.check_in_out.is_in_early && rules.check_in_out.in_early > 0 ? $"Nhân viên được phép check-in sớm trước {rules.check_in_out.in_early} phút so với giờ bắt đầu ca" : "Nhân viên được phép check-in sớm không giới hạn so với giờ bắt đầu ca")
-          </p>
-
-          <div class="is-flex is-align-items-center" style="gap:0 10px">
-            <div>
-              <a class="icon-text" @onclick="() => rules.check_in_out.is_in_late = !rules.check_in_out.is_in_late">
-                <span class="icon">
-                  <span class="material-icons-outlined is-size-5 @(rules.check_in_out.is_in_late ? "has-text-link	" : "has-text-grey")">
-                    @(rules.check_in_out.is_in_late ? "toggle_on" : "toggle_off")
+              <span class="has-text-weight-medium mr-2" style="opacity:0.5">
+                Nhân viên áp dụng
+              </span>
+              <div class="avatar_list" style="opacity:0.5">
+                @foreach (var item in shareStorage.MemberList.Where(i => rules.register_shift.users.Contains(i.id)).ToList())
+                {
+                  <span class="image is-rounded is-24x24 has-background-grey" title="@item.name">
+                    @if (string.IsNullOrEmpty(item.avatar))
+                    {
+                      <span class="is-text">@item.name</span>
+                    }
+                    else
+                    {
+                      <img src="@item.avatar" alt="AVT">
+                    }
                   </span>
-                </span>
-                <span class="has-text-weight-medium">
-                  Ghi nhận công check-in trễ
-                </span>
-              </a>
-            </div>
-            @if (rules.check_in_out.is_in_late)
-            {
-              <div class="is-flex is-align-items-center" style="gap :0 10px;">
-                <input class="input is_underline has-text-centered" type="text" @bind="rules.check_in_out.in_late" style="width: 60px;" />
-                <span>phút</span>
-              </div>
-            }
-            else
-            {
-              <div style="opacity:0.5">
-                <div class="is-flex is-align-items-center" style="gap: 10px">
-                  <p class="has-text-centered">@rules.check_in_out.in_late</p>
-                  <span>phút</span>
-                </div>
-              </div>
-            }
-          </div>
-          <p class="is-size-7 is-italic has-text-grey mb-2" style="padding-left:24px">
-            @(rules.check_in_out.is_in_late ? $"Nhân viên được phép check-in trễ tối đa {rules.check_in_out.in_late} phút so với giờ bắt đầu ca" : "Nhân viên được phép check-in trễ không giới hạn so với giờ bắt đầu ca")
-            <span class="has-text-danger has-text-weight-medium">mà vẫn được tính công</span>.
-          </p>
+                }
 
-          <div class="is-flex is-align-items-center" style="gap:0 10px">
-            <div>
-              <a class="icon-text" @onclick="() => rules.check_in_out.is_out_early = !rules.check_in_out.is_out_early">
-                <span class="icon">
-                  <span class="material-icons-outlined is-size-5 @(rules.check_in_out.is_out_early ? "has-text-link	" : "has-text-grey")">
-                    @(rules.check_in_out.is_out_early ? "toggle_on" : "toggle_off")
-                  </span>
-                </span>
-                <span class="has-text-weight-medium">
-                  Ghi nhận công check-out sớm
-                </span>
-              </a>
-            </div>
-            @if (rules.check_in_out.is_out_early)
-            {
-              <div class="is-flex is-align-items-center" style="gap:0 10px;">
-                <input class="input is_underline has-text-centered" type="text" @bind="rules.check_in_out.out_early" style="width: 60px;" />
-                <span>phút</span>
-              </div>
-            }
-            else
-            {
-              <div style="opacity:0.5">
-                <div class="is-flex is-align-items-center" style="gap: 10px">
-                  <p class="has-text-centered" style="width:100%">
-                    @rules.check_in_out.out_early
-                  </p>
-                  <span>phút</span>
-                </div>
-              </div>
-            }
-          </div>
-          <p class="is-size-7 is-italic has-text-grey mb-2" style="padding-left:24px">
-            @(rules.check_in_out.is_out_early ? $"Nhân viên được phép check-out sớm tối đa {rules.check_in_out.out_early} phút so với giờ kết thúc ca" : "Nhân viên được phép check-out sớm không giới hạn so với giờ kết thúc ca")
-            <span class="has-text-danger has-text-weight-medium">mà vẫn được tính công</span>.
-          </p>
-
-          <div class="is-flex is-align-items-center" style="gap:0 10px">
-            <div>
-              <a class="icon-text" @onclick="() => rules.is_check_device = !rules.is_check_device">
-                <span class="icon">
-                  <span class="material-icons-outlined is-size-5 @(rules.is_check_device ? "has-text-link	" : "has-text-grey")">
-                    @(rules.is_check_device ? "toggle_on" : "toggle_off")
-                  </span>
-                </span>
-                <span class="has-text-weight-medium">
-                  Kiểm tra thiết bị chấm công
-                </span>
-              </a>
-            </div>
-          </div>
-          <p class="is-size-7 is-italic has-text-grey mb-2" style="padding-left:24px">
-            Kiểm tra thiết bị chấm công của nhân viên và mỗi nhân viên chỉ được đăng ký
-            <span class="has-text-danger has-text-weight-medium">1 thiết bị chấm công</span>.
-          </p>
-
-          <div class="has-text-weight-semibold mt-4 mb-2">
-            Quy định làm ngoài giờ
-          </div>
-          <div class="is-flex is-align-items-center" style="gap:0 10px">
-            <div @onclick="() => rules.overtime.is_active = !rules.overtime.is_active">
-              <a class="icon-text">
-                <span class="icon">
-                  <span class="material-icons-outlined is-size-5 @(rules.overtime.is_active ? "has-text-link	" : "has-text-grey")">
-                    @(rules.overtime.is_active ? "toggle_on" : "toggle_off")
-                  </span>
-                </span>
-                <span class="has-text-weight-medium">
-                  Làm thêm tối thiểu
-                </span>
-              </a>
-            </div>
-            @if (rules.overtime.is_active)
-            {
-              <div lass="is-flex is-align-items-center" style="gap :0 10px;">
-                <input class="input is_underline has-text-centered" type="text" @bind="rules.overtime.min_minutes" style="width: 60px;" />
-                <span>phút</span>
-              </div>
-            }
-            else
-            {
-              <div style="opacity:0.5">
-                <div class="is-flex is-align-items-center" style="gap: 10px">
-                  <p class="has-text-centered">@rules.overtime.min_minutes</p>
-                  <span>phút</span>
-                </div>
-              </div>
-            }
-          </div>
-          <p class="is-size-7 is-italic has-text-grey mb-2" style="padding-left:24px">
-            Nhân viên có thể chấm công ngoài ca được phân với số phút tối thiểu để <span class="has-text-danger has-text-weight-medium">ghi nhận giờ làm thêm</span>.
-          </p>
-          <div class="is-flex is-align-items-center" style="gap:0 10px">
-            <div @onclick="() => rules.overtime.is_show = !rules.overtime.is_show">
-              <a class="icon-text">
-                <span class="icon">
-                  <span class="material-icons-outlined is-size-5 @(rules.overtime.is_show ? "has-text-link	" : "has-text-grey")">
-                    @(rules.overtime.is_show ? "toggle_on" : "toggle_off")
-                  </span>
-                </span>
-                <span class="has-text-weight-medium">
-                  Hiển thị trên bảng công
-                </span>
-              </a>
-            </div>
-          </div>
-
-
-          <div class="has-text-weight-semibold mt-4 mb-2">
-            Quy định phân ca
-          </div>
-          <ul class="columns is-variable is-2 is-vcentered">
-            <li class="column is-narrow is-flex" @onclick="() => rules.register_shift.has_register_shifts = !rules.register_shift.has_register_shifts">
-              <a class="icon-text">
-                <span class="icon">
-                  <span class="material-icons-outlined is-size-5 @(rules.register_shift.has_register_shifts ? "has-text-link	" : "has-text-grey")">
-                    @(rules.register_shift.has_register_shifts ? "toggle_on" : "toggle_off")
-                  </span>
-                </span>
-                <span class="has-text-weight-medium">
-                  Cho phép đăng ký ca làm
-                </span>
-              </a>
-            </li>
-          </ul>
-          <p class="is-size-7 is-italic has-text-grey mt-1 mb-2" style="padding-left:24px">
-            Nhân viên được phép đăng ký ca làm và quản lý phê duyệt bảng đăng ký ca
-          </p>
-          <ul class="columns is-variable is-2 is-vcentered" style="padding-left:24px">
-            <li class="column is-narrow is-flex">
-              @if (rules.register_shift.has_register_shifts)
-              {
-                <span class="has-text-weight-medium mr-2">
-                  Nhân viên áp dụng
-                </span>
-                <_MemberDayOff members="rules.register_shift.users" sources="Layout.UserList.Where(x => x.role != 1 && !(x.role == 2 && x.role_manage.timekeeping)).ToList()"
-                               isEdit="true" isUp="true" />
-              }
-              else
-              {
-                <span class="has-text-weight-medium mr-2" style="opacity:0.5">
-                  Nhân viên áp dụng
-                </span>
-                <div class="avatar_list" style="opacity:0.5">
-                  @foreach (var item in Layout.UserList.Where(i => rules.register_shift.users.Contains(i.id)).ToList())
-                  {
-                    <span class="image is-rounded is-24x24 has-background-grey" title="@item.FullName">
-                      @if (string.IsNullOrEmpty(item.avatar))
-                      {
-                        <span class="is-text">@item.FullName</span>
-                      }
-                      else
-                      {
-                        <img src="@item.avatar" alt="AVT">
-                      }
-                    </span>
-                  }
-
-                  <a class="icon has-background-white has-text-grey is-bordered is-rounded @(rules.register_shift.users.Count == 0 ? "" : "ml-3")">
-                    <i class="material-icons-outlined is-size-6">add</i>
-                  </a>
-                </div>
-              }
-            </li>
-          </ul>
-        }
-        else if (tab == 2)
-        {
-          <div class="has-text-weight-semibold">
-            Quy định đơn từ
-          </div>
-          <p class="is-size-7 is-italic has-text-grey mb-2">
-            Thiết lập các đơn từ sử dụng, có thể ẩn/ hiện hoặc sắp xếp vị trí đơn từ trên bảng công tương ứng.
-          </p>
-
-          <Dropzone Context="form" Items="rules.forms" InstantReplace=true>
-            <ul class="columns is-multiline is-vcentered is-variable is-2 mb-1">
-              <li class="column is-one-third">
-                <a class="icon-text">
-                  <span class="icon" @onclick="() => form.is_active = !form.is_active">
-                    <span class="material-icons-outlined is-size-5 @(form.is_active ? "has-text-link	" : "has-text-grey")">
-                      @(form.is_active ? "toggle_on" : "toggle_off")
-                    </span>
-                  </span>
-                  <span class="icon">
-                    <span class="material-icons-outlined">
-                      drag_indicator
-                    </span>
-                  </span>
-                  @if (editForms.Contains(form.id))
-                  {
-                    <span class="has-text-weight-medium icon-text">
-                      <input class="input has-text-centered mr-1" type="text" @bind="form.sign"
-                             style="text-transform:uppercase;width:50px;font-weight: 600;">
-                      <span>-</span>
-                      <input class="input ml-1" type="text" @bind="form.name"
-                             style="font-weight: 600;">
-                      <span class="icon" @onclick="() => UpdateForm(form)">
-                        <span class="material-icons-outlined has-text-success">
-                          check
-                        </span>
-                      </span>
-                    </span>
-                  }
-                  else
-                  {
-                    <span class="has-text-weight-medium icon-text">
-                      <span>
-                        @($"{form.sign} - {form.name}")
-                      </span>
-                      <span class="icon" @onclick="() => OpenForm(form.id)">
-                        <span class="material-icons-outlined">
-                          edit
-                        </span>
-                      </span>
-                    </span>
-                  }
+                <a class="icon has-background-white has-text-grey is-bordered is-rounded @(rules.register_shift.users.Count == 0 ? "" : "ml-3")">
+                  <i class="material-icons-outlined is-size-6">add</i>
                 </a>
-              </li>
-              @if (form.is_active)
-              {
-                <li class="column is-narrow">
-                  <div class="is-flex is-align-items-center" style="gap:0 10px;">
-                    <input id="@form.id" type="checkbox" @bind="@form.has_shift_work" />
-                    <label for="@form.id" class="is-clickable" style="line-height:35px;">Có tính công</label>
-                  </div>
-                </li>
-                <li class="column is-narrow">
-                  <div class="is-flex is-align-items-center" style="gap:0 10px;">
+              </div>
+            }
+          </li>
+        </ul>
+      }
+      else if (tab == 2)
+      {
+        <div class="has-text-weight-semibold">
+          Quy định đơn từ
+        </div>
+        <p class="is-size-7 is-italic has-text-grey mb-4">
+          Thiết lập các đơn từ sử dụng, có thể ẩn/ hiện hoặc sắp xếp vị trí đơn từ trên bảng công tương ứng.
+        </p>
+
+        <ul class="columns is-multiline is-vcentered is-variable is-2 mb-2 is-hidden-mobile" style="border-bottom: 1px solid #dbdbdb;">
+          <li class="column is-one-third">Tiêu đề</li>
+          <li class="column is-one-third is-flex is-align-items-center is-justify-content-space-evenly" style="gap: 20px;">
+            <p style="width: 90px;" class="has-text-centered">Có tính công</p>
+            <p style="width: 90px;" class="has-text-centered">Màu áp dụng</p>
+          </li>
+          <li class="column is-one-third">Giới hạn đơn từ</li>
+        </ul>
+
+        <Dropzone Class="drop_rule"
+                  Context="form"
+                  Items="rules.forms"
+                  InstantReplace=true
+                  WrapperClass="drop_rule_item">
+          <ul class="columns is-multiline is-vcentered is-variable is-2 mb-1" style="border-bottom: 1px solid #dbdbdb;">
+            <li class="column is-one-third">
+              <a class="icon-text">
+                <span class="icon" @onclick="() => form.is_active = !form.is_active">
+                  <span class="material-icons-outlined is-size-5 @(form.is_active ? "has-text-link	" : "has-text-grey")">
+                    @(form.is_active ? "toggle_on" : "toggle_off")
+                  </span>
+                </span>
+                <span class="icon">
+                  <span class="material-icons-outlined">
+                    drag_indicator
+                  </span>
+                </span>
+                @if (editForms.Contains(form.id))
+                {
+                  <span class="has-text-weight-medium icon-text">
+                    <input class="input has-text-centered mr-1" type="text" @bind="form.sign"
+                           style="text-transform:uppercase;width:50px;font-weight: 600;">
+                    <span>-</span>
+                    <input class="input ml-1" type="text" @bind="form.name"
+                           style="font-weight: 600;">
+                    <span class="icon" @onclick="() => UpdateForm(form)">
+                      <span class="material-icons-outlined has-text-success">
+                        check
+                      </span>
+                    </span>
+                  </span>
+                }
+                else
+                {
+                  <span class="has-text-weight-medium icon-text">
+                    <span>
+                      @($"{form.sign} - {form.name}")
+                    </span>
+                    <span class="icon" @onclick="() => OpenForm(form.id)">
+                      <span class="material-icons-outlined">
+                        edit
+                      </span>
+                    </span>
+                  </span>
+                }
+              </a>
+            </li>
+            @if (form.is_active)
+            {
+              <li class="column is-one-third is-flex is-align-items-center is-justify-content-space-evenly" style="gap: 20px;">
+                <div class="is-flex is-align-items-center is-justify-content-center" style="gap: 0 10px;">
+                  <input id="@form.id" style="width: 90px;" type="checkbox" @bind="@form.has_shift_work" />
+                  <label for="@form.id" class="is-clickable is-hidden-desktop" style="line-height:35px;">Có tính công</label>
+                </div>
+
+                <div class="is-flex is-align-items-center is-justify-content-center" style="gap: 0 10px;">
+                  <div style="width: 90px;" class="is-flex is-justify-content-center">
                     <input type="color" @bind="form.color" />
-                    <span style="line-height:35px;">Màu áp dụng</span>
                   </div>
-                </li>
-              }
-              else
-              {
-                <li class="column is-narrow" style="opacity:0.5">
-                  <div class="is-flex is-align-items-center" style="gap:0 10px;">
-                    <input type="checkbox" checked="@form.has_shift_work" disabled />
-                    <span style="line-height:35px;">Có tính công</span>
-                  </div>
-                </li>
+                  <span class="is-hidden-desktop" style="line-height:35px;">Màu áp dụng</span>
+                </div>
+              </li>
+            }
+            else
+            {
+              <li class="column is-one-third is-flex is-align-items-center is-justify-content-space-evenly" style="gap: 20px; opacity:0.5;">
+                <div class="is-flex is-align-items-center is-justify-content-center" style="gap: 0 10px;">
+                  <input type="checkbox" style="width: 90px;" checked="@form.has_shift_work" disabled />
+                  <span class="is-hidden-desktop" style="line-height:35px;">Có tính công</span>
+                </div>
 
-                <li class="column is-narrow" style="opacity:0.5">
-                  <div class="is-flex is-align-items-center" style="gap:0 10px;">
+                <div class="is-flex is-align-items-center is-justify-content-center" style="gap: 0 10px;">
+                  <div style="width: 90px;" class="is-flex is-justify-content-center">
                     <input type="color" value="@form.color" disabled />
-                    <span style="line-height:35px;">Màu áp dụng</span>
                   </div>
-                </li>
-              }
-            </ul>
-          </Dropzone>
-        }
+                  <span class="is-hidden-desktop" style="line-height:35px;">Màu áp dụng</span>
+                </div>
+              </li>
+            }
+
+            <li class="column is-one-third is-flex is-align-items-center" style="gap: 20px;">
+              <div style="@(!form.is_active ? "opacity: 0.5;" : "")">
+                <div class="is-flex is-align-items-center" style="gap:0 10px;">
+                  <input id="@($"{form.id}-limit")" type="checkbox" @bind="@form.is_limit" disabled="@(!form.is_active)" />
+                  <label for="@($"{form.id}-limit")" class="is-clickable" style="line-height:35px; white-space: nowrap;">Có giới hạn</label>
+                </div>
+              </div>
+
+              <div style="@(!form.is_active || (!form.is_limit && form.is_active) ? "opacity: 0.5;" : "")">
+                @if (form.is_limit && form.is_active)
+                {
+                  <div class="is-flex is-align-items-center" style="gap :0 10px;">
+                    <input class="input is_underline has-text-centered" type="text" @bind="form.frequency" style="width: 60px;" />
+                  </div>
+                }
+                else
+                {
+                  <div class="is-flex is-align-items-center" style="gap: 10px">
+                    <p class="has-text-centered is_underline" style="width: 60px;">@form.frequency</p>
+                  </div>
+                }
+              </div>
+
+              <div style="@(form.is_limit || form.is_active ? "" : "opacity: 0.5;")">
+                <div class="select is-fullwidth">
+                  <select @bind="form.units" disabled="@(!form.is_limit)">
+                    <option value="1" selected="@(form.units == 1)">Theo ngày</option>
+                    <option value="2" selected="@(form.units == 2)">Theo tuần</option>
+                    <option value="3" selected="@(form.units == 3)">Theo tháng</option>
+                    <option value="4" selected="@(form.units == 4)">Theo quý</option>
+                    <option value="5" selected="@(form.units == 5)">Theo năm</option>
+                  </select>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </Dropzone>
+      }
 
 
-      </div>
-      <div class="has-text-right" @onclick="Update">
-        <button class="button is-link">
-          Cập nhật
-        </button>
-      </div>
     </div>
-  </section>
+  </div>
+  <div class="has-text-right mt-2">
+    <button class="button is-link" @onclick="Update">
+      Cập nhật
+    </button>
+  </div>
 }
 
 else
@@ -377,8 +430,11 @@ else
   private HrmRulesModel rules = null;
   private int tab = 1;
 
+  private SharedStorage shareStorage = new();
+
   protected override async Task OnInitializedAsync()
   {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
     // Quyền truy cập trang
     _access = Layout.User.role == 1 || (Layout.User.role == 2 && Layout.User.role_manage.timekeeping);
 
@@ -403,24 +459,33 @@ else
 
   private async Task Update()
   {
-    if (editForms.Count > 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa lưu các thay đổi của quy định đơn từ!");
-    else if (rules.overtime.min_minutes < 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa cập nhật thời gian làm thêm tối thiểu!");
-    else if (rules.register_shift.has_register_shifts && rules.register_shift.users.Count == 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn nhân viên áp dụng!");
-    else
+    try
     {
-      rules = await DbHrmRules.Update(Layout.Company.id, rules);
-      await SendNotify();
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Chỉnh sửa quy định thành công!");
+      if (editForms.Count > 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa lưu các thay đổi của quy định đơn từ!");
+      else if (rules.overtime.min_minutes < 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa cập nhật thời gian làm thêm tối thiểu!");
+      else if (rules.register_shift.has_register_shifts && rules.register_shift.users.Count == 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn nhân viên áp dụng!");
+      else
+      {
+        rules = await DbHrmRules.Update(Layout.Company.id, rules);
+        await SendNotify();
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Chỉnh sửa quy định thành công!");
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
     }
   }
 
   private async Task SendNotify()
   {
     // Gủi thông báo chuông
-    var targetList = Layout.UserList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
+    var targetList = shareStorage.MemberList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
     foreach (var user in targetList)
       await DbNotify.Create(Layout.Company.id, 806, _title, user.id, Layout.User.id);
   }

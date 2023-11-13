@@ -1,11 +1,10 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+﻿using MongoDB.Driver;
 using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
+using OnetezSoft.Services;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -50,7 +49,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<EducateLearnedModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
@@ -60,7 +59,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<EducateLearnedModel>(_collection);
 
-      return await collection.Find(x => x.course == course && x.user == user).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.course == course && x.user == user).Result.FirstOrDefaultAsync();
     }
 
     /// <summary>
@@ -86,9 +85,9 @@ namespace OnetezSoft.Data
       if (status > 0)
         filtered = filtered & builder.Eq("status", status);
 
-      var sorted = Builders<EducateLearnedModel>.Sort.Descending("date");
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
 
-      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+      return (from x in result orderby x.date descending select x).ToList();
     }
 
     /// <summary>
@@ -112,20 +111,20 @@ namespace OnetezSoft.Data
       if (status > 0)
         filtered = filtered & builder.Eq("status", status);
 
-      var sorted = Builders<EducateLearnedModel>.Sort.Descending("date");
+      var educateLearnedList = await collection.FindAsync(filtered).Result.ToListAsync();
 
-      var educateLearnedList = await collection.Find(filtered).Sort(sorted).ToListAsync();
+      educateLearnedList = educateLearnedList.OrderByDescending(x => x.date).ToList();
 
-      if(educateLearnedList.Count > 0)
+      if (educateLearnedList.Count > 0)
       {
         var result = new List<EducateLearnedModel>();
 
-        foreach(var learned in educateLearnedList)
+        foreach (var learned in educateLearnedList)
         {
           var courseModel = await DbEducateCourse.Get(companyId, learned.course);
-          if(courseModel != null)
+          if (courseModel != null)
           {
-            if(courseModel.examiner.Contains(examiner) || courseModel.teacher == examiner)
+            if (courseModel.examiner.Contains(examiner) || courseModel.teacher == examiner)
             {
               result.Add(learned);
             }
@@ -134,7 +133,7 @@ namespace OnetezSoft.Data
         return result;
       }
 
-      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+      return educateLearnedList;
     }
 
     /// <summary>
@@ -154,9 +153,9 @@ namespace OnetezSoft.Data
       if (status > 0)
         filtered = filtered & builder.Eq("status", status);
 
-      var sorted = Builders<EducateLearnedModel>.Sort.Descending("date");
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
 
-      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+      return (from x in result orderby x.date descending select x).ToList();
     }
 
 
@@ -174,34 +173,35 @@ namespace OnetezSoft.Data
       var filtered = builder.Eq("status", 2)
         & builder.Gte("certificate_date", start.Ticks)
         & builder.Lt("certificate_date", end.AddDays(1).Ticks);
-      if(!string.IsNullOrEmpty(user))
+      if (!string.IsNullOrEmpty(user))
         filtered = filtered & builder.Eq("user", user);
 
-      return await collection.Find(filtered).ToListAsync();
+      return await collection.FindAsync(filtered).Result.ToListAsync();
     }
 
 
     /// <summary>
     /// Tính thành tựu Đào tạo
     /// </summary>
-    public static async Task Achievement(string companyId, string user)
+    public static async Task Achievement(string companyId, string user, GlobalService globalService)
     {
       Handled.Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
 
       var list = await DataAchievement(companyId, user, start, end);
 
-      var achievement = DbAchievement.Educate(list.Count);
+      var achievement = await DbAchievement.GetOption(companyId, "educate", list.Count);
       if (achievement != null)
       {
         var model = new AchievementModel()
         {
           user = user,
           name = achievement.name,
-          desc = achievement.color,
-          star = Convert.ToInt32(achievement.icon),
-          type = "educate"
+          desc = achievement.des,
+          star = achievement.star,
+          type = "educate",
+          type_id = achievement.id
         };
-        await DbAchievement.Create(companyId, model);
+        await DbAchievement.Create(companyId, model, globalService);
       }
     }
 

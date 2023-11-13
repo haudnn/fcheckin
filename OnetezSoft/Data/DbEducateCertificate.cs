@@ -1,11 +1,10 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using OnetezSoft.Models;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
 using MongoDB.Driver;
+using OnetezSoft.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -64,17 +63,17 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<EducateCertificateModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
-    public static List<EducateCertificateModel> GetList(string companyId, string keyword)
+    public static async Task<List<EducateCertificateModel>> GetList(string companyId, string keyword)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<EducateCertificateModel>(_collection);
 
-      var list = collection.Find(new BsonDocument()).ToList();
+      var list = await collection.FindAsync(new BsonDocument()).Result.ToListAsync();
 
       list = (from x in list orderby x.pin descending, x.date descending select x).ToList();
 
@@ -97,21 +96,21 @@ namespace OnetezSoft.Data
     }
 
 
-    public static EducateCertificateModel GetPin(string companyId)
+    public static async Task<EducateCertificateModel> GetPin(string companyId)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<EducateCertificateModel>(_collection);
 
-      var results = collection.Find(x => x.pin).ToList();
+      var results = await collection.FindAsync(x => x.pin).Result.ToListAsync();
 
       return results.OrderByDescending(x => x.date).FirstOrDefault();
     }
 
 
-    public static EducateCertificateModel GetDefault(string companyId)
+    public static async Task<EducateCertificateModel> GetDefault(string companyId)
     {
-      var list = GetList(companyId, null);
+      var list = await GetList(companyId, null);
       if (list.Count > 0)
         return list[0];
       else

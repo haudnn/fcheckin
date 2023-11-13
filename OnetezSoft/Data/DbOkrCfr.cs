@@ -1,11 +1,11 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using OnetezSoft.Models;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
 using MongoDB.Driver;
+using OnetezSoft.Models;
+using OnetezSoft.Services;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -49,7 +49,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<OkrCfrModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
@@ -88,11 +88,11 @@ namespace OnetezSoft.Data
         var filtered = builder.Gte("date_create", start.Value.Ticks)
            & builder.Lt("date_create", end.Value.AddDays(1).Ticks);
 
-        results = await collection.Find(filtered).ToListAsync();
+        results = await collection.FindAsync(filtered).Result.ToListAsync();
       }
       else
       {
-        results = collection.Find(new BsonDocument()).ToList();
+        results = collection.FindAsync(new BsonDocument()).Result.ToList();
       }
 
       return results.OrderByDescending(x => x.date_create).ToList();
@@ -121,11 +121,11 @@ namespace OnetezSoft.Data
           & builder.Gte("date_create", start.Value.Ticks)
           & builder.Lt("date_create", end.Value.AddDays(1).Ticks);
 
-        results = await collection.Find(filtered).ToListAsync();
+        results = await collection.FindAsync(filtered).Result.ToListAsync();
       }
       else
       {
-        results = collection.Find(x => x.type == type).ToList();
+        results = await collection.FindAsync(x => x.type == type).Result.ToListAsync();
       }
 
       return results.OrderByDescending(x => x.date_create).ToList();
@@ -134,7 +134,7 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Phản hồi - Tặng sao đã nhận
     /// </summary>
-    public static Task<List<OkrCfrModel>> GetListReceive(string companyId, string user, int type, 
+    public static async Task<List<OkrCfrModel>> GetListReceive(string companyId, string user, int type,
       DateTime? start, DateTime? end)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
@@ -149,18 +149,20 @@ namespace OnetezSoft.Data
         filtered = filtered & builder.Eq("type", type);
       if (start != null)
         filtered = filtered & builder.Gte("date_create", start.Value.Ticks);
-      if(end != null)
+      if (end != null)
         filtered = filtered & builder.Lt("date_create", end.Value.AddDays(1).Ticks);
 
       var sorted = Builders<OkrCfrModel>.Sort.Descending("date_create");
 
-      return collection.Find(filtered).Sort(sorted).ToListAsync();
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      return (from x in result orderby x.date_create descending select x).ToList();
     }
 
     /// <summary>
     /// Phản hồi - Tặng sao đã tặng
     /// </summary>
-    public static Task<List<OkrCfrModel>> GetListGive(string companyId, string user, int type, 
+    public static async Task<List<OkrCfrModel>> GetListGive(string companyId, string user, int type,
       DateTime? start, DateTime? end)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
@@ -175,12 +177,14 @@ namespace OnetezSoft.Data
         filtered = filtered & builder.Eq("type", type);
       if (start != null)
         filtered = filtered & builder.Gte("date_create", start.Value.Ticks);
-      if(end != null)
+      if (end != null)
         filtered = filtered & builder.Lt("date_create", end.Value.AddDays(1).Ticks);
 
       var sorted = Builders<OkrCfrModel>.Sort.Descending("date_create");
 
-      return collection.Find(filtered).Sort(sorted).ToListAsync();
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      return (from x in result orderby x.date_create descending select x).ToList();
     }
 
 
@@ -200,31 +204,32 @@ namespace OnetezSoft.Data
         & builder.Gte("date_create", start.Ticks)
         & builder.Lt("date_create", end.AddDays(1).Ticks);
 
-      return await collection.Find(filtered).ToListAsync();
+      return await collection.FindAsync(filtered).Result.ToListAsync();
     }
 
 
     /// <summary>
     /// Tính thành tựu CFRs
     /// </summary>
-    public static async Task Achievement(string companyId, string user)
+    public static async Task Achievement(string companyId, string user, GlobalService globalService)
     {
       Handled.Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
 
       var list = await DataAchievement(companyId, user, start, end);
 
-      var achievement = DbAchievement.CFRs(list.Count);
+      var achievement = await DbAchievement.GetOption(companyId, "cfrs", list.Count);
       if (achievement != null)
       {
         var model = new AchievementModel()
         {
           user = user,
           name = achievement.name,
-          desc = achievement.color,
-          star = Convert.ToInt32(achievement.icon),
-          type = "cfrs"
+          desc = achievement.des,
+          star = achievement.star,
+          type = "cfrs",
+          type_id = achievement.id
         };
-        await DbAchievement.Create(companyId, model);
+        await DbAchievement.Create(companyId, model, globalService);
       }
     }
 

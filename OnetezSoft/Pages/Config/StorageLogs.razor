@@ -1,80 +1,129 @@
-@page "/config/storage/logs"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>Lịch sử xóa file</PageTitle>
 
-<section class="p-4">
-  <div class="tabs is-boxed mb-0">
-    <ul>
-      <li>
-        <a href="/config/storage/files">
-          <span>Quản lý lưu trữ</span>
-        </a>
-      </li>
-      <li class="is-active">
-        <a href="/config/storage/logs">
-          <span>Lịch sử xóa file</span>
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div class="card p-4">
-    <ul class="columns is-multiline is-variable is-2 is-vcentered mb-3">
-      <li class="column is-three-quarters">
-        <div class="title is-5 has-text-info">QUẢN LÝ LƯU TRỮ</div>
-      </li>
-      <li class="column is-one-quarter">
+<ul class="columns is-multiline is-variable is-2 is-vcentered mb-3">
+  <li class="column is-half">
+    <div class="title is-5 has-text-info">QUẢN LÝ LƯU TRỮ</div>
+  </li>
+  <li class="column is-half">
+    <div class="field is-grouped">
+      <div class="control" style="width: 50%;">
+        <MemberSearch keyword="@userFullName" sources="userList" storage="true"
+                      OnUpdate="ChangeFilterUser" />
+      </div>
+      <div class="control" style="width: 50%;">
         <form @onsubmit="GetList" class="control has-icons-right">
           <input @bind="filterKey" type="text" class="input is-rounded is_bg" placeholder="Tìm kiếm file..." />
           <span class="icon is-right">
             <i class="material-icons-outlined is-size-6">search</i>
           </span>
         </form>
-      </li>
-    </ul>
+      </div>
+    </div>
+  </li>
+</ul>
 
-    <div class="scrolly" style="height: calc(100vh - 220px);">
-      <table class="table is-fullwidth is-vcentered">
-        <thead>
-            <tr class="has-background-info has-text-black">
-            <th>Tên file</th>
-            <th width="180px">Định dạng</th>
-            <th width="150px">Kích thước</th>
-            <th width="150px">Ngày xóa</th>
-            <th width="200px">Người xóa</th>
-          </tr>
-        </thead>
-        <tbody>
-          <Virtualize Items="dataList" Context="item" ItemSize="39">
-            <tr>
-              <td>
+<div id="scrollbox" class="scrolly inner_section" style="flex:1; overflow: auto !important;">
+  <table class="table is-fullwidth is-responsive is-vcentered sticky only_desktop">
+    <thead>
+      <tr class="">
+        <th class="sticky last" width="300px" style="left:0;">Tên file</th>
+        <th width="200px">Người tải lên</th>
+        <th width="180px">Định dạng</th>
+        <th width="150px">Kích thước</th>
+        <th width="150px">Ngày xóa</th>
+        <th width="200px">Người xóa</th>
+      </tr>
+    </thead>
+    <tbody>
+      <Virtualize Items="dataList" Context="item" ItemSize="39">
+        <tr>
+          <td class="sticky last" style="left:0;">
+            <label class="td-label">Tên file</label>
+            <div class="td-value" style="cursor: pointer;">
+              <span class="has-text-dark text_1_line">
                 @item.name
-              </td>
-              <td>
-                @item.format
-              </td>
-              <td>
-                @SizeToString(item.size)
-              </td>
-              <td>
-                @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
-              </td>
-              <td>
+              </span>
+            </div>
+          </td>
+          <td>
+            @if (!Shared.IsEmpty(item.creator_id))
+            {
+              var user = userList.Find(x => x.id == item.creator_id);
+              @if (user != null)
+              {
+                <label class="td-label">Người tải lên</label>
+                <div class="td-value" style="cursor: pointer;">
+                  <a class="icon-text">
+                    <span class="icon image is-24x24 is-rounded">
+                      <img src="@user.avatar" alt="IMG">
+                    </span>
+                    <span>@user.name</span>
+                  </a>
+                </div>
+              }
+            }
+          </td>
+          <td>
+            <label class="td-label">
+              Định dạng
+            </label>
+            <div class="td-value" style="cursor: pointer;">
+              @item.format
+            </div>
+          </td>
+          <td>
+            <label class="td-label">
+              Kích thước
+            </label>
+            <div class="td-value" style="cursor: pointer;">
+              @SizeToString(item.size)
+            </div>
+          </td>
+          <td>
+            @if (item.date_delete == 0)
+            {
+              <label class="td-label">
+                Ngày xóa
+              </label>
+              <div class="td-value" style="cursor: pointer;">
+                <span class="is-italic">Không có dữ liệu</span>
+              </div>
+            }
+            else
+            {
+              <label class="td-label">
+                Ngày xóa
+              </label>
+              <div class="td-value" style="cursor: pointer;">
+                <span>@(new DateTime(item.date_delete).ToString("dd'/'MM'/'yyyy, HH':'mm"))</span>
+              </div>
+            }
+          </td>
+          <td>
+            @if (!Shared.IsEmpty(item.author_name) && !Shared.IsEmpty(item.author_avatar))
+            {
+              <label class="td-label">
+                Người xóa
+              </label>
+              <div class="td-value" style="cursor: pointer;">
                 <a class="icon-text">
                   <span class="icon image is-24x24 is-rounded">
                     <img src="@item.author_avatar" alt="IMG">
                   </span>
                   <span>@item.author_name</span>
                 </a>
-              </td>
-            </tr>
-          </Virtualize>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
+              </div>
+            }
+          </td>
+        </tr>
+      </Virtualize>
+    </tbody>
+  </table>
+</div>
 
 @code {
   [CascadingParameter]
@@ -83,25 +132,74 @@
   private List<FileModel> dataList = new();
   private string filterKey = string.Empty;
   private long unit = 1024;
+  private string userIdSearch = "";
+  private string userFullName = "";
+
+  private List<MemberModel> userList = new();
 
   protected override async Task OnInitializedAsync()
   {
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    userList = shareStorage.MemberList;
+
     database = await DbStorageLog.GetList(Layout.Company.id);
+
     GetList();
   }
 
   private void GetList()
   {
-    dataList = database.OrderByDescending(x => x.date).ToList();
-    if(!string.IsNullOrEmpty(filterKey))
+    dataList = database.Where(x => x.date_delete > 0 || x.is_delete).ToList();
+
+    if (!string.IsNullOrEmpty(filterKey))
       dataList.RemoveAll(x => !StringHelper.SearchKeyword(filterKey, x.name + x.author_name));
+
+    dataList = dataList.Where(x =>
+    {
+      if (userIdSearch == "no_member")
+        return x.creator_id == null;
+      else
+        return string.IsNullOrEmpty(userIdSearch) ? true : userIdSearch == x.creator_id;
+    }).ToList();
+
+    dataList = dataList.OrderByDescending(x => x.date_delete).ToList();
+  }
+
+  private void ChangeFilterUser(string value)
+  {
+    userIdSearch = value;
+
+    if (userIdSearch == "no_member")
+    {
+      userFullName = "Không có người tải lên";
+    }
+    else
+    {
+      if (string.IsNullOrEmpty(value))
+        userFullName = string.Empty;
+      else
+      {
+        var user = userList.Find(x => x.id == userIdSearch);
+        if (user != null)
+        {
+          userFullName = user.name;
+        }
+      }
+    }
+
+    GetList();
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    await JSRuntime.InvokeVoidAsync("dragScrollX");
   }
 
   private string SizeToString(double size)
   {
-    if(size >= unit * unit * unit)
+    if (size >= unit * unit * unit)
       return string.Format("{0:0.00} GB", size / (unit * unit * unit));
-    else if(size >= unit * unit)
+    else if (size >= unit * unit)
       return string.Format("{0:0.00} MB", size / (unit * unit));
     else
       return string.Format("{0:0.00} KB", size / unit);

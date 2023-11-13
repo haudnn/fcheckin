@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models;
 
+[BsonIgnoreExtraElements]
 public class TodolistModel
 {
   [BsonId]
@@ -110,5 +111,24 @@ public class TodolistModel
 
     /// <summary>File đính kèm</summary>
     public List<string> files { get; set; } = new();
+
+    /// <summary>ID todoitem cha</summary>
+    public string parentId { get; set; }
+
+    /// <summary>Kiểm tra có phải công việc lặp</summary>
+    public bool is_loop { get; set; }
+
+    /// <summary>Chu kỳ lặp: 1. Hằng ngày, 2. Hằng tuần, 3. Hằng tháng, 4. Hằng năm</summary>
+    public int cycle { get; set; } = 2;
+
+    /// <summary> Lặp theo tuần: Thứ lặp theo tuần </summary>
+    public List<int> weeks { get; set; } = new();
+
+    /// <summary> Lặp theo tháng: 1. Theo ngày, 2. Theo thứ</summary>
+    public int option { get; set; } = 1;
+
+    /// <summary>Ngày kết thúc chu kỳ lặp</summary>
+    public long dateEnd_cycle { get; set; }
+
   }
 }

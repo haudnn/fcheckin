@@ -1,10 +1,10 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-@if(CheckAccess("todolist"))
-{ 
-  <div class="card p-5">
-    <ul class="columns is-vcentered is-variable is-2 mb-3">
+@if (CheckAccess("todolist"))
+{
+  <div class="mb-5">
+    <ul class="columns is-vcentered is-variable is-2 mb-2">
       <li class="column is-one-third">
         <div class="dropdown is-hoverable">
           <div class="dropdown-trigger">
@@ -53,26 +53,30 @@
         </div>
       </li>
     </ul>
-    <ul class="columns is-gapless is-mobile is-multiline">
-      @foreach (var item in DbAchievement.Todolist())
-      {
-        var achievement = achiTodolist.Where(x => x.name == item.name);
-        <li class="column is-one-fifth-table is-half-mobile">
-          <div class="achi_item @(achievement.Count() > 0 ? "is-active" : "")">
-            <div class="achi_todolist">@item.icon</div>
-            <div class="item_title mt-3">@item.name</div>
-            <div class="item_desc">@item.id lần</div>
-          </div>
-        </li>
-      }
-    </ul>
+    <div class="inner_section">
+      <ul class="columns is-gapless is-mobile is-multiline">
+        @foreach (var item in todosAchievement)
+        {
+          var achievement = achiTodolist.Where(x => x.type_id == item.id);
+          <li class="column is-one-fifth-table is-half-mobile">
+            <div class="achi_item @(achievement.Count() > 0 ? "is-active" : "")">
+              <div class="achi_todolist" style="background-image:url(@item.image)">
+                @item.star
+              </div>
+              <div class="item_title mt-3">@item.name</div>
+              <div class="item_desc">@item.apply lần</div>
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
   </div>
 }
 
-@if(CheckAccess("okrs"))
+@if (CheckAccess("cfr"))
 {
-  <div class="card p-5">
-    <ul class="columns is-vcentered is-variable is-2 mb-3">
+  <div class="mb-5">
+    <ul class="columns is-vcentered is-variable is-2 mb-2">
       <li class="column is-one-third">
         <div class="dropdown is-hoverable">
           <div class="dropdown-trigger">
@@ -120,26 +124,28 @@
         </div>
       </li>
     </ul>
-    <ul class="columns is-gapless is-mobile is-multiline">
-      @foreach (var item in DbAchievement.CFRs())
-      {
-        var achievement = achiCfrs.Where(x => x.name == item.name);
-        <li class="column is-one-fifth-table is-half-mobile">
-          <div class="achi_item @(achievement.Count() > 0 ? "is-active" : "")">
-            <div class="achi_cfrs">@item.icon</div>
-            <div class="item_title mt-3">@item.name</div>
-            <div class="item_desc">@item.id lần</div>
-          </div>
-        </li>
-      }
-    </ul>
+    <div class="inner_section">
+      <ul class="columns is-gapless is-mobile is-multiline">
+        @foreach (var item in cfrsAchievement)
+        {
+          var achievement = achiCfrs.Where(x => x.type_id == item.id);
+          <li class="column is-one-fifth-table is-half-mobile">
+            <div class="achi_item @(achievement.Count() > 0 ? "is-active" : "")">
+              <div class="achi_cfrs" style="background-image:url(@item.image)">@item.star</div>
+              <div class="item_title mt-3">@item.name</div>
+              <div class="item_desc">@item.apply lần</div>
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
   </div>
 }
 
-@if(CheckAccess("kaizen"))
+@if (CheckAccess("kaizen"))
 {
-  <div class="card p-5">
-    <ul class="columns is-vcentered is-variable is-2 mb-3">
+  <div class="mb-5">
+    <ul class="columns is-vcentered is-variable is-2 mb-2">
       <li class="column is-one-third">
         <div class="dropdown is-hoverable">
           <div class="dropdown-trigger">
@@ -187,26 +193,28 @@
         </div>
       </li>
     </ul>
-    <ul class="columns is-gapless is-mobile is-multiline">
-      @foreach (var item in DbAchievement.Kaizen())
-      {
-        var achievement = achiKaizen.Where(x => x.name == item.name);
-        <li class="column is-one-fifth-table is-half-mobile">
-          <div class="achi_item @(achievement.Count() > 0 ? "is-active" : "")">
-            <div class="achi_kaizen">@item.icon</div>
-            <div class="item_title mt-3">@item.name</div>
-            <div class="item_desc">@item.id góp ý</div>
-          </div>
-        </li>
-      }
-    </ul>
+   <div class="inner_section">
+      <ul class="columns is-gapless is-mobile is-multiline">
+        @foreach (var item in kaizensAchievement)
+        {
+          var achievement = achiKaizen.Where(x => x.type_id == item.id);
+          <li class="column is-one-fifth-table is-half-mobile">
+            <div class="achi_item @(achievement.Count() > 0 ? "is-active" : "")">
+              <div class="achi_kaizen" style="background-image:url(@item.image)">@item.star</div>
+              <div class="item_title mt-3">@item.name</div>
+              <div class="item_desc">@item.apply góp ý</div>
+            </div>
+          </li>
+        }
+      </ul>
+   </div>
   </div>
 }
 
-@if(CheckAccess("train"))
-{ 
-  <div class="card p-5">
-    <ul class="columns is-vcentered is-variable is-2 mb-3">
+@if (CheckAccess("train"))
+{
+  <div class="">
+    <ul class="columns is-vcentered is-variable is-2 mb-2">
       <li class="column is-one-third">
         <div class="dropdown is-hoverable">
           <div class="dropdown-trigger">
@@ -254,19 +262,21 @@
         </div>
       </li>
     </ul>
-    <ul class="columns is-gapless is-mobile is-multiline">
-      @foreach (var item in DbAchievement.Educate())
-      {
-        var achievement = achiEducate.Where(x => x.name == item.name);
-        <li class="column is-one-fifth-table is-half-mobile">
-          <div class="achi_item @(achievement.Count() > 0 ? "is-active" : "")">
-            <div class="achi_educate">@item.icon</div>
-            <div class="item_title mt-3">@item.name</div>
-            <div class="item_desc">@item.id chứng chỉ</div>
-          </div>
-        </li>
-      }
-    </ul>
+   <div class="inner_section">
+      <ul class="columns is-gapless is-mobile is-multiline">
+        @foreach (var item in educatesAchievement)
+        {
+          var achievement = achiEducate.Where(x => x.type_id == item.id);
+          <li class="column is-one-fifth-table is-half-mobile">
+            <div class="achi_item @(achievement.Count() > 0 ? "is-active" : "")">
+              <div class="achi_educate" style="background-image:url(@item.image)">@item.star</div>
+              <div class="item_title mt-3">@item.name</div>
+              <div class="item_desc">@item.apply chứng chỉ</div>
+            </div>
+          </li>
+        }
+      </ul>
+   </div>
   </div>
 }
 
@@ -280,6 +290,11 @@
   private List<AchievementModel> achiCfrs = new();
   private List<AchievementModel> achiKaizen = new();
   private List<AchievementModel> achiEducate = new();
+  private List<AchievementModel.Option> todosAchievement = new();
+  private List<AchievementModel.Option> cfrsAchievement = new();
+  private List<AchievementModel.Option> kaizensAchievement = new();
+  private List<AchievementModel.Option> educatesAchievement = new();
+
   private int todolist = 0;
   private int cfrs = 0;
   private int kaizen = 0;
@@ -290,57 +305,110 @@
   private int monthEducate = DateTime.Now.Month;
   private int dayMonth = DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month);
 
+  protected override async Task OnInitializedAsync()
+  {
+    todosAchievement = await DbAchievement.GetListByType(Layout.Company.id, "todolist");
+    cfrsAchievement = await DbAchievement.GetListByType(Layout.Company.id, "cfrs");
+    kaizensAchievement = await DbAchievement.GetListByType(Layout.Company.id, "kaizen");
+    educatesAchievement = await DbAchievement.GetListByType(Layout.Company.id, "educate");
+  }
+
   protected override async Task OnParametersSetAsync()
   {
-    Handled.Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
-    var database = await DbAchievement.GetList(Layout.Company.id, User.id, null, start, end);
+    try
+    {
+      Handled.Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
+      var database = await DbAchievement.GetList(Layout.Company.id, User.id, null, start, end);
 
-    achiTodolist = database.Where(x => x.type == "todolist").ToList();
-    todolist = await DbTodolist.DataAchievement(Layout.Company.id, User.id, start, end);
+      achiTodolist = database.Where(x => x.type == "todolist").ToList();
+      todolist = await DbTodolist.DataAchievement(Layout.Company.id, User.id, start, end);
 
-    achiCfrs = database.Where(x => x.type == "cfrs").ToList();
-    var cfrsList = await DbOkrCfr.DataAchievement(Layout.Company.id, User.id, start, end);
-    cfrs = cfrsList.Count;
+      achiCfrs = database.Where(x => x.type == "cfrs").ToList();
+      var cfrsList = await DbOkrCfr.DataAchievement(Layout.Company.id, User.id, start, end);
+      cfrs = cfrsList.Count;
 
-    achiKaizen = database.Where(x => x.type == "kaizen").ToList();
-    var kaizenList = await DbKaizen.DataAchievement(Layout.Company.id, User.id, start, end);
-    kaizen = kaizenList.Count;
+      achiKaizen = database.Where(x => x.type == "kaizen").ToList();
+      var kaizenList = await DbKaizen.DataAchievement(Layout.Company.id, User.id, start, end);
+      kaizen = kaizenList.Count;
 
-    achiEducate = database.Where(x => x.type == "educate").ToList();
-    var educateList = await DbEducateLearned.DataAchievement(Layout.Company.id, User.id, start, end);
-    educate = educateList.Count;
+      achiEducate = database.Where(x => x.type == "educate").ToList();
+      var educateList = await DbEducateLearned.DataAchievement(Layout.Company.id, User.id, start, end);
+      educate = educateList.Count;
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnParametersSetAsync()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 
   private async Task ChangeMonthTodolist(ChangeEventArgs e)
   {
-    var start = Convert.ToDateTime(e.Value);
-    var end = start.AddMonths(1).AddDays(-1);
-    monthTodolist = start.Month;
-    achiTodolist = await DbAchievement.GetList(Layout.Company.id, User.id, "todolist", start, end);
+    try
+    {
+      var start = Convert.ToDateTime(e.Value);
+      var end = start.AddMonths(1).AddDays(-1);
+      monthTodolist = start.Month;
+      achiTodolist = await DbAchievement.GetList(Layout.Company.id, User.id, "todolist", start, end);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeMonthTodolist()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 
   private async Task ChangeMonthCfrs(ChangeEventArgs e)
   {
-    var start = Convert.ToDateTime(e.Value);
-    var end = start.AddMonths(1).AddDays(-1);
-    monthCfrs = start.Month;
-    achiCfrs = await DbAchievement.GetList(Layout.Company.id, User.id, "cfrs", start, end);
+    try
+    {
+      var start = Convert.ToDateTime(e.Value);
+      var end = start.AddMonths(1).AddDays(-1);
+      monthCfrs = start.Month;
+      achiCfrs = await DbAchievement.GetList(Layout.Company.id, User.id, "cfrs", start, end);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeMonthCfrs()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 
   private async Task ChangeMonthKaizen(ChangeEventArgs e)
   {
-    var start = Convert.ToDateTime(e.Value);
-    var end = start.AddMonths(1).AddDays(-1);
-    monthKaizen = start.Month;
-    achiKaizen = await DbAchievement.GetList(Layout.Company.id, User.id, "kaizen", start, end);
+    try
+    {
+      var start = Convert.ToDateTime(e.Value);
+      var end = start.AddMonths(1).AddDays(-1);
+      monthKaizen = start.Month;
+      achiKaizen = await DbAchievement.GetList(Layout.Company.id, User.id, "kaizen", start, end);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeMonthKaizen()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 
   private async Task ChangeMonthEducate(ChangeEventArgs e)
   {
-    var start = Convert.ToDateTime(e.Value);
-    var end = start.AddMonths(1).AddDays(-1);
-    monthEducate = start.Month;
-    achiEducate = await DbAchievement.GetList(Layout.Company.id, User.id, "educate", start, end);
+    try
+    {
+      var start = Convert.ToDateTime(e.Value);
+      var end = start.AddMonths(1).AddDays(-1);
+      monthEducate = start.Month;
+      achiEducate = await DbAchievement.GetList(Layout.Company.id, User.id, "educate", start, end);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeMonthEducate()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 
   private bool CheckAccess(string productId)

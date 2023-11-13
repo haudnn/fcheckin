@@ -1,4 +1,6 @@
 @inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
 @if (model != null)
 {
@@ -49,10 +51,16 @@
                     Quyền truy cập
                   </li>
                 </ul>
-                <Dropzone Items="data" TItem="HrmOptionModel" InstantReplace="true" OnItemDrop="x => OnItemDragdrop(x)">
+                <Dropzone 
+                  Class="drop_hrm_option_company"
+                  Items="data" 
+                  TItem="HrmOptionModel" 
+                  InstantReplace="true" 
+                  OnItemDrop="x => OnItemDragdrop(x)"
+                  WrapperClass="drop_hrm_option_company_item">
                   @{
                     var company = departments.SingleOrDefault(x => x.id == context.company);
-                    var managers = Layout.UserList.Where(x => context.managers.Contains(x.id)).Select(x => x.FullName);
+                    var managers = shareStorage.MemberList.Where(x => context.managers.Contains(x.id)).Select(x => x.name);
                   }
                   <ul class="columns is-multiline is-vcentered is-variable is-1" data-id="@context.id">
                     <li class="column is-3">
@@ -96,8 +104,8 @@
                     </div>
                   </li>
                   <li class="column is-4">
-                    <MemberDropdown members="editItem.managers" sources="managerList"
-                      department="@editItem.company" isEdit="true" isUp="true" OnUpdate="OnUpdateMember" />
+@*                    <MemberDropdown members="editItem.managers" sources="managerList"
+                      department="@editItem.company" isEdit="true" isUp="true" OnUpdate="OnUpdateMember" />*@
                   </li>
                   <li class="column is-2 has-text-right">
                     <a class="button is-white has-text-link" @onclick="UpdateItem">
@@ -124,7 +132,13 @@
                 <div class="has-text-weight-medium mb-2">
                   Lựa chọn
                 </div>
-                <Dropzone Items="data" TItem="HrmOptionModel" InstantReplace="true" OnItemDrop="x => OnItemDragdrop(x)">
+                <Dropzone 
+                  Class="drop_hrm_option"
+                  Items="data" 
+                  TItem="HrmOptionModel" 
+                  InstantReplace="true" 
+                  OnItemDrop="x => OnItemDragdrop(x)"
+                  WrapperClass="drop_hrm_option_item">
                   <ul class="columns is-multiline is-vcentered is-variable is-1" data-id="@context.id">
                     <li class="column is-four-fifths">
                       <a class="icon-text" @onclick="() => EditItem(context)">
@@ -188,7 +202,7 @@
                 @foreach (var item in data)
                 {
                   var company = departments.SingleOrDefault(x => x.id == item.company);
-                  var managers = Layout.UserList.Where(x => item.managers.Contains(x.id)).Select(x => x.FullName);
+                  var managers = shareStorage.MemberList.Where(x => item.managers.Contains(x.id)).Select(x => x.name);
 
                   <ul data-id="@item.id" class="columns is-multiline is-vcentered is-variable is-1 has-text-grey">
                     <li class="column is-3">
@@ -292,7 +306,7 @@
   [Parameter]
   public HrmOptionModel model { get; set; }
   [Parameter]
-  public List<HrmOptionModel> data { get; set; }
+  public List<HrmOptionModel> data { get; set; } = new();
   [Parameter]
   public EventCallback<bool> OnUpdate { get; set; }
   private bool editMode = false;
@@ -302,12 +316,16 @@
   private string deleteItem = string.Empty;
   private int deleteUse = 0;
 
-  protected override void OnInitialized()
+  private SharedStorage shareStorage = new();
+
+  protected override async Task OnInitializedAsync()
   {
-    departments = DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    departments = await DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
     departments.RemoveAll(x => x.level > 1);
+    var allUser = await DbUser.GetAll(Layout.Company.id, globalService);
     // Danh sách tài khoản có quyền QLHT - Chấm công
-    managerList = Layout.UserList.Where(x => x.role == 2 && x.role_manage.timekeeping).ToList();
+    managerList = allUser.Where(x => x.role == 2 && x.role_manage.timekeeping).ToList();
   }
 
   private async Task Cancel()
@@ -337,39 +355,49 @@
 
   private async Task UpdateItem()
   {
-    if(Shared.IsEmpty(editItem.name))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên hạng mục!");
-    else if(model.type == "company" && Shared.IsEmpty(editItem.company))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn phòng ban!");
-    else if(model.type == "company" && editItem.managers.Count == 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa thêm quyền truy cập!");
-    else if(Shared.IsEmpty(editItem.id) && data.Any(x => x.name == editItem.name))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Lựa chọn đã tồn tại!");
-    else
+    try
     {
-      if(Shared.IsEmpty(editItem.id))
-      {
-        editItem.pos = data.Count;
-        await DbHrmOption.Create(Layout.Company.id, editItem);
-        data.Add(editItem);
-      }
+      if (Shared.IsEmpty(editItem.name))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên hạng mục!");
+      else if (model.type == "company" && Shared.IsEmpty(editItem.company))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn phòng ban!");
+      else if (model.type == "company" && editItem.managers.Count == 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa thêm quyền truy cập!");
+      else if (Shared.IsEmpty(editItem.id) && data.Any(x => x.name == editItem.name))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Lựa chọn đã tồn tại!");
       else
       {
-        await DbHrmOption.Update(Layout.Company.id, editItem);
+        if (Shared.IsEmpty(editItem.id))
+        {
+          editItem.pos = data.Count;
+          await DbHrmOption.Create(Layout.Company.id, editItem);
+          data.Add(editItem);
+        }
+        else
+        {
+          await DbHrmOption.Update(Layout.Company.id, editItem);
+        }
+        data = data.OrderBy(x => x.pos).ToList();
+        editItem = new() { type = model.type };
+        await JSRuntime.InvokeVoidAsync("setFocus", "option_name");
       }
-      data = data.OrderBy(x => x.pos).ToList();
-      editItem = new() { type = model.type };
-      await JSRuntime.InvokeVoidAsync("setFocus", "option_name");
+    }
+    catch(Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeStatus()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
     }
   }
 
   private async Task DeleteItem(HrmOptionModel item)
   {
+    var allUser = await DbUser.GetAll(Layout.Company.id, globalService);
     deleteItem = item.name;
     if(model.type == "company")
-      deleteUse = Layout.UserList.Count(x => x.company_id == item.id);
+      deleteUse = allUser.Count(x => x.company_id == item.id);
     else
-      deleteUse = Layout.UserList.Count(x => x.department_id == item.id);
+      deleteUse = allUser.Count(x => x.department_id == item.id);
 
     // Kiểm tra tài khoản đang sử dụng
     if(deleteUse == 0)
@@ -388,7 +416,6 @@
       var option = data[pos];
       option.pos = pos;
       await DbHrmOption.Update(Layout.Company.id, option);
-      Console.WriteLine($"{option.name} = {option.pos}");
     }
   }
 

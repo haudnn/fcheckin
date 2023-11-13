@@ -3,8 +3,8 @@
 
 <PageTitle>Thống kê Kế hoạch</PageTitle>
 
-<div class="card p-5 p-4-mobile">
-  <ul class="columns is-vcentered is-variable is-2 mb-3">
+<div class="card flex_column is_fullheight">
+  <ul class="columns is-vcentered is-variable is-2 mb-2">
     <li class="column">
       <h1 class="title is-5 has-text-info">
         DANH SÁCH KẾ HOẠCH
@@ -14,23 +14,23 @@
       <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
     </li>
     <li class="column is-one-quarter">
-      <div class="control has-icons-right">
-        <input @bind="filterKeyword" class="input is-small is-rounded" type="text" 
-          placeholder="Tiêu đề kế hoạch..." @onkeydown="ChangeFilterKeyword">
-        <span class="icon is-right is-small">
-          <i class="material-icons-outlined is-size-5">search</i>
+      <div class="control has-icons-left">
+        <span class="icon is-left is-small">
+          <i class="material-icons-outlined is-size-6">search</i>
         </span>
+        <input @bind="filterKeyword" class="input is-small is-rounded" type="text"
+               placeholder="Tiêu đề kế hoạch..." @onkeydown="ChangeFilterKeyword">
       </div>
     </li>
   </ul>
 
-  @if(Layout.IsMobile)
+  @if (Layout.IsMobile)
   {
     foreach (var item in planList)
     {
       var show = toggleStatus.Contains(item.Key);
       var status = WorkService.StatusPlan(item.Key);
-      <div class="icon-text">
+      <div class="icon-text mb-2">
         <span class="icon is-small mr-2">
           <i class="material-icons-outlined is-size-6">@status.icon</i>
         </span>
@@ -41,118 +41,133 @@
           <i class="material-icons-outlined is-size-6">@(show ? "arrow_drop_down" : "arrow_right")</i>
         </a>
       </div>
-      @if(show)
+      @if (show)
       {
-        foreach (var plan in item.Value)
-        {
-          var report = DbWorkReport.Get(Layout.Company.id, plan.id);
-          var done = Shared.Progress(report.done, report.total);
-          var late = Shared.Progress(report.late, report.total); 
-          <ul class="columns is-multiline is-variable is-1 is-mobile my-2 is-size-7">
-            <li class="column is-full">
-              <a class="has-text-link has-text-weight-medium font_14" href="/work/@plan.id/detail">
-                @plan.name
-              </a>
-            </li>
-            <li class="column is-two-thirds">
-              <div class="icon-text">
-                <span class="icon is-small mr-2 has-text-success">
-                  <i class="material-icons-outlined is-size-6">done_all</i>
-                </span>
-                <span class="has-text-grey">Công việc hoàn thành:</span>
-              </div>
-            </li>
-            <li class="column is-one-third">
-              <span>@string.Format("{0}/{1}", report.done, report.total)</span>
-              <span class="px-1">•</span>
-              <span>@Shared.ConvertNumber(done)%</span>
-            </li>
-            <li class="column is-two-thirds">
-              <div class="icon-text">
-                <span class="icon is-small mr-2 has-text-danger">
-                  <i class="material-icons-outlined is-size-6">error_outline</i>
-                </span>
-                <span class="has-text-grey">Công việc trễ hạn:</span>
-              </div>
-            </li>
-            <li class="column is-one-third">
-              <span>@string.Format("{0}/{1}", report.late, report.total)</span>
-              <span class="px-1">•</span>
-              <span>@Shared.ConvertNumber(late)%</span>
-            </li>
-          </ul>
-        }
+        <div class="inner_section flex_column mb-2" style="flex:1">
+          @foreach (var plan in item.Value)
+          {
+            var report = allReport.FirstOrDefault(x => x.id == plan.id);
+            var done = Shared.Progress(report.done, report.total);
+            var late = Shared.Progress(report.late, report.total);
+            <ul class="columns is-multiline is-variable is-1 is-mobile my-2 is-size-7" style="flex:1">
+              <li class="column is-full">
+                <a class="has-text-link has-text-weight-medium font_14" href="/work/@plan.id/detail" target="_blank">
+                  @plan.name
+                </a>
+              </li>
+              <li class="column is-two-thirds">
+                <div class="icon-text">
+                  <span class="icon is-small mr-2 has-text-success">
+                    <i class="material-icons-outlined is-size-6">done_all</i>
+                  </span>
+                  <span class="has-text-grey">Công việc hoàn thành:</span>
+                </div>
+              </li>
+              <li class="column is-one-third">
+                <span>@string.Format("{0}/{1}", report.done, report.total)</span>
+                <span class="px-1">•</span>
+                <span>@Shared.ConvertNumber(done)%</span>
+              </li>
+              <li class="column is-two-thirds">
+                <div class="icon-text">
+                  <span class="icon is-small mr-2 has-text-danger">
+                    <i class="material-icons-outlined is-size-6">error_outline</i>
+                  </span>
+                  <span class="has-text-grey">Công việc trễ hạn:</span>
+                </div>
+              </li>
+              <li class="column is-one-third">
+                <span>@string.Format("{0}/{1}", report.late, report.total)</span>
+                <span class="px-1">•</span>
+                <span>@Shared.ConvertNumber(late)%</span>
+              </li>
+            </ul>
+          }
+        </div>  
       }
     }
   }
   else
   {
-    <table class="table is-fullwidth is-vcentered is-noborder is-responsive mt-3">
-      <thead>
-        <tr class="is-size-7">
-          <th>Kế hoạch</th>
-          <th width="110px">Chế độ</th>
-          <th align="center" width="150px">Công việc hoàn thành</th>
-          <th align="center" width="150px">Công việc trễ hạn</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach (var item in planList)
-        {
-          var show = toggleStatus.Contains(item.Key);
-          var status = WorkService.StatusPlan(item.Key);
-          <tr>
-            <td colspan="4">
-              <div class="icon-text">
-                <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
-                  <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
-                </a>
-                <a class="has-text-dark has-text-weight-semibold font_14 is-uppercase" @onclick="() => ToggleStatus(status.id)">
-                  Kế hoạch @status.name (@item.Value.Count)
-                </a>
-              </div>
-            </td>
+    <div class="scrolly inner_section" style="flex:1">
+      <table class="table is-fullwidth is-vcentered is-noborder is-responsive sticky only_desktop">
+        <thead>
+          <tr class="is-size-7" style="border-bottom: 1px solid #DEDEDE;">
+            <th>Kế hoạch</th>
+            <th width="110px">Chế độ</th>
+            <th align="center" width="150px">Công việc hoàn thành</th>
+            <th align="center" width="150px">Công việc trễ hạn</th>
           </tr>
-
-          @if(show)
+        </thead>
+        <tbody>
+          @foreach (var item in planList)
           {
-            foreach (var plan in item.Value)
-            {
-              var report = DbWorkReport.Get(Layout.Company.id, plan.id);
-              var done = Shared.Progress(report.done, report.total);
-              var late = Shared.Progress(report.late, report.total);
-              <tr>
-                <td class="pl-5">
-                  <a class="has-text-link has-text-weight-medium" href="/work/@plan.id/detail">
-                    @plan.name
+            var show = toggleStatus.Contains(item.Key);
+            var status = WorkService.StatusPlan(item.Key);
+            <tr>
+              <td colspan="4">
+                <div class="icon-text">
+                  <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
+                    <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
                   </a>
-                </td>
-                <td>
-                  <span class="icon-text">
-                    <span class="icon is-small">
-                      <i class="material-icons-outlined is-size-6">
-                        @(plan.is_private ? "lock" : "public")
-                      </i>
+                  <a class="has-text-dark has-text-weight-semibold font_14 is-uppercase" @onclick="() => ToggleStatus(status.id)">
+                    Kế hoạch @status.name (@item.Value.Count)
+                  </a>
+                </div>
+              </td>
+            </tr>
+
+            @if (show)
+            {
+              foreach (var plan in item.Value)
+              {
+                var report = allReport.FirstOrDefault(x => x.id == plan.id);
+                double done = 0;
+                double late = 0;
+                if(report != null)
+                {
+                  done = Shared.Progress(report.done, report.total);
+                  late = Shared.Progress(report.late, report.total);
+                }
+                <tr>
+                  <td class="pl-5">
+                    <a class="has-text-link has-text-weight-medium" href="/work/@plan.id/detail" target="_blank">
+                      @plan.name
+                    </a>
+                  </td>
+                  <td>
+                    <span class="icon-text">
+                      <span class="icon is-small">
+                        <i class="material-icons-outlined is-size-6">
+                          @(plan.is_private ? "lock" : "public")
+                        </i>
+                      </span>
+                      <span>@(plan.is_private ? "Riêng tư" : "Công khai")</span>
                     </span>
-                    <span>@(plan.is_private ? "Riêng tư" : "Công khai")</span>
-                  </span>
-                </td>
-                <td align="center">
-                  <span>@string.Format("{0}/{1}", report.done, report.total)</span>
-                  <span class="px-1">•</span>
-                  <span>@Shared.ConvertNumber(done)%</span>
-                </td>
-                <td align="center">
-                  <span>@string.Format("{0}/{1}", report.late, report.total)</span>
-                  <span class="px-1">•</span>
-                  <span>@Shared.ConvertNumber(late)%</span>
-                </td>
-              </tr>
+                  </td>
+                  <td align="center">
+                    @if(report != null)
+                    {
+                      <span>@string.Format("{0}/{1}", report.done, report.total)</span>
+                      <span class="px-1">•</span>
+                      <span>@Shared.ConvertNumber(done)%</span>
+                    }
+                  </td>
+                  <td align="center">
+                    @if(report != null)
+                    {
+                      <span>@string.Format("{0}/{1}", report.late, report.total)</span>
+                      <span class="px-1">•</span>
+                      <span>@Shared.ConvertNumber(late)%</span>
+                    }
+                  </td>
+                </tr>
+              }
             }
           }
-        }
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   }
 </div>
 
@@ -160,24 +175,27 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   [Parameter]
-  public List<DepartmentModel> departmentAll { get; set; }
+  public List<DepartmentModel> departmentAll { get; set; } = new();
   [Parameter]
-  public List<DepartmentModel.SelectList> departments { get; set; }
+  public List<DepartmentModel.SelectList> departments { get; set; } = new();
   private Dictionary<int, List<WorkPlanModel>> planList = new();
   private List<int> toggleStatus = new() { 1 };
   private DepartmentModel department = new() { name = "Tất cả phòng ban" };
   private string filterDepartment = string.Empty;
   private string filterKeyword = string.Empty;
 
+  private List<WorkPlanModel.Report> allReport = new();
+
   protected override async Task OnInitializedAsync()
   {
+    allReport = await DbWorkReport.GetAll(Layout.Company.id);
     await ChangeFilterDepartment(Layout.User.department_default);
   }
 
   private async Task ChangeFilterDepartment(string value)
   {
     department = departmentAll.FirstOrDefault(x => x.id == value);
-    if(department == null)
+    if (department == null)
     {
       department = new() { name = "Tất cả phòng ban" };
       filterDepartment = string.Empty;
@@ -188,56 +206,68 @@
     }
     await GetDataList();
   }
-  
+
   private async Task ChangeFilterKeyword(KeyboardEventArgs args)
   {
     if (args.Key == "Enter")
     {
       await GetDataList();
     }
-    else if(args.Key == "Escape")
+    else if (args.Key == "Escape")
     {
       filterKeyword = string.Empty;
       await GetDataList();
     }
   }
-  
+
   private void ToggleStatus(int id)
   {
-    if(toggleStatus.Contains(id))
+    if (toggleStatus.Contains(id))
       toggleStatus.Remove(id);
     else
       toggleStatus.Add(id);
   }
 
-  private async Task GetDataList()
+  private async Task<bool> GetDataList()
   {
-    // Lấy tất cả kế hoạch đang có
-    var data = await DbWorkPlan.GetAll(Layout.Company.id);
-
-    // Tìm kiếm theo tiêu đề kế hoạch
-    if(!string.IsNullOrEmpty(filterKeyword))
-      data = data.Where(x => Shared.SearchKeyword(filterKeyword, x.name)).ToList();
-
-    // Lọc dự án theo phòng ban
-    var views = new List<WorkPlanModel>();
-    foreach (var item in data)
+    bool _success = true;
+    try
     {
-      if(department.members_id == null)
-        views.Add(item);
-      else if(item.members != null)
+      // Lấy tất cả kế hoạch đang có
+      var data = await DbWorkPlan.GetAll(Layout.Company.id);
+
+      // Tìm kiếm theo tiêu đề kế hoạch
+      if (!string.IsNullOrEmpty(filterKeyword))
+        data = data.Where(x => Shared.SearchKeyword(filterKeyword, x.name)).ToList();
+
+      // Lọc dự án theo phòng ban
+      var views = new List<WorkPlanModel>();
+      foreach (var item in data)
       {
-        var check = item.members.Where(x => department.members_id.Contains(x.id)).Count();
-        if(check > 0)
+        if (department.members_id == null)
           views.Add(item);
+        else if (item.members != null)
+        {
+          var check = item.members.Where(x => department.members_id.Contains(x.id)).Count();
+          if (check > 0)
+            views.Add(item);
+        }
+      }
+
+      planList.Clear();
+      foreach (var status in WorkService.StatusPlan())
+      {
+        var list = views.Where(x => x.status == status.id).ToList();
+        planList.Add(status.id, list);
       }
     }
-
-    planList.Clear();
-    foreach (var status in WorkService.StatusPlan())
+    catch (Exception ex)
     {
-      var list = views.Where(x => x.status == status.id).ToList();
-      planList.Add(status.id, list);
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetDataList()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
     }
+    return _success;
   }
 }

@@ -1,9 +1,8 @@
 ﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
 
 @if (Okr != null)
 {
-  dataList = DbOkrTask.GetList(Layout.Company.id, Layout.CycleId, Okr.id, Kr.id);
-
   <div class="modal is-active">
     <div class="modal-background"></div>
     <div class="modal-card is-large">
@@ -247,6 +246,14 @@
   DateTimeOffset? EndDate { get; set; }
   private string message = string.Empty;
 
+  protected override async Task OnParametersSetAsync()
+  {
+    if(Okr != null)
+    {
+      dataList = await DbOkrTask.GetList(Layout.Company.id, Layout.CycleId, Okr.id, Kr.id);
+    }
+  }
+
   private void EditItem(OkrTaskModel item)
   {
     current = item;
@@ -254,41 +261,65 @@
     EndDate = new DateTime(current.end);
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    message = string.Empty;
-
-    if (string.IsNullOrEmpty(current.name) || StartDate == null || EndDate == null)
+    bool _success = true;
+    try
     {
-      message = "Nhập các trường bắt buộc (*)";
-
-      await Task.Delay(5000);
       message = string.Empty;
-    }
-    else
-    {
-      current.start = StartDate.Value.DateTime.Ticks;
-      current.end = EndDate.Value.DateTime.Ticks;
-      await DbOkrTask.Update(Layout.Company.id, current);
 
-      current = null;
-      dataList = DbOkrTask.GetList(Layout.Company.id, Layout.CycleId, Okr.id, Kr.id);
+      if (string.IsNullOrEmpty(current.name) || StartDate == null || EndDate == null)
+      {
+        message = "Nhập các trường bắt buộc (*)";
+
+        await Task.Delay(5000);
+        message = string.Empty;
+      }
+      else
+      {
+        current.start = StartDate.Value.DateTime.Ticks;
+        current.end = EndDate.Value.DateTime.Ticks;
+        await DbOkrTask.Update(Layout.Company.id, current);
+
+        current = null;
+        dataList = await DbOkrTask.GetList(Layout.Company.id, Layout.CycleId, Okr.id, Kr.id);
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task Delete()
+  private async Task<bool> Delete()
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {current.name}"))
-      return;
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {current.name}"))
+        return false;
 
-    if (await DbOkrTask.Delete(Layout.Company.id, current.id))
-    {
-      dataList.Remove(current);
-      current = null;
+      if (await DbOkrTask.Delete(Layout.Company.id, current.id))
+      {
+        dataList.Remove(current);
+        current = null;
+      }
+      else
+      {
+        message = "Không thể xóa mục này, vui lòng thử lại !";
+      }
     }
-    else
+    catch (Exception ex)
     {
-      message = "Không thể xóa mục này, vui lòng thử lại !";
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Delete()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
     }
+    return _success;
   }
 }

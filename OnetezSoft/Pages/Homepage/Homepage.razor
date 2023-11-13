@@ -1,0 +1,343 @@
+﻿@page "/homepage"
+@inject NavigationManager navigation
+@inject GlobalService globalService
+
+<section class="main_content homepage">
+  <div class="card">
+    <div class="image">
+      <img src="@Layout.Company.logo">
+      <p>
+        Chào mừng trở lại, @Layout.User.first_name!
+      </p>
+    </div>
+    <h5>
+      @Layout.Company.name
+    </h5>
+    @if (storage != null)
+    {
+      <div class="field is-grouped">
+        <div class="control is-expanded">
+          Dung lượng: <strong>@(Math.Round((double)storage.used / 1000,2)) / @storage.total GB</strong>
+        </div>
+        <div class="control">
+          Hết hạn: 
+          <span class="@(storage.end <= today.AddDays(7).Ticks ? "has-text-danger" : "")">
+            @(new DateTime(storage.end).ToString("dd/MM/yy"))
+          </span>
+        </div>
+      </div>
+      <progress class="progress @usage" value="@percentage" max="100">
+        @(percentage)%
+      </progress>
+    }
+    <div class="scrolly">
+      <ul class="columns is-variable is-multiline is-1 is-vcentered">
+        <li class="column is-full">
+          <div class="field is-grouped">
+            <div class="control is-expanded">
+              Sản phẩm
+            </div>
+            <div class="control" style="width:75px;">
+              Hết hạn
+            </div>
+            <div class="control" style="width:90px;">
+              Người dùng
+            </div>
+          </div>
+        </li>
+        @foreach (var item in Layout.Company.products.OrderBy(x => x.title == "fStorage" ? 1 : 0))
+        {
+          var product = products.FirstOrDefault(x => x.id == item.id);
+          if (product != null)
+          {
+            var end = new DateTime(item.end);
+            var title = Duration(end, out var duration);
+            <li class="column is-full" title="@title">
+              <div class="field is-grouped">
+                <div class="control is-expanded">
+                  <span class="icon-text">
+                    <span 
+                      class="icon image is-24x24 mb-0 mr-2"
+                      style="box-shadow: 0 0 8px rgba(0,0,0,0.06);">
+                      <img src="@(product.icon)" alt="module-image" />
+                    </span>
+                    <span class="has-text-weight-semibold">
+                      @product.title
+                    </span>
+                  </span>
+                </div>
+                <div class="control" style="width:75px;">
+                  <span class=" @(GetExpires(item.end).Split("_").LastOrDefault())" style="white-space:nowrap">
+                    @GetExpires(item.end).Split("_").FirstOrDefault()
+                  </span>
+                </div>
+                <div class="control" style="width:90px;">
+                  @if (product.title != "fStorage")
+                  {
+                    <span class="">
+                      @(item.used)/@(item.total)
+                    </span>
+                  }
+                </div>
+              </div>
+            </li>
+          }
+        }
+      </ul>
+    </div>
+  </div>
+  <div class="card" style="@(Layout.IsMobile ? "" : "overflow:hidden")">
+    <Carousel />
+    <div class="columns is-vcentered is-variable is-mobile is-multiline mb-2">
+      <div class="column">
+        <_Search Lists="navList"
+          NameType="name" 
+          IsInstant IsFull IsRound 
+          TItem="NavModel"
+          SearchType='new () {"link","name"}'
+          PlaceHolder="Tìm ứng dụng"
+          OnChange="SearchModule"
+          IsSmall/>
+      </div>
+      @if(Layout.User.is_customer)
+      {
+        <div class="column is-narrow">
+          <a class="button is-white has-text-link is-small" href="/client/products">
+            <span class="icon">
+              <span class="material-icons">
+                shop
+              </span>
+            </span>
+            <span>
+              Cửa hàng Fastdo
+            </span>
+          </a>
+        </div>
+        <div class="column is-narrow">
+          <a class="button is-white has-text-link is-small" href="/client/home">
+            <span class="icon">
+              <span class="material-icons">
+                business
+              </span>
+            </span>
+            <span>
+              Quản lý tổ chức
+            </span>
+          </a>
+        </div>
+      }
+      @if(Layout.User.role < 3)
+      {
+        <div class="column is-narrow">
+          <a class="button is-white has-text-link is-small" href="/configs">
+            <span class="icon">
+              <span class="material-icons">
+                settings
+              </span>
+            </span>
+            <span>
+              Cấu hình
+            </span>
+          </a>
+        </div>
+      }
+    </div>
+    <h5>
+      Ứng dụng yêu thích
+    </h5>
+    <div class="module-list">
+      @foreach (var module in favorites)
+      {
+        var product = navList.FirstOrDefault(x => x.link.Contains(module.Replace("#", "")));
+        if(product != null)
+        {
+          var moduleName = product.link.Split("/").FirstOrDefault();
+          var valid = modules.Contains(moduleName) ? ProductService.CheckAccess(Layout.Company, Layout.User, moduleName, out var error) : true;
+          if (valid)
+          {
+            <div class="module-item">
+              <a class="field is-grouped" href="@product.link">
+                <div class="control">
+                  <span class="icon image is-22x22">
+                    <img src="/images/modules/@(product.icon).png" alt="module-image" />
+                  </span>
+                </div>
+                <div class="control is-expanded">
+                  <span class="text_1_line">
+                    @product.name
+                  </span>
+                </div>
+              </a>
+              <div class="control"
+                @onclick="() => RemoveFavorite(product.link,valid)"
+                @onclick:stopPropagation>
+                <span class="icon has-text-warning">
+                  <span class="material-icons">
+                    star
+                  </span>
+                </span>
+              </div>
+            </div>
+          }
+        }
+      }
+    </div>
+    <h5>
+      Danh sánh ứng dụng
+    </h5>
+    <div class="module-list">
+      @foreach (var product in navList.Where(x => !Layout.User.products_favorite.Contains(x.link.Split("/").First())))
+      {
+        var moduleName = product.link.Split("/").FirstOrDefault();
+        var valid = modules.Contains(moduleName) ? ProductService.CheckAccess(Layout.Company, Layout.User, moduleName, out var error) : true;
+        if (valid)
+        {
+          <div class="module-item">
+            <a class="field is-grouped" href="@product.link">
+              <div class="control">
+                <span class="icon image is-22x22">
+                  <img src="/images/modules/@(product.icon).png" alt="module-image" />
+                </span>
+              </div>
+              <div class="control is-expanded">
+                <span class="text_1_line">
+                  @product.name
+                </span>
+              </div>
+            </a>
+            <div class="control"
+            @onclick="() => AddFavorite(product.link,valid)"
+            @onclick:stopPropagation>
+              <span class="icon">
+                <span class="material-icons">
+                  star_border
+                </span>
+              </span>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  </div>
+</section>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private CompanyModel.Product storage;
+
+  private double percentage;
+  private string usage;
+  private DateTime today = DateTime.Today;
+
+  private List<string> favorites = new();
+  private List<NavModel> navList = new();
+  private List<ProductModel> products = new();
+  private List<string> modules = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    storage = Layout.Company.products.FirstOrDefault(x => x.id == "storage");
+
+    if(storage != null)
+    {
+      percentage = Math.Round(((double) storage.used / (storage.total * 1000)) * 100,0);
+      if (percentage < 30)
+        usage = "is-success";
+      else if (percentage < 75)
+        usage = "is-warning";
+      else
+        usage = "is-danger";
+    }
+
+    navList = ModuleService.GetList(Layout.Company,Layout.User);
+    products = await DbMainProduct.GetAll();
+    modules = ModuleService.GetModules();
+
+    favorites = Layout.User.products_favorite;
+  }
+
+  private string GetExpires(long end)
+  {
+    if (end == 0) return "";
+
+    var endDate = new DateTime(end);
+    if(end > today.Ticks)
+    {
+      if(end <= today.AddDays(7).Ticks)
+      {
+        return $"Còn {(endDate - today).TotalDays} ngày_has-text-danger";
+      }
+      else
+      {
+        return endDate.ToString("dd/MM/yyyy") + "_";
+      }
+    }
+    else if(end == today.Ticks)
+    {
+      return "Hết hạn hôm nay_has-text-danger";
+    }
+    else
+    {
+      return "Quá hạn_has-text-danger";
+    }
+  }
+
+  private void SearchModule(NavModel model)
+  {
+    navigation.NavigateTo(navigation.BaseUri + model.link, false);
+  }
+
+  private async Task RemoveFavorite(string item,bool check)
+  {
+    if (!check)
+      return;
+
+    item = item.Split("/").FirstOrDefault();
+    favorites.Remove(item);
+    await DbUser.Update(Layout.Company.id, Layout.User, globalService);
+  }
+
+  private async Task AddFavorite(string item, bool check)
+  {
+    if (!check)
+      return;
+
+    item = item.Split("/").FirstOrDefault();
+    favorites.Add(item);
+    await DbUser.Update(Layout.Company.id, Layout.User, globalService);
+  }
+
+  private string Duration(DateTime? date, out int duration)
+  {
+    var result = "";
+
+    DateTime DateTimeNow = DateTime.Now;
+    TimeSpan spanMe = date.Value.Subtract(DateTimeNow);
+    if (DateTime.Compare(date.Value, DateTimeNow) <= 0)
+    {
+      result = "Quá hạn";
+    }
+    if (spanMe.Days < 1)
+    {
+      result = "Hết hạn hôm nay";
+    }
+    else if (spanMe.Days < 30)
+    {
+      result = "Còn " + spanMe.Days + " ngày";
+    }
+    else if (spanMe.Days < 365)
+    {
+      result = "Còn " + (System.Convert.ToInt32(spanMe.Days / 30)) + " tháng";
+    }
+    else if (spanMe.Days > 365)
+    {
+      result = "Còn " + (System.Convert.ToInt32(spanMe.Days / 365)) + " năm";
+    }
+
+    duration = DateTime.Compare(date.Value, DateTimeNow) <= 0 ? -1 : spanMe.Days;
+
+    return result;
+  }
+}

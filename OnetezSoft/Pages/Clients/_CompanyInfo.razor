@@ -39,7 +39,7 @@
           @if (members.Count > 8)
           {
             <span class="image is-rounded is-32x32 has-text-weight-semibold"
-              style="justify-content: center; align-items: center;">
+                  style="justify-content: center; align-items: center;">
               +@(members.Count - 8)
             </span>
           }
@@ -68,9 +68,9 @@
             </div>
           </div>
           <div class="level-right">
-            @if(company.status)
+            @if (company.status)
             {
-              <a class="icon-text has-text-dark" href="/client/products">
+              <a class="icon-text has-text-dark" href="/@company.id">
                 <span class="icon">
                   <i class="material-icons-round is-size-6">link</i>
                 </span>
@@ -107,7 +107,7 @@
             </span>
             <span>@company.address</span>
           </div>
-          @if(!string.IsNullOrEmpty(company.website))
+          @if (!string.IsNullOrEmpty(company.website))
           {
             <div class="icon-text mb-1">
               <span class="icon is-small mr-3">
@@ -116,7 +116,7 @@
               <span>@company.website</span>
             </div>
           }
-          @if(!string.IsNullOrEmpty(company.note))
+          @if (!string.IsNullOrEmpty(company.note))
           {
             <div class="has-text-weight-bold">
               Mô tả thêm
@@ -138,6 +138,8 @@
 }
 
 @code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
   [Parameter]
   public CompanyModel company { get; set; }
   [Parameter]
@@ -148,29 +150,66 @@
   private CompanyModel model = null;
   private CompanyModel verify = null;
 
-  private async Task EditCompany()
+  private async Task<bool> EditCompany()
   {
-    model = await DbMainCompany.Get(company.id);
-    await JSRuntime.InvokeVoidAsync("textAutoSize", "note");
+    bool _success = true;
+    try
+    {
+      model = await DbMainCompany.Get(company.id);
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "note");
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "EditCompany()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task OnUpdate(bool isUpdate)
+  private async Task<bool> OnUpdate(bool isUpdate)
   {
-    if (isUpdate)
+    bool _success = true;
+    try
     {
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin tổ chức!");
-      company = await DbMainCompany.Get(company.id);
+      if (isUpdate)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin tổ chức!");
+        company = await DbMainCompany.Get(company.id);
+      }
+      model = null;
+
     }
-    model = null;
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnUpdate()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task OnVerify(bool isUpdate)
+  private async Task<bool> OnVerify(bool isUpdate)
   {
-    if (isUpdate)
+    bool _success = true;
+    try
     {
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xác minh tổ chức thành công!");
-      company = await DbMainCompany.Get(company.id);
+      if (isUpdate)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xác minh tổ chức thành công!");
+        company = await DbMainCompany.Get(company.id);
+      }
+      verify = null;
     }
-    verify = null;
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnVerify()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

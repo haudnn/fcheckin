@@ -1,11 +1,10 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using OnetezSoft.Models;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
 using MongoDB.Driver;
+using OnetezSoft.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -64,19 +63,19 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<BannerModel>(_collection);
 
-      var result = await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      var result = await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
 
       return result;
     }
 
 
-    public static List<BannerModel> GetList(string companyId)
+    public static async Task<List<BannerModel>> GetList(string companyId)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<BannerModel>(_collection);
 
-      var results = collection.Find(new BsonDocument()).ToList();
+      var results = await collection.FindAsync(new BsonDocument()).Result.ToListAsync();
 
       return (from x in results orderby x.pin descending, x.pos select x).ToList();
     }

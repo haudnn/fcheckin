@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class OkrModel
   {
     [BsonId]
@@ -35,6 +36,9 @@ namespace OnetezSoft.Models
     /// <summary>Lần checkin cuối cùng</summary>
     public long date_checkin { get; set; }
 
+    /// <summary>Lần checkin đã xác nhận lần trước</summary>
+    public long date_checkin_confirm { get; set; }
+
     /// <summary>Lần checkin tiếp theo</summary>
     public long next_checkin { get; set; }
 
@@ -43,6 +47,9 @@ namespace OnetezSoft.Models
 
     /// <summary>Trạng thái checkin: 1. Nháp, 2. Đã xác nhận, 3. Đã checkin</summary>
     public int status_checkin { get; set; }
+
+    /// <summary>Trạng thái checkin cũ: 1. Nháp, 2. Đã xác nhận, 3. Đã checkin</summary>
+    public int status_checkin_old { get; set; }
 
     /// <summary>Hoàn thành/Chưa</summary>
     public bool done { get; set; }
@@ -109,6 +116,8 @@ namespace OnetezSoft.Models
 
       /// <summary>Đánh giá OKRs</summary>
       public Review review_data { get; set; } = new();
+
+      public List<string> user_assign {get; set;}= new();
     }
 
     /// <summary>OKRs liên kết chéo</summary>

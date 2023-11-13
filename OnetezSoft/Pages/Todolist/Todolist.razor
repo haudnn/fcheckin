@@ -1,35 +1,34 @@
 ﻿@page "/todolist"
-@page "/todolist/{Day}"
+@page "/todolist/{currentTab}"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
 <PageTitle>Todolist của tôi</PageTitle>
 
-<section class="p-4">
-  <ul class="columns is-multiline is-vcentered">
-    <li class="column">
-      <h1 class="title is-5 has-text-weight-bold has-text-link">
-        Chào buổi @Shared.DateSession(), @Layout.User.FullName
-      </h1>
-    </li>
-    <li class="column is-narrow has-text-weight-bold is-size-7">
-      Bạn đang có
-      <span class="has-text-danger">@achievement</span>
-      ngày liên tiếp không trễ Todolist
-    </li>
-  </ul>
+<CascadingValue Value="this">
+  <section class="main_content">
+    <div class="flex_column is_fullheight" style="width:100%;height:100%">
+      @switch (currentTab)
+      {
+        case "":
+          <_TodoToday Day="@Day" OnCheckout="GetAchievement" currentView="currentView" OnChangedView="ChangeView" />
+          break;
+        case "receive":
+          <_AssignedTodo OnReCountJob="CountJob" />
+          break;
+        case "send":
+          <_AssignedList />
+          break;
+        case "list":
+          <_TodoList />
+          break;
+      }
+    </div>
+  </section>
+</CascadingValue>
 
-  <_TodoToday Day="@Day" OnCheckout="GetAchievement" />
 
-  <_AssignedTodo />
-
-  <_AssignedList />
-
-  <_TodoList />
-
-</section>
-
-@if(!CheckAccess())
+@if (!CheckAccess())
 {
   <div class="modal is-active">
     <div class="modal-background"></div>
@@ -50,24 +49,67 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   [Parameter]
+  [SupplyParameterFromQuery(Name = "day")]
   public string Day { get; set; }
+  [Parameter]
+  public string currentTab { get; set; }
+
   private string msgAccess = string.Empty;
-  private int achievement = 0;
+  public int achievement = 0;
+
+  private int currentView = 1;
+  private int countJob = 0;
+  private DateTimeOffset? filterDateS = DateTime.Today;
+  private DateTimeOffset? filterDateE = DateTime.Today;
 
   protected override async Task OnInitializedAsync()
   {
+    Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
+    filterDateS = start;
+    filterDateE = end;
+    countJob = await DbTodoItem.GetMyAssignedListCount(Layout.Company.id, Layout.User.id, filterDateS.Value.Ticks, filterDateE.Value.Ticks);
     await GetAchievement();
   }
 
-  private async Task GetAchievement()
+  protected override void OnParametersSet()
   {
-    // Tính thành tựu Todolist
-    Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
-    achievement = await DbTodolist.DataAchievement(Layout.Company.id, Layout.User.id, start, end);
+    if (string.IsNullOrEmpty(currentTab))
+      currentTab = "";
+  }
+
+  private async Task<bool> GetAchievement()
+  {
+    bool _success = true;
+    try
+    {
+      // Tính thành tựu Todolist
+      Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
+      achievement = await DbTodolist.DataAchievement(Layout.Company.id, Layout.User.id, start, end);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetAchievement()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private bool CheckAccess()
   {
     return ProductService.CheckAccess(Layout.Company, Layout.User, "todolist", out msgAccess);
+  }
+
+  private void ChangeView(int _view)
+  {
+    currentView = _view;
+  }
+
+
+  // Đếm lại việc đã giao
+  private async Task CountJob()
+  {
+    countJob = await DbTodoItem.GetMyAssignedListCount(Layout.Company.id, Layout.User.id, filterDateS.Value.Ticks, filterDateE.Value.Ticks);
   }
 }

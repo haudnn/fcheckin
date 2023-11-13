@@ -5,18 +5,49 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Pages\LoginHttp\**" />
     <Compile Remove="wwwroot\thumb\**" />
     <Compile Remove="wwwroot\upload\**" />
+    <Content Remove="Pages\LoginHttp\**" />
     <Content Remove="wwwroot\thumb\**" />
     <Content Remove="wwwroot\upload\**" />
+    <EmbeddedResource Remove="Pages\LoginHttp\**" />
     <EmbeddedResource Remove="wwwroot\thumb\**" />
     <EmbeddedResource Remove="wwwroot\upload\**" />
+    <None Remove="Pages\LoginHttp\**" />
     <None Remove="wwwroot\thumb\**" />
     <None Remove="wwwroot\upload\**" />
   </ItemGroup>
 
   <ItemGroup>
+    <Content Remove="bundleconfig.json" />
+    <Content Remove="wwwroot\js\clientreport.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="bundleconfig.json" />
+    <None Include="Pages\Todolist\Todolist.razor" />
+    <None Include="Pages\Todolist\_AssignedList.razor" />
+    <None Include="Pages\Todolist\_AssignedPopup.razor" />
+    <None Include="Pages\Todolist\_AssignedTodo.razor" />
+    <None Include="Pages\Todolist\_CheckList.razor" />
+    <None Include="Pages\Todolist\_HeaderTodo.razor" />
+    <None Include="Pages\Todolist\_TodoCalendar.razor" />
+    <None Include="Pages\Todolist\_TodoCalendarPopup.razor" />
+    <None Include="Pages\Todolist\_TodoEditPopup.razor" />
+    <None Include="Pages\Todolist\_TodoFormPopup.razor" />
+    <None Include="Pages\Todolist\_TodoList.razor" />
+    <None Include="Pages\Todolist\_TodoLoop.razor" />
+    <None Include="Pages\Todolist\_TodoRemovePopup.razor" />
+    <None Include="Pages\Todolist\_TodoToday.razor" />
+    <None Include="Pages\Todolist\_TodoViewBoard.razor" />
+    <None Include="Pages\Todolist\_TodoViewList.razor" />
+    <None Include="Shared\Component\_InputDate.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="HtmlAgilityPack" Version="1.11.43" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.11" />
     <PackageReference Include="SkiaSharp" Version="2.88.0" />
     <PackageReference Include="ClosedXML" Version="0.101.0" />
     <PackageReference Include="Google.Apis.Auth" Version="1.61.0" />
@@ -26,10 +57,12 @@
     <PackageReference Include="MongoDB.Driver" Version="2.13.0" />
     <PackageReference Include="MongoDB.Driver.Core" Version="2.13.0" />
     <PackageReference Include="AKSoftware.Blazor.Utilities" Version="1.0.0" />
-    <PackageReference Include="blazor-dragdrop" Version="2.4.0" />
     <PackageReference Include="BlazorDateRangePicker" Version="4.2.0" />
     <PackageReference Include="Blazored.TextEditor" Version="1.0.8" />
     <PackageReference Include="BlazorNumericTextBox" Version="2.9.5" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="7.0.0" />
+    <PackageReference Include="System.Management" Version="7.0.2" />
+    <PackageReference Include="System.Runtime.Caching" Version="7.0.0" />
     <PackageReference Include="WMBlazorSlickCarousel" Version="1.0.1" />
   </ItemGroup>
 
@@ -38,11 +71,15 @@
       <HintPath>bin\Excel.dll</HintPath>
     </Reference>
   </ItemGroup>
-  
+
   <ItemGroup>
     <Content Update="storage.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-  
+
+  <ItemGroup>
+    <Folder Include="Test\" />
+  </ItemGroup>
+
 </Project>

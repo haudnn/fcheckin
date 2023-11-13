@@ -1,0 +1,220 @@
+﻿@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
+
+@if (Layout.User.role != 1 && !(Layout.User.role_manage.kpis && Layout.User.role == 2))
+{
+  <PopupNoRole />
+}
+else
+{
+  <ul class="columns is-vcentered">
+    <li class="column">
+      <h1 class="title is-5 has-text-info is-uppercase">
+        Quản lý chỉ số KPIs
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <Button Content="Tạo chỉ số KPIs" IconLeft="add"
+              Color="@ComponentModel.ColorType.Link" Onclick="CreateItem" />
+    </li>
+  </ul>
+
+  <div class="inner_section scrolly" style="flex: 1;">
+    <table class="table is-fullwidth is-vcentered is-responsive">
+      <thead class="is-hidden-mobile">
+        <tr class="is_bg has-text-grey">
+          <th width="40%">Chỉ số KPIs</th>
+          <th width="20%">Đơn vị</th>
+          <th width="30%">Mô tả</th>
+          <th width="10%" align="center">Xử lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (dataList.Any())
+        {
+          foreach (var item in dataList)
+          {
+            <tr>
+              <td>
+                <label class="td-label">Tên chỉ số KPIs</label>
+                <div class="td-value">
+                  <span class="is-word-break">
+                    @item.name
+                  </span>
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Đơn vị</label>
+                <div class="td-value">
+                  <span class="is-word-break">
+                    @item.units
+                  </span>
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Mô tả</label>
+                <div class="td-value">
+                  @if (!string.IsNullOrEmpty(item.description))
+                  {
+                    <div class="text_2_line" onclick="toggleText(this)">
+                      @((MarkupString)Shared.GetLinks(item.description))
+                    </div>
+                  }
+                  else
+                  {
+                    <span>
+                      -
+                    </span>
+                  }
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Xử lý</label>
+                <div class="td-value">
+                  <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                    <i class="material-icons-outlined is-size-5">
+                      edit
+                    </i>
+                  </a>
+                  <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                    <i class="material-icons-outlined is-size-5">
+                      delete
+                    </i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          }
+        }
+        else
+        {
+          <tr>
+            <td colspan="4" align="center">
+              <p class="mt-6">Không có dữ liệu chỉ số!</p>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+@if (current != null && !isDelete)
+{
+  <_MetricPopup model="current" OnUpdate="OnUpdate" />
+}
+
+@if (current != null && isDelete)
+{
+  <section class="modal is-active p-2">
+    <div class="modal-background"></div>
+    <section class="modal-card">
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          Xác nhận xoá chỉ số KPIs
+        </div>
+        <a class="delete is-medium" @onclick="CancelRemove"></a>
+      </section>
+      <section class="modal-card-body" style="word-break: break-word;">
+        <span>Bạn đang thực hiện xóa chỉ số KPIs</span>
+        <span class="has-text-black has-text-weight-bold">
+          @current.name.
+        </span>
+        <span>
+          Dữ liệu KPIs đã áp dụng chỉ số
+        </span>
+        <span class="has-text-black has-text-weight-bold">
+          @current.name
+        </span>
+        <span>
+          sẽ không bị mất.
+          Bạn có chắc chắn muốn xóa.
+        </span>
+      </section>
+      <section class="modal-card-foot is-right">
+        <a class="button" @onclick="CancelRemove">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">close</i>
+          </span>
+          <span>Hủy</span>
+        </a>
+        <a class="button is-danger" @onclick="Remove">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">delete</i>
+          </span>
+          <span>Xoá</span>
+        </a>
+      </section>
+    </section>
+  </section>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private KpisMetricModel current = null;
+  private List<KpisMetricModel> dataList = new();
+  private bool isUpdate;
+  private bool isDelete;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await GetData();
+  }
+
+  private void CreateItem()
+  {
+    current = new();
+  }
+
+  private void EditItem(KpisMetricModel item)
+  {
+    current = item;
+  }
+
+  private void DeleteItem(KpisMetricModel item)
+  {
+    current = item;
+    isDelete = true;
+  }
+
+  private async Task GetData()
+  {
+    dataList = await DbKpisMetric.GetList(Layout.Company.id);
+  }
+
+  private async Task OnUpdate(bool check)
+  {
+    current = null;
+    if (check)
+      await GetData();
+  }
+
+  private void CancelRemove()
+  {
+    isDelete = false;
+    current = null;
+  }
+
+  private async Task Remove()
+  {
+    current.is_deleted = true;
+    await DbKpisMetric.Update(Layout.Company.id, current);
+    await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã xoá chỉ số KPIs thành công!");
+    await SendNotify(1005);
+    await GetData();
+
+    isDelete = false;
+    current = null;
+  }
+
+  private async Task SendNotify(int notifyType)
+  {
+    // Gửi thông báo chuông
+    var targetList = await globalService.GetUserList(Layout.Company.id);
+    targetList = targetList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.kpis)).ToList();
+    foreach (var user in targetList)
+      await DbNotify.Create(Layout.Company.id, notifyType, current.name, user.id, Layout.User.id);
+  }
+}

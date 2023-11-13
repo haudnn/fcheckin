@@ -1,6 +1,6 @@
-﻿@page "/config/system/user/list"
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
@@ -10,93 +10,81 @@
 }
 else
 {
-  <section class="columns is-gapless has_menu_left">
-    <div class="column is-narrow">
-      <div class="card p-3 menu_left">
-        <a href="/config/system/department/list">
-          Phòng ban
-        </a>
-        <a class="is-active" href="/config/system/user/list">
-          Nhân sự
-        </a>
-        <a href="/config/system/dayoff">
-          Thiết lập ngày nghỉ
-        </a>
-      </div>
-    </div>
-    <div class="column">
-      <div class="card p-5">
-        <ul class="columns is-vcentered">
-          <li class="column is-narrow">
-            <h1 class="title is-5 has-text-info is-uppercase">
-              Danh sách tài khoản
-            </h1>
-          </li>
-        </ul>
-        <ul class="columns is-variable is-2">
-          <li class="column">
-            <input @bind="filterKey" type="text" class="input" placeholder="Từ khóa: email, tên..." />
-          </li>
-          <li class="column is-one-quarter">
-            <div class="select is-fullwidth">
-              <select @bind="filterDepartment" class="is-family-code">
-                <option value="">Tất cả phòng ban</option>
-                @foreach (var item in departments)
-                {
-                  <option value="@item.id">@item.name</option>
-                }
-              </select>
-            </div>
-          </li>
-          <li class="column is-one-fifth">
-            <div class="select is-fullwidth">
-              <select @bind="filterStatus">
-                <option value="1">Đang hoạt động</option>
-                <option value="2">Không hoạt động</option>
-              </select>
-            </div>
-          </li>
-          <li class="column is-one-fifth">
-            <div class="select is-fullwidth">
-              <select @onchange="ChangeSort">
-                <option value="role">Sắp xếp: quyền hạn</option>
-                <option value="online">Sắp xếp: truy cập</option>
-                <option value="name">Sắp xếp: tên tài khoản</option>
-              </select>
-            </div>
-          </li>
-          <li class="column is-narrow">
-            <a class="button is-link is-outlined" @onclick="Search">
-              <span class="icon">
-                <i class="material-icons-outlined">search</i>
-              </span>
-              <span>Tìm kiếm</span>
-            </a>
-          </li>
-        </ul>
-        <table class="table is-fullwidth is-vcentered is-responsive mt-5">
-          <thead>
-            <tr>
-              <th width="22%">Tài khoản</th>
-              <th width="18%">Họ và tên</th>
-              <th>Phòng ban</th>
-              <th width="10%">Quyền hạn</th>
-              <th width="9%" align="center">Trạng thái</th>
-              <th width="9%">Online</th>
-              <th width="50px" align="center">Xử lý</th>
-            </tr>
-          </thead>
-          <tbody>
-            @foreach (var item in dataList)
+  if (view == 1)
+  {
+    <ul class="columns is-vcentered is-variable is-2 mb-2">
+      <li class="column is-narrow">
+        <h1 class="title is-5 has-text-info is-uppercase">
+          Danh sách tài khoản
+        </h1>
+      </li>
+    </ul>
+    <ul class="columns is-variable is-2 mb-2">
+      <li class="column">
+        <input @bind="filterKey" type="text" class="input" placeholder="Từ khóa: email, tên..." />
+      </li>
+      <li class="column is-one-quarter">
+        <div class="select is-fullwidth">
+          <select @bind="filterDepartment" class="is-family-code">
+            <option value="">Tất cả phòng ban</option>
+            @foreach (var item in departments)
             {
-              var department = DbDepartment.GetSelectListOfUser(Layout.Company.id, item.departments_id, departmentAll);
-              var role = DbUser.Role(item.role);
-
+              <option value="@item.id">@item.name</option>
+            }
+          </select>
+        </div>
+      </li>
+      <li class="column is-one-fifth">
+        <div class="select is-fullwidth">
+          <select @bind="filterStatus">
+            <option value="1">Đang hoạt động</option>
+            <option value="2">Không hoạt động</option>
+          </select>
+        </div>
+      </li>
+      <li class="column is-one-fifth">
+        <div class="select is-fullwidth">
+          <select @onchange="ChangeSort">
+            <option value="role">Sắp xếp: quyền hạn</option>
+            <option value="online">Sắp xếp: truy cập</option>
+            <option value="name">Sắp xếp: tên tài khoản</option>
+          </select>
+        </div>
+      </li>
+      <li class="column is-narrow">
+        <a class="button is-link is-outlined" @onclick="Search">
+          <span class="icon">
+            <i class="material-icons-outlined">search</i>
+          </span>
+          <span>Tìm kiếm</span>
+        </a>
+      </li>
+    </ul>
+    <div class="scrolly inner_section" style="margin-right:-16px;flex:1">
+      <table class="table is-fullwidth is-vcentered is-responsive">
+        <thead>
+          <tr>
+            <th class="pt-0" width="22%">Tài khoản</th>
+            <th class="pt-0" width="18%">Họ và tên</th>
+            <th class="pt-0">Phòng ban</th>
+            <th class="pt-0" width="10%">Quyền hạn</th>
+            <th class="pt-0" width="9%" align="center">Trạng thái</th>
+            <th class="pt-0" width="9%">Online</th>
+            <th class="pt-0" width="50px" align="center">Xử lý</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var item in filteredList)
+          {
+            var department = departsByUser.FirstOrDefault(x => x.Key == item.id);
+            var role = DbUser.Role(item.role);
+            if (department.Value != null && department.Value.Count > 0)
+            {
               <tr>
                 <td>
                   <div class="user_item">
                     <img class="image is-32x32 mr-2" src="@item.avatar" alt="IMG" />
-                    <a class="text_1_line" href="/config/system/user/edit/@item.id">@item.email</a>
+                    <a class="text_1_line" @onclick="() => {Id = item.id;view = 2;}">@item.email</a>
                   </div>
                 </td>
                 <td>
@@ -108,7 +96,7 @@ else
                 <td>
                   <label class="td-label">Phòng ban</label>
                   <div class="td-value is-family-code">
-                    @foreach (var de in department)
+                    @foreach (var de in department.Value)
                     {
                       <p>@((MarkupString)de.name.Replace("'", "&nbsp;"))</p>
                     }
@@ -163,12 +151,17 @@ else
                 </td>
               </tr>
             }
-          </tbody>
-        </table>
-      </div>
+          }
+        </tbody>
+      </table>
     </div>
-  </section>
+  }
+  else if (view == 2)
+  {
+    <UserEdit Id="@Id" OnCallback="Callback" UserList="dataList"/>
+  }
 }
+
 
 @code {
   [CascadingParameter]
@@ -180,6 +173,7 @@ else
   private string _title = "Danh sách tài khoản";
 
   private List<UserModel> dataList = new();
+  private List<UserModel> filteredList = new();
   private List<DepartmentModel> departmentAll = new();
   private List<DepartmentModel.SelectList> departments = new();
   private string filterKey = string.Empty;
@@ -187,11 +181,26 @@ else
   private int filterStatus = 1;
   private string filterSort = "1";
 
+  private Dictionary<string, List<DepartmentModel.SelectList>> departsByUser = new();
+
+  private int view = 1;
+
   protected override async Task OnInitializedAsync()
   {
-    departmentAll = DbDepartment.GetAll(Layout.Company.id);
-    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+    dataList = await DbUser.GetAll(Layout.Company.id, globalService);
+    departmentAll = await DbDepartment.GetAll(Layout.Company.id);
+    var departs = await DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+    departments.AddRange(departs);
     await Search();
+
+    foreach (var user in dataList)
+    {
+      if (!departsByUser.ContainsKey(user.id))
+      {
+        var depart = await DbDepartment.GetSelectListOfUser(Layout.Company.id, user.departments_id, departmentAll);
+        departsByUser.TryAdd(user.id, depart);
+      }
+    }
   }
 
   private async Task ChangeSort(ChangeEventArgs e)
@@ -202,19 +211,52 @@ else
 
   private async Task Search()
   {
-    dataList = await DbUser.GetList(Layout.Company.id, filterKey, filterDepartment, filterStatus);
+    filteredList = dataList.Where(x => true).ToList();
+    if (!filterKey.IsEmpty())
+    {
+      filteredList = filteredList.Where(x =>
+      {
+        return Shared.SearchKeyword(filterKey, x.email + x.first_name + x.last_name);
+      }).ToList();
+    }
+
+    if(!filterDepartment.IsEmpty())
+    {
+      filteredList = filteredList.Where(x =>
+      {
+        return x.departments_id.Contains(filterDepartment);
+      }).ToList();
+    }
+
+    if(filterStatus > 0)
+    {
+      filteredList = filteredList.Where(x => x.active == (filterStatus == 1 ? true : false)).ToList();
+    }
+
     if (filterSort == "online")
-      dataList = dataList.OrderByDescending(x => x.online).ToList();
+      filteredList = filteredList.OrderByDescending(x => x.online).ToList();
     else if (filterSort == "name")
-      dataList = dataList.OrderBy(x => x.first_name).ToList();
+      filteredList = filteredList.OrderBy(x => x.first_name).ToList();
     else
-      dataList = dataList.OrderBy(x => x.role).ToList();
+      filteredList = filteredList.OrderBy(x => x.role).ToList();
   }
 
-  private async Task ActiveItem(UserModel item)
+  private async Task<bool> ActiveItem(UserModel item)
   {
-    item.active = !item.active;
-    await DbUser.Update(Layout.Company.id, item);
+    bool _success = true;
+    try
+    {
+      item.active = !item.active;
+      await DbUser.Update(Layout.Company.id, item, globalService);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ActiveItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private bool CheckRoleManage(UserModel item)
@@ -231,66 +273,96 @@ else
       return true;
     if (item.role_manage.other)
       return true;
+    if (item.role_manage.kpis)
+      return true;
     return false;
   }
 
-  private async Task DeleteItem(UserModel item)
+  private async Task<bool> DeleteItem(UserModel item)
   {
-    if (Layout.User.role == 1 && item.role == 1)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể xóa tài khoản Admin khác!");
-    else if (Layout.User.role == 2 && item.role == 1)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không đủ quyền hạn để xóa tài khoản Admin!");
-    else if (Layout.User.role == 2 && item.role == 2 && CheckRoleManage(item))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể xóa tài khoản QLHT khác khi người này còn quyền hạn!");
-    else
+    bool _success = true;
+    try
     {
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?"))
-        return;
-
-      // Xóa khỏi tất cả phòng ban
-      foreach (var departmentId in item.departments_id)
+      if (Layout.User.role == 1 && item.role == 1)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể xóa tài khoản Admin khác!");
+      else if (Layout.User.role == 2 && item.role == 1)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không đủ quyền hạn để xóa tài khoản Admin!");
+      else if (Layout.User.role == 2 && item.role == 2 && CheckRoleManage(item))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể xóa tài khoản QLHT khác khi người này còn quyền hạn!");
+      else
       {
-        var department = await DbDepartment.Get(Layout.Company.id, departmentId);
-        if(department != null)
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?"))
+          return false;
+
+        // Xóa khỏi tất cả phòng ban
+        foreach (var departmentId in item.departments_id)
         {
-          department.members_id.RemoveAll(x => x == item.id);
-          department.members_list.RemoveAll(x => x.id == item.id);
-          await DbDepartment.Update(Layout.Company.id, department);
+          var department = await DbDepartment.Get(Layout.Company.id, departmentId);
+          if (department != null)
+          {
+            department.members_id.RemoveAll(x => x == item.id);
+            department.members_list.RemoveAll(x => x.id == item.id);
+            await DbDepartment.Update(Layout.Company.id, department);
+          }
         }
-      }
 
-      // Set trạng thái xóa tài khoản trong tổ chức
-      item.delete = true;
-      item.departments_id = new();
-      item.departments_name = string.Empty;
-      item.department_default = string.Empty;
-      dataList.Remove(item);
-      await DbUser.Update(Layout.Company.id, item);
+        // Set trạng thái xóa tài khoản trong tổ chức
+        item.delete = true;
+        item.departments_id = new();
+        item.departments_name = string.Empty;
+        item.department_default = string.Empty;
+        dataList.Remove(item);
+        filteredList.Remove(item);
+        await DbUser.Update(Layout.Company.id, item, globalService);
 
-      // Xóa liên kết tài khoản và tổ chức
-      var user = await DbMainUser.Get(item.id);
-      if (user != null && user.companys != null)
-      {
-        user.companys.RemoveAll(x => x.id == Layout.Company.id);
-        await DbMainUser.Update(user);
-      }
-
-      // Xoá user bị xoá khỏi những địa điểm và ca làm đang được áp dụng
-      // Phần địa điểm
-      List<HrmLocationModel> locationsByUser = await DbHrmLocation.GetListForUser(Layout.Company.id, item.id);
-      if (locationsByUser.Any())
-      {
-        foreach (HrmLocationModel location in locationsByUser)
+        // Xóa liên kết tài khoản và tổ chức
+        var user = await DbMainUser.Get(item.id, globalService);
+        if (user != null && user.companys != null)
         {
-          var locationTemp = location.members_id.Where(i => true).ToList();
-          locationTemp.RemoveAll(i => i == item.id);
-          location.members_id = locationTemp;
-          await DbHrmLocation.Update(Layout.Company.id, location);
+          user.companys.RemoveAll(x => x.id == Layout.Company.id);
+          await DbMainUser.Update(user, globalService);
         }
-      }
-      //Phần ca làm
-      await DbHrmUserShift.Delete(Layout.Company.id, item.id);
 
+        // Xoá user bị xoá khỏi những địa điểm và ca làm đang được áp dụng
+        // Phần địa điểm
+        List<HrmLocationModel> locationsByUser = await DbHrmLocation.GetListForUser(Layout.Company.id, item.id);
+        if (locationsByUser.Any())
+        {
+          foreach (HrmLocationModel location in locationsByUser)
+          {
+            var locationTemp = location.members_id.Where(i => true).ToList();
+            locationTemp.RemoveAll(i => i == item.id);
+            location.members_id = locationTemp;
+            await DbHrmLocation.Update(Layout.Company.id, location);
+          }
+        }
+        //Phần ca làm
+        await DbHrmUserShift.Delete(Layout.Company.id, item.id);
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task Callback(bool e)
+  {
+    view = 1;
+    if (e)
+    {
+      dataList = await DbUser.GetAll(Layout.Company.id, globalService);
+      await Search();
+    }
+  }
+
+  private void Add()
+  {
+    view = 2;
+    Id = string.Empty;
   }
 }

@@ -1,0 +1,86 @@
+﻿@inject NavigationManager navigate
+
+@if(backuplist.Count > 0)
+{
+   <ul class="restored_popup">
+      @foreach (var item in list)
+      {
+         <li>
+            <a class="restored_close" @onclick="() => Close(item)">
+               <span class="icon">
+                  <span class="material-icons-outlined">close</span>
+               </span>
+            </a>
+            <h5 class="text_1_line">
+               @item.name
+            </h5>
+            <p>
+               Dữ liệu gần nhất chưa được lưu. Bạn có muốn khôi phục không?
+            </p>
+            <div class="buttons">
+               <a class="button is-link restored_apply" @onclick="() => Accept(item)">
+                  <span class="icon">
+                     <span class="material-icons-outlined">cloud_download</span>
+                  </span>
+                  <span>
+                     Khôi phục
+                  </span>
+               </a>
+               <a class="button is-danger restored_apply" @onclick="() => Close(item)">
+                  <span class="icon">
+                     <span class="material-icons-outlined">close</span>
+                  </span>
+                  <span>
+                     Hủy
+                  </span>
+               </a>
+            </div>
+         </li>
+      }
+   </ul>
+}
+
+@code {
+   [CascadingParameter]
+   public LayoutMain Layout { get; set; }
+
+   private List<BackupModel> backuplist = new();
+
+   private List<BackupModel> list = new();
+
+   protected override async Task OnInitializedAsync()
+   {
+      backuplist = await DbBackup.GetList(Layout.Company.id, Layout.User.id);
+      GetData();
+   }
+
+   private void GetData()
+   {
+      list = backuplist.Where(x => !x.restored).Take(3).ToList();
+   }
+
+   private async Task Close(BackupModel backup)
+   {
+      backup.restored = true;
+      await DbBackup.Update(Layout.Company.id, backup);
+
+      GetData();
+   }
+
+   private async Task Accept(BackupModel backup)
+   {
+      var url = navigate.BaseUri + backup.page;
+
+      navigate.NavigateTo(url, false);
+
+      MessagingCenter.Send(this, "restore_" + Layout.User.id,backup);
+   }
+
+   public async Task Refresh()
+   {
+      backuplist = await DbBackup.GetList(Layout.Company.id, Layout.User.id);
+      GetData();
+
+      await InvokeAsync(StateHasChanged);
+   }
+}

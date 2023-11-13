@@ -2,6 +2,7 @@
 @layout LayoutAdmin
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
@@ -25,6 +26,17 @@
           <span class="is-size-7 has-text-weight-bold">Người dùng</span>
         </a>
       </li>
+      @if (CheckAccess())
+      {
+        <li>
+          <a class="icon-text has-text-white" href="/client/companys/@company.id/setup">
+            <span class="icon">
+              <i class="material-icons-round is-size-5">settings</i>
+            </span>
+            <span class="is-size-7 has-text-weight-bold">Lấy dữ liệu mẫu</span>
+          </a>
+        </li>
+      }
     </ul>
 
     <div class="mb-4">
@@ -68,7 +80,7 @@
       <li class="column is-narrow">
         <div class="control is-expanded has-icons-left" style="width: 200px;">
           <input @bind="filterKey" @onkeyup="ChangeKeyword" type="text" class="input is-small"
-          placeholder="Email, họ và tên..." />
+                 placeholder="Email, họ và tên..." />
           <span class="icon is-left has-text-dark">
             <i class="material-icons-round is-size-6">search</i>
           </span>
@@ -104,73 +116,76 @@
       </li>
     </ul>
 
-    <table class="table is-fullwidth is-vcentered is-responsive is-hoverable is_head_bg is-size-7">
-      <thead>
-        <tr>
-          <th>Tài khoản</th>
-          @foreach (var product in productActive)
-          {
-            <th width="100px" align="center">
-              @product.used/@product.total - @product.title
-            </th>
-          }
-          <th width="85px" align="center">Truy cập</th>
-          <th width="85px" align="center">Trạng thái</th>
-          <th width="80px" align="center">Xử lý</th>
-        </tr>
-      </thead>
-      <tbody class="has-text-weight-medium">
-        @foreach (var item in dataList)
-        {
+    <div style="max-height: calc(100vh - 450px)" class="scrolly inner_section">
+      <table class="table is-fullwidth is-vcentered is-responsive is-hoverable is_head_bg is-size-7">
+        <thead>
           <tr>
-            <td>
-              <a class="user_item has-text-dark" @onclick="() => EditItem(item)">
-                <img class="image is-32x32 mr-2" src="@item.avatar" alt="IMG" />
-                <div>
-                  <p>@item.email</p>
-                  <p>@item.FullName</p>
-                </div>
-              </a>
-            </td>
+            <th class="th-fixed">Tài khoản</th>
             @foreach (var product in productActive)
             {
-              var access = ProductService.CheckAccess(item.products, product.id);
+              <th class="th-fixed" width="100px" align="center">
+                @product.used/@product.total - @product.title
+              </th>
+            }
+            <th class="th-fixed" width="85px" align="center">Truy cập</th>
+            <th class="th-fixed" width="85px" align="center">Trạng thái</th>
+            <th class="th-fixed" width="80px" align="center">Xử lý</th>
+          </tr>
+        </thead>
+        <tbody class="has-text-weight-medium">
+          @foreach (var item in filteredList)
+          {
+            <tr>
+              <td>
+                <a class="user_item has-text-dark" @onclick="() => EditItem(item)">
+                  <img class="image is-32x32 mr-2" src="@item.avatar" alt="IMG" />
+                  <div>
+                    <p>@item.email</p>
+                    <p>@item.FullName</p>
+                  </div>
+                </a>
+              </td>
+              @foreach (var product in productActive)
+              {
+                var access = ProductService.CheckAccess(item.products, product.id);
+                <td align="center">
+                  <a class="icon" @onclick="() => AccessProduct(item, product)">
+                    <i class="material-icons-round is-size-5 has-text-@(access ? "success" : "grey")">
+                      toggle_@(access ? "on" : "off")
+                    </i>
+                  </a>
+                </td>
+              }
               <td align="center">
-                <a class="icon" @onclick="() => AccessProduct(item, product)">
-                  <i class="material-icons-round is-size-5 has-text-@(access ? "success" : "grey")">
-                    toggle_@(access ? "on" : "off")
+                @if (item.online > 0)
+                {
+                  <span class="text_inline">
+                    @Handled.Shared.ConvertDate(new DateTime(item.online)).Replace(" trước", "")
+                  </span>
+                }
+              </td>
+              <td align="center">
+                <a class="icon" @onclick="() => ActiveItem(item)">
+                  <i class="material-icons-round is-size-5 has-text-@(item.active ? "success" : "grey")">
+                    toggle_@(item.active ? "on" : "off")
                   </i>
                 </a>
               </td>
-            }
-            <td align="center">
-              @if (item.online > 0)
-              {
-                <span class="text_inline">
-                  @Handled.Shared.ConvertDate(new DateTime(item.online)).Replace(" trước", "")
-                </span>
-              }
-            </td>
-            <td align="center">
-              <a class="icon" @onclick="() => ActiveItem(item)">
-                <i class="material-icons-round is-size-5 has-text-@(item.active ? "success" : "grey")">
-                  toggle_@(item.active ? "on" : "off")
-                </i>
-              </a>
-            </td>
-            <td align="center">
-              <a class="icon has-text-dark" title="Chỉnh sửa" @onclick="() => EditItem(item)">
-                <i class="material-icons-round is-size-6">edit</i>
-              </a>
-              <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
-                <i class="material-icons-round is-size-6">delete</i>
-              </a>
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
-    @if (dataList.Count == 0)
+              <td align="center">
+                <a class="icon has-text-dark" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                  <i class="material-icons-round is-size-6">edit</i>
+                </a>
+                <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                  <i class="material-icons-round is-size-6">delete</i>
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (filteredList.Count == 0)
     {
       <div class="has-text-grey has-text-centered py-6">
         Không tìm thấy dữ liệu phù hợp
@@ -198,172 +213,222 @@ else
   private string _title = "Người dùng sản phẩm";
   private CompanyModel company = null;
   private List<CompanyModel.Product> productActive = new();
-  private List<UserModel> memberList = new();
   private List<ProductModel> productList = new();
+  private List<UserModel> filteredList = new();
+  private List<UserModel> memberList = new();
   private List<UserModel> dataList = new();
   private UserModel edit = null;
   private UserModel create = null;
   private string filterKey = string.Empty;
   private string filterSort = string.Empty;
   private string filterProduct = string.Empty;
+
   private int filterStatus = 0;
   private int filterRole = 0;
+
+
+  private bool CheckAccess()
+  {
+    return Layout.User.is_admin && !Layout.User.delete && !company.isUsed;
+  }
 
   protected override async Task OnInitializedAsync()
   {
     company = await DbMainCompany.Get(Id);
+
     if (company != null)
     {
-      memberList = DbUser.GetAll(company.id);
+      memberList = await DbUser.GetAll(company.id, globalService);
       productList = await DbMainProduct.GetList();
       productActive = company.products.Where(x => x.active && x.id != "storage").ToList();
 
       // Cập nhật số lượng người dùng
       company.members = memberList.Count;
       await DbMainCompany.Update(company);
-
-      await GetList();
+      await globalService.Update(company.id);
+      dataList = await DbUser.GetList(company.id, filterKey, null, filterStatus, globalService);
+      HandleFiltered();
     }
   }
 
-  private async Task FilterProduct(ChangeEventArgs e)
+  private void FilterProduct(ChangeEventArgs e)
   {
     filterProduct = e.Value.ToString();
-    await GetList();
+    HandleFiltered();
   }
 
-  private async Task FilterStatus(ChangeEventArgs e)
+  private void FilterStatus(ChangeEventArgs e)
   {
     filterStatus = Convert.ToInt32(e.Value);
-    await GetList();
+    HandleFiltered();
   }
 
-  private async Task ChangeSort(ChangeEventArgs e)
+  private void ChangeSort(ChangeEventArgs e)
   {
     filterSort = e.Value.ToString();
-    await GetList();
+    HandleFiltered();
   }
 
-  private async Task ChangeKeyword(KeyboardEventArgs args)
+  private void ChangeKeyword(KeyboardEventArgs args)
   {
-    if (args.Key == "Enter")
-    {
-      await GetList();
-    }
-    else if (args.Key == "Escape")
-    {
+    if (args.Key == "Escape")
       filterKey = string.Empty;
-      await GetList();
-    }
+    HandleFiltered();
   }
 
-  private async Task GetList()
+  private void HandleFiltered()
   {
-    dataList = await DbUser.GetList(company.id, filterKey, null, filterStatus);
+    filteredList = memberList.Where(x => true).ToList();
+    if (!filterKey.IsEmpty())
+    {
+      filteredList = filteredList.Where(x =>
+      {
+        return Shared.SearchKeyword(filterKey, x.email + x.first_name + x.last_name);
+      }).ToList();
+    }
+
+    if (filterStatus > 0)
+      filteredList = filteredList.Where(x => x.active == (filterStatus == 1 ? true : false)).ToList();
     if (!string.IsNullOrEmpty(filterProduct))
-      dataList = dataList.Where(x => x.products.Contains(filterProduct)).ToList();
+      filteredList = filteredList.Where(x => x.products.Contains(filterProduct)).ToList();
     if (filterRole != 0)
-      dataList = dataList.Where(x => x.role == filterRole).ToList();
+      filteredList = filteredList.Where(x => x.role == filterRole).ToList();
     if (filterSort == "online")
-      dataList = dataList.OrderByDescending(x => x.online).ToList();
+      filteredList = filteredList.OrderByDescending(x => x.online).ToList();
     else if (filterSort == "name")
-      dataList = dataList.OrderBy(x => x.first_name).ToList();
+      filteredList = filteredList.OrderBy(x => x.first_name).ToList();
     else
-      dataList = dataList.OrderBy(x => x.role).ToList();
+      filteredList = filteredList.OrderBy(x => x.role).ToList();
   }
 
   private async Task AccessProduct(UserModel item, CompanyModel.Product product)
   {
-    if (item.active)
+    try
     {
-      if(item.products == null)
-        item.products = new();
-      var access = ProductService.CheckAccess(item.products, product.id);
-      if (access)
+      if (item.active)
       {
-        // Có quyền rồi → Thì xóa
-        item.products.Remove(product.id);
-        await DbUser.Update(company.id, item);
-      }
-      else if (product.used < product.total)
-      {
-        // Chưa có → Thì thêm quyền sử dụng
-        item.products.Add(product.id);
-        await DbUser.Update(company.id, item);
+        if (item.products == null)
+          item.products = new();
+        var isAccess = ProductService.CheckAccess(item.products, product.id);
+        if (isAccess)
+        {
+          item.products.Remove(product.id);
+          await DbUser.Update(company.id, item, globalService);
+        }
+        else if (product.used < product.total)
+        {
+          item.products.Add(product.id);
+          await DbUser.Update(company.id, item, globalService);
+        }
+        else
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Đã hết số lượng người dùng sản phẩm " + product.title);
+        company = await CompanyService.UpdateProductAccess(company.id, globalService);
+        await globalService.Update(company.id);
       }
       else
-      {
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Đã hết số lượng người dùng sản phẩm " + product.title);
-      }
-      company = await CompanyService.UpdateProductAccess(company.id);
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Người dùng này đã bị vô hiệu hóa.");
     }
-    else
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Người dùng này đã bị vô hiệu hóa.");
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "AccessProduct()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+    }
   }
 
   private async Task ActiveItem(UserModel item)
   {
-    // Xóa quyền dùng sản phẩm khi hủy kích hoạt
-    if (item.active)
-      item.products = new();
-    item.active = !item.active;
-    await DbUser.Update(company.id, item);
-    company = await CompanyService.UpdateProductAccess(company.id);
+    try
+    {
+      // Xóa quyền dùng sản phẩm khi hủy kích hoạt
+      if (item.active)
+        item.products = new();
+      item.active = !item.active;
+      await DbUser.Update(company.id, item, globalService);
+      company = await CompanyService.UpdateProductAccess(company.id, globalService);
+      await globalService.Update(company.id);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ActiveItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+    }
   }
 
   private async Task EditItem(UserModel item)
   {
-    edit = await DbUser.Get(company.id, item.id);
+    edit = await DbUser.Get(company.id, item.id, globalService);
   }
 
   private void AddItem()
   {
-    create = new() {
-      products = new(),
-      companys = new(),
-      role_manage = new(),
-      avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey",
-      active = true,
-      role = 3
-    };
+    create = new()
+      {
+        products = new(),
+        companys = new(),
+        role_manage = new(),
+        avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey",
+        active = true,
+        role = 3
+      };
   }
 
   private async Task DeleteItem(UserModel item)
   {
-    if (item.role == 1)
+    try
     {
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể xóa tài khoản Admin");
-    }
-    else
-    {
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?"))
-        return;
-
-      // Xóa trong database tổ chức
-      item.delete = true;
-      await DbUser.Update(company.id, item);
-      dataList.Remove(item);
-
-      // Cập nhật trong database chính
-      var user = await DbMainUser.Get(item.id);
-      if (user != null && user.companys != null)
+      if (item.role == 1)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không thể xóa tài khoản Admin");
+      else
       {
-        user.companys.RemoveAll(x => x.id == company.id);
-        await DbMainUser.Update(user);
-      }
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?")) return;
 
-      company = await CompanyService.UpdateProductAccess(company.id);
+        // Xóa trong database tổ chức
+        item.delete = true;
+        await DbUser.Update(company.id, item, globalService);
+        filteredList.Remove(item);
+        dataList.Remove(item);
+
+        // Cập nhật trong database chính
+        var user = await DbMainUser.Get(item.id, globalService);
+        if (user != null && user.companys != null)
+        {
+          user.companys.RemoveAll(x => x.id == company.id);
+          await DbMainUser.Update(user, globalService);
+        }
+
+        company = await CompanyService.UpdateProductAccess(company.id, globalService);
+        await globalService.Update(company.id);
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
     }
   }
 
   private async Task OnUpdate(bool isUpdate)
   {
-    if (isUpdate)
+    try
     {
-      company = await CompanyService.UpdateProductAccess(company.id);
-      await GetList();
+      if (isUpdate)
+      {
+        company = await CompanyService.UpdateProductAccess(company.id, globalService);
+        await globalService.Update(company.id);
+        dataList = await DbUser.GetList(company.id, filterKey, null, filterStatus, globalService);
+        HandleFiltered();
+      }
+      edit = null;
+      create = null;
     }
-    edit = null;
-    create = null;
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnUpdate()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+    }
   }
 }

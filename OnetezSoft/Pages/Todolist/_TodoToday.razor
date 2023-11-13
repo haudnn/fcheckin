@@ -1,461 +1,181 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
+@implements IDisposable
 
-<div class="card p-5">
-  <ul class="columns is-vcentered is-variable is-2 mb-3">
-    <li class="column">
-      <h1 class="title is-5 has-text-info mb-1">
-        TODOLIST CỦA TÔI
+@if (Layout.IsMobile)
+{
+  <div class="flex_column is_fullheight" style="min-height:100%">
+    <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
+      <li class="column is-narrow">
+        <a class="button is-link is-outlined" @onclick="ShowCheckList">
+          <span class="icon mr-2">
+            <i class="material-icons-round is-size-5">alarm</i>
+          </span>
+          <span>Việc chờ xử lý</span>
+          @if (checkList.Count > 0)
+          {
+            <span class="is_count">@checkList.Count</span>
+          }
+        </a>
+      </li>
+
+      <li class="column is-narrow">
+        <_InputDate Start="todoDate.Ticks"
+                    StartChanged="e => DateTodoChange(e)"
+                                HasNavigate
+                                ShowDateWeek />
+       </li>
+     </ul>
+     <_TodoViewList todoItems="todoItems"
+                    editList="editList"
+                    todolist="todolist"
+                    AddItem="e => AddItem(e)"
+                    DeleteItem="DeleteItem"
+                    UpdateItem="UpdateItem"
+                    RejectItem="RejectItem"
+                    EditItem="EditItem"
+                    OnCheckin="Checkin"
+                    OnCheckout="Checkout" />
+   </div>
+}
+else
+{
+  <div style="position: relative;" class="columns is-variable is-multiline is-2 is-vcentered mb-2">
+    <div class="column">
+      <h1 class="title is-5 has-text-info">
+        TODOLIST
+        <span class="is-12-mobile has-text-weight-normal is-italic font_14 is-secondary-40">Bạn đang có <span style="margin-right: 2px;" class="has-text-success">@Parent.achievement</span>ngày liên tiếp không trễ Todolist!</span>
       </h1>
-      <div class="is-italic has-text-link is-size-7">
-        Lựa chọn ngày phù hợp và tạo list công việc
-      </div>
-    </li>
-    <li class="column is-narrow">
-      <div class="field has-addons">
-        <div class="control">
-          <span class="button is-link">
-            <span class="icon">
-              <i class="material-icons-outlined is-size-6">event</i>
-            </span>
-          </span>
-        </div>
-        <div class="control">
-          <DateRangePicker SingleDatePicker="true" @bind-StartDate="todoDate" OnSelectionStart="DateTodoChange">
-            <PickerTemplate>
-              <div class="input is-link is-family-code" id="@context.Id" @onclick="context.Toggle" title="Chọn ngày">
-                @if (context.TStartDate != null)
-                {
-                  <span>@Shared.ConvertDateWeek(context.TStartDate.Value.Ticks)</span>
-                }
-              </div>
-            </PickerTemplate>
-          </DateRangePicker>
-        </div>
-        <div class="control">
-          <a class="button is-link is-outlined" @onclick="() => DateTodoNavi(false)">
-            <span class="icon">
-              <i class="material-icons-outlined is-size-6">chevron_left</i>
-            </span>
-          </a>
-        </div>
-        <div class="control">
-          <a class="button is-link is-outlined" @onclick="() => DateTodoNavi(true)">
-            <span class="icon">
-              <i class="material-icons-outlined is-size-6">chevron_right</i>
-            </span>
-          </a>
-        </div>
-      </div>
-    </li>
-  </ul>
-  <table class="table is-vcentered is-group2 is-fullwidth is-responsive mb-3">
-    <thead>
-      <tr>
-        <th>
-          Danh sách công việc
-        </th>
-        <th width="140px">
-          Phân loại
-        </th>
-        <th width="140px">
-          Độ ưu tiên
-        </th>
-        <th width="100px">
-          Bắt đầu
-        </th>
-        <th width="100px">
-          Kết thúc
-        </th>
-        <th width="100px" align="center">
-          Tình trạng
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      @foreach (var item in todoItems)
-      {
-        var status = DbTodolist.Status(item.status);
-        if (editList.Contains(item.id))
-        {
-          <tr>
-            <td>
-              @if (item.confirm || !string.IsNullOrEmpty(item.assign_user))
-              {
-                <span class="has-text-weight-medium has-text-link">@item.name</span>
-              }
-              else
-              {
-                <input id="todo_@item.id" @bind="item.name" class="input" type="text" placeholder="Tên công việc" />
-              }
-            </td>
-            <td>
-              <label class="td-label">Phân loại</label>
-              <div class="td-value">
-                <div class="select is-fullwidth is-small">
-                  <select @bind="item.type">
-                    @foreach (var sl in DbTodolist.Type())
-                    {
-                      <option value="@sl.id">@sl.name</option>
-                    }
-                  </select>
-                </div>
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Độ ưu tiên</label>
-              <div class="td-value">
-                <div class="select is-fullwidth is-small">
-                  <select @bind="item.level">
-                    @foreach (var sl in DbTodolist.Level())
-                    {
-                      <option value="@sl.id">@sl.name</option>
-                    }
-                  </select>
-                </div>
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Bắt đầu</label>
-              <div class="td-value">
-                <div class="select is-fullwidth is-small">
-                  <select @onchange="@((ChangeEventArgs e) => ChangeTime(item, e.Value.ToString()))">
-                    @foreach (var sl in Shared.TimeList())
-                    {
-                      if (item.start == sl.name)
-                      {
-                        <option value="@sl.name" selected>@sl.name</option>
-                      }
-                      else
-                      {
-                        <option value="@sl.name">@sl.name</option>
-                      }
-                    }
-                  </select>
-                </div>
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Kết thúc</label>
-              <div class="td-value">
-                <div class="select is-fullwidth is-small">
-                  <select @bind="item.end">
-                    @foreach (var sl in Shared.TimeList())
-                    {
-                      <option value="@sl.name">@sl.name</option>
-                    }
-                  </select>
-                </div>
-              </div>
-            </td>
-            <td align="center">
-              <label class="td-label">Tình trạng</label>
-              <div class="td-value">
-                <div class="dropdown is-hoverable">
-                  <div class="dropdown-trigger">
-                    <a class="button is-rounded @status.color px-2 is-small" style="width: 90px;">
-                      <span>@status.name</span>
-                      <span class="icon is-small">
-                        <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                      </span>
-                    </a>
-                  </div>
-                  <div class="dropdown-menu">
-                    <div class="dropdown-content">
-                      @foreach (var sl in DbTodolist.Status())
-                      {
-                        <a class="dropdown-item" @onclick="() => ChangeStatus(item, sl.id)">
-                          @sl.name
-                        </a>
-                      }
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </td>
-          </tr>
-          <tr>
-            <td colspan="3" class="pb-3">
-              <ul class="columns is-variable is-0 is-vcentered mb-2">
-                <li class="column is-narrow has-text-grey" style="width: 100px;">Chi tiết:</li>
-                <li class="column">
-                  <InputArea Value="@item.detail" OnInput="x => item.detail = x" title="Nhập mô tả công việc..." />
-                </li>
-              </ul>
-              <ul class="columns is-variable is-0 is-vcentered mb-2">
-                <li class="column is-narrow has-text-grey" style="width: 100px;">Kết quả:</li>
-                <li class="column">
-                  <InputArea Value="@item.result" OnInput="x => item.result = x" title="Nhập kết quả công việc..." />
-                </li>
-              </ul>
-              @if(ProductService.CheckStorage(Layout.Company))
-              {
-                <ul class="columns is-variable is-1">
-                  <li class="column is-narrow has-text-grey" style="width: 100px;">File đính kèm</li>
-                  <li class="column is-narrow">
-                    <FileUpload Multiple="true" Small="true" Cloud="true" OnUpload="x => item.files.AddRange(x)" />
-                  </li>
-                  <li class="column">
-                    <FileViews Delete="true" Values="item.files" />
-                  </li>
-                </ul>
-              }
-            </td>
-            <td colspan="3" valign="bottom">
-              <div class="has-text-right">
-                <a class="icon-text has-text-link mr-3" @onclick="() => UpdateItem(item)">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">update</i>
-                  </span>
-                  <span>Cập nhật</span>
-                </a>
-                @if (!item.confirm)
-                {
-                  if(string.IsNullOrEmpty(item.assign_user))
-                  {
-                    <a class="icon-text has-text-danger" @onclick="() => DeleteItem(item)">
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-5">delete</i>
-                      </span>
-                      <span>Xóa</span>
-                    </a>
-                  }
-                  else
-                  {
-                    <a class="icon-text has-text-danger" @onclick="() => RejectItem(item)">
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-5">history</i>
-                      </span>
-                      <span>Hủy nhận</span>
-                    </a>
-                  }
-                }
-              </div>
-            </td>
-          </tr>
-        }
-        else
-        {
-          var type = DbTodolist.Type(item.type);
-          var level = DbTodolist.Level(item.level);
-          <tr>
-            <td>
-              @if(string.IsNullOrEmpty(item.assign_user))
-              {
-                <span class="has-text-weight-medium has-text-link">@item.name</span>
-              }
-              else
-              {
-                var assignor = UserService.GetMember(Layout.UserList, item.assign_user);
-                <span class="icon-text">
-                  <span class="icon is-small has-text-danger" title="Công việc được giao bởi @assignor.name">
-                    <i class="material-icons-outlined is-size-6">assignment</i>
-                  </span>
-                  <span class="has-text-weight-medium has-text-link">@item.name</span>
-                </span>
-              }
-            </td>
-            <td>
-              <label class="td-label">Phân loại</label>
-              <div class="td-value">
-                <span class="has-text-weight-medium @type.color">@type.name</span>
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Độ ưu tiên</label>
-              <div class="td-value">
-                <span class="has-text-weight-medium @level.color">@level.name</span>
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Bắt đầu</label>
-              <div class="td-value">
-                @item.start
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Kết thúc</label>
-              <div class="td-value">
-                @item.end
-              </div>
-            </td>
-            <td align="center">
-              <label class="td-label">Tình trạng</label>
-              <div class="td-value">
-                @if (todolist.status < 3)
-                {
-                  <div class="dropdown is-hoverable">
-                    <div class="dropdown-trigger">
-                      <a class="button is-rounded @status.color px-2 is-small" style="width: 90px;">
-                        <span>@status.name</span>
-                        <span class="icon is-small">
-                          <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                        </span>
-                      </a>
-                    </div>
-                    <div class="dropdown-menu">
-                      <div class="dropdown-content">
-                        @foreach (var sl in DbTodolist.Status())
-                        {
-                          <a class="dropdown-item" @onclick="() => ChangeStatus(item, sl.id)">
-                            @sl.name
-                          </a>
-                        }
-                      </div>
-                    </div>
-                  </div>
-                }
-                else
-                {
-                  <a class="button is-rounded @status.color px-2 is-small" style="width: 90px;">
-                    <span>@status.name</span>
-                  </a>
-                }
-              </div>
-            </td>
-          </tr>
-          <tr>
-            <td colspan="3">
-              @if (!string.IsNullOrEmpty(item.detail))
-              {
-                <ul class="columns is-variable is-0 mb-2">
-                  <li class="column is-narrow has-text-grey" style="width: 100px;">Chi tiết:</li>
-                  <li class="column">
-                    <div class="is-word-break text_2_line" onclick="toggleText(this)">
-                      @((MarkupString)Shared.GetLinks(item.detail))
-                    </div>
-                  </li>
-                </ul>
-              }
-              @if (!string.IsNullOrEmpty(item.result))
-              {
-                <ul class="columns is-variable is-0 mb-2">
-                  <li class="column is-narrow has-text-grey" style="width: 100px;">Kết quả:</li>
-                  <li class="column">
-                    <div class="is-word-break text_2_line" onclick="toggleText(this)">
-                      @((MarkupString)Shared.GetLinks(item.result))
-                    </div>
-                  </li>
-                </ul>
-              }
-              @if(item.files.Count > 0)
-              {
-                <ul class="columns is-variable is-0">
-                  <li class="column is-narrow has-text-grey" style="width: 100px;">File đính kèm</li>
-                  <li class="column">
-                    <FileViews Values="item.files" />
-                  </li>
-                </ul>
-              }
-            </td>
-            <td colspan="3" valign="bottom">
-              @if (todolist.status < 3)
-              {
-                <div class="has-text-right">
-                  <a class="icon-text has-text-link mr-3" @onclick="() => EditItem(item.id)">
-                    <span class="icon">
-                      <i class="material-icons-outlined is-size-5">edit</i>
-                    </span>
-                    <span>Chỉnh sửa</span>
-                  </a>
-                  @if (!item.confirm)
-                  {
-                    if(string.IsNullOrEmpty(item.assign_user))
-                    {
-                      <a class="icon-text has-text-danger" @onclick="() => DeleteItem(item)">
-                        <span class="icon">
-                          <i class="material-icons-outlined is-size-5">delete</i>
-                        </span>
-                        <span>Xóa</span>
-                      </a>
-                    }
-                    else
-                    {
-                      <a class="icon-text has-text-danger" @onclick="() => RejectItem(item)">
-                        <span class="icon">
-                          <i class="material-icons-outlined is-size-5">history</i>
-                        </span>
-                        <span>Hủy nhận</span>
-                      </a>
-                    }
-                  }
-                </div>
-              }
-            </td>
-          </tr>
-        }
-      }
-    </tbody>
-  </table>
-  <div class="field is-grouped is-grouped-multiline">
-    <div class="control is-expanded has-text-weight-semibold has-text-link">
-      @if (todoItems.Count == 0 && todolist.status < 3)
-      {
-        <div>
-          Bạn chưa có công việc cho ngày @string.Format("{0:dd/MM}", new DateTime(todolist.date)). 
-          Hãy bắt đầu tạo công việc thôi nào!
-        </div>
-      }
-      else if (todolist.status < 3)
-      {
-        var done = todoItems.Where(x => x.status == 4).Count();
-        if (done < todoItems.Count)
-        {
-          <div>Tôi biết bạn sẽ làm tốt mà. Hãy hoàn thành thật sớm nhé!</div>
-        }
-        else
-        {
-          <div>Quá tuyệt vời, bạn đã hoàn thành Todolist của hôm nay :)</div>
-        }
-      }
-      else
-      {
-        var done = todoItems.Where(x => x.status == 4).Count();
-        <div>Đã hoàn thành @string.Format("{0}/{1}", done, todoItems.Count) công việc.</div>
-      }
     </div>
-    @if (todolist.status < 3)
-    {
-      <div class="control">
-        <a class="button is-info" @onclick="AddItem">
-          <span class="icon">
-            <i class="material-icons-outlined is-size-6">add</i>
-          </span>
-          <span>Thêm công việc</span>
-        </a>
+    <div style="" class="column is-narrow">
+      <Dropdown CloseOnClickMenu>
+       <Trigger>
+         <a class="icon-text">
+           <span class="icon">
+             <span class="material-icons-outlined">
+               @(currentView == 1 ? "line_weight" : currentView == 2 ? "dashboard" : "calendar_today")
+              </span>
+            </span>
+            <span>
+              @(currentView == 1 ? "Danh sách" : currentView == 2 ? "Bảng" : "Lịch")
+            </span>
+            <span class="icon">
+              <span class="material-icons-outlined">
+                arrow_drop_down
+              </span>
+            </span>
+          </a>
+        </Trigger>
+        <MenuContent>
+          <a class="dropdown-item" @onclick="() => ChangeView(1)">
+            <span class="icon-text">
+              <span class="icon is-small font_14">
+                <i class="material-icons-outlined ">line_weight</i>
+              </span>
+              <span class="font_14 has-text-weight-medium">Danh sách</span>
+            </span>
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeView(2)">
+            <span class="icon-text @(currentView == 2 ? "is-primary-40 " : "is-secondary-40" )">
+              <span class="icon is-small font_14">
+                <i class="material-icons-outlined">dashboard</i>
+              </span>
+              <span class="font_14 has-text-weight-medium">Bảng</span>
+            </span>
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeView(3)">
+            <span class="icon-text @(currentView == 3 ? "is-primary-40 " : "is-secondary-40" )">
+              <span class="icon is-small font_14">
+                <i class="material-icons-outlined">calendar_today</i>
+              </span>
+              <span class="font_14 has-text-weight-medium">Lịch</span>
+            </span>
+          </a>
+        </MenuContent>
+      </Dropdown>
+    </div>
+    <div class="column is-narrow">
+      <div style="gap: 10px" class="control is-flex is-justify-content-flex-end">
+        <div style="margin-right: @(currentView == 3 ? "180px" : "0")">
+          <a class="button is-link is-outlined" @onclick="ShowCheckList">
+            <span class="icon mr-2">
+              <i class="material-icons-round is-size-5">alarm</i>
+            </span>
+            <span>Việc chờ xử lý</span>
+            @if (checkList.Count > 0)
+            {
+              <span class="is_count">@checkList.Count</span>
+            }
+          </a>
+        </div>
+        <div>
+          @if (currentView != 3)
+          {
+            <_InputDate Start="todoDate.Ticks"
+                        StartChanged="e => DateTodoChange(e)"
+                                      HasNavigate
+                                      ShowDateWeek />
+          }
+        </div>
       </div>
-    }
-    @if (todolist.status < 2 && todoItems.Count > 0)
+    </div>
+  </div>
+
+  <div class="flex_column todolist inner_section"
+       style="flex:1;@(!Layout.IsMobile ? "overflow:hidden;" : "") @(currentView == 3 ? "position:unset" : "")">
+    @switch (currentView)
     {
-      <div class="control">
-        <a class="button is-link" @onclick="Checkin">
-          <span class="icon">
-            <i class="material-icons-outlined is-size-6">logout</i>
-          </span>
-          <span>Check-in</span>
-        </a>
-      </div>
-    }
-    @if (todolist.status == 2)
-    {
-      <div class="control">
-        <a class="button is-danger" @onclick="Checkout">
-          <span class="icon">
-            <i class="material-icons-outlined is-size-6">done</i>
-          </span>
-          <span>Check-out</span>
-        </a>
-      </div>
+      case 1:
+        {
+          <_TodoViewList todoItems="todoItems"
+                         editList="editList"
+                         todolist="todolist"
+                         AddItem="e => AddItem(e)"
+                         DeleteItem="DeleteItem"
+                         UpdateItem="UpdateItem"
+                         RejectItem="RejectItem"
+                         EditItem="EditItem"
+                         OnCheckin="Checkin"
+                         OnCheckout="Checkout" />
+          break;
+        }
+      case 2:
+        {
+          var sortStatus = TodolistService.SortStatusPossition(statusList);
+          <_TodoViewBoard statusList="sortStatus"
+                          todoItems="todoItems"
+                          todolist="todolist"
+                          DeleteItem="DeleteItem"
+                          UpdateItem="UpdateItem"
+                          RejectItem="RejectItem"
+                          OnCheckin="Checkin"
+                          OnCheckout="Checkout"
+                          User="Layout.User"
+                          todoDate="todoDate" />
+          break;
+        }
+      case 3:
+        {
+          <_TodoCalendar User="Layout.User" />
+          break;
+        }
     }
   </div>
-</div>
+}
 
-@if(pendingShow)
+
+@if (checkListShow)
+{
+  <_CheckList data="checkList" OnClose="OnCloseCheckList" />
+}
+
+@if (pendingShow)
 {
   <section class="modal is-active">
     <div class="modal-background"></div>
     <section class="modal-card">
-      <section class="modal-card-head py-2">
+      <section class="modal-card-head">
         <div class="modal-card-title">CÔNG VIỆC CHỜ XỬ LÝ</div>
         <a class="delete" @onclick="() => pendingShow = false"></a>
       </section>
@@ -488,7 +208,7 @@
               <div class="field has-addons">
                 <div class="control has-icons-left">
                   <DateRangePicker SingleDatePicker="true" @bind-StartDate="dateMove"
-                    OnSelectionStart="(DateTimeOffset date) => ChangeTaskDate(item, date)">
+                                   OnSelectionStart="(DateTimeOffset date) => ChangeTaskDate(item, date)">
                     <PickerTemplate>
                       <div id="@context.Id" @onclick="context.Toggle" title="Chọn ngày">
                         <span class="icon is-left has-text-link">
@@ -549,67 +269,89 @@
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
+  [CascadingParameter]
+  public Todolist Parent { get; set; }
   [Parameter]
   public string Day { get; set; }
   [Parameter]
   public EventCallback OnCheckout { get; set; }
+  [Parameter]
+  public int currentView { get; set; }
+  [Parameter]
+  public EventCallback<int> OnChangedView { get; set; }
   private TodolistModel todolist = new();
   private List<TodolistModel.Todo> todoItems = new();
+  private List<CheckListModel> checkList = new();
+  private List<StaticModel> statusList = new();
+
   private List<string> editList = new();
-  private DateTimeOffset? todoDate = null;
+  private DateTimeOffset todoDate;
   private bool pendingShow = false;
+  private bool checkListShow = false;
+
+  private SharedStorage shareStorage = new();
+
+  private DotNetObjectReference<_TodoToday> obj;
 
   protected override async Task OnInitializedAsync()
   {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    obj = DotNetObjectReference.Create(this);
+
+    checkList = await DbChecklist.GetList(Layout.Company.id, Layout.User.id);
     todoDate = string.IsNullOrEmpty(Day) ? DateTime.Today : Convert.ToDateTime(Day);
     await GetData();
-    MessagingCenter.Subscribe<_AssignedTodo, long>(this, "todolist_" + Layout.User.id, async (sender, value) =>
+
+    statusList = DbTodolist.Status();
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
     {
-      if(todoDate.Value.Ticks == value)
-      {
-        Console.WriteLine(todoDate.Value.DateTime.ToString("yyy-MM-dd") + " => " + new DateTime(value).ToString("yyyy-MM-dd"));
-        await GetData();
-        await InvokeAsync(StateHasChanged);
-      }
-    });
-  }
-
-  private async Task DateTodoChange(DateTimeOffset date)
-  {
-    todoDate = date;
-    navigation.NavigateTo("/todolist/" + todoDate.Value.DateTime.ToString("yyyy-MM-dd"), false);
-    await GetData();
-  }
-
-  private async Task DateTodoNavi(bool next)
-  {
-    todoDate = todoDate.Value.DateTime.AddDays(next ? 1 : -1);
-    navigation.NavigateTo("/todolist/" + todoDate.Value.DateTime.ToString("yyyy-MM-dd"), false);
-    await GetData();
-  }
-
-
-  private async Task GetData()
-  {
-    editList.Clear();
-    todolist = await DbTodolist.GetbyDay(Layout.Company.id, Layout.User.id, todoDate.Value.DateTime);
-    if (todolist == null)
-    {
-      todolist = new TodolistModel();
-      todolist.date = todoDate.Value.DateTime.Ticks;
-      todolist.user_create = Layout.User.id;
-      todolist = await DbTodolist.Create(Layout.Company.id, todolist);
+      await JSRuntime.InvokeVoidAsync("window.SetDotNetReference", obj, "AddItem");
     }
-    // Danh sách công việc
-    todoItems = DbTodoItem.GetList(Layout.Company.id, todolist.id);
   }
 
+  private async Task DateTodoChange(long date)
+  {
+    todoDate = new DateTime(date);
+    navigation.NavigateTo("/todolist?day=" + todoDate.DateTime.ToString("yyyy-MM-dd"), false);
+    await GetData();
+  }
 
-  private async Task AddItem()
+  private async Task<bool> GetData()
+  {
+    var _success = true;
+    try
+    {
+      editList.Clear();
+      todolist = await DbTodolist.GetbyDay(Layout.Company.id, Layout.User.id, todoDate.DateTime);
+      if (todolist == null)
+      {
+        todolist = new TodolistModel();
+        todolist.date = todoDate.DateTime.Ticks;
+        todolist.user_create = Layout.User.id;
+        todolist = await DbTodolist.Create(Layout.Company.id, todolist);
+      }
+      // Danh sách công việc
+      todoItems = await DbTodoItem.GetList(Layout.Company.id, todolist.id);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeStatus()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  public async Task AddItem(int status = 1)
   {
     string start = "08:30";
     string end = "09:30";
-    if (todoDate.Value.DateTime.ToString("yyyy-MM-dd") == DateTime.Now.ToString("yyyy-MM-dd"))
+    if (todoDate.DateTime.ToString("yyyy-MM-dd") == DateTime.Now.ToString("yyyy-MM-dd"))
     {
       start = string.Format("{0:HH:30}", DateTime.Now);
       end = string.Format("{0:HH:30}", DateTime.Now.AddHours(1));
@@ -620,7 +362,8 @@
         id = Mongo.RandomId(),
         type = 1,
         level = 1,
-        status = 1,
+        status = status,
+        date = todoDate.DateTime.Ticks,
         start = start,
         end = end
       };
@@ -629,22 +372,39 @@
     await JSRuntime.InvokeVoidAsync("setFocus", "todo_" + item.id);
   }
 
-  private void ChangeTime(TodolistModel.Todo item, string time)
+  [JSInvokable]
+  public async Task AddItem()
   {
-    item.start = time;
-    item.end = time;
-  }
-
-  private async Task ChangeStatus(TodolistModel.Todo item, int status)
-  {
-    item.status = status;
-    await DbTodoItem.Update(Layout.Company.id, item);
-    if(!string.IsNullOrEmpty(item.assign_user))
+    if (todolist.user_create != Layout.User.id)
+      return;
+    if (todolist.status == 3)
     {
-      // Gửi thông báo cho người giao
-      int notiType = 210 + item.status;
-      await DbNotify.Create(Layout.Company.id, notiType, item.id, item.assign_user, Layout.User.id);
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể thêm công việc vào ngày đã check-out");
+      return;
     }
+
+    string start = "08:30";
+    string end = "09:30";
+    if (todoDate.DateTime.ToString("yyyy-MM-dd") == DateTime.Now.ToString("yyyy-MM-dd"))
+    {
+      start = string.Format("{0:HH:30}", DateTime.Now);
+      end = string.Format("{0:HH:30}", DateTime.Now.AddHours(1));
+    }
+
+    var item = new TodolistModel.Todo()
+      {
+        id = Mongo.RandomId(),
+        type = 1,
+        level = 1,
+        date = todoDate.DateTime.Ticks,
+        status = 1,
+        start = start,
+        end = end,
+      };
+    todoItems.Add(item);
+    editList.Add(item.id);
+    await JSRuntime.InvokeVoidAsync("setFocus", "todo_" + item.id);
+    StateHasChanged();
   }
 
   private async Task EditItem(string id)
@@ -653,175 +413,231 @@
     await JSRuntime.InvokeVoidAsync("setFocus", "todo_" + id);
   }
 
-  private async Task DeleteItem(TodolistModel.Todo item)
+  private async Task<bool> DeleteItem(TodolistModel.Todo item)
   {
-    if (todolist.status < 2 || !item.confirm)
+    bool _success = true;
+    try
     {
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {item.name}?"))
-        return;
+      if (todolist.status < 2 || !item.confirm)
+      {
+        if (!Shared.IsEmpty(item.name))
+        {
+          if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {item.name}?"))
+            return false;
+        }
+        await DbTodoItem.Delete(Layout.Company.id, item.id);
+        todoItems.Remove(item);
 
-      await DbTodoItem.Delete(Layout.Company.id, item.id);
-      await DbTodolist.Update(Layout.Company.id, todolist);
-      todoItems.Remove(item);
+        if (todoItems.Count == 0)
+        {
+          todolist.status = 1;
+          todolist.date_checkin = 0;
+        }
+        await DbTodolist.Update(Layout.Company.id, todolist);
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể xóa công việc đã xác nhận !");
     }
-    else
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể xóa công việc đã xác nhận !");
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.Message, Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task RejectItem(TodolistModel.Todo item)
+  private async Task<bool> RejectItem(TodolistModel.Todo item)
   {
-    if (todolist.status < 2 || !item.confirm)
+    bool _success = true;
+    try
     {
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy nhận: {item.name}?"))
-        return;
+      if (todolist.status < 2 || !item.confirm)
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy nhận: {item.name}?"))
+          return false;
 
-      item.todolist = null;
-      item.assign_status = 1;
-      await DbTodoItem.Update(Layout.Company.id, item);
-      await DbTodolist.Update(Layout.Company.id, todolist);
-      await JSRuntime.InvokeVoidAsync("clickBtn", "reload_assigned");
-      todoItems.Remove(item);
+        item.todolist = null;
+        item.assign_status = 1;
+        await DbTodoItem.Update(Layout.Company.id, item);
+        todoItems.Remove(item);
+        if (todoItems.Count == 0)
+        {
+          todolist.status = 1;
+          todolist.date_checkin = 0;
+        }
+        await DbTodolist.Update(Layout.Company.id, todolist);
+        await JSRuntime.InvokeVoidAsync("clickBtn", "reload_assigned");
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể hủy công việc đã xác nhận !");
     }
-    else
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể hủy công việc đã xác nhận !");
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "RejectItem()", ex.Message, Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task UpdateItem(TodolistModel.Todo item)
   {
-    if (string.IsNullOrEmpty(item.name) || string.IsNullOrEmpty(item.name.Trim()))
-    {
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên công việc !");
-    }
+    if (TimeSpan.Parse(item.start).Ticks >= TimeSpan.Parse(item.end).Ticks)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Thời gian kết thúc không thể nhỏ hơn thời gian bắt đầu công việc này!");
+    else if (string.IsNullOrEmpty(item.name) || string.IsNullOrEmpty(item.name.Trim()))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên công việc!");
     else if (string.IsNullOrEmpty(item.start) || string.IsNullOrEmpty(item.end))
-    {
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập thời gian thực hiện !");
-    }
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập thời gian thực hiện!");
+    else if (item.is_loop && item.dateEnd_cycle < item.date)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc chu kỳ phải lớn hơn hoặc bằng ngày bắt đầu công việc này!");
+    else if (item.is_loop && item.cycle == 2 && !item.weeks.Any())
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Vui lòng chọn ít nhất 1 ngày trong tuần!");
     else
     {
-      // Thêm mới
-      if(string.IsNullOrEmpty(item.todolist))
+      // Tạo mới công việc
+      if (string.IsNullOrEmpty(item.todolist))
       {
-        item.date = todolist.date;
         item.user = Layout.User.id;
+        item.date = todolist.date;
         item.todolist = todolist.id;
+        if (item.is_loop)
+        {
+          item.parentId = item.id;
+          await TodolistService.HandleCreateTodoLoop(item, Layout.Company.id, Layout.User.id);
+        }
         await DbTodoItem.Create(Layout.Company.id, item);
       }
-      // Cập nhật
+      // Chỉnh sửa công việc
       else
         await DbTodoItem.Update(Layout.Company.id, item);
 
       await DbTodolist.Update(Layout.Company.id, todolist);
       todoItems = todoItems.OrderBy(x => x.start).ToList();
       editList.Remove(item.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Cập nhật todolist thành công!");
     }
   }
 
   private async Task UpdateAllItem()
   {
-    // Cập nhật tất cả công việc đang chỉnh sửa
     foreach (var item in todoItems)
     {
-      if(editList.Contains(item.id)) 
-        await UpdateItem(item); 
+      if (editList.Contains(item.id))
+        await UpdateItem(item);
     }
   }
 
-  private async Task Checkin()
+  private async Task<bool> Checkin()
   {
-    if (todoItems.Count == 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có công việc để Check-in !");
-    else if (CheckConditionItem(todoItems) == false)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Có công việc chưa nhập tên công việc !");
-    else
+    bool _success = true;
+    try
     {
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn đã tạo xong và muốn nộp TodoList lên quản lý?"))
-        return;
-
-      // Cập nhật công việc
-      await UpdateAllItem();
-      
-      todolist.day_off = DbDayOff.CheckOff(Layout.DaysOff, new DateTime(todolist.date));
-      todolist.date_checkin = DateTime.Now.Ticks;
-      todolist.status = 2;
-      await DbTodolist.Update(Layout.Company.id, todolist);
-      editList.Clear();
-    }
-  }
-
-  private async Task Checkout()
-  {
-    if (todolist.date > Convert.ToDateTime(DateTime.Now.ToShortDateString()).Ticks)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa đến thời điểm Check-out!");
-    else if (todoItems.Count == 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có công việc để Check-out!");
-    else if (todoItems.Where(x => x.status == 1 || x.status == 3).Count() > 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false,
-        "Không thể check-out khi có công việc đang ở trạng thái Todo, Doing!");
-    else if (CheckConditionItem(todoItems) == false)
-      await JSRuntime.InvokeVoidAsync("tagline", false,
-        "Có công việc chưa nhập tên công việc hoặc thời gian thực hiện !");
-    else if(!pendingShow && todoItems.Where(x => x.status == 2).Count() > 0)
-      pendingShow = true;
-    else
-    {
-      if(todoItems.Where(x => x.status == 2 && x.date == todolist.date).Count() > 0)
-      {
-        await JSRuntime.InvokeVoidAsync("tagline", false,
-          "Ngày thực hiện của công việc Peding phải sau ngày hôm nay!");
-        return;
-      }
-
-      if (!await JSRuntime.InvokeAsync<bool>("confirm",
-          "Sau khi Check-out bạn không thể chỉnh sửa Todolist.\nBạn có chắc muốn check-out?"))
-        return;
-
-      if(pendingShow)
-      {
-        foreach (var todo in todoItems)
-        {
-          if(todo.status == 2)
-          {
-            // Thêm công việc vào ngày khác
-            var todoClone = Shared.Clone<TodolistModel.Todo>(todo);
-            await TodolistService.AddTodoItem(Layout.Company.id, Layout.User.id, todoClone);
-
-            // Cập nhật thuộc tính công việc hiện tại
-            todo.date = todolist.date;
-            await UpdateItem(todo); 
-          }
-          else
-            await UpdateItem(todo);
-        }
-        todoItems.RemoveAll(x => x.date != todolist.date);
-      }
+      if (todoItems.Count == 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có công việc để Check-in!");
+      else if (!CheckConditionItem(todoItems))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Có công việc chưa có thời gian thực hiện!");
       else
       {
-        // Cập nhật công việc
-        await UpdateAllItem();
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn đã tạo xong và muốn nộp TodoList lên quản lý?"))
+          return false;
+
+        todolist.day_off = DbDayOff.CheckOff(shareStorage.DayOffList, new DateTime(todolist.date));
+        todolist.date_checkin = DateTime.Now.Ticks;
+        todolist.status = 2;
+        await DbTodolist.Update(Layout.Company.id, todolist);
+        editList.Clear();
       }
-
-      todolist.day_off = DbDayOff.CheckOff(Layout.DaysOff, new DateTime(todolist.date));
-      todolist.date_checkout = DateTime.Now.Ticks;
-      todolist.status = 3;
-      await DbTodolist.Update(Layout.Company.id, todolist);
-      pendingShow = false;
-      editList.Clear();
-
-       // Tính thành tựu
-      var achievement = await DbTodolist.Achievement(Layout.Company.id, todolist.user_create);
-      if(achievement)
-        await JSRuntime.InvokeVoidAsync("location.reload");
-      await OnCheckout.InvokeAsync();
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Checkin()", ex.Message, Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> Checkout()
+  {
+    bool _success = true;
+    try
+    {
+      if (todolist.date > Convert.ToDateTime(DateTime.Now.ToShortDateString()).Ticks)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa đến thời điểm Check-out!");
+      else if (todoItems.Count == 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có công việc để Check-out!");
+      else if (todoItems.Where(x => x.status == 1 || x.status == 3).Count() > 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể check-out khi có công việc đang ở trạng thái Todo, Doing!");
+      else if (!CheckConditionItem(todoItems))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Có công việc chưa có thời gian thực hiện!");
+      else if (!pendingShow && todoItems.Where(x => x.status == 2).Count() > 0)
+        pendingShow = true;
+      else
+      {
+        if (todoItems.Where(x => x.status == 2 && x.date == todolist.date).Count() > 0)
+        {
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày thực hiện của công việc Pending phải sau ngày hôm nay!");
+          return false;
+        }
+
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Sau khi Check-out bạn không thể chỉnh sửa Todolist.\nBạn có chắc muốn check-out?"))
+          return false;
+
+        if (pendingShow)
+        {
+          foreach (var todo in todoItems)
+          {
+            if (todo.status == 2)
+            {
+              // Thêm công việc vào ngày khác
+              var todoClone = Shared.Clone<TodolistModel.Todo>(todo);
+              await TodolistService.AddTodoItem(Layout.Company.id, Layout.User.id, todoClone);
+
+              // Cập nhật thuộc tính công việc hiện tại
+              todo.date = todolist.date;
+              await UpdateItem(todo);
+            }
+            else
+              await UpdateItem(todo);
+          }
+          todoItems.RemoveAll(x => x.date != todolist.date);
+        }
+        else
+          await UpdateAllItem();
+
+        todolist.day_off = DbDayOff.CheckOff(shareStorage.DayOffList, new DateTime(todolist.date));
+        todolist.date_checkout = DateTime.Now.Ticks;
+        todolist.status = 3;
+        await DbTodolist.Update(Layout.Company.id, todolist);
+        pendingShow = false;
+        editList.Clear();
+
+        // Tính thành tựu
+        var achievement = await DbTodolist.Achievement(Layout.Company.id, todolist.user_create, globalService);
+        if (achievement)
+          await JSRuntime.InvokeVoidAsync("location.reload");
+        await OnCheckout.InvokeAsync();
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Checkout()", ex.Message, Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private bool CheckConditionItem(List<TodolistModel.Todo> todos)
   {
     foreach (var item in todos)
     {
-      if (Shared.IsEmpty(item.name))
-        return false;
-      else if (string.IsNullOrEmpty(item.start) || string.IsNullOrEmpty(item.end))
+      if (string.IsNullOrEmpty(item.start) || string.IsNullOrEmpty(item.end))
         return false;
     }
     return true;
@@ -829,7 +645,7 @@
 
   private async Task ChangeTaskDate(TodolistModel.Todo item, DateTimeOffset date)
   {
-    if(date.DateTime.Ticks <= DateTime.Today.Ticks)
+    if (date.DateTime.Ticks <= DateTime.Today.Ticks)
       await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày thực hiện của công việc chờ xử lý phải sau ngày hôm nay!");
     else
       item.date = date.DateTime.Ticks;
@@ -839,10 +655,70 @@
   {
     var date = new DateTime(item.date);
     date = isNext ? date.AddDays(1) : date.AddDays(-1);
-    Console.WriteLine(date.ToString() + " ~ " + DateTime.Today.ToString());
-    if(date.Ticks < DateTime.Today.Ticks)
+    if (date.Ticks < DateTime.Today.Ticks)
       await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày thực hiện của công việc chờ xử lý phải sau ngày hôm nay!");
     else
       item.date = date.Ticks;
+  }
+
+  private async Task<bool> ShowCheckList()
+  {
+    bool _success = true;
+    try
+    {
+      checkListShow = true;
+      checkList = await DbChecklist.GetList(Layout.Company.id, Layout.User.id);
+      await JSRuntime.InvokeVoidAsync("setFocus", "checklist_name");
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "checklist_detail");
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ShowCheckList()", ex.Message, Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> OnCloseCheckList(bool isUpdate)
+  {
+    bool _success = true;
+    try
+    {
+      checkListShow = false;
+      if (isUpdate)
+      {
+        await GetData();
+        checkList = await DbChecklist.GetList(Layout.Company.id, Layout.User.id);
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnCloseCheckList()", ex.Message, Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task ChangeView(int _view)
+  {
+    await GetData();
+    await OnChangedView.InvokeAsync(_view);
+    StateHasChanged();
+  }
+
+  public void Dispose()
+  {
+    try
+    {
+      obj?.Dispose();
+    }
+    catch (Exception ex)
+    {
+      return;
+    }
   }
 }

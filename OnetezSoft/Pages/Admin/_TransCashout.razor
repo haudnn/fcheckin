@@ -1,12 +1,14 @@
 @inject IJSRuntime JSRuntime
+@inject GlobalService globalService
+@inject NavigationManager navigation
 
 @if (members != null)
 {
   <section class="modal is-active">
     <div class="modal-background"></div>
     <section class="modal-card is-medium has_bg">
-      <section class="modal-card-head is-danger" 
-        style="background-image: url('/images/illustrations/addmoney.png')">
+      <section class="modal-card-head is-danger"
+               style="background-image: url('/images/illustrations/addmoney.png')">
         <div class="modal-card-title">
           <div class="title">
             Hệ thống rút tiền
@@ -27,7 +29,7 @@
           <li class="column is-narrow">
             <div class="control has-icons-left" style="width: 200px;" title="Nhấn Enter để tìm">
               <input @bind="keyword" @onkeyup="ChangeKeyword" type="text" class="input is-small"
-              placeholder="Email, họ và tên khách hàng" />
+                     placeholder="Email, họ và tên khách hàng" />
               <span class="icon is-left has-text-dark">
                 <i class="material-icons-round is-size-6">search</i>
               </span>
@@ -85,8 +87,8 @@
           </tbody>
         </table>
 
-        <div class="field is-grouped has-background-white" 
-            style=" position: sticky; left: 0px; right: 0px; bottom: 0px; border-top: 1px solid #ddd; ">
+        <div class="field is-grouped has-background-white"
+             style=" position: sticky; left: 0px; right: 0px; bottom: 0px; border-top: 1px solid #ddd; ">
           <div class="control pl-3">
             <div class="icon-text">
               <span class="icon">
@@ -102,7 +104,7 @@
           </div>
           <div class="control has-icons-left" style="width: 120px;">
             <input @bind="moneyFormat" @bind:event="oninput" class="input is_line" type="text"
-            placeholder="Nhập số tiền rút">
+                   placeholder="Nhập số tiền rút">
             <span class="icon is-left has-text-black">
               <i class="material-icons-round is-size-6">account_balance_wallet</i>
             </span>
@@ -172,53 +174,65 @@
     Reset();
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (Validation())
+    bool _success = true;
+    try
     {
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn rút tiền của các tài khoản khách hàng này?"))
-        return;
-      
-      int count = 0;
-      foreach (var id in checkList)
+      if (Validation())
       {
-        var customer = await DbMainUser.Get(id);
-        if (customer != null && customer.balance >= money)
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn rút tiền của các tài khoản khách hàng này?"))
+          return false;
+
+        int count = 0;
+        foreach (var id in checkList)
         {
-          if (customer.balance >= money)
+          var customer = await DbMainUser.Get(id, null);
+          if (customer != null && customer.balance >= money)
           {
-            var transaction = new TransactionModel()
+            if (customer.balance >= money)
             {
-              customer = UserService.ConvertToMember(customer),
-              creator = UserService.ConvertToMember(Layout.User),
-              money = -money,
-              balance = customer.balance - money,
-              content = "Fastdo rút tiền khỏi tài khoản.",
-              status = 2,
-              type = 2
-            };
-            if (!string.IsNullOrEmpty(content))
-              transaction.content += "<br/>Ghi chú: " + content;
-            await DbMainTransaction.Create(transaction);
+              var transaction = new TransactionModel()
+                {
+                  customer = UserService.ConvertToMember(customer),
+                  creator = UserService.ConvertToMember(Layout.User),
+                  money = -money,
+                  balance = customer.balance - money,
+                  content = "Fastdo rút tiền khỏi tài khoản.",
+                  status = 2,
+                  type = 2
+                };
+              if (!string.IsNullOrEmpty(content))
+                transaction.content += "<br/>Ghi chú: " + content;
+              await DbMainTransaction.Create(transaction);
 
-            // Cập nhật số dư tài khoản
-            customer.balance -= money;
-            await DbMainUser.Update(customer);
+              // Cập nhật số dư tài khoản
+              customer.balance -= money;
+              await DbMainUser.Update(customer, globalService);
 
-            // Gửi thông báo cho khách hàng
-            await DbMainNotify.Create(104, transaction.id, transaction.customer.id, Layout.User.id);
+              // Gửi thông báo cho khách hàng
+              await DbMainNotify.Create(104, transaction.id, transaction.customer.id, Layout.User.id);
 
-            count++;
-          }
-          else
-          {
-            await JSRuntime.InvokeVoidAsync("tagline", false, message);
+              count++;
+            }
+            else
+            {
+              await JSRuntime.InvokeVoidAsync("tagline", false, message);
+            }
           }
         }
+        await OnUpdate.InvokeAsync(count);
+        Reset();
       }
-      await OnUpdate.InvokeAsync(count);
-      Reset();
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private bool Validation()
@@ -232,29 +246,42 @@
     return false;
   }
 
-  private void ChangeKeyword(KeyboardEventArgs args)
+  private async Task<bool> ChangeKeyword(KeyboardEventArgs args)
   {
-    if (args.Key == "Enter")
+    bool _success = true;
+    try
     {
-      if (string.IsNullOrEmpty(keyword))
+      if (args.Key == "Enter")
       {
-        members = DbMainUser.GetListCustomer();
-      }
-      else
-      {
-        members = new();
-        foreach (var item in DbMainUser.GetListCustomer())
+        if (string.IsNullOrEmpty(keyword))
         {
-          if (Handled.Shared.SearchKeyword(keyword, item.email + item.FullName) || checkList.Contains(item.id))
-            members.Add(item);
+          members = await DbMainUser.GetListCustomer();
+        }
+        else
+        {
+          members = new();
+          var customer = await DbMainUser.GetListCustomer();
+          foreach (var item in customer)
+          {
+            if (Handled.Shared.SearchKeyword(keyword, item.email + item.FullName) || checkList.Contains(item.id))
+              members.Add(item);
+          }
         }
       }
+      else if (args.Key == "Escape")
+      {
+        keyword = string.Empty;
+        members = await DbMainUser.GetListCustomer();
+      }
     }
-    else if (args.Key == "Escape")
+    catch (Exception ex)
     {
-      keyword = string.Empty;
-      members = DbMainUser.GetListCustomer();
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeKeyword()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
     }
+    return _success;
   }
 
   private void CheckItem(string id)

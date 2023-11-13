@@ -4,16 +4,17 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class OkrConfigModel
   {
     [BsonId]
     public string id { get; set; }
 
-    public List<Cycle> cycles { get; set; }
+    public List<Cycle> cycles { get; set; } = new();
 
-    public List<Suggest> suggests { get; set; }
+    public List<Suggest> suggests { get; set; } = new();
 
-    public List<Evaluate> evaluates { get; set; }
+    public List<Evaluate> evaluates { get; set; } = new();
 
 
     public class Cycle

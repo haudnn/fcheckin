@@ -133,27 +133,64 @@
     await GetList();
   }
 
-  private async Task GetList()
+  private async Task<bool> GetList()
   {
-    dataList = await DbMainPromotion.GetList();
+    bool _success = true;
+    try
+    {
+      dataList = await DbMainPromotion.GetList();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task DeleteItem(PromotionModel item)
+  private async Task<bool> DeleteItem(PromotionModel item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa ưu đãi {item.title} ?"))
-      return;
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa ưu đãi {item.title} ?"))
+        return false;
 
-    dataList.Remove(item);
-    await DbMainPromotion.Delete(item.id);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa ưu đãi: " + item.title);
+      dataList.Remove(item);
+      await DbMainPromotion.Delete(item.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa ưu đãi: " + item.title);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task EditItem(PromotionModel item)
+  private async Task<bool> EditItem(PromotionModel item)
   {
-    if (item == null)
-      model = new PromotionModel() { type = 1, condition = 1, discount = 5 };
-    else
-      model = await DbMainPromotion.Get(item.id);
+    bool _success = true;
+    try
+    {
+      if (item == null)
+        model = new PromotionModel() { type = 1, condition = 1, discount = 5 };
+      else
+        model = await DbMainPromotion.Get(item.id);
+
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "EditItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task OnUpdate(bool isUpdate)

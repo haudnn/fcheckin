@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models;
 
+[BsonIgnoreExtraElements]
 public class FileModel
 {
   [BsonId]
@@ -29,4 +30,14 @@ public class FileModel
 
   /// <summary>Người xử lý: avatar</summary>
   public string author_avatar { get; set; }
+
+  /// <summary>Người tạo: id</summary>
+  public string creator_id { get; set; }
+
+  /// <summary>ngày xoá</summary>
+  public long date_delete { get; set; }
+
+  public bool is_delete { get;set;}
+
+  public string path { get; set; } = "other";
 }

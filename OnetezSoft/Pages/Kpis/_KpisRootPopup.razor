@@ -1,0 +1,322 @@
+﻿@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
+
+@if (modelEdit != null)
+{
+  <Slider Size="@ComponentModel.SizeType.Normal">
+    <Header>
+      <div class="columns is-variable is-2 is-mobile is-vcentered">
+        <div class="column">
+          <div class="has-text-weight-bold is-size-5">
+            <span>@(Shared.IsEmpty(modelEdit.id) ? "Tạo cây KPIs" : "Chỉnh sửa cây KPIs")</span>
+          </div>
+        </div>
+        <div class="column is-narrow">
+          <span class="icon-text has-text-danger is-clickable" @onclick="Cancel">
+            <span class="icon">
+              <span class="material-icons-outlined">close</span>
+            </span>
+            <span>Đóng</span>
+          </span>
+        </div>
+      </div>
+    </Header>
+    <Body>
+      <ul class="columns is-multiline is-vcentered">
+        <li class="column is-half">
+          <span class="mb-2">Tiêu đề cây KPIs (*)</span>
+          <input @bind="modelEdit.name" class="is-fullwidth input is_bg mt-2" type="text" placeholder="Nhập tiêu đề KPIs..." />
+        </li>
+        <li class="column is-half">
+          <span>Thời hạn (*)</span>
+          <div class="mt-2">
+            <_InputDate Minimal IsRange DefaultString="Thời gian"
+            @bind-Start="modelEdit.start_date"
+            @bind-End="modelEdit.end_date"
+                        Format="dd/MM" />
+          </div>
+        </li>
+        <li class="column is-full">
+          <MemberDropdown members="modelEdit.managers" isShowAdd=true isShowList=true isEdit=true sources="userList.Where(i => !viewerList.Contains(i.id)).ToList()"
+                          OnUpdate="() => StateHasChanged()">
+            <Content>
+              <span>Quản lý cây KPIs (*)</span>
+              <span class="icon is-size-6 mr-2" style="pointer-events: auto;" title="Người có quyền tạo sửa xoá KPIs bất kỳ trong tổ chức">
+                <span class="material-icons-outlined">info</span>
+              </span>
+            </Content>
+          </MemberDropdown>
+        </li>
+
+        <li class="column is-full">
+          <MemberDropdown members="viewerList" isShowAdd=true isEdit=true sources="userList.Where(i => !modelEdit.managers.Contains(i.id)).ToList()"
+                          OnUpdate="ChangeViewer">
+            <Content>
+              <span>Người xem cây KPIs</span>
+              <span class="icon is-size-6 mr-2" style="pointer-events: auto;" title="Người có quyền xem cây KPIs của tổ chức">
+                <span class="material-icons-outlined">info</span>
+              </span>
+            </Content>
+          </MemberDropdown>
+        </li>
+
+        @if (modelEdit.viewerList.Any())
+        {
+          <li class="column is-full pt-0">
+            <table class="table is-fullwidth is-vcentered">
+              <thead>
+                <tr class="has-text-black has-text-weight-medium">
+                  <th width="40%">
+                    <span style="padding-left: 32px;">Người xem</span>
+                  </th>
+                  <th width="20%" align="center">Tổng quan</th>
+                  <th width="20%" align="center">Cây KPIs</th>
+                  <th width="20%" align="center">Báo cáo</th>
+                </tr>
+              </thead>
+              <tbody>
+                @foreach (var item in modelEdit.viewerList)
+                {
+                  var user = UserService.GetMember(userList, item.Key);
+                  <tr>
+                    <td>
+                      <div class="user_item">
+                        <span class="icon mr-2" style="flex-grow: 0;" @onclick="() => RemoveViewer(item.Key)">
+                          <span class="material-icons-outlined is-size-6 has-text-danger is-clickable">
+                            delete
+                          </span>
+                        </span>
+                        <img class="image is-24x24 mr-2" title="@user.name" src="@user.avatar" alt="IMG">
+                        <span class="text_1_line">@user.name</span>
+                      </div>
+                    </td>
+                    <td align="center">
+                      <span class="icon is-clickable" @onclick="() => ToggleView(item.Key, 1)">
+                        @if (item.Value.Contains(1))
+                        {
+                          <span class="material-icons-outlined is-size-5 has-text-success">
+                            toggle_on
+                          </span>
+                        }
+                        else
+                        {
+                          <span class="material-icons-outlined is-size-5 has-text-grey">
+                            toggle_off
+                          </span>
+                        }
+                      </span>
+                    </td>
+
+                    <td align="center">
+                      <span class="icon is-clickable" @onclick="() => ToggleView(item.Key, 2)">
+                        @if (item.Value.Contains(2))
+                        {
+                          <span class="material-icons-outlined is-size-5 has-text-success">
+                            toggle_on
+                          </span>
+                        }
+                        else
+                        {
+                          <span class="material-icons-outlined is-size-5 has-text-grey">
+                            toggle_off
+                          </span>
+                        }
+                      </span>
+                    </td>
+
+                    <td align="center">
+                      <span class="icon is-clickable" @onclick="() => ToggleView(item.Key, 3)">
+                        @if (item.Value.Contains(3))
+                        {
+                          <span class="material-icons-outlined is-size-5 has-text-success">
+                            toggle_on
+                          </span>
+                        }
+                        else
+                        {
+                          <span class="material-icons-outlined is-size-5 has-text-grey">
+                            toggle_off
+                          </span>
+                        }
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </li>
+
+        }
+      </ul>
+    </Body>
+    <Footer>
+      <div class="field is-grouped is-grouped-right">
+        <div class="control">
+          <Button Content="Huỷ" Color="@ComponentModel.ColorType.Info" IconLeft="cancel" Onclick="Cancel" />
+        </div>
+        <div class="control">
+          <Button Content="Cập nhật" IconLeft="check"
+                  Color="@ComponentModel.ColorType.Link" Onclick="Update" />
+        </div>
+      </div>
+    </Footer>
+  </Slider>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public KpisModel model { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; } = new();
+  private KpisModel modelEdit;
+  private List<MemberModel> userList = new();
+  private KpisModel kpisCycle;
+  private KpisCycleModel cycle;
+  private List<string> viewerList = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+
+    if (!Shared.IsEmpty(Layout.CycleKpisId))
+      cycle = shareStorage.KpisCycles.Find(i => i.id == Layout.CycleKpisId);
+
+    userList = await globalService.GetUserList(Layout.Company.id);
+    modelEdit = Shared.Clone(model);
+    if(Shared.IsEmpty(model.id))
+    {
+      modelEdit.start_date = cycle.start_date;
+      modelEdit.end_date = cycle.end_date;
+      modelEdit.managers.Add(Layout.User.id);
+    }
+
+    viewerList = new List<string>(modelEdit.viewerList.Keys);
+  }
+
+  private async Task Update()
+  {
+    if (Shared.IsEmpty(modelEdit.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Bạn chưa nhập Tiêu đề cây KPIs!");
+    else if (modelEdit.start_date == 0 || modelEdit.end_date == 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Bạn chưa nhập Thời hạn!");
+    else if (new DateTime(modelEdit.start_date).Date.Ticks >= new DateTime(modelEdit.end_date).Date.Ticks)
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Ngày kết thúc phải lớn hơn Ngày bắt đầu!");
+    else if (modelEdit.managers.Count == 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Bạn chưa nhập Quản lý cây KPIs!");
+    else
+    {
+      model = modelEdit;
+      if (model.start_date == 0)
+        model.start_date = DateTime.Today.Ticks;
+      if (model.end_date == 0)
+        model.end_date = DateTime.Today.AddDays(1).Ticks;
+
+      model.cycle = cycle.id;
+      model.parent = cycle.id;
+
+      if (Shared.IsEmpty(model.id))
+      {
+        await DbKpis.Create(Layout.Company.id, model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã tạo cây KPIs thành công!");
+        await SendNotify(1018, true, true, false);
+        await SendNotify(1019, false, true, true);
+        await SendNotify(1020, false, true, false);
+      }
+      else
+      {
+        await DbKpis.Update(Layout.Company.id, model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Cập nhật cây KPIs thành công!");
+        await SendNotify(1021, false, false, false);
+      }
+
+      await OnUpdate.InvokeAsync(true);
+    }
+  }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+  }
+
+  private async Task SendNotify(int notifyType, bool isManagerCycle, bool isCreate, bool isManagerTree)
+  {
+    if (model != null)
+    {
+      // Gửi thông báo chuông
+      if (isCreate)
+      {
+        if (isManagerCycle)
+        {
+          // quản lý chu kỳ
+          await KpisService.SendNotify(notifyType, cycle.managers, model, model, Layout.Company.id, Layout.User.id, cycle);
+        }
+        else
+        {
+          if (isManagerTree)
+          {
+            // quản lý và người xem cây kpis
+            // người quản lý
+            await KpisService.SendNotify(notifyType, model.managers, model, model, Layout.Company.id, Layout.User.id, cycle);
+          }
+          else
+          {
+            // người xem
+            await KpisService.SendNotify(notifyType, new List<string>(model.viewerList.Keys), model, model, Layout.Company.id, Layout.User.id, cycle);
+          }
+        }
+      }
+      else
+      {
+        var target = new List<string>();
+        target.AddRange(cycle.managers);
+        target.AddRange(model.managers);
+        target.AddRange(new List<string>(model.viewerList.Keys));
+        target = target.Distinct().ToList();
+
+        await KpisService.SendNotify(notifyType, target, model, model, Layout.Company.id, Layout.User.id, cycle);
+      }
+    }
+  }
+
+  private void ChangeViewer(List<string> members)
+  {
+    if (members != null)
+    {
+      var resultList = new Dictionary<string, List<int>>();
+      foreach (var userId in members)
+      {
+        if (modelEdit.viewerList.ContainsKey(userId))
+          resultList.Add(userId, modelEdit.viewerList[userId]);
+        else
+          resultList.Add(userId, new List<int>() { 1, 2, 3 });
+      }
+
+      modelEdit.viewerList = resultList;
+      viewerList = new List<string>(modelEdit.viewerList.Keys);
+    }
+  }
+
+  private void RemoveViewer(string userId)
+  {
+    modelEdit.viewerList.Remove(userId);
+    viewerList = new List<string>(modelEdit.viewerList.Keys);
+  }
+
+  private async Task ToggleView(string userId, int view)
+  {
+    if (modelEdit.viewerList.ContainsKey(userId))
+    {
+      if (modelEdit.viewerList[userId].Contains(view))
+      {
+        if (modelEdit.viewerList[userId].Count > 1)
+          modelEdit.viewerList[userId].Remove(view);
+        else
+          await JSRuntime.InvokeVoidAsync("tagline", false, $"Mỗi nhân viên phải có tối thiểu 1 quyền hoặc xoá người đó khỏi danh sách!");
+      }
+      else
+        modelEdit.viewerList[userId].Add(view);
+    }
+  }
+}

@@ -1,8 +1,10 @@
-﻿using System;
+﻿using MongoDB.Bson.Serialization.Attributes;
+using System;
 using System.Collections.Generic;
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class NavModel
   {
     public string name { get; set; }
@@ -13,6 +15,6 @@ namespace OnetezSoft.Models
 
     public bool active { get; set; }
 
-    public List<NavModel> childs { get; set; }
+    public List<NavModel> childs { get; set; } = new();
   }
 }

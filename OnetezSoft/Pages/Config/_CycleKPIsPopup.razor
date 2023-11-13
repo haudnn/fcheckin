@@ -1,0 +1,131 @@
+﻿@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
+
+@if(modelEdit != null)
+{
+  <Slider Size="@ComponentModel.SizeType.Normal">
+    <Header>
+      <div class="columns is-variable is-2 is-mobile is-vcentered">
+        <div class="column">
+          <div class="has-text-weight-bold is-size-5">
+            <span>@(Shared.IsEmpty(modelEdit.id) ? "Tạo chu kỳ" : "Chỉnh sửa chu kỳ")</span>
+          </div>
+        </div>
+        <div class="column is-narrow">
+          <span class="icon-text has-text-danger is-clickable" @onclick="Cancel">
+            <span class="icon">
+              <span class="material-icons-outlined">close</span>
+            </span>
+            <span>Đóng</span>
+          </span>
+        </div>
+      </div>
+    </Header>
+    <Body>
+      <ul class="columns is-multiline is-vcentered">
+        <li class="column is-half">
+          <span class="mb-2">Tên chu kỳ (*)</span>
+          <input @bind="modelEdit.name" class="is-fullwidth input is_bg mt-2" type="text" placeholder="Nhập tiêu đề chu kỳ" />
+        </li>
+        <li class="column is-half">
+          <span>Thời hạn (*)</span>
+          <div class="mt-2">
+            <_InputDate Minimal IsRange DefaultString="Thời gian"
+            @bind-Start="modelEdit.start_date"
+            @bind-End="modelEdit.end_date"
+                        Format="dd/MM" />
+          </div>
+        </li>
+        <li class="column is-full">
+          <MemberDropdown members="modelEdit.managers" isShowAdd=true isShowList=true isEdit=true sources="userList"
+                          OnUpdate="() => StateHasChanged()">
+            <Content>
+              <span>Người quản lý (*)</span>
+              <span class="icon is-size-6 mr-2" style="pointer-events: auto;" title="Người có quyền tạo sửa xoá cây KPIs bất kỳ trong tổ chức">
+                <span class="material-icons-outlined">info</span>
+              </span>
+            </Content>
+          </MemberDropdown>
+        </li>
+      </ul>
+    </Body>
+    <Footer>
+      <div class="field is-grouped is-grouped-right">
+        <div class="control">
+          <Button Content="Huỷ" Color="@ComponentModel.ColorType.Info" IconLeft="cancel" Onclick="Cancel" />
+        </div>
+        <div class="control">
+          <Button Content="Cập nhật" IconLeft="check"
+                  Color="@ComponentModel.ColorType.Link" Onclick="Update" />
+        </div>
+      </div>
+    </Footer>
+  </Slider>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public KpisCycleModel model { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; } = new();
+  private KpisCycleModel modelEdit;
+  private List<MemberModel> userList = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    userList = await globalService.GetUserList(Layout.Company.id);
+    modelEdit = Shared.Clone(model);
+  }
+
+  private async Task Update()
+  {
+    if (Shared.IsEmpty(modelEdit.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Bạn chưa nhập Tên chu kỳ!");
+    else if (modelEdit.start_date == 0 || modelEdit.end_date == 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Bạn chưa nhập Thời hạn!");
+    else if (new DateTime(modelEdit.start_date).Date.Ticks >= new DateTime(modelEdit.end_date).Date.Ticks)
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Ngày kết thúc phải lớn hơn Ngày bắt đầu!");
+    else if (modelEdit.managers.Count == 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Bạn chưa nhập Người quản lý!");
+    else
+    {
+      model = Shared.Clone(modelEdit);
+      if (model.start_date == 0)
+        model.start_date = DateTime.Today.Ticks;
+      if (model.end_date == 0)
+        model.end_date = DateTime.Today.AddDays(1).Ticks;
+
+      if (Shared.IsEmpty(model.id))
+      {
+        await DbKpisCycle.Create(Layout.Company.id, model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã tạo chu kỳ thành công!");
+        await SendNotify(1000);
+      }
+      else
+      {
+        await DbKpisCycle.Update(Layout.Company.id, model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Cập nhật chu kỳ thành công!");
+        await SendNotify(1001);
+      }
+
+      model = Shared.Clone(modelEdit);
+      await Layout.RefreshData();
+      await OnUpdate.InvokeAsync(true);
+    }
+  }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+  }
+
+  private async Task SendNotify(int notifyType)
+  {
+    // Gửi thông báo chuông
+    var targetList = userList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.kpis));
+    foreach (var user in targetList)
+      await DbNotify.Create(Layout.Company.id, notifyType, model.name, user.id, Layout.User.id);
+  }
+}

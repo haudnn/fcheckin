@@ -1,11 +1,10 @@
-﻿using System;
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
+using OnetezSoft.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
 
 namespace OnetezSoft.Data
 {
@@ -54,7 +53,7 @@ namespace OnetezSoft.Data
     {
       var collection = _db.GetCollection<PromotionModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
@@ -62,7 +61,7 @@ namespace OnetezSoft.Data
     {
       var collection = _db.GetCollection<PromotionModel>(_collection);
 
-      var results = await collection.Find(new BsonDocument()).ToListAsync();
+      var results = await collection.FindAsync(new BsonDocument()).Result.ToListAsync();
 
       return (from x in results orderby x.type, x.condition descending select x).ToList();
     }
@@ -72,11 +71,11 @@ namespace OnetezSoft.Data
     /// Danh sách khuyến mãi
     /// </summary>
     /// <param name="type">1: thời gian | 2: người dùng</param>
-    public static List<PromotionModel> GetList(int type)
+    public static async Task<List<PromotionModel>> GetList(int type)
     {
       var collection = _db.GetCollection<PromotionModel>(_collection);
 
-      var results = collection.Find(x => x.type == type).ToList();
+      var results = await collection.FindAsync(x => x.type == type).Result.ToListAsync();
 
       return (from x in results orderby x.condition descending select x).ToList();
     }

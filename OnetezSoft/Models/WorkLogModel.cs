@@ -1,10 +1,9 @@
-using System;
-using System.Collections.Generic;
+
 using MongoDB.Bson.Serialization.Attributes;
-using OnetezSoft.Services;
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class WorkLogModel
   {
     [BsonId]
@@ -22,8 +21,11 @@ namespace OnetezSoft.Models
     /// <summary>Kế hoạch</summary>
     public string plan { get; set; }
 
-    /// <summary>Công việc</summary>
+    /// <summary>Công việc chính</summary>
     public string task { get; set; }
+
+    /// <summary>Công việc phụ</summary>
+    public string sub_task { get; set; }
 
     /// <summary>Người thực hiện</summary>
     public MemberModel user { get; set; }

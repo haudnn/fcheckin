@@ -1,198 +1,147 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
-<section id="sidebar" class="@(Layout.NavLess ? "is_less" : "") @(navMobile ? "is_expanded" : "")">
-  <div class="columns is-vcentered is-gapless is-mobile px-2 mb-0">
-    <div class="column is-narrow">
-      <a class="sidebar_toggle button is-white is-hidden-mobile" @onclick="ToggleSidebar">
-        <span></span>
-        <span></span>
-        <span></span>
-      </a>
-      <a class="sidebar_toggle button is-white is-hidden-tablet" @onclick="ToogleMobile">
-        <span></span>
-        <span></span>
-        <span></span>
-      </a>
-    </div>
-    <div class="column">
-      <div class="is-hidden-tablet pl-3">
-        <img src="/images/logo-white.png" alt="logo" style="height: 26px;" />
-      </div>
-    </div>
-    @if (CheckAccess("okrs"))
+@if (Nav != null)
+{
+  <section
+    id="sidebar" 
+    class="@(Navless ? "is_less" : "") @(Layout.User.custom.sidebar_pin ? "is_pin" : "")" >
+    <a class="button is-white toggle">
+      <span class="icon" @onclick="ToggleSidebar">
+        <span class="material-icons-outlined">
+          @(Navless ? "menu" : "menu_open")
+        </span>
+      </span>
+    </a>
+    <a class="button is-white module-pin">
+      <span class="icon is-hidden-mobile" @onclick="PinSidebar" style="margin-left:auto">
+        <span class="is-size-6 @(Layout.User.custom.sidebar_pin ? "material-icons" : "material-icons-outlined")">
+          push_pin
+        </span>
+      </span>
+    </a>
+    @if (subTabName != null)
     {
-      <div class="column is-narrow hide_less">
-        <div class="dropdown is-hoverable is-right">
-          <div class="dropdown-trigger">
-            <a class="button is-white p-0 pr-2 font_13">
-              <span class="text_1_line" style="max-width: 100px;">
-                @cycleName
-              </span>
-              <span class="icon is-small">
-                <span class="material-icons-outlined">
-                  arrow_drop_down
-                </span>
-              </span>
-            </a>
-          </div>
-          <div class="dropdown-menu font_13">
-            <div class="dropdown-content">
-              @foreach (var item in Layout.OkrConfig.cycles)
-              {
-                <a class="dropdown-item" @onclick="() => ChangeCycle(item.id)">
-                  @item.name
-                </a>
-              }
-              @if (Layout.OkrConfig.cycles.Count == 0)
-              {
-                <a class="dropdown-item">Chưa có chu kỳ</a>
-              }
-            </div>
-          </div>
-        </div>
-      </div>
+      <a class="icon-text module-name">
+        @if (!subTabName.icon.IsEmpty())
+        {
+          <span class="icon">
+            <span class="material-icons-outlined">
+              @subTabName.icon
+            </span>
+          </span>
+        }
+        <span>
+          @subTabName.name
+        </span>
+      </a>
     }
-    <div class="column is-narrow is-hidden-tablet">
-      <div class="image is-32x32 is-rounded" title="Hi, @Layout.User.FullName">
-        <img src="@Layout.User.avatar" alt="IMG" />
-      </div>
-    </div>
-  </div>
-  <nav class="scrolly mt-4">
-    <ul>
-      @foreach (var main in ListNav)
-      {
-        var isUp = main.link == "#config" ? "is_up" : "";
-        <li class="@(main.active ? "is-active" : "") @isUp">
-          @if (main.childs != null)
-          {
-            <a class="button is-white" @onclick="() => main.active = !main.active">
-              <span class="icon">
-                <i class="material-icons-outlined">@main.icon</i>
-              </span>
-              <span>@main.name</span>
-              <span class="icon">
-                <i class="material-icons-outlined is-size-6">arrow_right</i>
-              </span>
-            </a>
-            <ul>
-              @foreach (var child in main.childs)
-              {
-                <li class="@(child.active ? "is-active" : "")">
-                  @if (child.childs != null)
-                  {
-                    <a class="button is-white" @onclick="() => child.active = !child.active">
-                      <span>@child.name</span>
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-5">arrow_right</i>
-                      </span>
-                    </a>
-                    <ul>
-                      @foreach (var sub in child.childs)
-                      {
-                        <li class="@(sub.active ? "is-active" : "")">
-                          <a class="button is-white" href="@sub.link">
-                            <span>@sub.name</span>
-                          </a>
-                        </li>
-                      }
-                    </ul>
-                  }
-                  else
-                  {
-                    <a class="button is-white" href="@child.link">
+    <nav class="scrolly mt-4">
+      <ul>
+        @foreach (var main in Nav.childs)
+        {
+          <li class="@(main.active || (subTabName == null ? false : main.childs.Count == 0 ? main.link == subTabName.link : subTabName.link.Contains(main.link)) ? "is-active" : "")">
+            @if (main.childs.Count > 0)
+            {
+              <a class="button is-white" @onclick="() => main.active = !main.active">
+                <span class="icon">
+                  <i class="material-icons">@main.icon</i>
+                </span>
+                <span>@main.name</span>
+                <span class="icon">
+                  <i class="material-icons is-size-6">arrow_right</i>
+                </span>
+              </a>
+              <ul>
+                @foreach (var child in main.childs)
+                {
+                  <li class="@(child.active || (subTabName == null ? false : subTabName.link == child.link) ? "is-active" : "")">
+                    <a class="button is-white" href="/@child.link">
                       <span>@child.name</span>
                     </a>
-                  }
-                </li>
-              }
-            </ul>
-          }
-          else
-          {
-            <a class="button is-white" href="@main.link">
-              <span class="icon">
-                <i class="material-icons-outlined is-size-6">@main.icon</i>
-              </span>
-              <span>@main.name</span>
-            </a>
-          }
-        </li>
-      }
-    </ul>
-  </nav>
-  <a class="button is-white btn_logout" @onclick="Logout" title="Đăng xuất">
-    <span class="icon">
-      <i class="material-icons-round is-size-6">logout</i>
-    </span>
-    <span>Đăng xuất</span>
-  </a>
-</section>
+                  </li>
+                }
+              </ul>
+            }
+            else
+            {
+              <a class="button is-white" href="/@main.link">
+                <span class="icon">
+                  <i class="material-icons is-size-6">@main.icon</i>
+                </span>
+                <span>@main.name</span>
+              </a>
+            }
+          </li>
+        }
+      </ul>
+    </nav>
+    <a class="button is-white btn_logout" @onclick="Logout" title="Đăng xuất">
+      <span class="icon">
+        <i class="material-icons-round is-size-6">logout</i>
+      </span>
+      <span>Đăng xuất</span>
+    </a>
+  </section>
+  @if(!Layout.IsMobile || !Navless)
+  {
+    <section class="sidebar_overlay" @onclick="ToggleSidebar"></section>
+  }
+}
 
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-	[Parameter]
-	public EventCallback<bool> OnToggle { get; set; }
-  private List<NavModel> ListNav = new();
-  private bool navMobile = false;
-  private string cycleName = string.Empty;
-			private HrmRulesModel rules = null;
-		
 
-  protected override async Task OnInitializedAsync()
-  {
-				rules = await DbHrmRules.Get(Layout.Company.id, Layout.Company.id);
-    Navigation();
-    var cycle = Layout.OkrConfig.cycles.SingleOrDefault(x => x.id == Layout.CycleId);
-    if (cycle != null)
-      cycleName = cycle.name;
-    else if (Layout.OkrConfig.cycles.Count > 0)
-      await ChangeCycle(Layout.OkrConfig.cycles[0].id);
-    else
-      cycleName = "Chọn chu kỳ";
-  }
+  [Parameter]
+  public NavModel Nav { get; set; }
+
+  private string cycleName = string.Empty;
+
+  private bool Navless = true;
+  private NavModel subTabName = null;
 
   protected override void OnParametersSet()
   {
-    navMobile = false;
+    var currentLocation = navigation.Uri.Replace(navigation.BaseUri, "");
 
-    var url = navigation.Uri.Replace(navigation.BaseUri, "");
-    foreach (var main in ListNav)
+    subTabName = null;
+
+    if (Layout.ListNav.childs.Count == 0)
     {
-      main.active = url.StartsWith(main.link.Replace("#", ""));
-      if (main.childs != null)
+      subTabName = null;
+    }
+    else
+    {
+      foreach (var childs in Layout.ListNav.childs)
       {
-        foreach (var child in main.childs)
+        if (currentLocation.Contains(childs.link))
         {
-          child.active = url.StartsWith(child.link.Replace("#", ""));
-          if (child.childs != null)
+          subTabName = childs;
+        }
+        if (childs.childs.Count > 0)
+        {
+          foreach (var subchild in childs.childs)
           {
-            foreach (var sub in child.childs)
+            if (currentLocation.Contains(subchild.link))
             {
-              sub.active = url.StartsWith(sub.link.Replace("#", ""));
+              subTabName = subchild;
             }
           }
         }
       }
     }
+
+    Navless = true;
   }
 
-  private async Task ChangeCycle(string id)
+  private void ToggleSidebar()
   {
-    await JSRuntime.InvokeVoidAsync("setCookie", "_cycle", id);
-    navigation.NavigateTo(navigation.Uri, true);
-  }
-
-  private async Task ToggleSidebar()
-  {
-    await OnToggle.InvokeAsync(!Layout.NavLess);
-  }
-
-  private void ToogleMobile()
-  {
-    navMobile = !navMobile;
+    if(!Layout.User.custom.sidebar_pin || Layout.IsMobile)
+    {
+      Navless = !Navless;
+    }
   }
 
   private async Task Logout()
@@ -203,206 +152,15 @@
     navigation.NavigateTo("/logout", true);
   }
 
-  private void Navigation()
-  {
-    ListNav = new();
-    ListNav.Add(new NavModel
-      {
-        name = "Tin tức",
-        link = "blogs",
-        icon = "dashboard"
-      });
-    ListNav.Add(new NavModel
-      {
-        name = "Thống kê",
-        link = "reports",
-        icon = "bar_chart"
-      });
-    ListNav.Add(new NavModel
-      {
-        name = "Đội nhóm",
-        link = "teams",
-        icon = "group"
-      });
-
-    if (CheckAccess("todolist"))
-    {
-      ListNav.Add(new NavModel
-        {
-          name = "Todolist",
-          link = "todolist",
-          icon = "check_box"
-        });
-    }
-
-    if (CheckAccess("work"))
-    {
-      ListNav.Add(new NavModel
-        {
-          name = "Kế hoạch",
-          link = "work",
-          icon = "view_timeline"
-        });
-    }
-
-    if (CheckAccess("okrs"))
-    {
-      ListNav.Add(new NavModel
-        {
-          name = "OKRs",
-          link = "#okr",
-          icon = "track_changes",
-          childs = new List<NavModel>
-            {
-              new NavModel { name = "Thiết lập", link = "#okr/setup",
-                childs = new List<NavModel>
-              {
-                  new NavModel { name = "Timeline", link = "okr/setup/timeline" },
-                  new NavModel { name = "Góp ý mục tiêu", link = "okr/setup/suggest" },
-                  new NavModel { name = "Công bố mục tiêu", link = "okr/setup/target" },
-                  new NavModel { name = "Tạo OKRs", link = "okr/setup/detail" },
-                }
-              },
-              new NavModel { name = "Hành động", link = "okr/tasks" },
-              new NavModel { name = "Tổng quan", link = "okr/overview" },
-              new NavModel { name = "Check-in", link = "okr/checkin" },
-              new NavModel { name = "Đánh giá", link = "okr/review" },
-            }
-        });
-      ListNav.Add(new NavModel
-        {
-          name = "Ghi nhận",
-          link = "/cfr",
-          icon = "grade"
-        });
-    }
-
-    if (CheckAccess("kaizen"))
-    {
-      ListNav.Add(new NavModel
-        {
-          name = "Kaizen",
-          link = "kaizen",
-          icon = "show_chart"
-        });
-    }
-
-    ListNav.Add(new NavModel
-      {
-        name = "Đổi quà",
-        link = "#gift",
-        icon = "card_giftcard",
-        childs = new List<NavModel>
-        {
-          new NavModel { name = "Cửa hàng", link = "gift/product" },
-          new NavModel { name = "Lịch sử đổi quà", link = "gift/exchange" }
-        }
-      });
-
-    if (CheckAccess("timekeeping"))
-    {
-      var hrmChilds = new List<NavModel>();
-      if (Layout.User.role == 1 || Layout.User.role_manage.timekeeping || Layout.User.role_manage.hrrecords)
-      {
-        hrmChilds.Add(new() { name = "Thiết lập", link = "#hrm/setup", childs = new() });
-        if (Layout.User.role == 1 || (Layout.User.role == 2 && Layout.User.role_manage.timekeeping))
-        {
-          hrmChilds[0].childs.Add(new() { name = "Địa điểm", link = "hrm/setup/locations" });
-          hrmChilds[0].childs.Add(new() { name = "Phân địa điểm", link = "hrm/setup/location-assign" });
-          hrmChilds[0].childs.Add(new() { name = "Ca làm", link = "hrm/setup/work-shift" });
-          hrmChilds[0].childs.Add(new() { name = "Quy định", link = "hrm/setup/rules" });
-          hrmChilds[0].childs.Add(new() { name = "Ngày nghỉ", link = "hrm/setup/dayoff" });
-										if (rules.is_check_device)
-											hrmChilds[0].childs.Add(new() { name = "Thiết bị chấm công", link = "hrm/setup/device" });
-        }
-      }
-      hrmChilds.Add(new() { name = "Phân ca", link = "hrm/timelist" });
-      hrmChilds.Add(new() { name = "Đơn từ", link = "hrm/form" });
-      hrmChilds.Add(new() { name = "Chấm công", link = "hrm/timekeeping" });
-      hrmChilds.Add(new() { name = "Bảng công", link = "hrm/timesheets" });
-      ListNav.Add(new NavModel
-      {
-        name = "HRM",
-        link = "#hrm",
-        icon = "person_search",
-        childs = hrmChilds
-      });
-    }
-
-    if (CheckAccess("train"))
-    {
-      ListNav.Add(new NavModel
-        {
-          name = "Đào tạo",
-          link = "#educate",
-          icon = "book",
-          childs = new List<NavModel>
-        {
-          new NavModel { name = "Khóa học", link = "educate/course/list" },
-          new NavModel { name = "Quản lý khóa học", link = "educate/course/manager" },
-          new NavModel { name = "Chấm bài thi", link = "educate/exam/manager" },
-          new NavModel { name = "Cấp chứng chỉ", link = "educate/certificate/manager" },
-          new NavModel { name = "Chứng chỉ đạt được", link = "educate/certificate/list" },
-        }
-        });
-    }
-
-    if (Layout.User.role < 3)
-    {
-      List<NavModel> configChilds = new();
-      if (Layout.User.role == 1 || Layout.User.role_manage.system)
-        configChilds.Add(new NavModel { name = "Cơ cấu", link = "config/system" });
-
-      if (CheckAccess("okrs") && (Layout.User.role == 1 || Layout.User.role_manage.okrs))
-        configChilds.Add(new NavModel { name = "OKRs - Ghi nhận", link = "config/okrs" });
-
-      if (CheckAccess("todolist") && (Layout.User.role == 1 || Layout.User.role_manage.system))
-        configChilds.Add(new NavModel { name = "Todolist", link = "config/todolist" });
-
-      if (CheckAccess("kaizen") && (Layout.User.role == 1 || Layout.User.role_manage.kaizen))
-        configChilds.Add(new NavModel { name = "Kaizen", link = "config/kaizen" });
-
-      if ((Layout.User.role == 1 || Layout.User.role_manage.store))
-        configChilds.Add(new NavModel { name = "Đổi quà", link = "config/gift" });
-
-      if (CheckAccess("train") && (Layout.User.role == 1 || Layout.User.role_manage.educate))
-        configChilds.Add(new NavModel { name = "Đào tạo", link = "config/educate" });
-
-      if (Layout.User.role == 1 || Layout.User.role_manage.other)
-        configChilds.Add(new NavModel { name = "Tiện ích", link = "config/other" });
-
-      if(ProductService.CheckStorage(Layout.Company))
-      {
-        if (Layout.User.role == 1 || Layout.User.role_manage.storage)
-          configChilds.Add(new NavModel { name = "Quản lý lưu trữ", link = "config/storage" });
-      }
-
-      ListNav.Add(new NavModel
-        {
-          name = "Cấu hình",
-          link = "#config",
-          icon = "settings",
-          childs = configChilds
-        });
-    }
-
-    ListNav.Add(new NavModel
-      {
-        name = "Tài khoản",
-        link = "user/info",
-        icon = "account_circle"
-      });
-
-    ListNav.Add(new NavModel
-      {
-        name = "Góp ý hệ thống",
-        link = "feedback",
-        icon = "feedback"
-      });
-  }
-
   private bool CheckAccess(string productId)
   {
     return ProductService.CheckAccess(Layout.Company, Layout.User, productId, out string message);
+  }
+
+  private async Task PinSidebar()
+  {
+    Layout.User.custom.sidebar_pin = !Layout.User.custom.sidebar_pin;
+    await Layout.ToggleNavLess();
+    await DbUser.Update(Layout.Company.id, Layout.User, globalService);
   }
 }

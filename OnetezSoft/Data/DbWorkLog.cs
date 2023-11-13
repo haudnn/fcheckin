@@ -1,11 +1,9 @@
-using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using OnetezSoft.Models;
-using MongoDB.Bson;
 using MongoDB.Driver;
+using OnetezSoft.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -63,7 +61,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<WorkLogModel>(_collection);
 
-      var result = await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      var result = await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
 
       return result;
     }
@@ -77,7 +75,21 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<WorkLogModel>(_collection);
 
-      var results = await collection.Find(x => x.plan == planId && string.IsNullOrEmpty(x.task)).ToListAsync();
+      var results = await collection.FindAsync(x => x.plan == planId && string.IsNullOrEmpty(x.task)).Result.ToListAsync();
+
+      return results.OrderByDescending(x => x.date).ToList();
+    }
+
+    /// <summary>
+    /// Danh sách lịch sử cập nhật
+    /// </summary>
+    public static async Task<List<WorkLogModel>> GetAllListPlan(string companyId, string planId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<WorkLogModel>(_collection);
+
+      var results = await collection.FindAsync(x => x.plan == planId).Result.ToListAsync();
 
       return results.OrderByDescending(x => x.date).ToList();
     }
@@ -91,7 +103,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<WorkLogModel>(_collection);
 
-      var results = await collection.Find(x => x.plan == planId && x.task == taskId).ToListAsync();
+      var results = await collection.FindAsync(x => x.plan == planId && x.task == taskId).Result.ToListAsync();
 
       return results.OrderByDescending(x => x.date).ToList();
     }

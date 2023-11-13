@@ -1,0 +1,83 @@
+﻿@inject IJSRuntime JSRuntime
+
+@if (kpis != null && kpis.metrics.FirstOrDefault() != null)
+{
+  <p class="ml-5 has-text-weight-semibold">@kpis.metrics.FirstOrDefault().units</p>
+  <div style="height: 210px;">
+    <canvas id="chartLine" height="210"></canvas>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public KpisModel kpis { get; set; }
+  [Parameter]
+  public bool CheckReload { get; set; } = true;
+  [Parameter]
+  public EventCallback<bool> CheckReloadChanged { get; set; }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (kpis != null && kpis.metrics.FirstOrDefault() != null && CheckReload)
+    {
+      await Chart();
+      CheckReload = false;
+      await CheckReloadChanged.InvokeAsync(CheckReload);
+    }
+  }
+
+  private async Task Chart()
+  {
+    if (kpis == null)
+      return;
+    var database = await DbKpisCheckin.GetList(Layout.Company.id, kpis.cycle, kpis.id);
+    var dataList = new List<KpisCheckinModel>();
+
+    if (kpis.type == 1)
+    {
+      long dateCheck = 0;
+      // kpis nhập liệu
+      var checkList = database.Where(i => i.date_confirm > 0 && i.status_checkin == 2)
+                                 .OrderByDescending(x => x.date_confirm).ToList();
+
+      var firstItem = checkList.FirstOrDefault();
+      if (firstItem != null)
+      {
+        dateCheck = new DateTime(firstItem.date_confirm).Date.Ticks;
+        dataList.Add(firstItem);
+      }
+      foreach (var item in checkList)
+      {
+        var dateConfirm = new DateTime(item.date_confirm).Date.Ticks;
+        if (dateConfirm != dateCheck)
+          dataList.Add(item);
+
+        dateCheck = dateConfirm;
+      }
+    }
+    else if (kpis.type == 2)
+    {
+      dataList = database.Where(i => true).ToList();
+    }
+    dataList = dataList.OrderBy(x => x.date_confirm).ToList();
+
+    int chartCount = dataList.Count + 1;
+
+    var chartLabel = new string[chartCount];
+    var chartDatas = new double[chartCount];
+
+    chartLabel[0] = string.Format("{0:dd/MM}", new DateTime(kpis.date_create).Date);
+    chartDatas[0] = 0;
+
+    for (int i = 0; i < dataList.Count; i++)
+    {
+      var checkin = dataList[i];
+      chartLabel[i + 1] = string.Format("{0:dd/MM}", new DateTime(checkin.date_confirm).Date);
+      chartDatas[i + 1] = Math.Round(checkin.value, 3);
+    }
+
+    await JSRuntime.InvokeAsync<string>("runChartLine", kpis.metrics.FirstOrDefault().units, chartLabel, chartDatas);
+  }
+}

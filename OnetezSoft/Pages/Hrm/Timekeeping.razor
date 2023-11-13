@@ -1,6 +1,11 @@
 @page "/hrm/timekeeping"
-@inject IJSRuntime JSRuntime
+@using System.Text.Json
 @inject NavigationManager navigation
+@implements IDisposable
+@inject IJSRuntime JSRuntime
+@inject ProtectedLocalStorage storage
+@inject GlobalService globalService
+
 
 <PageTitle>@_title</PageTitle>
 
@@ -8,316 +13,356 @@
 {
   <_PopupUnauthorized msgAccess="@msgAccess" />
 }
-else 
+else
 {
-	<section style="overflow: hidden;">
-			@if (Layout.IsMobile && rules != null)
-			{
-					<div class="columns is-multiline is-mobile" style="height:100%">
-							<div class="column is-full">
-									<div style="border-bottom: 1px solid #e2e2e2;">
-											<ul class="columns is-vcentered is-center is-mobile is-variable is-1">
-													<li class="column">
-															<div class="py-2 has-text-centered is_border_bottom @(tab == 1 ? "has-text-link" : "")" style="height:100%; @(tab == 1 ? "border-color:#355CAA" : "")" @onclick="() => tab = 1">
-																	<span style="margin-left: 0;" class="icon">
-																			<i class="material-icons-outlined is-size-6">timelapse</i>
-																	</span>
-																	<p>Lịch sử</p>
-															</div>
-													</li>
-													<li class="column">
-															<div class="py-2 has-text-centered is_border_bottom @(tab == 2 ? "has-text-link" : "")" style="height:100%; @(tab == 2 ? "border-color:#355CAA" : "")" @onclick="() => tab = 2">
-																	<span style="margin-left: 0;" class="icon">
-																			<i class="material-icons-outlined is-size-6">timer</i>
-																	</span>
-																	<p>Chấm công</p>
-															</div>
-													</li>
-											</ul>
-									</div>
-							</div>
+  @if(Layout.IsMobile)
+  {
+    <div class="tabs" style="min-height:auto; height:fit-content;overflow:visible">
+      <ul class="is-flex-1">
+        <li class="is-flex-1">
+          <div class="py-2 has-text-centered is_border_bottom @(tab == 1 ? "has-text-link" : "")"
+               style="height:100%; @(tab == 1 ? "border-color:#355CAA" : "")"
+          @onclick="() => ChangedTab(1)">
+            <span class="icon mx-0">
+              <i class="material-icons-outlined is-size-6">timelapse</i>
+            </span>
+            <p>Lịch sử</p>
+          </div>
+        </li>
+        <li class="is-flex-1">
+          <div class="py-2 has-text-centered is_border_bottom @(tab == 2 ? "has-text-link" : "")"
+               style="height:100%; @(tab == 2 ? "border-color:#355CAA" : "")"
+          @onclick="() => ChangedTab(2)">
+            <span class="icon mx-0">
+              <i class="material-icons-outlined is-size-6">timer</i>
+            </span>
+            <p>Chấm công</p>
+          </div>
+        </li>
+        <li class="is-flex-1">
+          <div class="py-2 has-text-centered is_border_bottom @(tab == 3 ? "has-text-link" : "")"
+               style="height:100%; @(tab == 3 ? "border-color:#355CAA" : "")"
+          @onclick="() => ChangedTab(3)">
+            <span class="icon mx-0">
+              <i class="material-icons-outlined is-size-6">text_snippet</i>
+            </span>
+            <p>Đơn từ</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+  }
 
-							@if (tab == 1)
-							{
-									<div class="column is-full">
-											<TimekeepingList />
-									</div>
-							}
-							<div class="@(tab == 2 ? "column is-full" : "is-hidden")">
-									<div style="padding: 0px 16px 16px 16px;" class="has-text-centered">
-											@if (!isHybrid)
-											{
-												<div class="is-flex is-align-items-center is-justify-content-center pb-2">
-														<span class="has-text-black" style="line-height: 24px;">Địa điểm:</span>
-															<span class="icon-text has-text-weight-medium has-text-link">
-																	<span class="icon mr-0">
-																		<i class="material-icons-outlined is-size-6">location_on</i>
-																	</span>
-																	<span>@companyAddress</span>
-															</span>
-												</div>
-											}
-											else
-											{
-												<div class="is-flex is-align-items-center is-justify-content-center pb-2">
-													<span class="has-text-black">Địa điểm:</span>
-															<span class="ml-1 has-text-weight-medium has-text-link">
-																	Chế độ linh động
-														</span>
-												</div>
-											}
-											@if (currentShift != null)
-											{
-													<div class="pb-2 is-flex is-align-items-center is-justify-content-center" style="gap: 0 5px;">
-															<span class="has-text-black" style="line-height: 24px;">Ca làm hiện tại:</span>
-															<div class="dropdown @(toggleShift ? "is-active" : "") is-right">
-																	<div class="dropdown-trigger">
-																			@if (isCheckin)
-																			{
-																					<a class="icon-text" @onclick="ToggleShift">
-																							<span class="has-text-link">@(currentShift.name)</span>
-																							<span class="icon ml-0">
-																									<i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-																							</span>
-																					</a>
-																			}
-																			else
-																			{
-																					<a class="icon-text" style="margin-left: 0;">
-																							<span class="has-text-link">@(currentShift.name)</span>
-																					</a>
-																			}
-																	</div>
-																	<div class="dropdown-menu">
-																			<div class="dropdown-content">
-																					@if (shifts != null)
-																					{
-																							@foreach (var item in shifts)
-																							{
-																									if (item != null)
-																									{
-																											<a class="dropdown-item" @onclick="() => ChangeShift(item)">
-																													<span class="has-text-weight-semibold">@item.name </span> (@($"{item.checkin} - {item.checkout}"))
-																											</a>
-																									}
-																							}
-																					}
-																					@if (rules.overtime.is_active)
-																					{
-																							<a class="dropdown-item has-text-weight-semibold" @onclick="() => ChangeShift(null)">
-																									Làm ngoài giờ
-																							</a>
-																					}
-																			</div>
-																	</div>
-															</div>
-													</div>
-											}
-											else
-											{
-															if (rules.overtime.is_active)
-															{
-															<div class="pb-2">
-																	<span class="has-text-black">Ca làm hiện tại:</span>
-																	<span>Làm ngoài giờ</span>
-															</div>
-															}
-											}
-												@if (rules.is_check_device)
-												{
-													<div class="is-flex is-align-items-center is-justify-content-center">
-														<span class="has-text-black mr-1">Thiết bị hiện tại:</span>
-														<div class=" @(isValidDevice ? "has-text-success" : "has-text-danger")">
-																<span>@(isValidDevice ? "Hợp lệ" : "Không hợp lệ")</span>
-														</div>
-													</div>
-												}
-											<div class="timekeeping p-2" style="background: radial-gradient(closest-side, white 89%, transparent 90% 100%), conic-gradient(@hexColor @(PERCENTAGE)%, @(hexColor)30 0);">
-													<div class="mb-2 has-text-centered">
-															<p class="is-size-7">
-																	@DateTime.Today.ToString("dddd, dd/MM/yyyy", System.Globalization.CultureInfo.CreateSpecificCulture("vi-VN"))
-															</p>
-															<span id="clock" class="is-size-4">
-																	@DateTime.Now.ToString("HH:mm:ss")
-															</span>
-													</div>
-													<div>
-															@if (isNoShift)
-															{
-																	<div style="background-color: @hexColor;" class="btn_timekeeping">
-																			@(isDayOff ? "Ngày nghỉ" : "Không có ca làm")
-																	</div>
-															}
-															else
-															{
-																	@if (!isLoading)
-																	{
-																			if (isCheckin)
-																			{
-																					<div style="background-color: @textColor;" class="btn_timekeeping" @onclick="Checkin">
-																							<a class="is_btn has-text-white">Check in</a>
-																					</div>
-																			}
-																			else
-																			{
-																					<div style="background-color: @textColor;" class="btn_timekeeping" @onclick="Checkout">
-																							<a class="is_btn has-text-white">Check out</a>
-																					</div>
-																			}
-																	}
-															}
-													</div>
-											</div>
-											<div class="is-flex is-align-items-center is-justify-content-center">
-													@if (!isHybrid)
-													{
-															<span class="has-text-black" style="line-height: 24px;">Vị trí hiện tại:</span>
-															@if (inCompany == null)
-															{
-																	<span>đang kiểm tra...</span>
-															}
-															else if (inCompany.Value)
-															{
-																<span class="icon-text has-text-success">
-																	<span class="icon">
-																		<i class="material-icons-outlined is-size-6">done</i>
-																	</span>
-																	<span>Hợp lệ</span>
-																</span>
-															}
-															else
-															{
-																<span class="icon-text has-text-danger">
-																	<span class="icon mr-0" >
-																		<i class="material-icons-outlined is-size-6">error_outline</i>
-																	</span>
-																	<span>Ngoài vị trí</span>
-																</span>
-															}
-													}
-											</div>
-											@if (!isHybrid)
-											{
-											<div class="is-family-code @(inCompany == true ? "has-text-success" : "has-text-danger")">
-													@((MarkupString)logs)
-											</div>
-											}
-									</div>
-									<div class="card p-5 m-4">
-											<div class="has-text-weight-medium is-size-6 mb-3 has-text-centered">
-													Lịch sử chấm công trong ngày
-											</div>
-											@if (timekeeping != null)
-											{
-													<ul class="columns is-mobile is-multiline is-variable is-1" style="line-height: 1.5rem;">
-															@for (int item = 0; item < timekeeping.time_tracking.Count(); item += 1)
-															{
-																	var log = timekeeping.time_tracking[item];
-																	if (log.time_type == "Check-in")
-																	{
-																			var checkout = timekeeping.time_tracking.FirstOrDefault(l => l.time_type == "Check-out" && l.checkin_id == log.checkin_id);
-																			var isEarly = HrmService.CheckEarly(log.time_shift, checkout.time_shift, checkout.time_active, checkout.is_overday);
-																			<TimekeepingLog checkin="@log" checkout="@checkout" isEarly="@isEarly" />
-																			<li class="column is-full">
-																					<hr class="my-2" />
-																			</li>
-																	}
-															}
-													</ul>
-											}
-											else
-											{
-													<div class="has-text-centered">Hôm nay chưa có lịch sử chấm công!</div>
-											}
-									</div>
-									@if (!isDayOff)
-									{
-											<div class="card m-4 p-5">
-													<div class="has-text-weight-medium has-text-centered is-size-6 mb-3">
-															Danh sách ca làm trong ngày
-													</div>
-													@if (shiftList != null && userShift != null)
-													{
-															<ul class="is-flex is-flex-wrap-wrap" style="gap:5px;">
-																	@foreach (var item in userShift.shifts_id)
-																	{
-																			var shift = shiftsOriginal.FirstOrDefault(i => i.id == item);
-																			@if (shift != null)
-																			{
-																					<span class="tag" style="background-color:#f0f0ff;">
-																							<span class="has-text-weight-medium">
-																									@shift.name
-																							</span>
-																					</span>
-																			}
-																			else
-																			{
-																					<span class="tag" style="background-color:#f0f0ff;">
-																							<span class="has-text-weight-medium">
-																									Ca làm đã xoá
-																							</span>
-																					</span>
-																			}
-																	}
-															</ul>
-													}
-													else
-													{
-															<p style="text-align: center" class="mt-2">Bạn không có ca làm trong ngày hôm nay!</p>
-													}
-													@if (rules.check_in_out.is_in_early && rules.check_in_out.in_early > 0)
-													{
-															<p style="font-size: 12px;" class="has-text-grey is-italic  mt-2">(*) Bạn chỉ được phép check-in sớm trước ca làm @rules.check_in_out.in_early phút so với giờ bắt đầu ca!</p>
-													}
-											</div>
-									}
-							</div>
-					</div>
-			}
-			else
-			{
-					<section class="p-4" style="height:calc(100vh - 56px)">
-							<TimekeepingCalendar />
-					</section>
-			}
-	</section>
+  <section class="main_content">
+    @if (Layout.IsMobile)
+    {
+      if (isAssignLocation && rules != null)
+      {
+        <div class="flex_column" style="width:100%">
+          @if (tab == 1)
+          {
+            <TimekeepingList />
+          }
+          else if (tab == 2)
+          {
+            <div style="padding: 0px;" class="has-text-centered mb-5">
+              @if (!isHybrid)
+              {
+                <div class="is-flex is-align-items-center is-justify-content-center pb-2">
+                  <span class="has-text-black" style="line-height: 24px;">Địa điểm:</span>
+                  <span class="icon-text has-text-weight-medium has-text-link">
+                    <span class="icon mr-0">
+                      <i class="material-icons-outlined is-size-6">location_on</i>
+                    </span>
+                    <span>@(inCompany == null ? "Đang yêu cầu vị trí..." : companyAddress)</span>
+                  </span>
+                </div>
+              }
+              else
+              {
+                <div class="is-flex is-align-items-center is-justify-content-center pb-2">
+                  <span class="has-text-black">Địa điểm:</span>
+                  <span class="ml-1 has-text-weight-medium has-text-link">
+                    Chế độ linh động
+                  </span>
+                </div>
+              }
+              @if (currentShift != null)
+              {
+                <div class="pb-2 is-flex is-align-items-center is-justify-content-center" style="gap: 0 5px;">
+                  <span class="has-text-black" style="line-height: 24px;">Ca làm hiện tại:</span>
+                  <div class="dropdown @(toggleShift ? "is-active" : "") is-right">
+                    <div class="dropdown-trigger">
+                      @if (isCheckin)
+                      {
+                        <a class="icon-text" @onclick="ToggleShift">
+                          <span class="has-text-link">@(currentShift.name)</span>
+                          <span class="icon ml-0">
+                            <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                          </span>
+                        </a>
+                      }
+                      else
+                      {
+                        <a class="icon-text" style="margin-left: 0;">
+                          <span class="has-text-link">@(currentShift.name)</span>
+                        </a>
+                      }
+                    </div>
+                    <div class="dropdown-menu">
+                      <div class="dropdown-content">
+                        @if (shifts != null)
+                        {
+                          @foreach (var item in shifts)
+                          {
+                            if (item != null)
+                            {
+                              <a class="dropdown-item" @onclick="() => ChangeShift(item)">
+                                <span class="has-text-weight-semibold">@item.name </span> (@($"{item.checkin} - {item.checkout}"))
+                              </a>
+                            }
+                          }
+                        }
+                        @if (rules.overtime.is_active)
+                        {
+                          <a class="dropdown-item has-text-weight-semibold" @onclick="() => ChangeShift(null)">
+                            Làm ngoài giờ
+                          </a>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
+              else
+              {
+                if (rules.overtime.is_active)
+                {
+                  <div class="pb-2">
+                    <span class="has-text-black">Ca làm hiện tại:</span>
+                    <span>Làm ngoài giờ</span>
+                  </div>
+                }
+              }
+              @if (rules.is_check_device)
+              {
+                <div class="is-flex is-align-items-center is-justify-content-center">
+                  <span class="has-text-black mr-1">Thiết bị hiện tại:</span>
+                  <div class=" @(isValidDevice ? "has-text-success" : "has-text-danger")">
+                    <span>@(isValidDevice ? "Hợp lệ" : "Không hợp lệ")</span>
+                  </div>
+                </div>
+              }
+              <div class="timekeeping p-2" style="background: radial-gradient(closest-side, white 89%, transparent 90% 100%), conic-gradient(@hexColor @(PERCENTAGE)%, @(hexColor)30 0);">
+                <div class="mb-2 has-text-centered">
+                  <p class="is-size-7">
+                    @DateTime.Today.ToString("dddd, dd/MM/yyyy", System.Globalization.CultureInfo.CreateSpecificCulture("vi-VN"))
+                  </p>
+                  <span id="clock" class="is-size-4">
+                    @DateTime.Now.ToString("HH:mm:ss")
+                  </span>
+                </div>
+                <div>
+                  @if (isNoShift)
+                  {
+                    <div style="background-color: @hexColor;" class="btn_timekeeping">
+                      @(isDayOff ? "Ngày nghỉ" : "Không có ca làm")
+                    </div>
+                  }
+                  else
+                  {
+                    if (!isLoading)
+                    {
+                      if (inCompany == null)
+                      {
+                        <div style="background-color: @textColor;" class="btn_timekeeping">
+                          <a class="is_btn has-text-white">Đang lấy vị trí...</a>
+                        </div>
+                      }
+                      else
+                      {
+                        if (isCheckin)
+                        {
+                          <div style="background-color: @textColor;" class="btn_timekeeping" @onclick="Checkin">
+                            <a class="is_btn has-text-white">Check in</a>
+                          </div>
+                        }
+                        else
+                        {
+                          <div style="background-color: @textColor;" class="btn_timekeeping" @onclick="Checkout">
+                            <a class="is_btn has-text-white">Check out</a>
+                          </div>
+                        }
+                      }
+                    }
+                    else
+                    {
+                      <div style="background-color: @textColor;" class="btn_timekeeping">
+                        <a class="is_btn has-text-white">Đang xử lý...</a>
+                      </div>
+                    }
 
-	@if (deviceComfirm == false)
-	{
-		<_WrongDevicePopup deviceCode="@deviceCode" OnConfirm="ConfirmDevice" timeNearest="timeNearest"/>
-	}
+                  }
+                </div>
+              </div>
+              <div class="is-flex is-align-items-center is-justify-content-center">
+                @if (!isHybrid)
+                {
+                  <span class="has-text-black" style="line-height: 24px;">Vị trí hiện tại:</span>
+                  @if (inCompany == null)
+                  {
+                    <span class="icon-text has-text-black">
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-6">location_on</i>
+                      </span>
+                      <span>Đang lấy vị trí...</span>
+                    </span>
+                  }
+                  else if (inCompany.Value)
+                  {
+                    <span class="icon-text has-text-success">
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-6">done</i>
+                      </span>
+                      <span>Hợp lệ</span>
+                    </span>
+                  }
+                  else
+                  {
+                    <span class="icon-text has-text-danger">
+                      <span class="icon mr-0">
+                        <i class="material-icons-outlined is-size-6">error_outline</i>
+                      </span>
+                      <span>Ngoài vị trí</span>
+                    </span>
+                  }
+                }
+              </div>
+              @if (!isHybrid)
+              {
+                <div class="is-family-code @(inCompany == true ? "has-text-success" : "has-text-danger")">
+                  @((MarkupString)logs)
+                </div>
+              }
+            </div>
+            <div class="card">
+              <div class="has-text-weight-medium is-size-6 mb-2 has-text-centered">
+                Lịch sử chấm công trong ngày
+              </div>
+              <div class="inner_section mb-3" style="min-height:100px;">
+                @if (timekeeping != null)
+                {
+                  <ul class="columns is-mobile is-multiline is-variable is-1" style="line-height: 1.5rem;">
+                    @for (int item = 0; item < timekeeping.time_tracking.Count(); item += 1)
+                    {
+                      var log = timekeeping.time_tracking[item]; 
+                      if (log.time_type == "Check-in")
+                      {
+                        var checkout = timekeeping.time_tracking.FirstOrDefault(l => l.time_type == "Check-out" && l.checkin_id == log.checkin_id);
+                        bool isEarly = HrmService.CheckEarly(log.time_shift, checkout.time_shift, checkout.time_active, checkout.is_overday);
+                        <TimekeepingLog checkin="log" checkout="checkout" isEarly="isEarly" />
+                        <li class="column is-full">
+                          <hr class="my-2" />
+                        </li>
+                      }
+                    }
+                  </ul>
+                }
+                else
+                {
+                  <div class="has-text-centered" style="height:100%;line-height:100px">Hôm nay chưa có lịch sử chấm công!</div>
+                }
+              </div>
+            </div>
+            
+            @if (!isDayOff && rules.check_in_out.is_in_early && rules.check_in_out.in_early > 0)
+            {
+              <div class="card mt-0">
+                <p class="has-text-grey is-italic font_12">(*) Bạn chỉ được phép check-in sớm trước ca làm @rules.check_in_out.in_early phút so với giờ bắt đầu ca!</p>
+              </div>
+            }
+          }
+          else
+          {
+            <Form tab="@formTab" isMobile=true />
+          }
 
-	@if (outsideConfirm == false)
-	{
-		<TimekeepingOutside time="earlyTime" checkin="isCheckin" OnConfirm="ConfirmOutside" OffConfirmOutside="OffConfirmOutside" />
-	}
+        </div>
+      }
+      else
+      {
+        <div class="is-flex is-align-items-center is-justify-content-center is-flex-direction-column" style="gap: 10px; min-height: calc(100vh - 200px); padding: 0 50px;">
+          <img class="image" src="/images/no-gps.png" alt="IMG" />
+          <div class="is-flex is-flex-direction-column">
+            <p class="has-text-centered font_14 has-text-weight-medium">Bạn chưa có địa điểm chấm công, vui lòng nhấn nút <span class="has-text-link">"Yêu cầu"</span> bên dưới để gửi yêu cầu phân địa điểm cho quản lý.</p>
+            <a style="border-radius: 9999px" class="button is-link  mt-3" @onclick="RequestLocation">
+              <span>Yêu cầu</span>
+            </a>
+          </div>
+        </div>
+      }
+    }
+    else
+    {
+      <section class="card flex_column is_fullheight">
+        <TimekeepingCalendar />
+      </section>
+    }
+  </section>
 
-	@if (earlyConfirm == false)
-	{
-		<TimekeepingEarly time="earlyTime" OnConfirm="ConfirmEarly" OffConfirmEarly="OffConfirmEarly" />
-	}
+  @if (deviceComfirm == false)
+  {
+    <_WrongDevicePopup deviceCode="@deviceCode" OnConfirm="ConfirmDevice" timeNearest="timeNearest" />
+  }
 
-	@if (isConfirmOT)
-	{
-		<TimekeepingOT time="timeDifference" OnConfirm="ConfirmOT" OffConfirmOT="OffConfirmOT" />
-	}
+  @if (outsideConfirm == false)
+  {
+    <TimekeepingOutside time="earlyTime" checkin="isCheckin" OnConfirm="ConfirmOutside" OffConfirmOutside="OffConfirmOutside" />
+  }
+
+  @if (earlyConfirm == false)
+  {
+    <TimekeepingEarly time="earlyTime" OnConfirm="ConfirmEarly" OffConfirmEarly="OffConfirmEarly" />
+  }
+
+  @if (isConfirmOT)
+  {
+    <TimekeepingOT time="timeDifference" OnConfirm="ConfirmOT" OffConfirmOT="OffConfirmOT" />
+  }
 
 }
 
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-  private string _title = "Chấm công";
-  private string companyName = "Chưa có công ty, phòng ban";
-  private string companyAddress = string.Empty;
-  private string companyId = string.Empty;
-  private string userId = string.Empty;
+
+  [Parameter]
+  [SupplyParameterFromQuery(Name = "tab")]
+  public int tab { get; set; } = 2;
+
+  [Parameter]
+  [SupplyParameterFromQuery(Name = "form_tab")]
+  public string formTab { get; set; } = "2";
+
   private HrmTimekeepingModel timekeeping = null;
   private HrmTimekeepingModel timekeepingPrev = null;
   private List<HrmLocationModel> locationsUser = new();
-		private List<HrmLocationModel> locations = new();
+  private List<HrmLocationModel> locations = new();
   private List<HrmWorkShiftModel> shiftList = new();
   private HrmTimeListModel.Shift userShift = null;
+  private HrmTimekeepingModel.TimeData outsideReason = null;
+  private HrmRulesModel rules = null;
+  private List<HrmWorkShiftModel> shifts = null;
+  private HrmWorkShiftModel currentShift = null;
+  private HrmTimekeepingModel.TimeData shiftData = null;
+  private List<HrmWorkShiftModel> shiftsOriginal = null;
+  private HrmLocationModel currentLocation = null;
+  private DotNetObjectReference<Timekeeping> obj;
+  private System.Threading.Timer timer;
+  private string _title = "Chấm công";
+  private string companyAddress = string.Empty;
+  private string companyId = string.Empty;
+  private string userId = string.Empty;
   private bool? inCompany = null;
   private bool isCheckin = true;
   private string hexColor = "";
@@ -325,52 +370,45 @@ else
   private bool isNoShift = false;
   private bool isLoading = false;
   private bool? outsideConfirm = null;
-  private HrmTimekeepingModel.TimeData outsideReason = null;
   private bool? earlyConfirm = null;
   private long earlyTime = 0;
   private string logs = string.Empty;
-  private int tab = 2;
   private string msgAccess = string.Empty;
-  private System.Threading.Timer timer;
-  private HrmWorkShiftModel currentShift = null;
-  private HrmTimekeepingModel.TimeData shiftData = null;
   private bool toggleShift = false;
   private bool isChangedShift = false;
   private long timeDifference = 0;
   private bool isOT = false;
   private bool isOverDay = false;
   private bool isConfirmOT = false;
-  private HrmRulesModel rules = null;
-  private List<HrmWorkShiftModel> shifts = null;
   public bool isHybrid = false;
-  private List<HrmWorkShiftModel> shiftsOriginal = null;
   private double CURRENT_TICK = (DateTime.Now - DateTime.Today).TotalSeconds;
   private double MAX_TICK = 24 * 60 * 60;
   private double PERCENTAGE = 0;
   private bool isDayOff = false;
-		private string deviceCode = string.Empty;
-		private bool? deviceComfirm = null;
-		private bool isValidDevice = false;
-		private long timeNearest = 0;
-		private HrmLocationModel currentLocation = null;
-
+  private string deviceCode = string.Empty;
+  private string deviceName = string.Empty;
+  private bool? deviceComfirm = null;
+  private bool isValidDevice = false;
+  private long timeNearest = 0;
+  private double[] coordinates = null;
+  private bool isAssignLocation = true;
 
   private bool CheckAccess()
   {
     return ProductService.CheckAccess(Layout.Company, Layout.User, "timekeeping", out msgAccess);
-  }
+  } 
 
   protected override async Task OnInitializedAsync()
   {
     userId = Layout.User.id;
     companyId = Layout.Company.id;
-    companyName = Layout.Company.name;
 
+    tab = (tab == 0 ? tab = 2 : tab);
 
-    PERCENTAGE = CURRENT_TICK / MAX_TICK * 100;
+    PERCENTAGE = Math.Round(CURRENT_TICK / MAX_TICK * 100,0);
     rules = await DbHrmRules.Get(Layout.Company.id, Layout.Company.id);
 
-				locations = await DbHrmLocation.GetList(companyId, true);
+    locations = await DbHrmLocation.GetList(companyId, true);
     locationsUser = locations.FindAll(x => x.members_id.Contains(userId)).ToList();
 
     // Lấy thông tin chấm công	của user
@@ -381,57 +419,63 @@ else
 
     // Lấy danh sách ca làm của công ty
     shiftList = await DbHrmWorkShift.GetList(companyId);
-    shiftsOriginal = new List<HrmWorkShiftModel>(shiftList);
+    shiftsOriginal = shiftList.ToList();
 
-				if (Layout.IsMobile)
-					await CheckAvailableDevice();
-
-	 		await RenderButtonStatus();
-
-    if (userShift != null && Layout.IsMobile)
-     StartTimer();
+    if (Layout.IsMobile)
+    {
+      await RenderButtonStatus();
+      if (userShift != null)
+        StartTimer();
+      obj = DotNetObjectReference.Create(this);
+    }
   }
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
     if (firstRender && Layout.IsMobile)
     {
-      if (!isHybrid)
-       inCompany = await CheckLocation();
       await JSRuntime.InvokeVoidAsync("showClock");
+      await CheckAvailableDevice();
+      await CheckLocation();
       StateHasChanged();
     }
   }
 
+  // Kiểm tra ngày nghỉ
   private async Task CheckDayOff()
   {
-    isDayOff = DbHrmDayOff.CheckOff(companyId, DateTime.Today, userId);
-	   isHybrid = Layout.User.is_hybrid;
-				if (!isHybrid && Layout.IsMobile)
-     inCompany = await CheckLocation();
-    if (isDayOff)
-      CheckOT();
-    else
+    try
     {
-      if (userShift == null)
-        CheckOT();
-      else
+      isDayOff = await DbHrmDayOff.CheckOff(companyId, DateTime.Today, userId);
+      isHybrid = Layout.User.is_hybrid;
+      // Nếu là ngày nghỉ hoặc không có ca làm check OT
+      if (isDayOff || userShift == null)
       {
-        shifts = SuggestShift(userShift, shiftList);
-        currentShift = shifts.FirstOrDefault();
-
-        if (currentShift != null)
-        {
-          isCheckin = true;
-          isOverDay = currentShift.is_overday;
-          GetStateColor(isCheckin);
-        }
-        else
-          CheckOT();
+        CheckOT();
+        return;
       }
+      // Nếu có ca làm và không là ngày nghỉ
+      shifts = SuggestShift(userShift, shiftList);
+      currentShift = shifts.FirstOrDefault();
+
+      if (currentShift != null)
+      {
+        isCheckin = true;
+        isOverDay = currentShift.is_overday;
+        GetStateColor(isCheckin);
+      }
+      else
+        CheckOT();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "CheckDayOff()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
     }
   }
 
+  // Kiểm tra có chi phép làm OT không?
   private void CheckOT()
   {
     if (rules.overtime.is_active)
@@ -448,75 +492,83 @@ else
     }
   }
 
-  public void StartTimer()
+  private void StartTimer()
   {
     timer = new System.Threading.Timer(async (object stateInfo) =>
     {
       await RenderButtonStatus();
-      PERCENTAGE = CURRENT_TICK / MAX_TICK * 100;
+      PERCENTAGE = Math.Round(CURRENT_TICK / MAX_TICK * 100, 0);
       await InvokeAsync(StateHasChanged);
       if (isNoShift)
-      {
         timer.Dispose();
-      }
     }, new System.Threading.AutoResetEvent(false), 10000, 10000);
   }
 
   private async Task RenderButtonStatus()
   {
-    var timeNow = DateTime.Now.ToString("HH:mm");
-
-    // Nếu đã có data chấm công ở ngày hiện tại
-    if (timekeeping != null)
+    try
     {
-      var data = timekeeping.time_tracking.LastOrDefault();
-      // Có ca làm chưa checkout
-      if (Shared.IsEmpty(data.time_active))
+      var timeNow = DateTime.Now.ToString("HH:mm");
+
+      // Nếu đã có data chấm công ở ngày hiện tại
+      if (timekeeping != null)
       {
-        isCheckin = false;
-        currentShift = shiftList.FirstOrDefault(x => x.id == data.time_id);
-        isOT = data.is_ot;
-        shiftData = data;
-								currentLocation = data.location != null ? locations.FirstOrDefault(x => x.id == data.location.id) : null;
-								isHybrid = data.is_hybrid;
-        GetStateColor(isCheckin);
+        var data = timekeeping.time_tracking.LastOrDefault();
+        // Có ca làm chưa checkout
+        if (Shared.IsEmpty(data.time_active))
+        {
+          isCheckin = false;
+          currentShift = shiftList.FirstOrDefault(x => x.id == data.time_id);
+          isOT = data.is_ot;
+          shiftData = data;
+          currentLocation = data.location != null ? locations.FirstOrDefault(x => x.id == data.location.id) : null;
+          isHybrid = data.is_hybrid;
+          GetStateColor(isCheckin);
+        }
+        else
+        {
+          RemoveShift(timekeeping);
+          if (!isChangedShift)
+            await CheckDayOff();
+        }
       }
+
+      // Ngày hiện tại không có data
       else
       {
-        RemoveShift(timekeeping);
-        if (!isChangedShift)
-         await CheckDayOff();
+        // Lấy ngày chưa checkout trong lịch sử
+        timekeepingPrev = await DbHrmTimekeeping.GetUnCheckout(companyId, userId);
+        // Có ca làm chưa checkout
+        if (timekeepingPrev != null)
+        {
+          // Lấy record cuối cùng
+          var data = timekeepingPrev.time_tracking.Last();
+          isCheckin = false;
+          currentShift = shiftList.FirstOrDefault(x => x.id == data.time_id);
+          shiftData = data;
+          isOT = data.is_ot;
+          isOverDay = data.is_overday || data.is_ot;
+          currentLocation = data.location != null ? locations.FirstOrDefault(x => x.id == data.location.id) : null;
+          isHybrid = data.is_hybrid;
+          GetStateColor(isCheckin);
+        }
+        else
+        {
+          if (!isChangedShift)
+            await CheckDayOff();
+        }
       }
     }
-
-    // Ngày hiện tại không có data
-    else
+    catch (Exception ex)
     {
-      // Lấy ngày chưa checkout trong lịch sử
-      timekeepingPrev = await DbHrmTimekeeping.GetUnCheckout(companyId, userId);
-      // Có ca làm chưa checkout
-      if (timekeepingPrev != null)
-      {
-        // Lấy record cuối cùng
-        var data = timekeepingPrev.time_tracking.Last();
-        isCheckin = false;
-        currentShift = shiftList.FirstOrDefault(x => x.id == data.time_id);
-        shiftData = data;
-        isOT = data.is_ot;
-        isOverDay = data.is_overday || data.is_ot;
-								currentLocation = data.location != null ? locations.FirstOrDefault(x => x.id == data.location.id) : null;
-        GetStateColor(isCheckin);
-      }
-      else
-      {
-        if (!isChangedShift)
-         await CheckDayOff();
-      }
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "RenderButtonStatus()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
     }
   }
 
   // Xóa những ca làm đã checkout để không đề xuất lại nữa
-  public void RemoveShift(HrmTimekeepingModel timekeeping)
+  private void RemoveShift(HrmTimekeepingModel timekeeping)
   {
     shiftList.RemoveAll(s => timekeeping.time_tracking.Any(t => t.time_id == s.id && t.time_type == "Check-out" && !Shared.IsEmpty(t.time_active)));
   }
@@ -529,252 +581,381 @@ else
 
   private async Task Checkin()
   {
-    isLoading = true;
-    inCompany = null;
-
-    var now = DateTime.Now;
-
-    if (!isHybrid)
-      inCompany = await CheckLocation();
-    else
-      inCompany = true;
-
-    if (inCompany != true && outsideConfirm != true)
-      outsideConfirm = false;
-    else
+    try
     {
-      var checkinId = Mongo.RandomId();
+      isLoading = true;
+      inCompany = null;
 
-      var checkin = new HrmTimekeepingModel.TimeData()
-      {
-       time_name = "Làm ngoài giờ",
-       time_type = "Check-in",
-       checkin_id = checkinId,
-       time_active = now.ToString("HH:mm"),
-       time_active_tick = now.Ticks,
-       in_company = inCompany.Value,
-       is_ot = isOT,
-       is_valid = true,
-							is_valid_device = isValidDevice,
-							is_hybrid = isHybrid,
-							location = isHybrid ? null : new HrmTimekeepingModel.Location()
-							{
-								id = currentLocation.id,
-								name = currentLocation.name,
-							}
-      };
+      var now = DateTime.Now;
 
-      var checkout = new HrmTimekeepingModel.TimeData()
-      {
-       time_name = "Làm ngoài giờ",
-       checkin_id = checkinId,
-       time_type = "Check-out",
-       is_ot = isOT,
-							is_hybrid = isHybrid,
-							location = isHybrid ? null : new HrmTimekeepingModel.Location()
-							{
-								id = currentLocation.id,
-								name = currentLocation.name,
-							}
-      };
+      await CheckLocation();
 
-      if (!isOT)
-      {
-        var timeDifference = CompareTime(currentShift.checkin, now.ToString("HH:mm"));
-        // Nếu có quy định checkin trễ
-        checkin.is_valid = rules.check_in_out.is_in_late ? timeDifference <= rules.check_in_out.in_late : true;
-        checkin.time_name = currentShift.name;
-        checkin.time_id = currentShift.id;
-        checkin.time_shift = currentShift.checkin;
-        checkin.time_work = currentShift.value;
-        checkin.time_difference = timeDifference;
-        checkin.is_overday = currentShift.is_overday;
-								
+      if (inCompany == null) return;
 
-        checkout.time_name = currentShift.name;
-        checkout.time_id = currentShift.id;
-        checkout.time_shift = currentShift.checkout;
-        checkout.time_work = currentShift.value;
-        checkout.is_overday = currentShift.is_overday;
-      }
-      if (inCompany == false && outsideReason != null)
-      {
-        checkin.reason = outsideReason.reason;
-        checkin.note = outsideReason.note;
-        checkin.images = outsideReason.images;
-      }
-      if (timekeeping == null)
-        timekeeping = new() { user = userId };
-
-      timekeeping.time_tracking.AddRange(new[] { checkin, checkout });
-      if (Shared.IsEmpty(timekeeping.id))
-      {
-        timekeeping.date = DateTime.Today.Ticks;
-        timekeeping.id = DateTime.Today.ToString("yyMMdd") + userId;
-        await DbHrmTimekeeping.Create(companyId, timekeeping);
-      }
+      if (inCompany != true && outsideConfirm != true)
+        outsideConfirm = false;
       else
-        await DbHrmTimekeeping.Update(companyId, timekeeping);
+      {
+        var checkinId = Mongo.RandomId();
 
-      isChangedShift = false;
-      isOverDay = false;
-						currentLocation = null;
+        var checkin = new HrmTimekeepingModel.TimeData()
+          {
+            time_name = "Làm ngoài giờ",
+            time_type = "Check-in",
+            checkin_id = checkinId,
+            time_active = now.ToString("HH:mm"),
+            time_active_tick = now.Ticks,
+            in_company = inCompany.Value,
+            is_ot = isOT,
+            is_valid = true,
+            is_valid_device = isValidDevice,
+            is_hybrid = isHybrid,
+            location = isHybrid ? null : new HrmTimekeepingModel.Location()
+            {
+              id = currentLocation.id,
+              name = currentLocation.name,
+            },
+            coordinates = coordinates != null ? new HrmTimekeepingModel.Coordinates()
+            {
+              latitude = coordinates[0],
+              longitude = coordinates[1],
+            } : null,
+          };
+
+        var checkout = new HrmTimekeepingModel.TimeData()
+          {
+            time_name = "Làm ngoài giờ",
+            checkin_id = checkinId,
+            time_type = "Check-out",
+            is_ot = isOT,
+            is_hybrid = isHybrid,
+            location = isHybrid ? null : new HrmTimekeepingModel.Location()
+            {
+              id = currentLocation.id,
+              name = currentLocation.name,
+            }
+          };
+
+        if (!isOT)
+        {
+          var timeDifference = CompareTime(currentShift.checkin, now.ToString("HH:mm"));
+          checkin.is_valid = !rules.check_in_out.is_in_late || currentShift.is_byhour ? true : timeDifference <= rules.check_in_out.in_late;
+          checkin.time_name = currentShift.name;
+          checkin.time_id = currentShift.id;
+          checkin.time_shift = currentShift.checkin;
+          checkin.time_work = currentShift.is_byhour ? 0 : currentShift.value;
+          checkin.time_difference = timeDifference;
+          checkin.is_overday = currentShift.is_overday;
+
+          checkout.time_name = currentShift.name;
+          checkout.time_id = currentShift.id;
+          checkout.time_shift = currentShift.checkout;
+          checkout.time_work = currentShift.is_byhour ? 0 : currentShift.value;
+          checkout.is_overday = currentShift.is_overday;
+        }
+        if (inCompany == false && outsideReason != null)
+        {
+          checkin.reason = outsideReason.reason;
+          checkin.note = outsideReason.note;
+          checkin.images = outsideReason.images;
+        }
+        if (timekeeping == null)
+          timekeeping = new() { user = userId };
+
+        timekeeping.time_tracking.AddRange(new[] { checkin, checkout });
+        if (Shared.IsEmpty(timekeeping.id))
+        {
+          timekeeping.date = DateTime.Today.Ticks;
+          timekeeping.id = DateTime.Today.ToString("yyMMdd") + userId;
+          await DbHrmTimekeeping.Create(companyId, timekeeping);
+        }
+        else
+          await DbHrmTimekeeping.Update(companyId, timekeeping);
+
+        isChangedShift = false;
+        isOverDay = false;
+        currentLocation = null;
+      }
+      await RenderButtonStatus();
+      isLoading = false;
     }
-    await RenderButtonStatus();
-    isLoading = false;
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Checkin()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 
   private async Task Checkout()
   {
-    isLoading = true;
-    inCompany = null;
-    timeDifference = 0;
-    var now = DateTime.Now;
-    var timeNow = now.ToString("HH:mm");
-    var timeNowTick = now.Ticks;
-
-    if (!isOT)
+    try
     {
-      if (currentShift.is_overday)
+      isLoading = true;
+      inCompany = null;
+      timeDifference = 0;
+
+      var now = DateTime.Now;
+      var timeNow = now.ToString("HH:mm");
+      var timeNowTick = now.Ticks;
+      var shift = timekeepingPrev != null ? timekeepingPrev.time_tracking.FirstOrDefault(x => x.checkin_id == shiftData.checkin_id) : timekeeping.time_tracking.FirstOrDefault(x => x.checkin_id == shiftData.checkin_id);
+
+      if (!isOT)
       {
-        var data = timekeeping != null ?
+        if (currentShift.is_overday)
+        {
+          var data = timekeeping != null ?
           timekeeping.time_tracking.FirstOrDefault(x => x.checkin_id == shiftData.checkin_id && x.time_type == "Check-in") :
           timekeepingPrev.time_tracking.FirstOrDefault(x => x.checkin_id == shiftData.checkin_id && x.time_type == "Check-in");
 
-        timeDifference = HrmService.CheckTimeDifference(timeNowTick, data.time_active_tick, currentShift.checkout);
-      }
-      else
-        timeDifference = CompareTime(timeNow, currentShift.checkout);
-    }
-
-    if (!isHybrid && !shiftData.is_hybrid)
-      inCompany = await CheckLocation();
-    else
-      inCompany = true;
-
-    if (inCompany != true && outsideConfirm != true)
-    {
-      outsideConfirm = false;
-      earlyTime = timeDifference > 0 ? timeDifference : 0;
-      earlyTime = isOT ? 0 : timeDifference;
-    }
-    else
-    {
-      if (timeDifference > 0 && earlyConfirm != true)
-      {
-        earlyTime = timeDifference;
-        earlyConfirm = false;
-      }
-      else
-      {
-        // Chấm công ngoài công ty
-        if (inCompany == false && outsideReason != null)
-        {
-          shiftData.reason = outsideReason.reason;
-          shiftData.note = outsideReason.note;
-          shiftData.images = outsideReason.images;
+          timeDifference = HrmService.CheckTimeDifference(timeNowTick, data.time_active_tick, currentShift.checkout);
         }
-        // Nếu checkout ca OT
-        if (isOT)
+        else
+          timeDifference = CompareTime(timeNow, currentShift.checkout);
+      }
+
+      await CheckLocation();
+
+      if (inCompany == null)
+      {
+        isLoading = false;
+        return;
+      };
+
+      inCompany = shiftData.is_hybrid && isHybrid ? true : inCompany;
+
+      if (inCompany != true && outsideConfirm != true)
+      {
+        outsideConfirm = false;
+        earlyTime = timeDifference > 0 ? timeDifference : 0;
+        earlyTime = isOT ? 0 : timeDifference;
+      }
+      else
+      {
+        if (timeDifference > 0 && earlyConfirm != true)
         {
-          // Kiểm tra thời gian tối thiểu OT
-          long timeOT = 0;
-          if (rules.overtime.is_active && rules.overtime.min_minutes > 0)
-          {
-            var shift = new HrmTimekeepingModel.TimeData();
-            // Kiểm tra thời gian checkin là ngày trước hay hôm nay
-            if (timekeepingPrev != null)
-            {
-              shift = timekeepingPrev.time_tracking.FirstOrDefault(x => x.checkin_id == shiftData.checkin_id);
-              timeOT = timeNowTick - shift.time_active_tick;
-            }
-            else
-            {
-              shift = timekeeping.time_tracking.FirstOrDefault(x => x.checkin_id == shiftData.checkin_id);
-              timeOT = CompareTime(shift.time_active, timeNow);
-            }
-            if (timeOT < rules.overtime.min_minutes)
-            {
-              await JSRuntime.InvokeVoidAsync("tagline", false, "Thời gian tối thiểu của 1 ca làm ngoài giờ là " + rules.overtime.min_minutes + " phút!");
-              isLoading = false;
-              return;
-            }
-          }
-          shiftData.time_active = timeNow;
-          shiftData.time_active_tick = now.Ticks;
-          shiftData.in_company = inCompany.Value;
-          shiftData.is_valid = true;
-          shiftData.time_difference = timeOT;
-										shiftData.is_valid_device = isValidDevice;
+          earlyTime = timeDifference;
+          earlyConfirm = false;
         }
         else
         {
-          // Checkout trễ
-          if (timeDifference <= 0)
+          // Chấm công ngoài công ty
+          if (inCompany == false && outsideReason != null)
           {
-            var caculate = CompareTime(currentShift.checkout, timeNow);
-            if (rules.overtime.is_active && caculate > rules.overtime.min_minutes)
-              isConfirmOT = true;
+            shiftData.reason = outsideReason.reason;
+            shiftData.note = outsideReason.note;
+            shiftData.images = outsideReason.images;
+          }
+          // Nếu checkout ca OT
+          if (isOT)
+          {
+            // Kiểm tra thời gian tối thiểu OT
+            long timeOT = 0;
+            if (rules.overtime.is_active && rules.overtime.min_minutes > 0)
+            {
+              timeOT = (long)Math.Round(TimeSpan.FromTicks(timeNowTick - shift.time_active_tick).TotalMinutes);
+              if (timeOT < rules.overtime.min_minutes)
+              {
+                await JSRuntime.InvokeVoidAsync("tagline", false, "Thời gian tối thiểu của 1 ca làm ngoài giờ là " + rules.overtime.min_minutes + " phút!");
+                isLoading = false;
+                return;
+              }
+            }
+            shiftData.time_active = timeNow;
+            shiftData.time_active_tick = timeNowTick;
+            shiftData.in_company = inCompany.Value;
+            shiftData.is_valid = true;
+            shiftData.time_difference = timeOT;
+            shiftData.is_valid_device = isValidDevice;
+            shiftData.coordinates = coordinates != null ? new HrmTimekeepingModel.Coordinates()
+              {
+                latitude = coordinates[0],
+                longitude = coordinates[1],
+              } : null;
+          }
+          else
+          {
+            // Checkout trễ
+            if (timeDifference <= 0)
+            {
+              var caculate = CompareTime(currentShift.checkout, timeNow);
+              if (rules.overtime.is_active && caculate > rules.overtime.min_minutes)
+                isConfirmOT = true;
+              else
+              {
+                shiftData.time_active = timeNow;
+                shiftData.time_active_tick = timeNowTick;
+                shiftData.in_company = inCompany.Value;
+                shiftData.is_valid = true;
+                shiftData.time_difference = timeDifference;
+                shiftData.is_valid_device = isValidDevice;
+                if (currentShift.is_byhour)
+                {
+                  shiftData.time_work = currentShift.value;
+                  double timeWorkReal = 0;
+                  double sumBreakTime = 0;
+                  // Ca bình thường
+                  if (!currentShift.is_overday)
+                  {
+                    timeWorkReal = (TimeSpan.Parse(currentShift.checkout) - TimeSpan.Parse(currentShift.checkin)).TotalMinutes;
+                    sumBreakTime = currentShift.break_times.Sum(x => CompareTime(x.start, x.end));
+                  }
+                  // Ca qua ngày
+                  else
+                  {
+                    timeWorkReal = (DateTime.Parse(currentShift.checkout).AddDays(1) - DateTime.Parse(currentShift.checkin)).TotalMinutes;
+                    sumBreakTime = currentShift.break_times.Sum(x => Math.Abs(CompareTime(x.start, x.end)));
+                  }
+                  timeWorkReal -= sumBreakTime;
+                  shiftData.time_work_real = timeWorkReal;
+                }
+              }
+            }
+            // Checkout sóm || đúng giờ
             else
             {
               shiftData.time_active = timeNow;
-              shiftData.time_active_tick = now.Ticks;
+              shiftData.time_active_tick = timeNowTick;
               shiftData.in_company = inCompany.Value;
-              shiftData.is_valid = true;
               shiftData.time_difference = timeDifference;
-														shiftData.is_valid_device = isValidDevice;
+              shiftData.is_valid_device = isValidDevice;
+              shiftData.is_valid = !rules.check_in_out.is_out_early || currentShift.is_byhour ? true : timeDifference <= rules.check_in_out.out_early;
+            }
+            shiftData.coordinates = coordinates != null ? new HrmTimekeepingModel.Coordinates()
+              {
+                latitude = coordinates[0],
+                longitude = coordinates[1],
+              } : null;
+            // Xử lý ca làm theo giờ
+            if (currentShift.is_byhour)
+            {
+              // Thời gian làm thực tế
+              double timeWorkReal = Math.Round(TimeSpan.FromTicks(timeNowTick - shift.time_active_tick).TotalMinutes);
+              long sumBreakTime = 0;
+              // Ca làm qua ngày
+              if (currentShift.is_overday)
+              {
+                for (int i = 0; i < currentShift.break_times.Count; i++)
+                {
+                  var caculator = CompareTime(currentShift.break_times[i].end, currentShift.break_times[i].start);
+                  var checkinConverted = new DateTime(shift.time_active_tick);
+                  var checkoutConverted = new DateTime(timeNowTick);
+                  // Thời gian nghỉ => kéo dài qua ngày
+                  if (caculator > 0)
+                  {
+                    long timeCompare = 0;
+                    // Nếu in và out cùng ngày
+                    if (checkinConverted.Date == checkoutConverted.Date)
+                    {
+                      timeCompare = CompareTime(currentShift.break_times[i].start, checkoutConverted.ToString("HH:mm"));
+                      if (timeCompare > 0)
+                        sumBreakTime += timeCompare;
+                    }
+                    // Nếu in và out khác ngày
+                    else
+                    {
+                      timeCompare = CompareTime(currentShift.break_times[i].end, checkoutConverted.ToString("HH:mm"));
+                      // Đã qua thời gian nghỉ
+                      if (timeCompare > 0)
+                        sumBreakTime += (long)(DateTime.Parse(currentShift.break_times[i].end).AddDays(1) - DateTime.Parse(currentShift.break_times[i].start)).TotalMinutes;
+                      // Chưa qua thời gian nghỉ hoặc out lúc nghỉ
+                      else
+                        sumBreakTime += Math.Abs(timeCompare);
+                    }
+                  }
+                  // Thời gian nghỉ => ở ngày hiện tại
+                  else
+                  {
+                    var timeInBreak = checkinConverted.Date == checkoutConverted.Date ?
+                      CheckInDuringBreak(currentShift.break_times[i].start, currentShift.break_times[i].end, checkoutConverted.TimeOfDay) :
+                      CheckInDuringBreak(currentShift.break_times[i].start, currentShift.break_times[i].end, TimeSpan.FromHours(24) + checkoutConverted.TimeOfDay);
+                    if (timeInBreak.HasValue)
+                      sumBreakTime += (long)timeInBreak.Value.TotalMinutes;
+                    else
+                      sumBreakTime += Math.Abs(caculator);
+                  }
+                }
+              }
+              else
+              {
+                for (int i = 0; i < currentShift.break_times.Count; i++)
+                {
+                  // Kiểm tra thời gian checkout có trong thời gian nghỉ không?
+                  if (TimeSpan.Parse(timeNow).Ticks > TimeSpan.Parse(currentShift.break_times[i].end).Ticks)
+                    sumBreakTime += CompareTime(currentShift.break_times[i].start, currentShift.break_times[i].end);
+                  else
+                  {
+                    var time = CompareTime(currentShift.break_times[i].start, timeNow);
+                    if (time > 0)
+                      sumBreakTime += time;
+                  }
+                }
+              }
+              timeWorkReal -= (double)sumBreakTime;
+
+              // Trừ thời gian in sớm
+              if (shift.time_difference < 0)
+                timeWorkReal -= Math.Abs(shift.time_difference);
+
+              shiftData.time_work = HrmService.CaculatorTimeWork(currentShift, timeWorkReal);
+              shiftData.time_work_real = timeWorkReal > 0 ? timeWorkReal : 0;
             }
           }
-          // Checkout sóm || đúng giờ
-          else
-          {
-            shiftData.time_active = timeNow;
-            shiftData.time_active_tick = now.Ticks;
-            shiftData.in_company = inCompany.Value;
-            shiftData.time_difference = timeDifference;
-												shiftData.is_valid_device = isValidDevice;
-            shiftData.is_valid = rules.check_in_out.is_out_early ? timeDifference <= rules.check_in_out.out_early : true;
-          }
+          await UpdateCheckout();
+          isOT = false;
+          isChangedShift = false;
+          isOverDay = false;
+          shift = null;
         }
-        await UpdateCheckout();
-        isOT = false;
-        isChangedShift = false;
-        isOverDay = false;
       }
+      await RenderButtonStatus();
+      isLoading = false;
     }
-    await RenderButtonStatus();;
-    isLoading = false;
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Checkout()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 
   private async Task UpdateCheckout()
   {
-    // Nếu là ca qua ngày thì update ca ngày trước đó
-    if (isOverDay)
+    try
     {
-      shiftData = timekeepingPrev.time_tracking.Last();
-      await DbHrmTimekeeping.Update(companyId, timekeepingPrev);
+      shiftData = isOverDay ? timekeepingPrev.time_tracking.Last() : timekeeping.time_tracking.Last();
+      await DbHrmTimekeeping.Update(companyId, isOverDay ? timekeepingPrev : timekeeping);
     }
-    // Nếu không phải ca qua ngày thì update ngày hiện tại
-    else
+    catch (Exception ex)
     {
-      shiftData = timekeeping.time_tracking.Last();
-      await DbHrmTimekeeping.Update(companyId, timekeeping);
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateCheckout()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
     }
   }
 
   private async Task ConfirmOutside(HrmTimekeepingModel.TimeData data)
   {
-    if (data != null)
+    try
     {
-      outsideConfirm = true;
-      outsideReason = data;
-      earlyConfirm = true;
-      if (isCheckin)
-        await Checkin();
-      else
-        await Checkout();
+      if (data != null)
+      {
+        outsideConfirm = true;
+        outsideReason = data;
+        earlyConfirm = true;
+        if (isCheckin)
+          await Checkin();
+        else
+          await Checkout();
+      }
+      OffConfirmOutside();
     }
-    OffConfirmOutside();
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "CheckAvailableDevice()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 
   private void OffConfirmOutside()
@@ -787,88 +968,130 @@ else
 
   private async Task ConfirmOT(bool isConfirm)
   {
-    var now = DateTime.Now;
-    var timeNow = now.ToString("HH:mm");
-    var timeNowTick = now.Ticks;
-
-    // Xác nhận OT và checkout
-    if (isConfirm)
+    try
     {
-      TimeSpan time = TimeSpan.Parse(currentShift.checkout);
-      DateTime combinedDateTime = now.Date + time;
-
-      shiftData.time_active = currentShift.checkout;
-      shiftData.time_difference = 0;
-      shiftData.is_valid = true;
-      shiftData.time_active_tick = combinedDateTime.Ticks;
-      shiftData.in_company = inCompany.Value;
-      await UpdateCheckout();
-
-      var checkinid = Mongo.RandomId();
-
-      var checkin = new HrmTimekeepingModel.TimeData()
+      var now = DateTime.Now;
+      var timeNow = now.ToString("HH:mm");
+      var timeNowTick = now.Ticks;
+      var getCoordinates = coordinates != null ? new HrmTimekeepingModel.Coordinates()
         {
-          time_name = "Làm ngoài giờ",
-          checkin_id = checkinid,
-          time_type = "Check-in",
-          time_active = currentShift.checkout,
-          time_active_tick = combinedDateTime.Ticks,
-          time_difference = 0,
-          in_company = inCompany.Value,
-          is_valid = true,
-          is_ot = true,
-          note = shiftData.note,
-          reason = shiftData.reason,
-          images = shiftData.images,
-										is_valid_device = isValidDevice,
-        };
+          latitude = coordinates[0],
+          longitude = coordinates[1],
+        } : null;
 
-      var checkout = new HrmTimekeepingModel.TimeData()
-        {
-          time_name = "Làm ngoài giờ",
-          checkin_id = checkinid,
-          time_type = "Check-out",
-          is_ot = true,
-          time_active = timeNow,
-          time_active_tick = timeNowTick,
-          in_company = inCompany.Value,
-          is_valid = true,
-          note = shiftData.note,
-          reason = shiftData.reason,
-          images = shiftData.images,
-										is_valid_device = isValidDevice,
-        };
-
-      if (timekeeping == null)
-        timekeeping = new() { user = userId };
-
-      timekeeping.time_tracking.AddRange(new[] { checkin, checkout });
-
-      if (Shared.IsEmpty(timekeeping.id))
+      if (currentShift.is_byhour)
       {
-        timekeeping.date = DateTime.Today.Ticks;
-        timekeeping.id = DateTime.Today.ToString("yyMMdd") + Layout.User.id;
-        await DbHrmTimekeeping.Create(companyId, timekeeping);
+        shiftData.time_work = currentShift.value;
+        double timeWorkReal = 0;
+        double sumBreakTime = 0;
+        // Ca bình thường
+        if (!currentShift.is_overday)
+        {
+          timeWorkReal = (TimeSpan.Parse(currentShift.checkout) - TimeSpan.Parse(currentShift.checkin)).TotalMinutes;
+          sumBreakTime = currentShift.break_times.Sum(x => CompareTime(x.start, x.end));
+        }
+        // Ca qua ngày
+        else
+        {
+          timeWorkReal = (DateTime.Parse(currentShift.checkout).AddDays(1) - DateTime.Parse(currentShift.checkin)).TotalMinutes;
+          sumBreakTime = currentShift.break_times.Sum(x => Math.Abs(CompareTime(x.start, x.end)));
+        }
+        timeWorkReal -= sumBreakTime;
+        shiftData.time_work_real = timeWorkReal;
       }
+
+      // Xác nhận OT và checkout
+      if (isConfirm)
+      {
+        TimeSpan time = TimeSpan.Parse(currentShift.checkout);
+        DateTime combinedDateTime = now.Date + time;
+        shiftData.time_active = currentShift.checkout;
+        shiftData.time_difference = 0;
+        shiftData.is_valid = true;
+        shiftData.time_active_tick = combinedDateTime.Ticks;
+        shiftData.in_company = inCompany.Value;
+        shiftData.is_valid_device = isValidDevice;
+        shiftData.coordinates = getCoordinates;
+        await UpdateCheckout();
+
+        var checkinid = Mongo.RandomId();
+
+        var checkin = new HrmTimekeepingModel.TimeData()
+          {
+            time_name = "Làm ngoài giờ",
+            checkin_id = checkinid,
+            time_type = "Check-in",
+            time_active = currentShift.checkout,
+            time_active_tick = combinedDateTime.Ticks,
+            time_difference = 0,
+            in_company = shiftData.in_company,
+            is_valid = true,
+            is_ot = true,
+            note = shiftData.note,
+            reason = shiftData.reason,
+            images = shiftData.images,
+            is_valid_device = isValidDevice,
+            coordinates = getCoordinates,
+            is_hybrid = shiftData.is_hybrid,
+          };
+
+        var checkout = new HrmTimekeepingModel.TimeData()
+          {
+            time_name = "Làm ngoài giờ",
+            checkin_id = checkinid,
+            time_type = "Check-out",
+            is_ot = true,
+            time_active = timeNow,
+            time_active_tick = timeNowTick,
+            in_company = shiftData.in_company,
+            is_valid = true,
+            note = shiftData.note,
+            reason = shiftData.reason,
+            images = shiftData.images,
+            is_valid_device = isValidDevice,
+            coordinates = getCoordinates,
+            is_hybrid = shiftData.is_hybrid,
+          };
+
+        if (timekeeping == null)
+          timekeeping = new() { user = userId };
+
+        timekeeping.time_tracking.AddRange(new[] { checkin, checkout });
+
+        if (Shared.IsEmpty(timekeeping.id))
+        {
+          timekeeping.date = DateTime.Today.Ticks;
+          timekeeping.id = DateTime.Today.ToString("yyMMdd") + Layout.User.id;
+          await DbHrmTimekeeping.Create(companyId, timekeeping);
+        }
+        else
+          await DbHrmTimekeeping.Update(companyId, timekeeping);
+      }
+      // Chỉ checkout
       else
-        await DbHrmTimekeeping.Update(companyId, timekeeping);
+      {
+        shiftData.time_active = timeNow;
+        shiftData.time_difference = timeDifference;
+        shiftData.in_company = inCompany.Value;
+        shiftData.is_valid = true;
+        shiftData.time_active_tick = now.Ticks;
+        shiftData.is_valid_device = isValidDevice;
+        shiftData.coordinates = getCoordinates;
+        await UpdateCheckout();
+      }
+      isConfirmOT = false;
+      isOT = false;
+      isChangedShift = false;
+      isOverDay = false;
+      coordinates = null;
+      await RenderButtonStatus();
     }
-    // Chỉ checkout
-    else
+    catch (Exception ex)
     {
-      shiftData.time_active = timeNow;
-      shiftData.time_difference = timeDifference;
-      shiftData.in_company = inCompany.Value;
-      shiftData.is_valid = true;
-      shiftData.time_active_tick = now.Ticks;
-						shiftData.is_valid_device = isValidDevice;
-      await UpdateCheckout();
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ConfirmOT()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
     }
-    isConfirmOT = false;
-    isOT = false;
-    isChangedShift = false;
-    isOverDay = false;
-    await RenderButtonStatus();
   }
 
   private void OffConfirmOT()
@@ -883,68 +1106,73 @@ else
     return Shared.CompareTime(date1, date2);
   }
 
-  private async Task<double[]> GetLocation()
+  [JSInvokable]
+  public async Task GetLocation(JsonElement json)
   {
     try
     {
-      var results = await JSRuntime.InvokeAsync<double[]>("getLocation").ConfigureAwait(true);
-      if (results != null)
-        return results;
+      inCompany = null;
+      var location = json.Deserialize<double[]?>();
+      if (location != null && location.Length >= 2)
+      {
+        coordinates = location;
+        if (isHybrid)
+          inCompany = true;
+        else
+        {
+          // Nếu là checkout thì sẽ lấy theo vị trí checkin
+          if (currentLocation != null)
+          {
+            inCompany = HrmService.CompareLocation(currentLocation, location[0], location[1], out string message);
+            logs = $"<div>{message}</div>";
+            companyAddress = string.Join(". ", currentLocation.name);
+          }
+          // Nếu là checkin
+          else
+          {
+            // Trường hợp chưa được phân vị trí
+            if (locationsUser.Count == 0)
+            {
+              isAssignLocation = false;
+              inCompany = false;
+            }
+            // Lấy vị trí gần nhất
+            long nearestDistance = long.MaxValue;
+            HrmLocationModel nearestLocation = null;
+            foreach (var item in locationsUser)
+            {
+              long distance = HrmService.GetDistance(item, location[0], location[1]);
+              if (distance < nearestDistance)
+              {
+                nearestDistance = distance;
+                nearestLocation = item;
+              }
+            }
+            if (nearestLocation != null)
+            {
+              inCompany = HrmService.CompareLocation(nearestLocation, location[0], location[1], out string message);
+              logs = $"<div>{message}</div>";
+              companyAddress = string.Join(". ", nearestLocation.name);
+              currentLocation = nearestLocation;
+            }
+          }
+        }
+      }
+      await InvokeAsync(StateHasChanged);
     }
-    catch (System.Exception ex)
+    catch (Exception ex)
     {
-      Console.WriteLine("GetLocation: " + ex.Message);
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetLocation()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Vui lòng cấp quyền truy cập vị trí khi sử dụng chấm công!.");
+      inCompany = false;
     }
-    await JSRuntime.InvokeVoidAsync("tagline", false, "Vui lòng cấp quyền truy cập vị trí cho app Workdo và bật vị trí trên điện thoại của bạn.");
-    inCompany = false;
-    return null;
   }
 
-		private async Task<bool> CheckLocation()
-		{
-			inCompany = null;
-			var location = await GetLocation();
-
-			if (location != null)
-			{
-				if (currentLocation != null)
-				{
-					inCompany = HrmService.CompareLocation(currentLocation, location[0], location[1], out string message);
-					logs = $"<div>{message}</div>";
-					companyAddress = string.Join(". ", currentLocation.name);
-					return inCompany.Value;
-				}
-				else
-				{
-					if (locationsUser.Count	== 0)
-					{
-						inCompany = true;
-						isHybrid = true;
-						return inCompany.Value;
-					}
-					long nearestDistance = long.MaxValue;
-					HrmLocationModel nearestLocation = null;
-					foreach (var item in locationsUser)
-					{
-						long distance = HrmService.GetDistance(item, location[0], location[1]);
-						if (distance < nearestDistance)
-						{
-							nearestDistance = distance;
-							nearestLocation = item;
-						}
-					}
-					if (nearestLocation != null)
-					{
-						inCompany = HrmService.CompareLocation(nearestLocation, location[0], location[1], out string message);
-						logs = $"<div>{message}</div>";
-						companyAddress = string.Join(". ", nearestLocation.name);
-						currentLocation = nearestLocation;
-						return inCompany.Value;
-					}
-				}
-			}
-			return false;
-		}
+  private async Task CheckLocation()
+  {
+    await JSRuntime.InvokeVoidAsync("getLocation", obj);
+  }
 
   private async Task ToggleShift()
   {
@@ -1056,95 +1284,199 @@ else
     }
   }
 
-		// Hàm kiểm tra có cho phép kiểm tra thiết bị không
-		private async Task CheckAvailableDevice()
-		{
-			// Kiểm tra đang có thiết bị nào đợi duyệt không
-			var isDevicePending = await DbHrmDevice.CheckPending(Layout.Company.id, Layout.User.id);
+  // Hàm kiểm tra có cho phép kiểm tra thiết bị không
+  private async Task CheckAvailableDevice()
+  {
+    try
+    {
+      // Kiểm tra đang có thiết bị nào đợi duyệt không
+      var isDevicePending = await DbHrmDevice.CheckPending(Layout.Company.id, Layout.User.id);
 
-			if (isDevicePending)
-			{
-				await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang có 1 thiết bị đang chờ duyệt!");
-				isValidDevice = false;
-			}
-			else
-			{
-				if (!rules.is_check_device)
-					isValidDevice = true;
-				else
-				{
-					if (Layout.IsMobile)
-						await CheckDevice();
-				}
-			}
-		}
+      if (isDevicePending)
+      {
+        isValidDevice = false;
+        return;
+      }
+      else
+      {
+        if (!rules.is_check_device)
+          isValidDevice = true;
+        else
+        {
+          if (Layout.IsMobile)
+            await CheckDevice();
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      await JSRuntime.InvokeVoidAsync("deleteCookie", "_device");
+      await JSRuntime.InvokeVoidAsync("localStorage.clear");
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "CheckAvailableDevice()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
+  }
 
-		// Hàm dùng để kiểm tra device người dùng
-		private async Task CheckDevice()
-		{
-			var cookieDevice = await JSRuntime.InvokeAsync<string>("getCookie", "_device");
-			var genarateCookie = Guid.NewGuid().ToString();
+  // Hàm dùng để kiểm tra device người dùng
+  private async Task CheckDevice()
+  {
+    try
+    {
+      var deviceLocalStorage = await storage.GetAsync<string>("_device");
+      var getDeviceName = await JSRuntime.InvokeAsync<string>("getUA");
+      var genarateCookie = Guid.NewGuid().ToString();
+      if (Shared.IsEmpty(Layout.User.device_id))
+      {
+        var user = await DbUser.Get(Layout.Company.id, Layout.User.id, globalService);
+        if (user != null)
+        {
+          // Set local + cookie
+          await JSRuntime.InvokeVoidAsync("setCookieDevice", "_device", genarateCookie);
+          await storage.SetAsync("_device", genarateCookie);
+
+          user.device_id = genarateCookie;
+          user.device_name = getDeviceName;
+          await DbUser.Update(Layout.Company.id, user, globalService);
+          isValidDevice = true;
+        }
+      }
+      else
+      {
+        // Kiểm tra device có match với user không?
+        bool isResultLocal = await DbUser.GetDevice(Layout.Company.id, Layout.User.id, deviceLocalStorage.Value, globalService);
+        if (!isResultLocal)
+        {
+          var cookieDevice = await JSRuntime.InvokeAsync<string>("getCookie", "_device");
+          bool isResultCookie = await DbUser.GetDevice(Layout.Company.id, Layout.User.id, cookieDevice, globalService);
+          if (isResultCookie)
+          {
+            isValidDevice = true;
+            // Đông bộ local với cookie
+            await JSRuntime.InvokeVoidAsync("localStorage.clear");
+            await storage.SetAsync("_device", cookieDevice);
+          }
+          else
+          {
+            isValidDevice = false;
+            deviceComfirm = isValidDevice;
+            deviceCode = genarateCookie;
+            deviceName = getDeviceName;
+            timeNearest = await DbHrmTimekeeping.GetNearest(Layout.Company.id, Layout.User.id);
+          }
+        }
+        else 
+          isValidDevice = true;
+      }
+
+    }
+    catch (Exception ex)
+    {
+      await JSRuntime.InvokeVoidAsync("deleteCookie", "_device");
+      await JSRuntime.InvokeVoidAsync("localStorage.clear");
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "CheckDevice()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+
+    }
+  }
+
+  // Hàm xác nhận yêu cầu thay đổi thiết bị
+  private async Task ConfirmDevice(bool isConfirm)
+  {
+    try
+    {
+      if (isConfirm)
+      {
+        var model = new HrmDeviceModel()
+          {
+            user_request = Layout.User.id,
+            date_request = DateTime.Now.Ticks,
+            status = 1,
+            old_code = Layout.User.device_id,
+            old_name = Layout.User.device_name,
+            new_code = deviceCode,
+            new_name = deviceName,
+          };
+        await DbHrmDevice.Create(Layout.Company.id, model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã gửi yêu cầu cập nhật thiết bị mới!");
+
+        var managerList = await DbUser.GetManager(Layout.Company.id, false, globalService);
+        foreach (var user in managerList)
+        {
+          if (user.role == 1 || (user.role == 2 && user.role_manage.timekeeping))
+            await DbNotify.Create(Layout.Company.id, 816, model.user_request, user.id, model.user_request);
+        }
+        // Delete cũ thêm mới cookie
+        await JSRuntime.InvokeVoidAsync("deleteCookie", "_device");
+        await JSRuntime.InvokeVoidAsync("setCookieDevice", "_device", deviceCode);
+        // Delete cũ thêm mới local
+        await JSRuntime.InvokeVoidAsync("localStorage.clear");
+        await storage.SetAsync("_device", deviceCode);
+      }
+      deviceComfirm = true;
+      deviceCode = string.Empty;
+      deviceName = string.Empty;
+      timeNearest = 0;
+    }
+    catch (Exception ex)
+    {
+      await JSRuntime.InvokeVoidAsync("deleteCookie", "_device");
+      await JSRuntime.InvokeVoidAsync("localStorage.clear");
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "CheckDevice()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
+  }
+
+  // Hàm xác nhận yêu cầu set vị trí chấm công
+  private async Task RequestLocation()
+  {
+    try
+    {
+      var managerList = await DbUser.GetManager(Layout.Company.id, false, globalService);
+      foreach (var user in managerList)
+      {
+        if (user.role == 1 || (user.role == 2 && user.role_manage.timekeeping))
+          await DbNotify.Create(Layout.Company.id, 820, Layout.User.id, user.id, Layout.User.id);
+      }
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã gửi yêu cầu phân địa điểm chấm công, vui lòng kiên nhẫn chờ đợi!");
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "RequestLocation()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
 
 
-			if(Shared.IsEmpty(Layout.User.device_id))
-			{
-				var user = await DbUser.Get(Layout.Company.id, Layout.User.id);
-				if (user != null)
-				{
-					await JSRuntime.InvokeVoidAsync("setCookieDevice", "_device", genarateCookie);
+    }
+  }
 
-					user.device_id = genarateCookie;
-					await DbUser.Update(Layout.Company.id, user);
-					isValidDevice = true;
-				}
-			}
-			else 
-			{
-				// Kiểm tra device có match với user không
-				bool isResult = await DbUser.GetDevice(Layout.Company.id, Layout.User.id, cookieDevice);
-				if (isResult)
-					isValidDevice = true;
-				else
-				{
-						isValidDevice = false;
-						deviceComfirm = isValidDevice;
-						deviceCode = genarateCookie;
-						// Lấy dữ liệu chấm công gần nhất
-						timeNearest = await DbHrmTimekeeping.GetNearest(Layout.Company.id, Layout.User.id);
+  // Hàm kiểm tra thời in nghỉ
+  private TimeSpan? CheckInDuringBreak(string start, string end, TimeSpan checkinTime)
+  {
+    TimeSpan breakStart = TimeSpan.Parse(start);
+    TimeSpan breakEnd = TimeSpan.Parse(end);
+    if (checkinTime >= breakStart && checkinTime <= breakEnd)
+      return breakEnd - checkinTime;
+    return null;
+  }
 
-				}
-			}
-		}
+  public void Dispose()
+  {
+    try
+    {
+      obj?.Dispose();
+      timer?.Dispose();
+    }
+    catch(Exception ex)
+    {
+      return;
+    }
+  }
 
-		// Hàm xác nhận yêu cầu thay đổi thiết bị
-		private async Task ConfirmDevice(bool isConfirm)
-		{
-			if	(isConfirm)
-			{
-				var model = new HrmDeviceModel()
-     {
-						user_request = Layout.User.id,
-						date_request = DateTime.Now.Ticks,
-						status = 1,
-						old_code = Layout.User.device_id,
-						new_code = deviceCode
-     };
-					await DbHrmDevice.Create(Layout.Company.id, model);
-					await JSRuntime.InvokeVoidAsync("tagline", true, "Đã gửi yêu cầu cập nhật thiết bị mới!");
-					
-   		var managerList = await DbUser.GetManager(Layout.Company.id, false);
-   		foreach (var user in managerList)
-   		{
-      if (user.role == 1 || (user.role == 2 && user.role_manage.timekeeping))
-       await DbNotify.Create(Layout.Company.id, 816, model.user_request, user.id, model.user_request);
-   		}
-					await JSRuntime.InvokeVoidAsync("deleteCookie", "_device");
-					await JSRuntime.InvokeVoidAsync("setCookieDevice", "_device", deviceCode);
-			}
-			deviceComfirm = true;
-			deviceCode = string.Empty;
-			timeNearest	= 0;
-		}
+  private void ChangedTab(int tab)
+  {
+    navigation.NavigateTo("hrm/timekeeping?tab=" + tab.ToString(), false);
+  }
 }
-
-

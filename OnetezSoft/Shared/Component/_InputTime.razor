@@ -1,0 +1,93 @@
+﻿@inject IJSRuntime JSRuntime
+
+<div class="columns is-mobile is-variable is-1 is-vcentered">
+  <div class="column">
+    <input 
+      class="input is_underline has-text-centered"
+      @bind="OnHour"
+      @bind:event="oninput"
+      type="text"
+      placeholder="HH"
+      onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+      style="min-width:20px"
+      maxlength="2">
+  </div>
+  <div class="column is-narrow">
+    :
+  </div>
+  <div class="column">
+    <input 
+      id="@minuId"
+      class="input is_underline has-text-centered"
+      @bind="OnMinu"
+      @bind:event="oninput"
+      type="text"
+      placeholder="mm"
+      onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+      style="min-width:20px"
+      maxlength="2">
+  </div>
+</div>
+
+@code {
+  [Parameter]
+  public long Value { get; set; }
+  [Parameter]
+  public EventCallback<long> ValueChanged { get; set; }
+  [Parameter]
+  public EventCallback<long> Callback { get; set; }
+
+  private string hour;
+  private string OnHour
+  {
+    get => hour;
+    set
+    {
+      hour = value;
+      if(hour.Length == 2)
+        JSRuntime.InvokeVoidAsync("setFocus", minuId);
+
+      minu = "";
+      OnChange();
+    }
+  }
+  private string minu;
+  private string OnMinu
+  {
+    get => minu;
+    set
+    {
+      minu = value;
+      OnChange();
+    }
+  }
+
+  private string minuId;
+
+  protected override void OnInitialized()
+  {
+    minuId = "id_" + Guid.NewGuid().ToString().Split("-").FirstOrDefault();
+
+    if (Value > 0)
+    {
+      var date = new DateTime(Value);
+
+      hour = date.Hour < 10 ? ("0" + date.Hour) : date.Hour.ToString();
+      minu = date.Minute < 10 ? ("0" + date.Minute) : date.Minute.ToString();
+    }
+  }
+
+  private async Task OnChange()
+  {
+    int.TryParse(string.IsNullOrEmpty(hour) ? "0" : hour, out var hours);
+    int.TryParse(string.IsNullOrEmpty(minu) ? "0" : minu, out var minutes);
+
+    var date = new DateTime(Value);
+    var time = new TimeSpan(hours, minutes, 0);
+    date = date.Date + time;
+
+    Value = date.Ticks;
+    await ValueChanged.InvokeAsync(Value);
+    await Callback.InvokeAsync(Value);
+  }
+}

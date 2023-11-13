@@ -1,0 +1,454 @@
+﻿@inject IJSRuntime JSRuntime
+
+@if (model != null)
+{
+  <Slider Size="@ComponentModel.SizeType.Normal">
+    <Header>
+      <div class="columns is-variable is-2 is-mobile is-vcentered">
+        <div class="column">
+          <div class="has-text-weight-bold is-size-5">
+            @(string.IsNullOrEmpty(model.todolist) ? "Tạo công việc " : "Chỉnh sửa công việc") @(new DateTime(model.date).ToString("dd/MM/yy"))
+          </div>
+        </div>
+      </div>
+    </Header>
+    <Body>
+      <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3 is-mobile">
+        <li class="column is-full">
+          <div class="field">
+            <div style="width: 120px" class="control mb-2">
+              <span class="icon-text">
+                <span class="font_14" style="color: #575E72">Tiêu đề công việc</span>
+              </span>
+            </div>
+            <div style="flex: 1" class="control is-flex is-align-items-center">
+              @if (model.confirm || !string.IsNullOrEmpty(model.assign_user))
+              {
+                <div class="is-fullwidth">
+                  <span class="font_14 has-text-weight-medium has-text-link text_1_line">@model.name</span>
+                </div>
+              }
+              else
+              {
+                <div class="is-fullwidth">
+                  <div class="control has-icons-left">
+                    <input id="todo_@model.id" @bind="model.name" type="text" class="input is-size-6 is_bg" placeholder="Nhập tiêu đề công việc" />
+                    <span class="icon is-left has-text-dark">
+                      <i class="material-icons-outlined is-size-5">edit</i>
+                    </span>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </li>
+        <li class="column is-full">
+          <div class="field">
+            <div style="width: 120px" class="control mb-2">
+              <span class="icon-text">
+                <span class="icon" style="color: #575E72">
+                  <i class="material-icons-outlined is-size-6">timer</i>
+                </span>
+                <span class="font_14" style="color: #575E72">Thời gian</span>
+              </span>
+            </div>
+            <div style="flex: 1" class="control is-flex is-align-items-center">
+              <div class="select is-fullwidth">
+                <select @onchange="@((ChangeEventArgs e) => ChangeTime(model, e.Value.ToString()))">
+                  @foreach (var sl in Shared.TimeList())
+                  {
+                    if (model.start == sl.name)
+                    {
+                      <option value="@sl.name" selected>@sl.name</option>
+                    }
+                    else
+                    {
+                      <option value="@sl.name">@sl.name</option>
+                    }
+                  }
+                </select>
+              </div>
+              <span style="color: #000;width:fit-content" class="mx-5 font_14">-</span>
+              <div class="select is-fullwidth">
+                <select @bind="model.end">
+                  @foreach (var sl in Shared.TimeList())
+                  {
+                    if (model.end == sl.name)
+                    {
+                      <option value="@sl.name" selected>@sl.name</option>
+                    }
+                    else
+                    {
+                      <option value="@sl.name">@sl.name</option>
+                    }
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+        </li>
+        <li class="column is-full">
+          <div class="field">
+            <div style="width: 120px" class="control mb-2">
+              <span class="icon-text">
+                <span class="icon" style="color: #575E72">
+                  <i class="material-icons-outlined is-size-6">low_priority</i>
+                </span>
+                <span class="font_14" style="color: #575E72">Độ ưu tiên</span>
+              </span>
+            </div>
+            <div style="flex: 1" class="control is-flex is-align-items-center">
+              <div style="" class="select is-fullwidth">
+                <select @bind="model.level">
+                  @foreach (var sl in DbTodolist.Level())
+                  {
+                    <option value="@sl.id">@sl.name</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+        </li>
+
+
+        <li class="column is-full">
+          <div class="field">
+            <div style="width: 120px" class="control mb-2">
+              <span class="icon-text">
+                <span class="icon" style="color: #575E72">
+                  <i class="material-icons-outlined is-size-6">chat</i>
+                </span>
+                <span class="font_14" style="color: #575E72">Chi tiết</span>
+              </span>
+            </div>
+            @if (!isShowDetail && Shared.IsEmpty(model.detail))
+            {
+              <div style="flex: 1" class="control">
+                <a @onclick="() => isShowDetail = !isShowDetail">Thêm chi tiết</a>
+              </div>
+            }
+            else
+            {
+              <div style="flex: 1" class="control mt-2">
+                <InputArea Value="@model.detail" OnInput="x => model.detail = x" title="Nhập mô tả công việc.." />
+              </div>
+            }
+          </div>
+        </li>
+        <li class="column is-full">
+          <div class="field">
+            <div style="width: 120px" class="control mb-2">
+              <span class="icon-text">
+                <span class="icon" style="color: #575E72">
+                  <i class="material-icons-outlined is-size-6">text_snippet</i>
+                </span>
+                <span class="font_14" style="color: #575E72">Kết quả</span>
+              </span>
+            </div>
+            @if (!isShowResult && Shared.IsEmpty(model.result))
+            {
+              <div style="flex: 1" class="control">
+                <a @onclick="() => isShowResult = !isShowResult">Thêm kết quả</a>
+              </div>
+            }
+            else
+            {
+              <div style="flex: 1" class="control mt-2">
+                <InputArea Value="@model.result" OnInput="x => model.result = x" title="Nhập kết quả công việc..." />
+              </div>
+            }
+          </div>
+        </li>
+
+        @if (ProductService.CheckStorage(Layout.Company))
+        {
+          <li class="column is-full is-flex is-flex-direction-column">
+            <div style="width: 100%" class="is-flex is-align-items-center">
+              <div style="width: 120px" class="control">
+                <span class="icon-text">
+                  <span class="icon" style="color: #575E72">
+                    <i class="material-icons-outlined is-size-6">link</i>
+                  </span>
+                  <span class="font_14" style="color: #575E72">File đính kèm</span>
+                </span>
+              </div>
+              <div class="ml-3">
+                <FileUpload Path="todolist/todo" Multiple="true" Small="true" Cloud="true" OnUpload="x => model.files.AddRange(x)" />
+              </div>
+            </div>
+            <div class="mt-1">
+              <FileViews Delete="true" Values="model.files" />
+            </div>
+          </li>
+        }
+        @if (model.date >= DateTime.Today.Ticks)
+        {
+          <li class="column is-full">
+            <div class="field">
+              <div class="control mb-2">
+                <label class="checkbox is-size-7 ml-1">
+                  <input @bind="model.is_loop" type="checkbox" />
+                  <span class="font_14 is-secondary-40">Công việc lặp</span>
+                </label>
+              </div>
+              
+              @if (!string.IsNullOrEmpty(model.todolist) && model.is_loop && isLoopOld)
+              {
+                <p class="font_14 todo-text-detail mb-1 ml-1">
+                  Lặp lại:
+                  <span class="has-text-weight-semibold font_14 is-secondary-10">@(TodolistService.GetInfoLoop(model))</span>
+                </p>
+
+                <p class="font_14 todo-text-detail ml-1">
+                  Kết thúc vào ngày:
+                  <span class="has-text-weight-semibold font_14 is-secondary-10">@(new DateTime(model.dateEnd_cycle).ToString("dd/MM/yyyy"))</span>
+                </p>
+              }
+              else if (!string.IsNullOrEmpty(model.todolist) && !isLoopOld && model.is_loop)
+              {
+                <_TodoLoop currentTodo="model" />
+              }
+              else if (string.IsNullOrEmpty(model.todolist) && model.is_loop)
+              {
+                <_TodoLoop currentTodo="model" />
+              }
+            </div>
+          </li>
+        }
+        else
+        {
+          if (!string.IsNullOrEmpty(model.todolist) && model.is_loop && isLoopOld)
+          {
+            <li class="column is-full">
+              <div class="field">
+                <p class="font_14 todo-text-detail mb-1 ml-1">
+                  Lặp lại:
+                  <span class="has-text-weight-semibold font_14 is-secondary-10">@(TodolistService.GetInfoLoop(model))</span>
+                </p>
+
+                <p class="font_14 todo-text-detail ml-1">
+                  Kết thúc vào ngày:
+                  <span class="has-text-weight-semibold font_14 is-secondary-10">@(new DateTime(model.dateEnd_cycle).ToString("dd/MM/yyyy"))</span>
+                </p>
+              </div>
+            </li>
+          }
+        }
+      </ul>
+    </Body>
+    <Footer>
+      <div class="field is-grouped is-grouped-right">
+        <div class="control">
+          <Button Content="Hủy" IconLeft="cancel" Color="@ComponentModel.ColorType.Info" Onclick="Close" Disabled="isLoading" />
+        </div>
+        <div class="control">
+          <Button Content="@(string.IsNullOrEmpty(model.todolist) ? "Tạo" : "Hoàn tất")"
+                  IconLeft="@(string.IsNullOrEmpty(model.todolist) ? "add" : "done")"
+                  Color="@ComponentModel.ColorType.Link"
+                  Onclick="@(string.IsNullOrEmpty(model.todolist) ? () => Create() : () => Update())"
+                  Disabled="isLoading"
+                  IsLoading="isLoading" />
+        </div>
+      </div>
+    </Footer>
+  </Slider>
+}
+
+
+
+@if (isShowOption && !string.IsNullOrEmpty(model.todolist))
+{
+  <_TodoEditPopup OnCloseEdit="CloseEditLoop" OnConfirmEdit="Update"/>
+}
+
+
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public EventCallback<TodolistModel.Todo> OnUpdate { get; set; }
+  [Parameter]
+  public EventCallback OnClose { get; set; }
+  [Parameter]
+  public TodolistModel.Todo model { get; set; }
+  [Parameter]
+  public DateTime currentDate { get; set; }
+
+
+  private bool isShowDetail = false;
+  private bool isShowResult = false;
+  private bool isShowOption = false;
+  private bool isLoopOld;
+  private bool isLoading = false;
+
+
+  protected override void OnInitialized()
+  {
+    isLoopOld = model.is_loop;
+  }
+
+  // Hàm xử lý cập nhật todolist
+  public async Task Update(int option = 1)
+  {
+    isLoading = true;
+    // Sửa todo trong quá khứ
+    if (model.date < DateTime.Today.Ticks)
+    {
+      if (await IsValidTodo(model))
+        await UpdateModelAndClose();
+    }
+    else
+    {
+      // Nếu chưa có popup edit công việc lặp
+      if (!isShowOption)
+      {
+        // Kiểm tra nếu là công việc lặp
+        if (isLoopOld == model.is_loop && model.is_loop && await IsValidTodo(model))
+          isShowOption = true;
+        else
+        {
+          // Nếu tắt công việc lặp
+          if (!model.is_loop)
+          {
+            if (await IsValidTodo(model))
+            {
+              await DbTodoItem.DeleteTodoPrev(Layout.Company.id, Layout.User.id, model.parentId, model.dateEnd_cycle);
+              await TodolistService.HandleRemoveTodoLoop(model, Layout.Company.id, Layout.User.id);
+              ResetModelForNonLoopTodo();
+              await UpdateModelAndClose();
+            }
+            // Nếu là chỉnh sửa công việc lặp
+          }
+          else
+          {
+            if (await IsValidTodoLoop(model))
+            {
+              if (!string.IsNullOrEmpty(model.todolist))
+                await TodolistService.HandleCreateTodoLoop(model, Layout.Company.id, Layout.User.id);
+              await UpdateModelAndClose();
+            }
+          }
+        }
+      }
+      // Nếu đã cofirm
+      else
+      {
+        if (option == 2)
+          await TodolistService.HandleEditTodoLoop(model, Layout.Company.id, Layout.User.id);
+        await UpdateModelAndClose();
+        isShowOption = false;
+      }
+    }
+    isLoading = false;
+  }
+
+  public async Task Create()
+  {
+    try
+    {
+      isLoading = true;
+      if (TimeSpan.Parse(model.start).Ticks >= TimeSpan.Parse(model.end).Ticks)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Thời gian kết thúc không thể nhỏ hơn thời gian bắt đầu công việc này!");
+      else if (string.IsNullOrEmpty(model.name) || string.IsNullOrEmpty(model.name.Trim()))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên công việc!");
+      else if (string.IsNullOrEmpty(model.start) || string.IsNullOrEmpty(model.end))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập thời gian thực hiện!");
+      else if (model.is_loop)
+      {
+        model.dateEnd_cycle = model.dateEnd_cycle > 0 ? model.dateEnd_cycle : model.date;
+        if (model.dateEnd_cycle < model.date)
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc chu kỳ phải lớn hơn ngày tạo!");
+        else if (model.cycle == 2 && !model.weeks.Any())
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Vui lòng chọn ít nhất 1 ngày trong tuần!");
+        else 
+        {
+          if (!string.IsNullOrEmpty(model.todolist))
+            await TodolistService.HandleCreateTodoLoop(model, Layout.Company.id, Layout.User.id);
+          await UpdateModelAndClose();
+        }
+      }
+      else
+        await UpdateModelAndClose();
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine(ex.ToString());
+    }
+    finally
+    {
+      isLoading = false;
+    }
+  }
+
+
+  private void Close()
+  {
+    OnClose.InvokeAsync(model);
+    isShowDetail = false;
+    isShowResult = false;
+  }
+
+  private void ChangeTime(TodolistModel.Todo item, string time)
+  {
+    item.start = time;
+    item.end = time;
+  }
+
+  private void CloseEditLoop()
+  {
+    isShowOption = false;
+  }
+
+  private async Task<bool> IsValidTodo(TodolistModel.Todo todoCheck)
+  {
+    if (TimeSpan.Parse(todoCheck.start).Ticks >= TimeSpan.Parse(todoCheck.end).Ticks)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Thời gian kết thúc không thể nhỏ hơn thời gian bắt đầu công việc này!");
+    else if (string.IsNullOrEmpty(todoCheck.name) || string.IsNullOrEmpty(todoCheck.name.Trim()))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên công việc!");
+    else if (string.IsNullOrEmpty(todoCheck.start) || string.IsNullOrEmpty(todoCheck.end))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập thời gian thực hiện!");
+    else
+      return true;
+    return false;
+  }
+
+  private async Task<bool> IsValidTodoLoop(TodolistModel.Todo todoCheck)
+  {
+    todoCheck.dateEnd_cycle = todoCheck.dateEnd_cycle > 0 ? todoCheck.dateEnd_cycle : todoCheck.date;
+
+    if (TimeSpan.Parse(todoCheck.start).Ticks >= TimeSpan.Parse(todoCheck.end).Ticks)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Thời gian kết thúc không thể nhỏ hơn thời gian bắt đầu công việc này!");
+    else if (string.IsNullOrEmpty(todoCheck.name) || string.IsNullOrEmpty(todoCheck.name.Trim()))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên công việc!");
+    else if (string.IsNullOrEmpty(todoCheck.start) || string.IsNullOrEmpty(todoCheck.end))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập thời gian thực hiện!");
+    else if (model.dateEnd_cycle < model.date)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc chu kỳ phải lớn hơn ngày tạo!");
+    else if (model.cycle == 2 && !model.weeks.Any())
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Vui lòng chọn ít nhất 1 ngày trong tuần!");
+    else
+      return true;
+    return false;
+  }
+
+
+  private async Task UpdateModelAndClose()
+  {
+    await OnUpdate.InvokeAsync(model);
+    Close();
+  }
+
+
+  private void ResetModelForNonLoopTodo()
+  {
+    model.dateEnd_cycle = 0;
+    model.cycle = 2;
+    model.option = 1;
+    model.is_loop = false;
+    model.weeks = new();
+    model.parentId = string.Empty;
+  }
+
+
+}

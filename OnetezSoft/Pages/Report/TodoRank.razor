@@ -1,7 +1,8 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
-<div class="card p-5 p-4-mobile">
+<div class="card flex_column is_fullheight">
   <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3">
     <li class="column">
       <div class="dropdown is-hoverable">
@@ -28,8 +29,8 @@
       <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
     </li>
     <li class="column is-narrow has-text-right" style="width: 150px;">
-      <div class="dropdown is-hoverable is-right">
-        <div class="dropdown-trigger">
+      <Dropdown DropdownClass="is-right" CloseOnClickMenu=true>
+        <Trigger>
           <a class="icon-text">
             @if (filterDate == 1)
             {
@@ -55,84 +56,84 @@
               <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
             </span>
           </a>
-        </div>
-        <div class="dropdown-menu">
-          <div class="dropdown-content">
-            <a class="dropdown-item" @onclick="() => ChangeDate(1)">
-              Tuần này
-            </a>
-            <a class="dropdown-item" @onclick="() => ChangeDate(11)">
-              Tuần trước
-            </a>
-            <a class="dropdown-item" @onclick="() => ChangeDate(2)">
-              Tháng này
-            </a>
-            <a class="dropdown-item" @onclick="() => ChangeDate(22)">
-              Tháng trước
-            </a>
-            <a class="dropdown-item" @onclick="() => ChangeDate(3)">
-              Quý này
-            </a>
-          </div>
-        </div>
-      </div>
+        </Trigger>
+        <MenuContent>
+          <a class="dropdown-item" @onclick="() => ChangeDate(1)">
+            Tuần này
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeDate(11)">
+            Tuần trước
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeDate(2)">
+            Tháng này
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeDate(22)">
+            Tháng trước
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeDate(3)">
+            Quý này
+          </a>
+        </MenuContent>
+      </Dropdown>
     </li>
   </ul>
-  <ul class="columns is-variable is-8 rank_top">
-    @for (int i = 0; i < 3; i++)
-    {
-      if (i < rankList.Count)
-      {
-        var item = rankList[i];
-        <li class="column is-one-third">
-          <div class="has-text-centered pb-3 mb-3 is-relative">
-            <div class="title">@(i+1)</div>
-            <div class="subtitle">
-              @Shared.ConvertNumber(item.value)%
-            </div>
-          </div>
-          <div class="user_item">
-            <img class="image is-36x36 mr-3" src="@item.avatar" alt="IMG">
-            <div>
-              <strong class="is-block is-size-6 has-text-info">@item.name</strong>
-              <span class="text_1_line has-text-grey is-size-7" style="width: 240px;">
-                @item.departments
-              </span>
-            </div>
-          </div>
-        </li>
-      }
-    }
-  </ul>
-  <div class="scrolly mt-5 rank_list" style="max-height: 180px;">
-    <ul class="columns is-multiline is-variable is-2 m-0">
-      @for (int i = 3; i < rankList.Count; i++)
+  <div class="inner_section flex_column" style="flex:1">
+    <ul class="columns is-variable is-8 rank_top">
+      @for (int i = 0; i < 3; i++)
       {
         if (i < rankList.Count)
         {
           var item = rankList[i];
-          <li class="column is-half px-5">
-            <ul class="columns is-vcentered is-variable is-2 is-mobile">
-              <li class="column is-1 is-size-6">#@(i+1)</li>
-              <li class="column is-9">
-                <div class="user_item">
-                  <img class="image is-36x36 mr-3" src="@item.avatar" alt="IMG">
-                  <div>
-                    <strong class="is-block is-size-6 has-text-info">@item.name</strong>
-                    <span class="text_1_line has-text-grey is-size-7" style="width: 240px;">
-                      @item.departments
-                    </span>
-                  </div>
-                </div>
-              </li>
-              <li class="column is-2 has-text-right has-text-info has-text-weight-semibold">
+          <li class="column is-one-third">
+            <div class="has-text-centered pb-3 mb-3 is-relative">
+              <div class="title">@(i + 1)</div>
+              <div class="subtitle">
                 @Shared.ConvertNumber(item.value)%
-              </li>
-            </ul>
+              </div>
+            </div>
+            <div class="user_item">
+              <img class="image is-36x36 mr-3" src="@item.avatar" alt="IMG">
+              <div>
+                <strong class="is-block is-size-6 has-text-info">@item.name</strong>
+                <span class="text_1_line has-text-grey is-size-7" style="width: 240px;">
+                  @item.departments
+                </span>
+              </div>
+            </div>
           </li>
         }
       }
     </ul>
+    <div class="scrolly mt-5 rank_list" style="flex:1">
+      <ul class="columns is-multiline is-variable is-2 m-0">
+        @for (int i = 3; i < rankList.Count; i++)
+        {
+          if (i < rankList.Count)
+          {
+            var item = rankList[i];
+            <li class="column is-half px-5">
+              <ul class="columns is-vcentered is-variable is-2 is-mobile">
+                <li class="column is-1 is-size-6">#@(i + 1)</li>
+                <li class="column is-9">
+                  <div class="user_item">
+                    <img class="image is-36x36 mr-3" src="@item.avatar" alt="IMG">
+                    <div>
+                      <strong class="is-block is-size-6 has-text-info">@item.name</strong>
+                      <span class="text_1_line has-text-grey is-size-7" style="width: 240px;">
+                        @item.departments
+                      </span>
+                    </div>
+                  </div>
+                </li>
+                <li class="column is-2 has-text-right has-text-info has-text-weight-semibold">
+                  @Shared.ConvertNumber(item.value)%
+                </li>
+              </ul>
+            </li>
+          }
+        }
+      </ul>
+    </div>
   </div>
 </div>
 
@@ -140,17 +141,20 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   [Parameter]
-  public List<DepartmentModel> departmentAll { get; set; }
+  public List<DepartmentModel> departmentAll { get; set; } = new();
   [Parameter]
-  public List<DepartmentModel.SelectList> departments { get; set; }
+  public List<DepartmentModel.SelectList> departments { get; set; } = new();
 
   private List<ProgressModel> rankList = new();
   private List<string> filterUserList = new();
   private string filterDepartment = string.Empty;
   private int filterDate = 1;
 
+  private SharedStorage shareStorage = new();
+
   protected override async Task OnInitializedAsync()
   {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
     await ChangeFilterDepartment(Layout.User.department_default);
   }
 
@@ -164,52 +168,64 @@
   {
     filterDepartment = value;
     if (string.IsNullOrEmpty(value))
-      filterUserList = Layout.UserList.Select(x => x.id).ToList();
+      filterUserList = shareStorage.MemberList.Select(x => x.id).ToList();
     else
-      filterUserList = Layout.UserList.Where(x => x.departments_id.Contains(filterDepartment))
+      filterUserList = shareStorage.MemberList.Where(x => x.departments_id.Contains(filterDepartment))
         .Select(x => x.id).ToList();
     await GetData();
   }
 
-  private async Task GetData()
+  private async Task<bool> GetData()
   {
-    Shared.GetTimeSpan(filterDate, out DateTime start, out DateTime end);
-    var database = await DbTodolist.GetList(Layout.Company.id, start, end);
-
-    // Số ngày cần tạo Todolist
-    int day = 0;
-    for (DateTime date = end; date >= start; date = date.AddDays(-1))
+    bool _success = true;
+    try
     {
-      if(date < DateTime.Now)
+      Shared.GetTimeSpan(filterDate, out DateTime start, out DateTime end);
+      var database = await DbTodolist.GetList(Layout.Company.id, start, end);
+
+      // Số ngày cần tạo Todolist
+      int day = 0;
+      for (DateTime date = end; date >= start; date = date.AddDays(-1))
       {
-        if (!DbDayOff.CheckOff(Layout.DaysOff, date))
-          day++;
-      }
-    }
-
-    rankList.Clear();
-    foreach (var userId in filterUserList)
-    {
-      var user = Layout.UserList.SingleOrDefault(x => x.id == userId);
-      if (user != null)
-      {
-        var todolist = database.Where(x => x.user_create == user.id && !x.day_off).ToList();
-
-        var checkins = todolist.Where(x => x.ontime_checkin).Count();
-        var checkout = todolist.Where(x => x.ontime_checkout).Count();
-
-        double progress = Shared.Progress(checkins + checkout, day * 2);
-
-        rankList.Add(new ProgressModel()
+        if (date < DateTime.Now)
         {
-          id = user.id,
-          name = user.FullName,
-          avatar = user.avatar,
-          departments = user.departments_name,
-          value = progress
-        });
+          if (!DbDayOff.CheckOff(shareStorage.DayOffList, date))
+            day++;
+        }
       }
+
+      rankList.Clear();
+      foreach (var userId in filterUserList)
+      {
+        var user = shareStorage.MemberList.SingleOrDefault(x => x.id == userId);
+        if (user != null)
+        {
+          var todolist = database.Where(x => x.user_create == user.id && !x.day_off).ToList();
+
+          var checkins = todolist.Where(x => x.ontime_checkin).Count();
+          var checkout = todolist.Where(x => x.ontime_checkout).Count();
+
+          double progress = Shared.Progress(checkins + checkout, day * 2);
+
+          rankList.Add(new ProgressModel()
+            {
+              id = user.id,
+              name = user.name,
+              avatar = user.avatar,
+              departments = user.departments_name,
+              value = progress
+            });
+        }
+      }
+      rankList = rankList.OrderByDescending(x => x.value).ToList();
     }
-    rankList = rankList.OrderByDescending(x => x.value).ToList();
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetData()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

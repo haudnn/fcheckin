@@ -1,11 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+﻿using MongoDB.Driver;
 using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -66,7 +64,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<EducateCourseModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
@@ -88,9 +86,9 @@ namespace OnetezSoft.Data
       if (!string.IsNullOrEmpty(teacher))
         filtered = filtered & builder.Eq("teacher", teacher);
 
-      var sorted = Builders<EducateCourseModel>.Sort.Descending("date");
+      var list = await collection.FindAsync(filtered).Result.ToListAsync();
 
-      var list = await collection.Find(filtered).Sort(sorted).ToListAsync();
+      list = list.OrderByDescending(x => x.date).ToList();
 
       var results = new List<EducateCourseModel>();
 
@@ -128,7 +126,7 @@ namespace OnetezSoft.Data
 
       var results = collection.Find(filtered).Sort(sorted).ToList();
 
-      if(sortby == "random")
+      if (sortby == "random")
         results = results.OrderBy(x => Guid.NewGuid()).ToList();
 
       total = results.Count;

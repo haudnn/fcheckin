@@ -3,6 +3,7 @@
 @layout LayoutAdmin
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
@@ -44,7 +45,7 @@
 @code {
   [CascadingParameter]
   public LayoutAdmin Layout { get; set; }
-  
+
   private string _title = "Tổ chức sở hữu";
   private List<CompanyModel> dataList = new();
   private List<ProductModel> productList = new();
@@ -58,28 +59,53 @@
     await GetList();
   }
 
-  private async Task GetList()
+  private async Task<bool> GetList()
   {
-    // Danh sách công ty
-    dataList = await DbMainCompany.GetListOfCustomer(Layout.User.id);
-
-    // Dữ liệu thành viên
-    memberList = new();
-    foreach (var item in dataList)
+    bool _success = true;
+    try
     {
-      var members = DbUser.GetAll(item.id);
-      memberList.Add(item.id, members);
+      // Danh sách công ty
+      dataList = await DbMainCompany.GetListOfCustomer(Layout.User.id);
+
+      // Dữ liệu thành viên
+      memberList = new();
+      foreach (var item in dataList)
+      {
+        var members = await DbUser.GetAll(item.id, globalService);
+        memberList.Add(item.id, members);
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task DeleteItem(CompanyModel item)
+  private async Task<bool> DeleteItem(CompanyModel item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tổ chức: {item.name} ?"))
-      return;
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tổ chức: {item.name} ?"))
+        return false;
 
-    dataList.Remove(item);
-    item.delete = true;
-    await DbMainCompany.Update(item);
+      dataList.Remove(item);
+      item.delete = true;
+      await DbMainCompany.Update(item);
+      await globalService.RemoveShareStorage(item.id);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void CreateItem()

@@ -1,0 +1,72 @@
+﻿<section class="modal is-active">
+  <div class="modal-background"></div>
+  <section class="modal-card is-small" style="max-width: 450px">
+    <div style="border-radius: 8px;" class="modal-card-body">
+      <p class="font_16 has-text-weight-bold mb-5">Xóa việc cần làm lặp lại</p>
+      <div class="field">
+        @if (currentOption == 1)
+        {
+          <div class="control mb-2">
+            <label class="radio">
+              <input type="radio" name="type" checked @onclick="() => currentOption= 1">
+              <span class="ml-2 font_14">Chỉ công việc này</span>
+            </label>
+          </div>
+          <div class="control mb-2">
+            <label class="radio">
+              <input type="radio" name="type" @onclick="() => currentOption= 2">
+              <span class="ml-2 font_14">Công việc này và các công việc cần làm sau này</span>
+            </label>
+          </div>
+        }
+        else
+        {
+          <div class="control mb-2">
+            <label class="radio">
+              <input type="radio" name="type" @onclick="() => currentOption= 1">
+              <span class="ml-2 font_14">Chỉ công việc này</span>
+            </label>
+          </div>
+          <div class="control mb-2">
+            <label class="radio">
+              <input type="radio" name="type" checked @onclick="() => currentOption= 2">
+              <span class="ml-2 font_14">Công việc này và các công việc cần làm sau này</span>
+            </label>
+          </div>
+        }
+        <div class="control is-flex is-justify-content-flex-end mt-5">
+          <a class="button is-small mr-3" @onclick="Close">
+            Hủy
+          </a>
+          <a class="button is-link is-small @(isLoading ? "is-loading" : "")" @onclick="Confirm">
+            Đồng ý
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</section>
+
+@code {
+
+  [Parameter]
+  public EventCallback<int> OnConfirmDelete { get; set; }
+  [Parameter]
+  public EventCallback OnCloseDelete { get; set; }
+
+  private int currentOption = 1;
+  private bool isLoading = false;
+
+  private void Close()
+  {
+    currentOption = 1;
+    OnCloseDelete.InvokeAsync();
+  }
+
+  private async Task Confirm()
+  {
+    isLoading = true;
+    await OnConfirmDelete.InvokeAsync(currentOption);
+    isLoading = false;
+  }
+}

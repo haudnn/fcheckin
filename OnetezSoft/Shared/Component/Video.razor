@@ -1,0 +1,25 @@
+﻿<div class="modal is-active px-5">
+	<div class="modal-background"></div>
+	<section class="modal-card is-medium">
+    <div style="margin-right: -8px" class="is-flex is-justify-content-flex-end mb-3">
+			<a style="background: none" class="delete is-large" title="Xóa" @onclick="Close"></a>
+		</div>
+		<video style="width: 100%; height: 100%" controls>
+			<source src="@link" type="video/mp4">
+		</video>
+	</section>
+</div>
+
+@code {
+	[CascadingParameter]
+	public LayoutMain Layout { get; set; }
+	[Parameter]
+	public string link { get; set; }
+	[Parameter]
+	public EventCallback OnClose { get; set; }
+
+	private async Task Close()
+  {
+    await OnClose.InvokeAsync();
+  }
+}

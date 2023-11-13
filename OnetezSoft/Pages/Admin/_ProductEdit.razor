@@ -1,4 +1,5 @@
 ﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
 
 @if (model != null)
 {
@@ -563,13 +564,25 @@
     await OnUpdate.InvokeAsync(false);
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
+    bool _success = true;
+    try
+    {
     preview = false;
     model.update = await editorUpdate.GetHTML();
     model.video.link = Shared.VideoLink(model.video.link);
     await DbMainProduct.Update(model);
     await OnUpdate.InvokeAsync(true);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task Preview()
@@ -612,7 +625,7 @@
       }
       catch (Exception ex)
       {
-        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.Message}");
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.ToString()}");
       }
     }
     upThumbnail = false;
@@ -644,7 +657,7 @@
       }
       catch (Exception ex)
       {
-        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.Message}");
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.ToString()}");
       }
     }
     upImages = false;
@@ -741,7 +754,7 @@
       }
       catch (Exception ex)
       {
-        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.Message}");
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.ToString()}");
       }
     }
   }
@@ -778,5 +791,4 @@
         return;
     item.content.Remove(content);
   }
-
 }

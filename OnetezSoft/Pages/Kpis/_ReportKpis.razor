@@ -1,0 +1,121 @@
+﻿@inject IJSRuntime JSRuntime
+
+<ul id="kpis-report" class="columns report-layout-6 is-multiline is-variable is-0 mx-0 mt-4 h-full scrolly" style="flex: 1; gap: 16px;">
+  <li class="column kpis-report-1 kpis-card-top">
+    <_ReportBasic dataKpis="dataKpis" kpisRoot="kpisRoot" />
+  </li>
+  <li class="column kpis-report-2 kpis-card-top">
+    <_ReportProgressTree database="database" kpisRoot="kpisRoot" />
+  </li>
+  <li class="column kpis-report-3 kpis-card-top">
+    <_ReportProgressChart />
+  </li>
+  <li class="column kpis-report-4">
+    <_ReportKpisInput hiddenChart="hiddenChart" />
+  </li>
+  <li class="column kpis-report-5">
+    <_ReportProgressKpisInput dataKpisInput="dataKpisInput" />
+  </li>
+  <li class="column kpis-report-6">
+    <_ReportCheckin dataKpisInput="dataKpisInput" confirmList="confirmList" />
+  </li>
+</ul>
+
+@code {
+  [CascadingParameter]
+  private LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<KpisModel> database { get; set; } = new();
+  [Parameter]
+  public KpisModel kpisRoot { get; set; }
+  [Parameter]
+  public bool checkReload { get; set; } = true;
+  [Parameter]
+  public EventCallback<bool> checkReloadChanged { get; set; }
+
+  private List<KpisCheckinModel> confirmList = new();
+  private List<KpisModel> dataKpis = new();
+  private List<KpisModel> dataKpisInput = new();
+  private bool hiddenChart;
+
+  protected override async Task OnParametersSetAsync()
+  {
+    if (kpisRoot != null && checkReload)
+    {
+      dataKpis = database.Where(i => i.root == kpisRoot.id).ToList();
+      dataKpisInput = database.Where(i => i.root == kpisRoot.id && i.type == 1).ToList();
+      confirmList = await DbKpisCheckin.GetListCheckinConfirm(Layout.Company.id, kpisRoot.cycle, kpisRoot.id);
+      confirmList = confirmList.Where(x => dataKpisInput.Select(i => i.id).Contains(x.kpis)).ToList();
+      await ChartProgressKpisRoot();
+      await ChartKpisInputProgress();
+      checkReload = false;
+      await checkReloadChanged.InvokeAsync(checkReload);
+    }
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+    {
+      await ChartProgressKpisRoot();
+      await ChartKpisInputProgress();
+      await JSRuntime.InvokeVoidAsync("SetLayoutReportPosition", "#kpis-report", "#chartKpisCheck", ".kpis-list-check");
+    }
+  }
+
+  private async Task ChartProgressKpisRoot()
+  {
+    if (kpisRoot == null)
+      return;
+    var dataKpisRootReport = await DbKpisRootReport.GetList(Layout.Company.id, kpisRoot.cycle, kpisRoot.id);
+
+    int chartCount = dataKpisRootReport.Count + 1;
+
+    var chartLabel = new string[chartCount];
+    var chartDatas = new double[chartCount];
+
+    chartLabel[0] = string.Format("{0:dd/MM}", new DateTime(kpisRoot.date_create).Date);
+    chartDatas[0] = 0;
+
+    for (int i = 0; i < dataKpisRootReport.Count; i++)
+    {
+      var checkin = dataKpisRootReport[i];
+      chartLabel[i + 1] = string.Format("{0:dd/MM}", new DateTime(checkin.date).Date);
+      chartDatas[i + 1] = checkin.value;
+    }
+
+    await JSRuntime.InvokeAsync<string>("runChartLine", "%", chartLabel, chartDatas);
+  }
+
+  private async Task ChartKpisInputProgress()
+  {
+    if (kpisRoot != null)
+    {
+      hiddenChart = dataKpisInput.Count == 0 ? true : false;
+
+      var labelProgress = ("Dưới 25%,25% - 50%,50% - 75%,Trên 75%").Split(",");
+
+      int chartCount = 4;
+      var dataCheckinProgress = new int[chartCount];
+      foreach (var kpis in dataKpisInput)
+      {
+        if (kpis != null && kpis.metrics.FirstOrDefault() != null)
+        {
+          double progress = KpisService.GetProgressCheckin(kpis.metrics.FirstOrDefault().value, kpis.metrics.FirstOrDefault().target);
+
+          if (progress < 25)
+            dataCheckinProgress[0]++;
+          else if (progress < 50)
+            dataCheckinProgress[1]++;
+          else if (progress < 75)
+            dataCheckinProgress[2]++;
+          else if (progress >= 75)
+            dataCheckinProgress[3]++;
+        }
+      }
+
+      var colors = "#f14668,#ffdd57,#3298dc,#48c774";
+      await JSRuntime.InvokeAsync<string>("chartDoughnut", "chartKpisProgress", labelProgress, dataCheckinProgress, colors, "bottom");
+    }
+  }
+}

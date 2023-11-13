@@ -1,15 +1,25 @@
 @page "/hrm/timesheets"
+@inject NavigationManager navigation
 @inject IJSRuntime JSRuntime
 @using System.Globalization;
+@inject GlobalService globalService
 
 <PageTitle>@(timeSheet == null ? _title : timeSheet.name)</PageTitle>
 
-  @if (CheckAccess())
+
+@if (Layout.IsMobile)
 {
-  <section class="p-4 timesheet">
-    <!-- Tabs -->
-    <div class="tabs is-boxed">
-      <ul style="font-size:14px;">
+  <NoSupportMobile/>
+}
+else
+{
+  if (CheckAccess())
+  {
+    <div class="tabs">
+      <div class="tabs_name">
+        Bảng công
+      </div>
+      <ul>
         <li class="@(view_mode == 1 ? "is-active" : "")">
           <a @onclick="() => ChangeView(1)">
             <span>Bảng công tổng hợp</span>
@@ -20,357 +30,498 @@
             <span>Bảng công chi tiết</span>
           </a>
         </li>
-        <!--<li class="@(view_mode == 3 ? "is-active" : "")">
-          <a @onclick="() => ChangeView(3)">
-            <span>Bảng ca làm</span>
-          </a>
-        </li>-->
         @if (_access)
         {
-          <li class="@(view_mode == 4 ? "is-active" : "")" style="margin-left:auto">
+          <li class="@(view_mode == 4 ? "is-active" : "")">
             <a @onclick="() => ChangeView(4)">
-              <span>Danh sách bảng công</span>
+              <span>Tạo bảng công</span>
             </a>
           </li>
         }
       </ul>
     </div>
-    <!-- Section -->
-    <div class="card px-5 pt-5 pb-2">
-      @if (view_mode != 4)
-      {
-        @if (timeSheet != null)
+
+    <section class="main_content timesheet">
+      <!-- Section -->
+      <div class="card flex_column is_fullheight">
+        @if (view_mode != 4)
         {
-          <!-- header -->
-          <ul class="columns is-vcentered is-multiline is-variable is-2 mb-1">
-            <li class="column">
-              <h1 class="title is-5 has-text-info is-uppercase text_1_line" style="height:auto; line-height: inherit;">
-                @timeSheet.name
-              </h1>
-            </li>
-
-            @if (!editMode)
-            {
-              <li class="column is-narrow">
-                <div class="select is-fullwidth">
-                  <select @onchange="ChangeTimeSheet">
-                    @foreach (var sheet in timeSheets)
-                    {
-                      if (sheet != null && sheet.is_show)
-                      {
-                        <option value="@sheet.id" selected="@(timeSheet.id == sheet.id)">
-                          @sheet.name
-                        </option>
-                      }
-                    }
-                  </select>
-                </div>
-              </li>
-            }
-            else
-            {
-              <li class="column is-narrow">
-                <div class="select is-fullwidth">
-                  <select>
-                    @if (timeSheet != null && timeSheet.is_show)
-                    {
-                      <option>@timeSheet.name</option>
-                    }
-                  </select>
-                </div>
-              </li>
-            }
-
-            @if (view_mode != 3)
-            {
-              <li class="column is-narrow">
-                <div class="select is-fullwidth">
-                  <select @onchange="ChangeDepartment">
-                    <option value="" selected="@string.IsNullOrEmpty(selectDepart)">Phòng ban</option>
-                    @foreach (var item in departments)
-                    {
-                      <option value="@item.id" selected="@(selectDepart == item.id)">@item.name</option>
-                    }
-                  </select>
-                </div>
+          if (timeSheet != null)
+          {
+            <!-- header -->
+            <ul class="columns is-vcentered is-multiline is-variable is-2 mb-1">
+              <li class="column">
+                <h1 class="title is-5 has-text-info is-uppercase text_1_line" style="height:auto; line-height: inherit;">
+                  @timeSheet.name
+                </h1>
               </li>
 
-              <li class="column is-one-fifth">
-                <form class="control has-icons-right" @onsubmit="Search">
-                  <input @bind="filterKeyword" class="input is-rounded" type="text" placeholder="Tìm tên nhân viên...">
-                  <span class="icon is-right">
-                    <i class="material-icons-outlined is-size-5">search</i>
-                  </span>
-                </form>
-              </li>
-            }
-
-            @if (!editMode)
-            {
-              if (_access && view_mode != 3)
+              @if (!editMode)
               {
-
                 <li class="column is-narrow">
-                  @if (!timeSheet.locked)
-                  {
-                    <a class="button is-small has-text-link is-transparent mx-2" title="Chỉnh sửa" @onclick="() => editMode = true">
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-5">edit</i>
-                      </span>
-                    </a>
-                  }
-
-                  @if (view_mode == 1)
-                  {
-                    <a class="button is-small is-transparent mx-2" title="Xuất Excel" @onclick="Export">
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-5">file_download</i>
-                      </span>
-                    </a>
-                  }
-
-                  @if (Layout.User.role == 1 && !timeSheet.locked)
-                  {
-                    <a class="button is-small is-transparent mx-2" title="Khóa bảng công" @onclick="() => showLock = true">
-                      <span class="icon has-text-danger">
-                        <i class="material-icons-outlined is-size-5">lock</i>
-                      </span>
-                    </a>
-                  }
+                  <div class="select is-fullwidth">
+                    <select @onchange="ChangeTimeSheet">
+                      @foreach (var sheet in timeSheets)
+                      {
+                        if (sheet != null && sheet.is_show)
+                        {
+                          <option value="@sheet.id" selected="@(timeSheet.id == sheet.id)">
+                            @sheet.name
+                          </option>
+                        }
+                      }
+                    </select>
+                  </div>
                 </li>
               }
-            }
-            else
-            {
+              else
+              {
+                <li class="column is-narrow">
+                  <div class="select is-fullwidth">
+                    <select>
+                      @if (timeSheet != null && timeSheet.is_show)
+                      {
+                        <option>@timeSheet.name</option>
+                      }
+                    </select>
+                  </div>
+                </li>
+              }
+
               <li class="column is-narrow">
-                <a class="button is-small is-danger mr-2" @onclick="Cancel">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">close</i>
-                  </span>
-                  <span>Hủy</span>
-                </a>
+                <div id="dropdown-location" class="dropdown @(locationPopup ? "is-active" : "") @(Layout.IsMobile ? "" : "is-right")">
+                  <div class="dropdown-trigger filter-timesheet" @onclick="OpenLocationPopup" style="@(locationSelects.Any() || hybridCheck ? "background: #ffff9e;" : "")">
+                    <a class="icon-text">
+                      <span>Địa điểm</span>
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">expand_more</i>
+                      </span>
+                    </a>
+                  </div>
+                  <div class="dropdown-menu" style="width: @(Layout.IsMobile ? "300px" : "425px");">
+                    <div class="dropdown-content px-3 has-text-left" style="max-height: none;">
+                      <div class="field">
+                        <label class="label">Địa điểm áp dụng</label>
+                        <div class="control is-expanded scrolly" style="max-height: 250px;">
+                          @if (locationsFilter.Any())
+                          {
+                            <div class="mb-3">
+                              <a class="icon-text" @onclick="() => AddLocation()">
+                                <span class="icon">
+                                  @if (locationTemps.Any() && locationTemps.Count == locationsFilter.Count)
+                                  {
+                                    <span class="material-icons has-text-link is-clickable">
+                                      check_box
+                                    </span>
+                                  }
+                                  else
+                                  {
+                                    <span class="material-icons is-clickable">
+                                      check_box_outline_blank
+                                    </span>
+                                  }
+                                </span>
+                                <span>
+                                  Chọn tất cả
+                                </span>
+                              </a>
+                            </div>
+                          }
+                          @foreach (var location in locationsFilter)
+                          {
+                            <div class="mb-3">
+                              <span class="icon-text is-clickable" @onclick="() => AddLocation(location.id)">
+                                <span class="icon">
+                                  @if (locationTemps.Contains(location.id))
+                                  {
+                                    <span class="material-icons has-text-link">
+                                      check_box
+                                    </span>
+                                  }
+                                  else
+                                  {
+                                    <span class="material-icons">
+                                      check_box_outline_blank
+                                    </span>
+                                  }
+                                </span>
+                                <span>
+                                  @location.name
+                                </span>
+                              </span>
+                            </div>
+                          }
+                        </div>
+                      </div>
 
-                <a class="button is-small is-link" @onclick="Update">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">done</i>
-                  </span>
-                  <span>Cập nhật</span>
-                </a>
+
+                      <hr class="dropdown-divider">
+                      <div class="buttons is-right mb-1 is-justify-content-space-between">
+                        <div class="icon-text is-clickable" @onclick="() => hybridCheckTemp = !hybridCheckTemp">
+                          @if (hybridCheckTemp)
+                          {
+                            <span class="icon">
+                              <span class="material-icons has-text-link is-clickable">
+                                check_box
+                              </span>
+                            </span>
+                          }
+                          else
+                          {
+                            <span class="icon">
+                              <span class="material-icons is-clickable">
+                                check_box_outline_blank
+                              </span>
+                            </span>
+                          }
+                          <span class="has-text-weight-semibold has-text-link">
+                            Chế độ linh động
+                          </span>
+                        </div>
+
+                        <div>
+                          <a class="button is-small m-0" @onclick="CancelLocation">
+                            <span class="icon">
+                              <i class="material-icons-round is-size-6">close</i>
+                            </span>
+                            <span class="is-size-7">Hủy</span>
+                          </a>
+                          <a class="button is-link is-small m-0" @onclick="UpdateLocation">
+                            <span class="icon">
+                              <i class="material-icons-round is-size-6">done</i>
+                            </span>
+                            <span class="is-size-7">Hoàn tất</span>
+                          </a>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+
               </li>
-            }
-          </ul>
 
-          <!-- Indicator -->
-          @if (selectUsers.Count > 0 && view_mode != 3)
-          {
-            <ul class="columns is-vcentered is-mulitline is-variable is-1 mb-2 is-size-7">
-              <li class="column is-half">
-                @if (view_mode == 1)
-                {
-                  <ul class="columns is-vcentered is-mulitline is-variable is-1 is-size-7">
-                    <li class="column is-narrow">
-                      Công thực tế: <span class="has-text-weight-bold">@Math.Round(totalTimeReal, 2)</span>
-                    </li>
-                    <li class="column is-narrow">
-                      Công chuẩn: <span class="has-text-weight-bold">@Math.Round(dataTimeSheetUsers.Sum(i => i.time_total), 2)</span>
-                    </li>
-                    <li class="column is-narrow">
-                      Công tính lương: <span class="has-text-weight-bold">@Math.Round(totalTimeSalary, 2)</span>
-                    </li>
-                  </ul>
-                }
-              </li>
+              @if (view_mode != 3)
+              {
+                <li class="column is-narrow">
+                  <div id="dropdown-user" class="dropdown @(userPopup ? "is-active" : "") @(Layout.IsMobile ? "" : "is-right")">
+                    <div class="dropdown-trigger filter-timesheet" @onclick="() => userPopup = !userPopup">
+                      <a class="icon-text">
+                        <span>Nhân viên</span>
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">expand_more</i>
+                        </span>
+                      </a>
+                    </div>
+                    <div class="dropdown-menu" style="width: @(Layout.IsMobile ? "300px" : "425px");">
+                      <div class="dropdown-content px-3 has-text-left" style="max-height: none;">
+                        <div class="field">
+                          <label class="label">Nhân viên áp dụng</label>
+                          <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
+                            <li class="column is-narrow">
+                              <div class="select is-fullwidth">
+                                <select @onchange="ChangeDepartment">
+                                  <option value="" selected="@string.IsNullOrEmpty(selectDepart)">Phòng ban</option>
+                                  @foreach (var item in departmentsTimeSheet)
+                                  {
+                                    <option value="@item.id" selected="@(selectDepart == item.id)">@item.name</option>
+                                  }
+                                </select>
+                              </div>
+                            </li>
 
-              <li class="column is-half is-justify-content-end is-flex is-align-items-center">
-                <!--Chú thích các icon-->
-                @if ((view_mode == 1 || view_mode == 2) && selectUsers.Count > 0)
+                            <li class="column">
+                              <form class="control is-expanded scrolly has-icons-right" @onsubmit="Search">
+                                <input @bind="filterKeyword" class="input is-rounded" type="text" placeholder="Tìm tên nhân viên...">
+                                <span class="icon is-right">
+                                  <i class="material-icons-outlined is-size-5">search</i>
+                                </span>
+                              </form>
+                            </li>
+                          </ul>
+                          <div class="control is-expanded scrolly" style="max-height: 250px;">
+                            @if (usersFilter.Any())
+                            {
+                              <div class="mb-3">
+                                <a class="icon-text" @onclick="() => AddMember()">
+                                  <span class="icon">
+                                    @if (usersIdSelect.Any() && usersFilter.Select(i => i.id).All(i => usersIdSelect.Contains(i)))
+                                    {
+                                      <span class="material-icons has-text-link is-clickable">
+                                        check_box
+                                      </span>
+                                    }
+                                    else
+                                    {
+                                      <span class="material-icons is-clickable">
+                                        check_box_outline_blank
+                                      </span>
+                                    }
+                                  </span>
+                                  <span>
+                                    Chọn tất cả
+                                  </span>
+                                </a>
+                              </div>
+                              @foreach (var user in usersFilter)
+                              {
+                                <div class="mb-3">
+                                  <span class="icon-text" @onclick="() => AddMember(user.id)">
+                                    <span class="icon">
+                                      @if (usersIdSelect.Contains(user.id))
+                                      {
+                                        <span class="material-icons has-text-link is-clickable">
+                                          check_box
+                                        </span>
+                                      }
+                                      else
+                                      {
+                                        <span class="material-icons is-clickable">
+                                          check_box_outline_blank
+                                        </span>
+                                      }
+                                    </span>
+                                    <span>
+                                      <a class="user_item has-text-black">
+                                        <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                                        <span class="text_1_line">@user.FullName</span>
+                                      </a>
+                                    </span>
+                                  </span>
+                                </div>
+                              }
+                            }
+                            else
+                            {
+                              <span>Không tìm thấy dữ liệu phù hợp!</span>
+                            }
+                          </div>
+                        </div>
+
+
+                        <hr class="dropdown-divider">
+                        <div class="buttons is-right">
+                          <a class="button is-small" @onclick="CancelUser">
+                            <span class="icon">
+                              <i class="material-icons-round is-size-6">close</i>
+                            </span>
+                            <span class="is-size-7">Hủy</span>
+                          </a>
+                          <a class="button is-link is-small" @onclick="UpdateUser">
+                            <span class="icon">
+                              <i class="material-icons-round is-size-6">done</i>
+                            </span>
+                            <span class="is-size-7">Hoàn tất</span>
+                          </a>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+                </li>
+
+              }
+
+              @if (!editMode)
+              {
+                if (_access && view_mode != 3)
                 {
-                  <ul class="columns is-vcentered is-mulitline is-variable is-1 is-size-7 timesheet-note">
-                    @if (view_mode == 2)
+
+                  <li class="column is-narrow">
+                    @if (!timeSheet.locked)
                     {
-                      <li class="column is-narrow is-flex is-align-items-center">
-                        <span class="note-color mr-1" style="background-color: #B6EBF530;"></span>
-                        <span class="is-size-7">Ca làm hợp lệ</span>
-                      </li>
-
-                      <li class="column is-narrow is-flex is-align-items-center">
-                        <span class="note-color mr-1" style="background-color: #ff544920;"></span>
-                        <span class="is-size-7">Ca làm bất thường</span>
-                      </li>
+                      <a class="button is-small has-text-link is-transparent mx-2" title="Chỉnh sửa" @onclick="() => editMode = true">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">edit</i>
+                        </span>
+                      </a>
                     }
 
                     @if (view_mode == 1)
                     {
-                      <li class="column is-narrow is-flex is-align-items-center">
-                        <span class="note-color mr-1" style="background-color: #fbde5e;"></span>
-                        <span class="is-size-7">Tồn tại ca làm đã xoá</span>
-                      </li>
-
-                      <li class="column is-narrow ml-1">
-                        <span class="has-text-weight-bold has-text-danger is-underlined is-size-7">Số công:</span>
-                        <span class="is-size-7">Ca làm bất thường</span>
-                      </li>
+                      <a class="button is-small is-transparent mx-2" title="Xuất Excel" @onclick="Export">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">file_download</i>
+                        </span>
+                      </a>
                     }
 
-                    <li class="column is-narrow is-flex is-align-items-center">
-                      <div class="is_edited">
-                        <span class="note-color mr-1"></span>
-                      </div>
-                      <span class="ml-1 is-size-7">Ca đã chỉnh sửa</span>
-                    </li>
-                  </ul>
+                    @if (Layout.User.role == 1 && !timeSheet.locked)
+                    {
+                      <a class="button is-small is-transparent mx-2" title="Khóa bảng công" @onclick="() => showLock = true">
+                        <span class="icon has-text-danger">
+                          <i class="material-icons-outlined is-size-5">lock</i>
+                        </span>
+                      </a>
+                    }
+                  </li>
                 }
+              }
+              else
+              {
+                <li class="column is-narrow">
+                  <a class="button is-small is-danger mr-2" @onclick="Cancel">
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">close</i>
+                    </span>
+                    <span>Hủy</span>
+                  </a>
+
+                  <a class="button is-small is-link" @onclick="Update">
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">done</i>
+                    </span>
+                    <span>Cập nhật</span>
+                  </a>
+                </li>
+              }
+            </ul>
+
+            <!-- Indicator -->
+            @if (selectUsers.Count > 0 && view_mode != 3)
+            {
+              <ul class="columns is-vcentered is-mulitline is-variable is-1 mb-2 is-size-7">
+                <li class="column is-half">
+                  @if (view_mode == 1)
+                  {
+                    <ul class="columns is-vcentered is-mulitline is-variable is-1 is-size-7">
+                      <li class="column is-narrow">
+                        Công thực tế: <span class="has-text-weight-bold">@Math.Round(totalTimeReal, 2)</span>
+                      </li>
+                      <li class="column is-narrow">
+                        Công chuẩn: <span class="has-text-weight-bold">@Math.Round(dataTimeSheetUsers.Sum(i => i.time_total), 2)</span>
+                      </li>
+                      <li class="column is-narrow">
+                        Công tính lương: <span class="has-text-weight-bold">@Math.Round(totalTimeSalary, 2)</span>
+                      </li>
+                    </ul>
+                  }
+                </li>
+
+                <li class="column is-half is-justify-content-end is-flex is-align-items-center">
+                  <!--Chú thích các icon-->
+                  @if ((view_mode == 1 || view_mode == 2) && selectUsers.Count > 0)
+                  {
+                    <ul class="columns is-vcentered is-mulitline is-variable is-1 is-size-7 timesheet-note">
+                      @if (view_mode == 2)
+                      {
+                        <li class="column is-narrow is-flex is-align-items-center">
+                          <span class="note-color mr-1" style="background-color: #B6EBF530;"></span>
+                          <span class="is-size-7">Ca làm hợp lệ</span>
+                        </li>
+
+                        <li class="column is-narrow is-flex is-align-items-center">
+                          <span class="note-color mr-1" style="background-color: #ff544920;"></span>
+                          <span class="is-size-7">Ca làm bất thường</span>
+                        </li>
+                      }
+
+                      @if (view_mode == 1)
+                      {
+                        <li class="column is-narrow is-flex is-align-items-center">
+                          <span class="note-color mr-1" style="background-color: #fbde5e;"></span>
+                          <span class="is-size-7">Tồn tại ca làm đã xoá</span>
+                        </li>
+
+                        <li class="column is-narrow ml-1">
+                          <span class="has-text-weight-bold has-text-danger is-underlined is-size-7">Số công:</span>
+                          <span class="is-size-7">Ca làm bất thường</span>
+                        </li>
+                      }
+
+                      <li class="column is-narrow is-flex is-align-items-center">
+                        <div class="is_edited">
+                          <span class="note-color mr-1"></span>
+                        </div>
+                        <span class="ml-1 is-size-7">Ca đã chỉnh sửa</span>
+                      </li>
+                    </ul>
+                  }
+                </li>
+              </ul>
+            }
+          }
+          else
+          {
+            <!-- header -->
+            <ul class="columns is-vcentered is-multiline is-variable is-2 mb-1">
+              <li class="column">
+                <h1 class="title is-5 has-text-info is-uppercase text_1_line" style="height:auto; overflow: unset;">
+                  Không có bảng công
+                </h1>
               </li>
             </ul>
           }
-        }
-        else
-        {
-          <!-- header -->
-          <ul class="columns is-vcentered is-multiline is-variable is-2 mb-1">
-            <li class="column">
-              <h1 class="title is-5 has-text-info is-uppercase text_1_line" style="height:auto; overflow: unset;">
-                Không có bảng công
-              </h1>
-            </li>
-          </ul>
-        }
-        <!-- table -->
-        <div id="scrollbox" class="table-container" style="overflow: auto; height: calc(100vh - 235px);">
-          @if (timeSheet != null)
-          {
-            var from = new DateTime(timeSheet.from);
-            var to = new DateTime(timeSheet.to);
-            if ((selectUsers.Count > 0 && dataTimeSheetUsers.Any(i => selectUsers.Select(i => i.id).Contains(i.user))) || view_mode == 3)
+          <!-- table -->
+          <div id="scrollbox" class="table-container" style="overflow: auto; flex:1; min-height:200px;">
+            @if (timeSheet != null)
             {
-              <table class="table is-fullwidth is-vcentered sticky" style="width: max-content;">
-                <thead>
-                  <tr>
-                    <th class="sticky @(view_mode != 3 ? "last user" : "")" width="@(view_mode == 3 ? "120px" : "200px")" style="left:0;background: #AEC6FF;">
-                      @(view_mode != 3 ? "Tên nhân viên" : "Tên ca làm")
-                    </th>
-                    @if (view_mode == 3)
-                    {
-                      <!--<th class="sticky last" width="140px" style="left:120px;background: #AEC6FF;">
-                        Thời gian
-                      </th>-->
-                    }
-                    else
-                    {
-                      <th width="200px" style="background: #AEC6FF;">Phòng ban</th>
-                    }
-
-                    @for (DateTime i = from; i <= to; i = i.AddDays(1))
-                    {
-                      <th width="@(view_mode == 1 ? "80px" : "140px")"
-                          align="center" style="background: #B6EBF5;">
-                        @DateToDay(i)
+              var from = new DateTime(timeSheet.from);
+              var to = new DateTime(timeSheet.to);
+              if ((selectUsers.Count > 0 && dataTimeSheetUsers.Any(i => selectUsers.Select(i => i.id).Contains(i.user))) || view_mode == 3)
+              {
+                <table class="table is-fullwidth is-vcentered sticky" style="width: max-content;">
+                  <thead>
+                    <tr>
+                      <th class="sticky @(view_mode != 3 ? "last user" : "")" width="@(view_mode == 3 ? "120px" : "200px")" style="left:0;background: #AEC6FF;">
+                        @(view_mode != 3 ? "Tên nhân viên" : "Tên ca làm")
                       </th>
-                    }
-                    @if (view_mode != 3 && view_mode != 2)
-                    {
-                      if (dataRules.overtime.is_show)
+                      @if (view_mode == 3)
                       {
-                        <th width="120px" align="center" style="background: #AEC6FF;">
-                          Làm ngoài giờ
+                        <!--<th class="sticky last" width="140px" style="left:120px;background: #AEC6FF;">
+                          Thời gian
+                        </th>-->
+                      }
+                      else
+                      {
+                        <th width="200px" style="background: #AEC6FF;">Phòng ban</th>
+                      }
+
+                      @for (DateTime i = from; i <= to; i = i.AddDays(1))
+                      {
+                        <th width="@(view_mode == 1 ? "80px" : "140px")"
+                            align="center" style="background: #B6EBF5;">
+                          @DateToDay(i)
                         </th>
                       }
-
-                      @foreach (var form in dataRules.forms)
+                      @if (view_mode != 3 && view_mode != 2)
                       {
-                        // đơn từ đang được kích hoạt hoặc đơn từ đã được sử dụng trong bảng chấm công
-                        if (form.is_active)
+                        if (dataRules.overtime.is_show)
                         {
-                          <th width="120px" align="center" style="background: @(form.color)30; color:@form.color">
-                            @form.name (@(form.sign))
+                          <th width="120px" align="center" style="background: #AEC6FF;">
+                            Làm ngoài giờ
                           </th>
                         }
+
+                        @foreach (var form in dataRules.forms)
+                        {
+                          // đơn từ đang được kích hoạt hoặc đơn từ đã được sử dụng trong bảng chấm công
+                          if (form.is_active)
+                          {
+                            <th width="120px" align="center" style="background: @(form.color)30; color:@form.color">
+                              @form.name (@(form.sign))
+                            </th>
+                          }
+                        }
+                        <th width="150px" align="center" style="background: #8990A5; color: #fff">
+                          <div class="pb-1">Công Thực Tế</div>
+                        </th>
+                        <th width="150px" align="center" style="background: #8990A5; color: #fff">
+                          <div class="pb-1">Công Chuẩn Tháng</div>
+                        </th>
+                        <th width="150px" align="center" style="background: #8990A5; color: #fff">
+                          <div class="pb-1">Công Tính Lương</div>
+                        </th>
                       }
-                      <th width="150px" align="center" style="background: #8990A5; color: #fff">
-                        <div class="pb-1">Công Thực Tế</div>
-                      </th>
-                      <th width="150px" align="center" style="background: #8990A5; color: #fff">
-                        <div class="pb-1">Công Chuẩn Tháng</div>
-                      </th>
-                      <th width="150px" align="center" style="background: #8990A5; color: #fff">
-                        <div class="pb-1">Công Tính Lương</div>
-                      </th>
-                    }
-                  </tr>
-                </thead>
-                <tbody>
-                  <!-- Chế độ xem phân ca -->
-                  @if (view_mode == 3)
-                  {
-                    /* foreach (var shift in shiftList)
-                    {
-                    <tr>
-                    <td class="sticky" style="left: 0; width:120px;">
-                    <a class="user_item">
-                    <span class="text_1_line">
-                    @shift.name
-                    </span>
-                    </a>
-                    </td>
-                    <td class="sticky last" style="left:120px;">
-                    <p class="user_item" style="width:100px;">
-                    @if (shift.checkin != null && shift.checkout != null)
-                    {
-                    <span class="text_1_line">
-                    @shift.checkin - @shift.checkout
-                    </span>
-                    }
-                    </p>
-                    </td>
-
-                    @for (DateTime i = from; i <= to; i = i.AddDays(1))
-                    {
-                    var date = i;
-                    // không lấy dữ liệu những ngày chưa đến
-                    var is_over_day = date.Ticks > DateTime.Today.Ticks;
-                    var timekeepingList = new List<HrmTimekeepingModel>();
-                    //TH ca OT
-                    if (shift.id == null)
-                    {
-                    timekeepingList = dataTimekeeping.Where(x => x != null && x.date == date.Ticks
-                    && x.time_tracking.Any(x => x.is_ot)).ToList();
-                    }
-                    else
-                    {
-                    //TH: không phải OT
-                    timekeepingList = dataTimekeeping.Where(x => x != null && x.date == date.Ticks
-                    && x.time_tracking.Select(i => i.time_id).ToList().Contains(shift.id)).ToList();
-                    }
-
-                    @if (!is_over_day)
-                    {
-                    <td align="center">
-                    <span class="tag has-text-weight-medium is-flex"
-                    style="width:119px;background-color:#B6EBF530;"
-                    @onclick="() => ViewShiftDetail(timekeepingList, shift, date)">
-                    <span class="text_1_line pr-2">
-                    @timekeepingList.Count nhân viên
-                    </span>
-                    </span>
-                    </td>
-                    }
-                    else
-                    {
-                    <td align="center" class="is_over_day">
-                    </td>
-                    }
-                    }
                     </tr>
-                    } */
-                  }
-                  else
-                  {
-                    // dữ liệu theo user
-                    foreach (var user in selectUsers)
+                  </thead>
+                  <tbody>
+                    <!-- Chế độ xem phân ca -->
+                    @foreach (var user in selectUsers)
                     {
                       var timesheetUser = dataTimeSheetUsers.Find(i => i.user == user.id);
                       var timeListUser = dataTimeList.Find(i => i.id == user.id);
-                      var formListUser = dataFormsList.Where(i => i.user == user.id).OrderBy(i => i.is_confirm).ToList();
+                      var formListUser = dataFormsList.Where(i => i.user == user.id).OrderBy(i => i.confirm_date).ToList();
 
                       double timeRealUser = 0;
                       double timeSalaryUser = 0;
@@ -379,7 +530,7 @@
                       {
                         var endDate = (timeSheet.to > DateTime.Today.Ticks) ? DateTime.Today.Ticks : timeSheet.to;
                         var shiftEditOt = timesheetUser.timesheet_dates.Where(i => timeSheet.from <= i.date && i.date <= endDate).SelectMany(i => i.shifts_edit.Values).ToList();
-                        var timekeepingList = dataTimekeeping.Where(i => i.user == user.id).ToList();
+                        var timekeepingList = dataTimekeeping.Where(i => i.user == user.id && timeSheet.from <= i.date && i.date <= endDate).ToList();
                         <tr>
                           <td class="sticky last" style="left: 0;">
                             <a class="user_item" @onclick="() => ShowLogs(user)">
@@ -389,15 +540,17 @@
                             </a>
                           </td>
                           <td>
-                            <p class="user_item" style="width:200px;">
-                              <span class="text_1_line">@user.departments_name</span>
-                            </p>
+                            @if (!Shared.IsEmpty(user.departments_name))
+                            {
+                              <p class="user_item" style="width:200px;">
+                                <span class="text_1_line">@user.departments_name.Split("/").Last()</span>
+                              </p>
+                            }
                           </td>
                           <!-- Dữ liệu theo ngày -->
                           @for (DateTime i = from; i <= to; i = i.AddDays(1))
                           {
                             var day = i;
-
                             // dữ liệu phân ca theo ngày;
                             var timeListDate = new HrmTimeListModel.Shift();
                             if (timeListUser != null)
@@ -449,68 +602,87 @@
 
                             @if (timekeepingUser == null && !checkDayOff)
                             {
-                              if (is_over_day)
+                              if (locationSelects.Any() || hybridCheck)
                               {
                                 <td align="center" class="is_over_day">
                                   <span></span>
                                 </td>
                               }
-                              else if (timeListDate != null && timeListDate.shifts_id.Any())
-                              {
-                                // TH: có phân ca nhưng không bất kỳ chấm công nào
-                                <td align="center" class="@(timeListDate.shifts_id.Any(i => timesheetDates.shifts_edit.ContainsKey(i)) ? "is_edited" : "")"
-                                    title="Không đủ dữ liệu chấm công"
-                                    style="@(timeListDate != null && worksIdDelete.Any(i => timeListDate.shifts_id.Contains(i)) && view_mode == 1 ? "background-color: #fbde5e;" : "")">
-                                  <!-- Chế độ xem tổng hợp -->
-                                  @if (view_mode == 1)
-                                  {
-                                    <span @onclick="() => ViewDetail(user, null ,null, day, null, timeSalaryDateUser, timeListDate, timekeepingUser, checkDayOff)"
-                                          class="p-2 @(timeListDate.shifts_id.All(i => timesheetDates.shifts_form.Keys.Contains(i)) ? "" : "has-text-weight-bold has-text-danger is-underlined")">
-                                      @timeSalaryDateUser
-                                    </span>
-                                  }
-                                  else if (view_mode == 2)
-                                  {
-                                    var timeList = timeListDate.shifts_id.Where(i => true).ToList();
-                                    <!-- Chế độ xem chi tiết -->
-                                    <!--TH: ca làm không có dữ liệu chấm công-->
-                                    if (timeList.Any())
-                                    {
-                                      foreach (var item in timeList)
-                                      {
-                                        var typeTime = GetTimeType(item, timesheetDates);
-                                        var workShift = dataWorkShift.Find(i => i.id == item);
-                                        <span class="tag has-text-weight-medium is-flex @(timesheetDates.shifts_edit.ContainsKey(item) ? "is_edited" : "")"
-                                        @onclick="() => ViewDetail(user, null, null, day, workShift, timeSalaryDateUser, timeListDate, timekeepingUser, checkDayOff)"
-                                              style="width:119px; background-color:@(timesheetDates.shifts_form.ContainsKey(item) ? "#B6EBF530" : "#ff544920");">
-                                          <p class="text_1_line">
-                                            @workShift.name
-                                          </p>
-
-                                          @if (!string.IsNullOrEmpty(typeTime))
-                                          {
-                                            <span class="mx-1">-</span>
-                                            <span>@typeTime</span>
-                                          }
-                                        </span>
-                                      }
-                                    }
-                                  }
-                                </td>
-                              }
                               else
                               {
-                                <td align="center" class="" @onclick="() => ViewDetail(user, null, null, day, null, timeSalaryDateUser, timeListDate, timekeepingUser, checkDayOff)"
-                                    style="@(timeListDate != null && worksIdDelete.Any(i => timeListDate.shifts_id.Contains(i)) && view_mode == 1 ? "background-color: #fbde5e;" : "")">
-                                  <span>
-                                    -
-                                  </span>
-                                </td>
+                                if (is_over_day)
+                                {
+                                  <td align="center" class="is_over_day">
+                                    <span></span>
+                                  </td>
+                                }
+                                else if (timeListDate != null && timeListDate.shifts_id.Any())
+                                {
+                                  // TH: có phân ca nhưng không bất kỳ chấm công nào
+                                  <td align="center" class="@(timeListDate.shifts_id.Any(i => timesheetDates.shifts_edit.ContainsKey(i)) ? "is_edited" : "")"
+                                      title="Không đủ dữ liệu chấm công"
+                                      style="@(timeListDate != null && worksIdDelete.Any(i => timeListDate.shifts_id.Contains(i)) && view_mode == 1 ? "background-color: #fbde5e;" : "")">
+                                    <!-- Chế độ xem tổng hợp -->
+                                    @if (view_mode == 1)
+                                    {
+                                      <span @onclick="() => ViewDetail(user, null ,null, day, null, timeSalaryDateUser, timeListDate, timekeepingUser, checkDayOff)"
+                                            class="p-2 @(timeListDate.shifts_id.All(i => timesheetDates.shifts_form.Keys.Contains(i)) ? "" : "has-text-weight-bold has-text-danger is-underlined")">
+                                        @timeSalaryDateUser
+                                      </span>
+                                    }
+                                    else if (view_mode == 2)
+                                    {
+                                      var timeList = timeListDate.shifts_id.Where(i => true).ToList();
+                                      <!-- Chế độ xem chi tiết -->
+                                      <!--TH: ca làm không có dữ liệu chấm công-->
+                                      if (timeList.Any())
+                                      {
+                                        foreach (var item in timeList)
+                                        {
+                                          var typeTime = GetTimeType(item, timesheetDates);
+                                          var workShift = dataWorkShift.Find(i => i.id == item);
+                                          <span class="tag has-text-weight-medium is-flex @(timesheetDates.shifts_edit.ContainsKey(item) ? "is_edited" : "")"
+                                          @onclick="() => ViewDetail(user, null, null, day, workShift, timeSalaryDateUser, timeListDate, timekeepingUser, checkDayOff)"
+                                                style="width:119px; background-color:@(timesheetDates.shifts_form.ContainsKey(item) ? "#B6EBF530" : "#ff544920");">
+                                            <p class="text_1_line">
+                                              @workShift.name
+                                            </p>
+
+                                            @if (!string.IsNullOrEmpty(typeTime))
+                                            {
+                                              <span class="mx-1">-</span>
+                                              <span>@typeTime</span>
+                                            }
+                                          </span>
+                                        }
+                                      }
+                                    }
+                                  </td>
+                                }
+                                else
+                                {
+                                  <td align="center" class="" @onclick="() => ViewDetail(user, null, null, day, null, timeSalaryDateUser, timeListDate, timekeepingUser, checkDayOff)"
+                                      style="@(timeListDate != null && worksIdDelete.Any(i => timeListDate.shifts_id.Contains(i)) && view_mode == 1 ? "background-color: #fbde5e;" : "")">
+                                    <span>
+                                      -
+                                    </span>
+                                  </td>
+                                }
                               }
                             }
                             else
                             {
-                              if (is_over_day)
+                              var timeTrackingLocation = new HrmTimekeepingModel.TimeData();
+                              if (timekeepingUser != null && (locationSelects.Any() || hybridCheck))
+                              {
+                                timeTrackingLocation = timekeepingUser.time_tracking.FirstOrDefault(i => (i.is_hybrid && hybridCheck) || (i.location != null && locationSelects.Contains(i.location.id)));
+                              }
+                              else
+                              {
+                                timeTrackingLocation = null;
+                              }
+
+                              if (is_over_day || ((locationSelects.Any() || hybridCheck) && timeTrackingLocation == null))
                               {
                                 <td align="center" class="is_over_day">
                                   <span></span>
@@ -518,16 +690,60 @@
                               }
                               else
                               {
+                                var timeSheetUserOt = new List<HrmTimesheetUserModel.TimeSheetEdit>();
+                                var timeTracking = new List<HrmTimekeepingModel.TimeData>();
+                                if (timekeepingUser != null)
+                                {
+                                  // cập nhật dữ liệu chấm công
+                                  // TH: OT
+                                  if (locationSelects.Count == 0 && !hybridCheck)
+                                  {
+                                    if (timesheetDates.shifts_edit.Any())
+                                      timeSheetUserOt = timesheetDates.shifts_edit.Values.Where(i => i.is_ot).ToList();
+                                  }
+                                  else
+                                  {
+                                    if (timekeepingUser != null && timesheetDates.shifts_edit.Any())
+                                    {
+                                      timekeepingUser.time_tracking = timekeepingUser.time_tracking.Where(i => (i.is_hybrid && hybridCheck) || (i.location != null && locationSelects.Contains(i.location.id))).ToList();
+                                      var timeTrackingOt = timekeepingUser.time_tracking.Where(i => i.is_ot).GroupBy(i => i.checkin_id);
+
+                                      foreach (var item in timeTrackingOt)
+                                      {
+                                        if (timesheetDates.shifts_edit.ContainsKey(item.FirstOrDefault().checkin_id))
+                                          timeSheetUserOt.Add(timesheetDates.shifts_edit[item.FirstOrDefault().checkin_id]);
+                                      }
+                                    }
+                                  }
+
+                                  timeTracking = timekeepingUser.time_tracking.Where(i => true).ToList();
+
+                                  // cập nhật phân ca
+                                  if (timeListDate != null && (locationSelects.Any() || hybridCheck))
+                                  {
+                                    timeListDate.shifts_id = timeListDate.shifts_id.Where(x =>
+                                    {
+                                      // TH: có lọc địa điểm
+                                      var timeTracking = timekeepingUser.time_tracking.Find(i => x == i.time_id && ((i.is_hybrid && hybridCheck) || (i.location != null && locationSelects.Contains(i.location.id))));
+                                      if (timeTracking != null)
+                                        return true;
+                                      else
+                                        return false;
+                                    }).ToList();
+                                  }
+                                }
+
                                 if (timekeepingUser != null && !checkDayOff)
                                 {
-                                  var timeTracking = timekeepingUser.time_tracking.Where(i => true).ToList();
+                                  // TH: có chấm không và không phải ngày nghỉ
                                   <td align="center"
-                                      class="@(((timeListDate !=null && timeListDate.shifts_id.Any(i => timesheetDates.shifts_edit.ContainsKey(i)))
-                                              || (timesheetDates.shifts_edit.Any() && !string.IsNullOrEmpty(timesheetDates.shifts_edit.FirstOrDefault().Value.work_name))
-                                              || (timesheetDates.shifts_edit.Values.Any(i => i.is_ot)))
-                                              ? "is_edited" : "")"
+                                      class="@(((timeListDate != null && timeListDate.shifts_id.Any(i => timesheetDates.shifts_edit.ContainsKey(i)))
+                                                  || (timesheetDates.shifts_edit.Any() && !string.IsNullOrEmpty(timesheetDates.shifts_edit.FirstOrDefault().Value.work_name) && (locationSelects.Count == 0 && !hybridCheck))
+                                                  || (timeSheetUserOt.Any()))
+                                                  ? "is_edited" : "")"
                                       style="@(timeListDate != null && worksIdDelete.Any(i => timeListDate.shifts_id.Contains(i)) && view_mode == 1 ? "background-color: #fbde5e;" : "")"
                                       title="@(ShiftWarning(timekeepingUser, timeListDate, timesheetDates) != "" ? $"Chấm công: {ShiftWarning(timekeepingUser, timeListDate, timesheetDates)}" : "")">
+
                                     <!-- Chế độ xem tổng hợp -->
                                     @if (view_mode == 1)
                                     {
@@ -646,7 +862,6 @@
                                 else if (timekeepingUser != null && checkDayOff)
                                 {
                                   //TH: ngày nghỉ mà có chấm công ca ngoài giờ
-                                  var timeTracking = timekeepingUser.time_tracking;
                                   var timeTrackingOt = timeTracking.Where(i => i.is_ot).GroupBy(i => i.checkin_id);
                                   var checkOt = false;
 
@@ -665,7 +880,7 @@
                                   }
 
                                   <td align="center"
-                                      class="@(timesheetDates.shifts_edit.Values.Any(i => i.is_ot)
+                                      class="@(timesheetDates.shifts_edit.Values.Any(i => i.is_ot) || (timeSheetUserOt.Any())
                                              ? "is_edited" : "")"
                                       style="@(timeListDate != null && worksIdDelete.Any(i => timeListDate.shifts_id.Contains(i)) && view_mode == 1 ? "background-color: #fbde5e;" : "")"
                                       title="@(checkOt ? $"Chấm công: {ShiftWarning(timekeepingUser, timeListDate, timesheetDates)}" : "")">
@@ -761,7 +976,7 @@
                                     {
                                       <span @onclick="() => ViewDetail(user, null ,null, day, null, timeSalaryDateUser, timeListDate, timekeepingUser, checkDayOff)"
                                             class="p-2">
-                                        @timeSalaryDateUser
+                                        @(timeListDate != null && timeListDate.shifts_id.Any() ? timeSalaryDateUser : "-")
                                       </span>
                                     }
                                     else if (view_mode == 2)
@@ -868,10 +1083,12 @@
                             {
                               <td align="center">
                                 <span @onclick="() => ViewOtDetail(user)">
-                                  @Math.Round(shiftEditOt.Where(i => i.is_ot).Sum(i => i.time_edit), 2)
+                                  @Math.Round(GetTotalTimeOt(shiftEditOt, timekeepingList, timesheetUser), 2)
                                 </span>
                               </td>
                             }
+
+                            <!--Cột đơn từ-->
                             @foreach (var form in dataRules.forms)
                             {
                               // đơn từ đang được kích hoạt hoặc đơn từ đã được sử dụng trong bảng chấm công
@@ -935,288 +1152,302 @@
                         </tr>
                       }
                     }
-                  }
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              }
+              else
+              {
+                <div class="has-text-weight-medium is-size-6 mt-5 is-flex is-justify-content-center">
+                  Không tìm thấy dữ liệu phù hợp
+                </div>
+              }
+            }
+          </div>
+        }
+        else
+        {
+          if (_access)
+          {
+            <!-- header -->
+            <ul class="columns is-variable is-multiline is-2 mb-3">
+              <li class="column">
+                <h1 class="title is-5 has-text-info is-uppercase text_1_line" style="height:auto; overflow: unset;">
+                  Danh sách bảng công
+                </h1>
+              </li>
+              <li class="column is-narrow">
+                <a class="button is-link" @onclick="CreateSheet">
+                  <span class="icon">
+                    <span class="material-icons-outlined">
+                      add
+                    </span>
+                  </span>
+                  <span>
+                    Thêm mới
+                  </span>
+                </a>
+              </li>
+            </ul>
+            @if (timeSheets.Any())
+            {
+              <!-- Danh sách -->
+              <div id="scrollbox1" class="inner_section table-container" style="overflow: auto; flex:1; min-height:200px">
+                <table class="table is-fullwidth is-vcentered width: max-content;">
+                  <thead>
+                    <tr>
+                      <th width="@(Layout.IsMobile ? "200px" : "")">
+                        Tên bảng công
+                      </th>
+                      <th width="130px" align="center">
+                        Ngày bắt đầu
+                      </th>
+                      <th width="130px" align="center">
+                        Ngày kết thúc
+                      </th>
+                      <th width="80px" align="center">
+                        Hiển thị
+                      </th>
+                      <th width="130px" align="center">
+                        Ngày cập nhật
+                      </th>
+                      <th width="200px" align="center">
+                        Công cụ
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @foreach (var sheet in timeSheets)
+                    {
+                      if (!sheet.is_delete)
+                      {
+                        <tr>
+                          <td class="has-text-weight-bold">
+                            @sheet.name
+                          </td>
+                          <td align="center">
+                            @(new DateTime(sheet.from).ToString("dd/MM/yyyy"))
+                          </td>
+                          <td align="center">
+                            @(new DateTime(sheet.to).ToString("dd/MM/yyyy"))
+                          </td>
+                          <td align="center" @onclick="() => ToggleSheet(sheet)">
+                            @if (sheet.is_show)
+                            {
+                              <span class="material-icons has-text-link">
+                                check_box
+                              </span>
+                            }
+                            else
+                            {
+                              <span class="material-icons-outlined has-text-link">
+                                check_box_outline_blank
+                              </span>
+                            }
+                          </td>
+                          <td align="center">
+                            @(new DateTime(sheet.updated).ToString("dd/MM/yyyy"))
+                          </td>
+                          <td align="center">
+                            @if (sheet.locked)
+                            {
+                              <a class="button is-transparent">
+                                <span class="icon">
+                                  <span class="material-icons-outlined">
+                                    lock
+                                  </span>
+                                </span>
+                                <span>
+                                  Bảng công đã khóa
+                                </span>
+                              </a>
+                            }
+                            else
+                            {
+                              <a class="button is-transparent has-text-link" @onclick="() => EditSheet(sheet)">
+                                <span class="icon">
+                                  <span class="material-icons-outlined">
+                                    edit
+                                  </span>
+                                </span>
+                                <span>
+                                  Chỉnh sửa
+                                </span>
+                              </a>
+                              <a class="button is-transparent has-text-danger" @onclick="() => {selectSheet = sheet; sheetDelete = true;}">
+                                <span class="icon">
+                                  <span class="material-icons-outlined">
+                                    delete
+                                  </span>
+                                </span>
+                                <span>
+                                  Xóa
+                                </span>
+                              </a>
+                            }
+                          </td>
+                        </tr>
+                      }
+                    }
+                  </tbody>
+                </table>
+              </div>
             }
             else
             {
-              <div class="has-text-weight-medium is-size-6 mt-5 is-flex is-justify-content-center">
-                Không tìm thấy dữ liệu phù hợp
-              </div>
+              <div class="has-text-weight-medium is-size-6 mt-5 is-flex is-justify-content-center">Hiện tại không có dữ liệu bảng công, bắt đầu tạo bảng công bằng cách thêm mới</div>
             }
           }
-        </div>
-      }
-      else
-      {
-        if (_access)
-        {
-          <!-- header -->
-          <ul class="columns is-variable is-multiline is-2 mb-3">
-            <li class="column">
-              <h1 class="title is-5 has-text-info is-uppercase text_1_line" style="height:auto; overflow: unset;">
-                Danh sách bảng công
-              </h1>
-            </li>
-            <li class="column is-narrow">
-              <a class="button is-link" @onclick="CreateSheet">
-                <span class="icon">
-                  <span class="material-icons-outlined">
-                    add
-                  </span>
-                </span>
-                <span>
-                  Thêm mới
-                </span>
-              </a>
-            </li>
-          </ul>
-          @if (timeSheets.Any())
-          {
-            <!-- Danh sách -->
-            <table class="table is-fullwidth is-vcentered">
-              <thead>
-                <tr>
-                  <th>
-                    Tên bảng công
-                  </th>
-                  <th width="130px" align="center">
-                    Ngày bắt đầu
-                  </th>
-                  <th width="130px" align="center">
-                    Ngày kết thúc
-                  </th>
-                  <th width="80px" align="center">
-                    Hiển thị
-                  </th>
-                  <th width="130px" align="center">
-                    Ngày cập nhật
-                  </th>
-                  <th width="200px" align="center">
-                    Công cụ
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                @foreach (var sheet in timeSheets)
-                {
-                  if (!sheet.is_delete)
-                  {
-                    <tr>
-                      <td class="has-text-weight-bold">
-                        @sheet.name
-                      </td>
-                      <td align="center">
-                        @(new DateTime(sheet.from).ToString("dd/MM/yyyy"))
-                      </td>
-                      <td align="center">
-                        @(new DateTime(sheet.to).ToString("dd/MM/yyyy"))
-                      </td>
-                      <td align="center" @onclick="() => ToggleSheet(sheet)">
-                        @if (sheet.is_show)
-                        {
-                          <span class="material-icons has-text-link">
-                            check_box
-                          </span>
-                        }
-                        else
-                        {
-                          <span class="material-icons-outlined has-text-link">
-                            check_box_outline_blank
-                          </span>
-                        }
-                      </td>
-                      <td align="center">
-                        @(new DateTime(sheet.updated).ToString("dd/MM/yyyy"))
-                      </td>
-                      <td align="center">
-                        @if (sheet.locked)
-                        {
-                          <a class="button is-transparent">
-                            <span class="icon">
-                              <span class="material-icons-outlined">
-                                lock
-                              </span>
-                            </span>
-                            <span>
-                              Bảng công đã khóa
-                            </span>
-                          </a>
-                        }
-                        else
-                        {
-                          <a class="button is-transparent has-text-link" @onclick="() => EditSheet(sheet)">
-                            <span class="icon">
-                              <span class="material-icons-outlined">
-                                edit
-                              </span>
-                            </span>
-                            <span>
-                              Chỉnh sửa
-                            </span>
-                          </a>
-                          <a class="button is-transparent has-text-danger" @onclick="() => {selectSheet = sheet; sheetDelete = true;}">
-                            <span class="icon">
-                              <span class="material-icons-outlined">
-                                delete
-                              </span>
-                            </span>
-                            <span>
-                              Xóa
-                            </span>
-                          </a>
-                        }
-                      </td>
-                    </tr>
-                  }
-                }
-              </tbody>
-            </table>
-          }
-          else
-          {
-            <div class="has-text-weight-medium is-size-6 mt-5 is-flex is-justify-content-center">Hiện tại không có dữ liệu bảng công, bắt đầu tạo bảng công bằng cách thêm mới</div>
-          }
         }
-      }
-    </div>
-  </section>
+      </div>
+    </section>
 
-  <!-- Popup chi tiết chấm công -->
-  @if (showDateShiftDetail)
-  {
-    <div class="modal is-active">
-      <div class="modal-background"></div>
-      <div class="modal-card is-medium" style="min-height:500px">
-        <div class="modal-card-head">
-          <div class="modal-card-title">Chi tiết chấm công</div>
-          <a class="delete is-medium" @onclick="() => showDateShiftDetail = false"></a>
-        </div>
-        <div class="modal-card-body p-0">
-          <TimesheetDetailPopup date="selectDay"
-                                timeSheetUsers="dataTimeSheetUsers"
-                                editLogs="editLogs"
-                                forms="dataRules.forms"
-                                @bind-inData="selectIn"
-                                @bind-outData="selectOut"
-                                OnUpdate="OnDetailUpdate"
-                                user="selectUser"
-                                canEdit="editMode"
-                                selectShiftDetail="selectShiftDetail"
-                                timeSalary="timeDateSalary"
-                                workShiftSelected="workShiftSelected"
-                                timekeeping="timekeepingSelected"
-                                checkDayOff="checkDayOffSelect"
-                                dataFormsList="dataFormsList"
-                                worksIdDelete="worksIdDelete" />
+    <!-- Popup chi tiết chấm công -->
+    @if (showDateShiftDetail)
+    {
+      <div class="modal is-active p-2">
+        <div class="modal-background"></div>
+        <div class="modal-card is-medium" style="min-height:500px; max-width: 100%;">
+          <div class="modal-card-head">
+            <div class="modal-card-title">Chi tiết chấm công</div>
+            <a class="delete is-medium" @onclick="() => showDateShiftDetail = false"></a>
+          </div>
+          <div class="modal-card-body p-0">
+            <TimesheetDetailPopup date="selectDay"
+                                  timeSheetUsers="dataTimeSheetUsers"
+                                  editLogs="editLogs"
+                                  forms="dataRules.forms"
+            @bind-inData="selectIn"
+            @bind-outData="selectOut"
+                                  OnUpdate="OnDetailUpdate"
+                                  user="selectUser"
+                                  canEdit="editMode"
+                                  selectShiftDetail="selectShiftDetail"
+                                  timeSalary="timeDateSalary"
+                                  workShiftSelected="workShiftSelected"
+                                  timekeeping="timekeepingSelected"
+                                  checkDayOff="checkDayOffSelect"
+                                  dataFormsList="dataFormsList"
+                                  worksIdDelete="worksIdDelete"
+                                  checkRuleDevice="dataRules.is_check_device" />
+          </div>
         </div>
       </div>
-    </div>
-  }
+    }
 
-  <!-- Popup tạo/ sửa bảng công -->
-  @if (_access && showEditSheet && selectSheet != null)
-  {
-    <TimesheetPopup @bind-currentTimeSheet="@currentTimeSheet" sheet="selectSheet" departments="departments"
-                    timeSheets="timeSheets" OnUpdate="OnSheetListUpdate" />
-  }
+    <!-- Popup tạo/ sửa bảng công -->
+    @if (_access && showEditSheet && selectSheet != null)
+    {
+      <TimesheetPopup @bind-currentTimeSheet="@currentTimeSheet" sheet="selectSheet" departments="departments"
+                      timeSheets="timeSheets" OnUpdate="OnSheetListUpdate" />
+    }
 
-  <!-- Popup confirm xóa bảng công -->
-  @if (_access && sheetDelete && selectSheet != null)
-  {
-    <section class="modal is-active">
-      <div class="modal-background"></div>
-      <section class="modal-card">
-        <section class="modal-card-head">
-          <div class="modal-card-title">
-            Xóa bảng công
-          </div>
-          <a class="delete is-medium" @onclick="() => sheetDelete = false"></a>
-        </section>
-        <section class="modal-card-body">
-          <div class="pb-2">
-            Bạn đang thực hiện xóa bảng công. Dữ liệu bảng công sau khi xoá vẫn sẽ được lưu trữ trong hệ thống.
-          </div>
-          <div class="pb-5 has-text-danger">
-            Bạn có chắc chắn muốn xóa?
-          </div>
-        </section>
-        <section class="modal-card-foot is-right">
-          <a class="button" @onclick="() => sheetDelete = false">
-            <span class="icon">
-              <i class="material-icons-round is-size-6">close</i>
-            </span>
-            <span>Hủy</span>
-          </a>
-          <a class="button is-danger" @onclick="DeleteSheet">
-            <span class="icon">
-              <i class="material-icons-round is-size-6">delete</i>
-            </span>
-            <span>Xóa</span>
-          </a>
+    <!-- Popup confirm xóa bảng công -->
+    @if (_access && sheetDelete && selectSheet != null)
+    {
+      <section class="modal is-active p-2">
+        <div class="modal-background"></div>
+        <section class="modal-card">
+          <section class="modal-card-head">
+            <div class="modal-card-title">
+              Xóa bảng công
+            </div>
+            <a class="delete is-medium" @onclick="() => sheetDelete = false"></a>
+          </section>
+          <section class="modal-card-body">
+            <div class="pb-2">
+              Bạn đang thực hiện xóa bảng công. Dữ liệu bảng công sau khi xoá vẫn sẽ được lưu trữ trong hệ thống.
+            </div>
+            <div class="pb-5 has-text-danger">
+              Bạn có chắc chắn muốn xóa?
+            </div>
+          </section>
+          <section class="modal-card-foot is-right">
+            <a class="button" @onclick="() => sheetDelete = false">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">close</i>
+              </span>
+              <span>Hủy</span>
+            </a>
+            <a class="button is-danger" @onclick="DeleteSheet">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">delete</i>
+              </span>
+              <span>Xóa</span>
+            </a>
+          </section>
         </section>
       </section>
-    </section>
-  }
+    }
 
-  <!-- Popup lịch sử đơn từ -->
-  @if (showForm)
-  {
-    <TimesheetFormPopup timeSheetUsers="dataTimeSheetUsers"
+    <!-- Popup lịch sử đơn từ -->
+    @if (showForm)
+    {
+      <TimesheetFormPopup timeSheetUsers="dataTimeSheetUsers"
+                          user="selectUser"
+                          OnClose="e => showForm = e"
+                          form="selectForm"
+                          dataTimekeeping="dataTimekeeping"
+                          dataTimeList="dataTimeList"
+                          dataWorkShift="dataWorkShift"
+                          dataFormsList="dataFormsList"
+                          totalTimeForm="totalTimeForm"
+                          timeSheet="timeSheet"
+                          locationSelects="locationSelects"
+                          hybridCheck="hybridCheck" />
+    }
+
+    <!-- Popup ca làm ngoài giờ -->
+    @if (showOt)
+    {
+      <TimesheetOtPopup timeSheetUsers="dataTimeSheetUsers"
                         user="selectUser"
-                        OnClose="e => showForm = e"
-                        form="selectForm"
+                        OnClose="e => showOt = e"
                         dataTimekeeping="dataTimekeeping"
-                        dataTimeList="dataTimeList"
-                        dataWorkShift="dataWorkShift"
-                        dataFormsList="dataFormsList"
-                        totalTimeForm="totalTimeForm"
-                        timeSheet="timeSheet" />
-  }
+                        timeSheet="timeSheet"
+                        locationSelects="locationSelects"
+                        hybridCheck="hybridCheck" />
+    }
 
-  <!-- Popup ca làm ngoài giờ -->
-  @if (showOt)
+    <!-- Popup chi tiết ca làm phần "Bảng ca làm"  -->
+    @if (showShiftDetail)
+    {
+      <TimesheetShiftDetailPopup users="dataUsers"
+                                 timekeepingList="selectDateShifts"
+                                 selectShift="selectShift" date="selectDay"
+                                 OnClose="e => showShiftDetail = e" />
+    }
+
+    <!-- Popup khoá bảng công  -->
+    @if (showLock && Layout.User.role == 1)
+    {
+      <TimesheetLockPopup OnUpdate="UpdateTimesheetLock" />
+    }
+
+    <!--Lịch sử chỉnh sửa-->
+    <TimesheetLogPopup staff="@nameLogUser" data="logs" OnClose="() => logs = null" />
+  }
+  else
   {
-    <TimesheetOtPopup timeSheetUsers="dataTimeSheetUsers"
-                      user="selectUser"
-                      OnClose="e => showOt = e"
-                      dataTimekeeping="dataTimekeeping"
-                      timeSheet="timeSheet" />
+    <_PopupUnauthorized msgAccess="@msgAccess" />
   }
-
-  <!-- Popup chi tiết ca làm phần "Bảng ca làm"  -->
-  @if (showShiftDetail)
-  {
-    <TimesheetShiftDetailPopup users="users"
-                               timekeepingList="selectDateShifts"
-                               selectShift="selectShift" date="selectDay"
-                               OnClose="e => showShiftDetail = e" />
-  }
-
-  <!-- Popup khoá bảng công  -->
-  @if (showLock && Layout.User.role == 1)
-  {
-    <TimesheetLockPopup OnUpdate="UpdateTimesheetLock" />
-  }
-
-  <!--Lịch sử chỉnh sửa-->
-  <TimesheetLogPopup staff="@nameLogUser" data="logs" OnClose="() => logs = null" />
 }
-else
-{
-  <!-- Popup không có quyền truy cập -->
-  <_PopupUnauthorized msgAccess="@msgAccess" />
-}
+
+
 
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   private string companyId;
   private string msgAccess = string.Empty;
-  private List<UserModel> users = new();
+
   private List<UserModel> selectUsers = new();
+  private List<UserModel> usersTimeSheet = new();
+  private List<UserModel> usersFilter = new();
   private string selectDepart = "";
+
+  private List<string> locationSelects = new();
+  private List<string> locationTemps = new();
+  private List<string> usersIdSelect = new();
 
   private HrmRulesModel dataRules;
   private List<HrmTimesheetModel> timeSheets = new();
@@ -1227,6 +1458,7 @@ else
   private List<HrmFormModel> dataFormsList = new();
   private List<HrmWorkShiftModel> dataWorkShift = new();
   private List<HrmTimekeepingModel> dataTimekeeping = new();
+  private List<UserModel> dataUsers = new();
   private List<HrmDayOffModel> dataDayOffs = new();
   private DateTime today = DateTime.Today;
   private string currentTimeSheet = "";
@@ -1235,6 +1467,10 @@ else
 
   private string _title = "Bảng công";
   private List<DepartmentModel> departments = new();
+  private List<DepartmentModel> departmentsTimeSheet = new();
+
+  private List<HrmTimekeepingModel.Location> locationsFilter = new();
+
   private string filterKeyword = "";
 
   private bool editMode;
@@ -1242,6 +1478,10 @@ else
   private bool showOt;
   private bool showShiftDetail;
   private bool showDateShiftDetail;
+  private bool userPopup;
+  private bool locationPopup;
+  private bool hybridCheck;
+  private bool hybridCheckTemp;
   private bool showLock = false;
   private bool _access = false;
 
@@ -1272,6 +1512,8 @@ else
   private bool checkDayOffSelect;
   private double totalTimeForm;
 
+  private DotNetObjectReference<TimesheetList> obj;
+
   private bool CheckAccess()
   {
     return ProductService.CheckAccess(Layout.Company, Layout.User, "timekeeping", out msgAccess);
@@ -1279,16 +1521,17 @@ else
 
   protected override async Task OnInitializedAsync()
   {
+    obj = DotNetObjectReference.Create(this);
+
     // Quyền truy cập trang
     _access = Layout.User.role == 1 || (Layout.User.role == 2 && Layout.User.role_manage.timekeeping);
 
     companyId = Layout.Company.id;
-    users = DbUser.GetAllWithoutDelete(companyId);
+    dataUsers = await DbUser.GetAllWithinDelete(companyId);
     dataDayOffs = await DbHrmDayOff.GetAllWithoutDelete(Layout.Company.id);
 
-    departments = DbDepartment.GetAll(companyId);
+    departments = await DbDepartment.GetAll(companyId);
     dataRules = await DbHrmRules.Get(companyId, companyId);
-    Filter();
     await GetTimeSheet();
   }
 
@@ -1296,6 +1539,14 @@ else
   {
     if (view_mode != 4)
       await JSRuntime.InvokeVoidAsync("dragScrollX");
+    else
+      await JSRuntime.InvokeVoidAsync("dragScrollById", "scrollbox1");
+
+    if (userPopup)
+      await JSRuntime.InvokeVoidAsync("CloseOutsideDropdown", obj, "CloseUser", "dropdown-user");
+
+    if (locationPopup)
+      await JSRuntime.InvokeVoidAsync("CloseOutsideDropdown", obj, "CloseLocation", "dropdown-location");
   }
 
   #region Hàm xử lý bảng công
@@ -1329,7 +1580,7 @@ else
   }
 
   /// <summary>Đồng bộ dữ liệu qua bảng công</summary>
-  private async Task UpdateTimeSheet()
+  private async Task UpdateTimeSheet(bool checkLoadUser = true)
   {
     if (!_access)
     {
@@ -1338,7 +1589,7 @@ else
       dataTimeSheetUsers = await DbHrmTimesheetUser.GetAllShowUserId(Layout.Company.id, Layout.User.id);
 
       var userIdList = dataTimeSheetUsers.Select(i => i.user).ToList();
-      selectUsers = users.Where(i => userIdList.Contains(i.id)).ToList();
+      usersTimeSheet = dataUsers.Where(i => userIdList.Contains(i.id)).ToList();
 
       var timeSheetByUsers = dataTimeSheetUsers.Where(i => userIdList.Contains(Layout.User.id)).ToList();
       timeSheets = timeSheets.Where(i => timeSheetByUsers.Select(i => i.timesheet_id).ToList().Contains(i.id)).ToList();
@@ -1375,7 +1626,7 @@ else
 
       var notLoadedFormsList = dataFormsList.Where(i => i.is_confirm
                                                    && i.work_date_shifts.Any(i => !i.loaded))
-                                            .OrderBy(i => i.is_confirm)
+                                            .OrderBy(i => i.confirm_date)
                                             .ToList();
 
       if (notLoadedFormsList.Any())
@@ -1416,7 +1667,7 @@ else
                 var shiftList = new List<HrmTimeListModel.Shift>();
 
                 if (timeListItem != null)
-                  shiftList = timeListItem.shifts.Where(i => i.day >= workDateShift.start && i.day <= end).ToList();
+                  shiftList = timeListItem.shifts.Where(i => i.day >= new DateTime(workDateShift.start).Date.Ticks && i.day <= new DateTime(end).Date.Ticks).ToList();
 
                 var dateShifts = HrmService.ConvertDateRangeToTimeList(item.user, workDateShift.start, end, shiftList, dataWorkShift, dataDayOffs);
                 List<long> dateCheckUpdate = new();
@@ -1503,14 +1754,28 @@ else
       #endregion
 
       // Lấy dữ liệu
-      selectUsers = users.Where(i => usersId.Contains(i.id)).ToList();
+      usersTimeSheet = dataUsers.Where(i => usersId.Contains(i.id)).ToList();
 
       dataTimekeeping = await DbHrmTimekeeping.GetByRange(Layout.Company.id, timeSheet.from, timeSheet.to, usersId);
+
+      if (dataTimekeeping.Any())
+      {
+        locationsFilter = dataTimekeeping.SelectMany(i => i.time_tracking).Select(i => i.location).ToList();
+        if (locationsFilter.Any())
+          locationsFilter = locationsFilter.Where(i => i != null).DistinctBy(i => i.id).ToList();
+      }
 
       GetTotalTime();
     }
 
     GetShiftList();
+    if (checkLoadUser)
+    {
+      usersIdSelect = usersTimeSheet.Select(i => i.id).ToList();
+      usersFilter = usersTimeSheet.Where(i => true).ToList();
+      selectUsers = usersTimeSheet.Where(i => true).ToList();
+      departmentsTimeSheet = departments.Where(x => usersTimeSheet.SelectMany(i => i.departments_id).Contains(x.id)).ToList();
+    }
   }
 
   /// <summary>Tổng công thực tế mỗi ngày</summary>
@@ -1523,49 +1788,78 @@ else
       // kiểm tra có phân ca ngày đang xét không
       if (shiftUser.shifts_id.Any())
       {
-        if (string.IsNullOrEmpty(shiftUser.dayoff_id))
+        var timekeepingUser = timekeepingUsers.Find(i => i.date == timesheetDate.date && i.user == userId);
+        var shiftsId = shiftUser.shifts_id.Where(x =>
         {
-          foreach (var shiftId in shiftUser.shifts_id)
+          if (locationSelects.Count == 0 && !hybridCheck)
+          {
+            return true;
+          }
+          else
+          {
+            // TH: có lọc địa điểm
+            if (timekeepingUser != null)
+            {
+              var timeTracking = timekeepingUser.time_tracking.Find(i => x == i.time_id && ((i.is_hybrid && hybridCheck) || (i.location != null && locationSelects.Contains(i.location.id))));
+              if (timeTracking != null)
+                return true;
+              else
+                return false;
+            }
+            else
+              return false;
+          }
+        }).ToList();
+
+        if (string.IsNullOrEmpty(shiftUser.dayoff_id) && shiftsId.Any())
+        {
+          foreach (var shiftId in shiftsId)
           {
             //TH: vừa có dữ liệu chỉnh sửa vừa có dữ liệu đơn từ (xét cái nào nhận sau)
-            if (timesheetDate.shifts_edit.ContainsKey(shiftId) && timesheetDate.shifts_form.ContainsKey(shiftId)
-                && (timesheetDate.shifts_edit[shiftId].form_id == "0" || timesheetDate.shifts_edit[shiftId].form_id == "1"))
+            if (timesheetDate.shifts_edit.ContainsKey(shiftId) && timesheetDate.shifts_form.ContainsKey(shiftId))
             {
               // kiểm tra cái nào nạp sau
-              if (timesheetDate.shifts_edit[shiftId].updated > timesheetDate.shifts_form[shiftId].updated
-                  && (timesheetDate.shifts_edit[shiftId].form_id == "0" || timesheetDate.shifts_edit[shiftId].form_id == "1"))
+              if (timesheetDate.shifts_edit[shiftId].updated > timesheetDate.shifts_form[shiftId].updated)
+              {
+                if ((timesheetDate.shifts_edit[shiftId].form_id == "0" || timesheetDate.shifts_edit[shiftId].form_id == "1"))
+                  result += timesheetDate.shifts_edit[shiftId].time_edit;
+              }
+            }
+            else if (timesheetDate.shifts_edit.ContainsKey(shiftId))
+            {
+              if ((timesheetDate.shifts_edit[shiftId].form_id == "0" || timesheetDate.shifts_edit[shiftId].form_id == "1"))
                 result += timesheetDate.shifts_edit[shiftId].time_edit;
             }
-            else if (timesheetDate.shifts_edit.ContainsKey(shiftId) && (timesheetDate.shifts_edit[shiftId].form_id == "0" || timesheetDate.shifts_edit[shiftId].form_id == "1"))
-              result += timesheetDate.shifts_edit[shiftId].time_edit;
             else
             {
               // TH: tính công theo chấm công
-              var timekeepingUser = timekeepingUsers.Find(i => i.date == timesheetDate.date);
-              if (timekeepingUser != null)
+              if (timekeepingUser != null && !timesheetDate.shifts_form.ContainsKey(shiftId))
               {
                 var timeTracking = timekeepingUser.time_tracking.Where(i => i.time_id == shiftId).ToList();
                 if (timeTracking.Count == 2 && timeTracking.All(i => i.is_valid))
                 {
-                  var workShift = dataWorkShift.Find(i => i.id == shiftId);
-                  if (workShift != null)
-                    result += workShift.value;
+                  if (timeTracking.Find(i => i.time_type == "Check-out") != null)
+                    result += timeTracking.Find(i => i.time_type == "Check-out").time_work;
                 }
               }
             }
+
           }
         }
         else
         {
-          // TH ngày nghỉ (kiểm tra trường hợp có phải ngày nghỉ tính lương không)
-          var itemOff = dataDayOffs.Find(i => i.id == shiftUser.dayoff_id);
-          if (itemOff != null && itemOff.salary_users.Contains(userId))
+          if (locationSelects.Count == 0 && !hybridCheck)
           {
-            foreach (var shiftId in shiftUser.shifts_id)
+            // TH ngày nghỉ (kiểm tra trường hợp có phải ngày nghỉ tính lương không)
+            var itemOff = dataDayOffs.Find(i => i.id == shiftUser.dayoff_id);
+            if (itemOff != null && itemOff.salary_users.Contains(userId))
             {
-              var workShift = dataWorkShift.Find(i => i.id == shiftId);
-              if (workShift != null)
-                result += workShift.value;
+              foreach (var shiftId in shiftUser.shifts_id)
+              {
+                var workShift = dataWorkShift.Find(i => i.id == shiftId);
+                if (workShift != null)
+                  result += workShift.value;
+              }
             }
           }
         }
@@ -1575,15 +1869,34 @@ else
     {
       // TH: chưa có phân ca
       // TH: công ca làm tạo mới trong bảng công
-      if (timesheetDate.shifts_edit.Any() && (!string.IsNullOrEmpty(timesheetDate.shifts_edit.FirstOrDefault().Value.work_name)) && (timesheetDate.shifts_edit.FirstOrDefault().Value.form_id == "0" || timesheetDate.shifts_edit.FirstOrDefault().Value.form_id == "1"))
-        result += timesheetDate.shifts_edit.Values.FirstOrDefault().time_edit;
+      if (locationSelects.Count == 0 && !hybridCheck)
+      {
+        if (timesheetDate.shifts_edit.Any() && (!string.IsNullOrEmpty(timesheetDate.shifts_edit.FirstOrDefault().Value.work_name)) && (timesheetDate.shifts_edit.FirstOrDefault().Value.form_id == "0" || timesheetDate.shifts_edit.FirstOrDefault().Value.form_id == "1"))
+          result += timesheetDate.shifts_edit.Values.FirstOrDefault().time_edit;
+      }
     }
 
     // TH: công OT
-    if (timesheetDate.shifts_edit.Any())
-      result += timesheetDate.shifts_edit.Values.Where(i => i.is_ot).Sum(i => i.time_edit);
+    if (locationSelects.Count == 0 && !hybridCheck)
+    {
+      if (timesheetDate.shifts_edit.Any())
+        result += timesheetDate.shifts_edit.Values.Where(i => i.is_ot).Sum(i => i.time_edit);
+    }
+    else
+    {
+      var timekeepingUser = timekeepingUsers.Find(i => i.date == timesheetDate.date);
+      if (timekeepingUser != null && timesheetDate.shifts_edit.Any())
+      {
+        var timeTrackingOt = timekeepingUser.time_tracking.Where(i => i.is_ot && ((i.is_hybrid && hybridCheck) || (i.location != null && locationSelects.Contains(i.location.id)))).GroupBy(i => i.checkin_id);
+        foreach (var item in timeTrackingOt)
+        {
+          if (timesheetDate.shifts_edit.ContainsKey(item.FirstOrDefault().checkin_id))
+            result += timesheetDate.shifts_edit[item.FirstOrDefault().checkin_id].time_edit;
+        }
+      }
+    }
 
-    return result;
+    return Math.Round(result, 2);
   }
 
   /// <summary>Tổng công tính lương mỗi ngày</summary>
@@ -1597,9 +1910,32 @@ else
       // kiểm tra có phân ca ngày đang xét không
       if (shiftUser.shifts_id.Any())
       {
-        if (string.IsNullOrEmpty(shiftUser.dayoff_id))
+        var timekeepingUser = timekeepingUsers.Find(i => i.date == timesheetDate.date && i.user == userId);
+        var shiftsId = shiftUser.shifts_id.Where(x =>
         {
-          foreach (var shiftId in shiftUser.shifts_id)
+          if (locationSelects.Count == 0 && !hybridCheck)
+          {
+            return true;
+          }
+          else
+          {
+            // TH: có lọc địa điểm
+            if (timekeepingUser != null)
+            {
+              var timeTracking = timekeepingUser.time_tracking.Find(i => x == i.time_id && ((i.is_hybrid && hybridCheck) || (i.location != null && locationSelects.Contains(i.location.id))));
+              if (timeTracking != null)
+                return true;
+              else
+                return false;
+            }
+            else
+              return false;
+          }
+        }).ToList();
+
+        if (string.IsNullOrEmpty(shiftUser.dayoff_id) && shiftsId.Any())
+        {
+          foreach (var shiftId in shiftsId)
           {
             //TH: vừa có dữ liệu chỉnh sửa vừa có dữ liệu đơn từ (xét cái nào nhận sau)
             if (timesheetDate.shifts_edit.ContainsKey(shiftId) && timesheetDate.shifts_form.ContainsKey(shiftId))
@@ -1613,14 +1949,18 @@ else
                 if (formListUser.Any())
                 {
                   // lấy đơn từ mới nhất
-                  var formUsers = formListUser.Where(i => i.work_date_shifts.Any(i => i.start <= timesheetDate.date && timesheetDate.date <= i.end)).OrderBy(i => i.is_confirm).ToList();
+                  var formUsers = formListUser.Where(i => new DateTime(i.work_date_shifts.Min(i => i.start)).Date.Ticks <= timesheetDate.date
+                                        && timesheetDate.date <= new DateTime(i.work_date_shifts.Max(i => i.end)).Date.Ticks).OrderBy(i => i.confirm_date).ToList();
                   if (formUsers.Any())
                   {
                     var workShift = dataWorkShift.Find(i => i.id == shiftId);
                     var timeInString = new DateTime(timesheetDate.date).ToString("dd'/'MM'/'yyyy") + " " + workShift.checkin;
                     var timeInCheck = DateTime.ParseExact(timeInString, "dd'/'MM'/'yyyy HH:mm", CultureInfo.InvariantCulture).Ticks;
+                    var timeOutString = new DateTime(timesheetDate.date).ToString("dd'/'MM'/'yyyy") + " " + workShift.checkout;
+                    var timeOutCheck = DateTime.ParseExact(timeOutString, "dd'/'MM'/'yyyy HH:mm", CultureInfo.InvariantCulture).Ticks;
 
-                    var formItem = formUsers.LastOrDefault(i => i.work_date_shifts.Find(i => i.start <= timeInCheck && timeInCheck <= i.end) != null);
+                    var formItem = formUsers.LastOrDefault(i => i.work_date_shifts.Find(i => (i.start <= timeInCheck && timeInCheck <= i.end)
+                                                                                        || (timeInCheck <= i.start && i.start <= timeOutCheck)) != null);
                     if (formItem != null)
                     {
                       if (formItem.form.has_shift_work)
@@ -1638,20 +1978,22 @@ else
               if (formListUser.Any())
               {
                 // lấy đơn từ mới nhất
-                var formUsers = formListUser.Where(i => i.work_date_shifts.Any(i => i.start <= timesheetDate.date && timesheetDate.date <= i.end)).OrderBy(i => i.is_confirm).ToList();
+                var formUsers = formListUser.Where(i => new DateTime(i.work_date_shifts.Min(i => i.start)).Date.Ticks <= timesheetDate.date
+                                                       && timesheetDate.date <= new DateTime(i.work_date_shifts.Max(i => i.end)).Date.Ticks).OrderBy(i => i.confirm_date).ToList();
                 if (formUsers.Any())
                 {
                   var workShift = dataWorkShift.Find(i => i.id == shiftId);
                   var timeInString = new DateTime(timesheetDate.date).ToString("dd'/'MM'/'yyyy") + " " + workShift.checkin;
                   var timeInCheck = DateTime.ParseExact(timeInString, "dd'/'MM'/'yyyy HH:mm", CultureInfo.InvariantCulture).Ticks;
+                  var timeOutString = new DateTime(timesheetDate.date).ToString("dd'/'MM'/'yyyy") + " " + workShift.checkout;
+                  var timeOutCheck = DateTime.ParseExact(timeOutString, "dd'/'MM'/'yyyy HH:mm", CultureInfo.InvariantCulture).Ticks;
 
-                  var workDateShift = formUsers.LastOrDefault(i => i.work_date_shifts.Find(i => i.start <= timeInCheck && timeInCheck <= i.end) != null);
-                  if (workDateShift != null)
+                  var formItem = formUsers.LastOrDefault(i => i.work_date_shifts.Find(i => (i.start <= timeInCheck && timeInCheck <= i.end)
+                                                                                      || (timeInCheck <= i.start && i.start <= timeOutCheck)) != null);
+                  if (formItem != null)
                   {
-                    if (workDateShift.form.has_shift_work)
-                    {
+                    if (formItem.form.has_shift_work)
                       result += workShift.value;
-                    }
                   }
                 }
               }
@@ -1659,15 +2001,13 @@ else
             else
             {
               // TH: tính công theo chấm công
-              var timekeepingUser = timekeepingUsers.Find(i => i.date == timesheetDate.date);
               if (timekeepingUser != null)
               {
                 var timeTracking = timekeepingUser.time_tracking.Where(i => i.time_id == shiftId).ToList();
                 if (timeTracking.Count == 2 && timeTracking.All(i => i.is_valid))
                 {
-                  var workShift = dataWorkShift.Find(i => i.id == shiftId);
-                  if (workShift != null)
-                    result += workShift.value;
+                  if (timeTracking.Find(i => i.time_type == "Check-out") != null)
+                    result += timeTracking.Find(i => i.time_type == "Check-out").time_work;
                 }
               }
             }
@@ -1676,14 +2016,17 @@ else
         else
         {
           // TH ngày nghỉ (kiểm tra trường hợp có phải ngày nghỉ tính lương không)
-          var itemOff = dataDayOffs.Find(i => i.id == shiftUser.dayoff_id);
-          if (itemOff != null && itemOff.salary_users.Contains(userId))
+          if (locationSelects.Count == 0 && !hybridCheck)
           {
-            foreach (var shiftId in shiftUser.shifts_id)
+            var itemOff = dataDayOffs.Find(i => i.id == shiftUser.dayoff_id);
+            if (itemOff != null && itemOff.salary_users.Contains(userId))
             {
-              var workShift = dataWorkShift.Find(i => i.id == shiftId);
-              if (workShift != null)
-                result += workShift.value;
+              foreach (var shiftId in shiftUser.shifts_id)
+              {
+                var workShift = dataWorkShift.Find(i => i.id == shiftId);
+                if (workShift != null)
+                  result += workShift.value;
+              }
             }
           }
         }
@@ -1693,15 +2036,34 @@ else
     {
       // TH: chưa có phân ca
       // TH: công ca làm tạo mới trong bảng công
-      if (timesheetDate.shifts_edit.Any() && (!string.IsNullOrEmpty(timesheetDate.shifts_edit.FirstOrDefault().Value.work_name)))
-        result += timesheetDate.shifts_edit.Values.FirstOrDefault().time_edit;
+      if (locationSelects.Count == 0 && !hybridCheck)
+      {
+        if (timesheetDate.shifts_edit.Any() && (!string.IsNullOrEmpty(timesheetDate.shifts_edit.FirstOrDefault().Value.work_name)))
+          result += timesheetDate.shifts_edit.Values.FirstOrDefault().time_edit;
+      }
     }
 
     // TH: công OT
-    if (timesheetDate.shifts_edit.Any())
-      result += timesheetDate.shifts_edit.Values.Where(i => i.is_ot).Sum(i => i.time_edit);
+    if (locationSelects.Count == 0 && !hybridCheck)
+    {
+      if (timesheetDate.shifts_edit.Any())
+        result += timesheetDate.shifts_edit.Values.Where(i => i.is_ot).Sum(i => i.time_edit);
+    }
+    else
+    {
+      var timekeepingUser = timekeepingUsers.Find(i => i.date == timesheetDate.date);
+      if (timekeepingUser != null && timesheetDate.shifts_edit.Any())
+      {
+        var timeTrackingOt = timekeepingUser.time_tracking.Where(i => i.is_ot && ((i.is_hybrid && hybridCheck) || (i.location != null && locationSelects.Contains(i.location.id)))).GroupBy(i => i.checkin_id);
+        foreach (var item in timeTrackingOt)
+        {
+          if (timesheetDate.shifts_edit.ContainsKey(item.FirstOrDefault().checkin_id))
+            result += timesheetDate.shifts_edit[item.FirstOrDefault().checkin_id].time_edit;
+        }
+      }
+    }
 
-    return result;
+    return Math.Round(result, 2);
   }
 
   /// <summary>Tính tổng công đơn từ</summary>
@@ -1709,7 +2071,7 @@ else
   {
     double result = 0;
 
-    var timeList = dataTimeList.Find(i => i.id == timesheetUser.user);
+    var timeList = Shared.Clone(dataTimeList.Find(i => i.id == timesheetUser.user));
     if (timeList != null)
     {
       var endDate = (timeSheet.to > DateTime.Today.Ticks) ? DateTime.Today.Ticks : timeSheet.to;
@@ -1721,6 +2083,26 @@ else
           var timeDateList = timeList.shifts.Find(i => i.day == timesheetDate.date);
           if (timeDateList != null && string.IsNullOrEmpty(timeDateList.dayoff_id))
           {
+            //TH: có lọc địa điểm
+            if (locationSelects.Any() || hybridCheck)
+            {
+              timeDateList.shifts_id = timeDateList.shifts_id.Where(x =>
+              {
+                // TH: có lọc địa điểm
+                var timekeepingUser = dataTimekeeping.Find(i => i.user == timesheetUser.user && i.date == timesheetDate.date);
+                if (timekeepingUser != null)
+                {
+                  var timeTracking = timekeepingUser.time_tracking.Find(i => x == i.time_id && ((i.is_hybrid && hybridCheck) || (i.location != null && locationSelects.Contains(i.location.id))));
+                  if (timeTracking != null)
+                    return true;
+                  else
+                    return false;
+                }
+                else
+                  return false;
+              }).ToList();
+            }
+
             foreach (var shiftId in timeDateList.shifts_id)
             {
               var workShift = dataWorkShift.Find(i => i.id == shiftId);
@@ -1752,14 +2134,48 @@ else
 
           // TH: chưa có phân ca
           // TH: công ca làm tạo mới trong bảng công
-          if (timesheetDate.shifts_edit.Any() && !string.IsNullOrEmpty(timesheetDate.shifts_edit.FirstOrDefault().Value.work_name)
-              && timesheetDate.shifts_edit.FirstOrDefault().Value.form_id == form.id)
-            result += timesheetDate.shifts_edit.Values.FirstOrDefault().time_edit;
+          if (locationSelects.Count == 0 && !hybridCheck)
+          {
+            if (timesheetDate.shifts_edit.Any() && !string.IsNullOrEmpty(timesheetDate.shifts_edit.FirstOrDefault().Value.work_name)
+                && timesheetDate.shifts_edit.FirstOrDefault().Value.form_id == form.id)
+              result += timesheetDate.shifts_edit.Values.FirstOrDefault().time_edit;
+          }
         }
       }
     }
 
-    return result;
+    return Math.Round(result, 2);
+  }
+
+  /// <summary>Tính tổng OT</summary>
+  private double GetTotalTimeOt(List<HrmTimesheetUserModel.TimeSheetEdit> shiftEditOt, List<HrmTimekeepingModel> timekeeping, HrmTimesheetUserModel timesheetUser)
+  {
+    double result = 0;
+    if (locationSelects.Count == 0 && !hybridCheck)
+      result += shiftEditOt.Where(i => i.is_ot).Sum(i => i.time_edit);
+    else
+    {
+      if (timekeeping != null)
+      {
+        foreach (var item in timekeeping)
+        {
+          var timeTrackings = item.time_tracking.Where(i => i.is_ot && ((i.is_hybrid && hybridCheck) || (i.location != null && locationSelects.Contains(i.location.id)))).GroupBy(i => i.checkin_id);
+          var timesheetDate = timesheetUser.timesheet_dates.Find(i => i.date == item.date);
+          if (timesheetDate != null)
+          {
+            foreach (var timeTracking in timeTrackings)
+            {
+              if (timesheetDate.shifts_edit.ContainsKey(timeTracking.FirstOrDefault().checkin_id))
+              {
+                result += timesheetDate.shifts_edit[timeTracking.FirstOrDefault().checkin_id].time_edit;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return Math.Round(result, 2);
   }
 
   /// <summary>Tính tổng công thực tế vả công tính lương</summary>
@@ -1776,7 +2192,7 @@ else
     {
       var timeListUser = dataTimeList.Find(i => i.id == timesheetItem.user);
       var timekeepingUsers = dataTimekeeping.Where(i => i.user == timesheetItem.user).ToList();
-      var formListUser = dataFormsList.Where(i => i.user == timesheetItem.user).OrderBy(i => i.is_confirm).ToList();
+      var formListUser = dataFormsList.Where(i => i.user == timesheetItem.user).OrderBy(i => i.confirm_date).ToList();
 
       var endDate = (timeSheet.to > DateTime.Today.Ticks) ? DateTime.Today.Ticks : timeSheet.to;
       var timesheetDates = timesheetItem.timesheet_dates.Where(i => timeSheet.from <= i.date && i.date <= endDate).ToList();
@@ -1804,8 +2220,21 @@ else
 
     selectDepart = "";
     filterKeyword = "";
-    Filter();
+    locationSelects.Clear();
+    hybridCheck = false;
+    hybridCheckTemp = false;
+    locationPopup = false;
+    userPopup = false;
     await UpdateTimeSheet();
+  }
+
+  /// <summary>Đổi danh sách địa điểm lọc</summary>
+  private void CheckboxLocation(string id)
+  {
+    if (locationSelects.Contains(id))
+      locationSelects.Remove(id);
+    else
+      locationSelects.Add(id);
   }
 
   /// Lấy danh sách ca làm
@@ -1835,6 +2264,37 @@ else
     return string.Format("{0} - {1:dd}", Shared.ConvertWeekdays(date), date);
   }
 
+  private void AddMember(string id = null)
+  {
+    if (id == null)
+      if (usersFilter.Select(x => x.id).All(i => usersIdSelect.Contains(i)))
+        usersIdSelect.RemoveAll(i => usersFilter.Select(x => x.id).Contains(i));
+      else
+      {
+        usersIdSelect.AddRange(usersFilter.Select(x => x.id));
+        usersIdSelect.Distinct();
+      }
+    else
+       if (usersIdSelect.Contains(id))
+      usersIdSelect.Remove(id);
+    else
+      usersIdSelect.Add(id);
+  }
+
+  private void AddLocation(string id = null)
+  {
+    if (id == null)
+      if (locationTemps.Count >= 0 && locationTemps.Count < locationsFilter.Count)
+        locationTemps = locationsFilter.Select(x => x.id).ToList();
+      else
+        locationTemps = new();
+    else
+       if (locationTemps.Contains(id))
+      locationTemps.Remove(id);
+    else
+      locationTemps.Add(id);
+  }
+
   /// <summary>Đổi phòng ban</summary>
   private void ChangeDepartment(ChangeEventArgs e)
   {
@@ -1851,15 +2311,54 @@ else
   /// <summary>Lọc kết quả tìm kiếm và phòng ban</summary>
   private void Filter()
   {
-    selectUsers = new();
+    usersFilter = new();
 
-    selectUsers = users.Where(x =>
+    usersFilter = usersTimeSheet.Where(x =>
     {
       return (string.IsNullOrEmpty(selectDepart) ? true : x.departments_id.Contains(selectDepart)) &&
              (string.IsNullOrEmpty(filterKeyword) ? true : Shared.SearchKeyword(filterKeyword, x.FullName));
     }).ToList();
 
     StateHasChanged();
+  }
+
+  private void UpdateUser()
+  {
+    selectDepart = "";
+    filterKeyword = "";
+    selectUsers = usersTimeSheet.Where(i => usersIdSelect.Contains(i.id)).ToList();
+    Filter();
+    userPopup = false;
+  }
+
+  private void CancelUser()
+  {
+    selectDepart = "";
+    filterKeyword = "";
+    usersIdSelect = selectUsers.Select(i => i.id).ToList();
+    Filter();
+    userPopup = false;
+  }
+
+  private void OpenLocationPopup()
+  {
+    locationPopup = !locationPopup;
+    locationTemps = locationSelects.Where(i => true).ToList();
+  }
+
+  private async Task UpdateLocation()
+  {
+    locationPopup = false;
+    hybridCheck = hybridCheckTemp;
+    locationSelects = locationTemps.Where(i => true).ToList();
+    await UpdateTimeSheet(false);
+  }
+
+  private void CancelLocation()
+  {
+    locationPopup = false;
+    hybridCheckTemp = hybridCheck;
+    locationTemps = locationSelects.Where(i => true).ToList();
   }
 
   /// <summary>Tính công theo ca</summary>
@@ -2110,11 +2609,24 @@ else
               warning.Add("về sớm");
             if (timekeeping.time_tracking.Any(i => !Shared.IsEmpty(i.time_active) && !i.in_company))
               warning.Add("ngoài vị trí");
+            if (timekeeping.time_tracking.Any(i => !Shared.IsEmpty(i.time_active) && !i.is_valid_device))
+              warning.Add("sai thiết bị");
           }
           else
           {
             warning.Add("không đủ dữ liệu chấm công");
           }
+        }
+      }
+      else
+      {
+        // TH: không có phân ca và chấm công OT
+        if (timekeeping.time_tracking.Any(i => i.is_ot))
+        {
+          if (timekeeping.time_tracking.Any(i => !Shared.IsEmpty(i.time_active) && !i.in_company))
+            warning.Add("ngoài vị trí");
+          if (timekeeping.time_tracking.Any(i => !Shared.IsEmpty(i.time_active) && !i.is_valid_device))
+            warning.Add("sai thiết bị");
         }
       }
     }
@@ -2125,6 +2637,8 @@ else
       {
         if (timekeeping.time_tracking.Any(i => !Shared.IsEmpty(i.time_active) && !i.in_company))
           warning.Add("ngoài vị trí");
+        if (timekeeping.time_tracking.Any(i => !Shared.IsEmpty(i.time_active) && !i.is_valid_device))
+          warning.Add("sai thiết bị");
       }
     }
 
@@ -2146,6 +2660,8 @@ else
           warning.Add("về sớm");
         if ((!Shared.IsEmpty(_in.time_active) && !_in.in_company) || (!Shared.IsEmpty(_out.time_active) && !_out.in_company))
           warning.Add("ngoài vị trí");
+        if ((!Shared.IsEmpty(_in.time_active) && !_in.is_valid_device) || (!Shared.IsEmpty(_out.time_active) && !_out.is_valid_device))
+          warning.Add("sai thiết bị");
         if (Shared.IsEmpty(_in.time_active) && Shared.IsEmpty(_out.time_active))
           warning.Add("không đủ dữ liệu chấm công");
       }
@@ -2328,15 +2844,16 @@ else
     // dữ liệu theo user
     foreach (var user in selectUsers)
     {
+      var department = !Shared.IsEmpty(user.departments_name) ? user.departments_name.Split("/").Last() : "";
       var item = new List<string>
       {
         user.FullName,
-        user.departments_name
+        department
       };
 
       var timesheetUser = dataTimeSheetUsers.Find(i => i.user == user.id);
       var timeListUser = dataTimeList.Find(i => i.id == user.id);
-      var formListUser = dataFormsList.Where(i => i.user == user.id).OrderBy(i => i.is_confirm).ToList();
+      var formListUser = dataFormsList.Where(i => i.user == user.id).OrderBy(i => i.confirm_date).ToList();
 
       double timeRealUser = 0;
       double timeSalaryUser = 0;
@@ -2345,20 +2862,22 @@ else
       {
         var endDate = (timeSheet.to > DateTime.Today.Ticks) ? DateTime.Today.Ticks : timeSheet.to;
         var shiftEditOt = timesheetUser.timesheet_dates.Where(i => timeSheet.from <= i.date && i.date <= endDate).SelectMany(i => i.shifts_edit.Values).ToList();
-        var timekeepingList = dataTimekeeping.Where(i => i.user == user.id).ToList();
+        var timekeepingList = dataTimekeeping.Where(i => i.user == user.id && timeSheet.from <= i.date && i.date <= endDate).ToList();
 
         // Dữ liệu theo ngày
         for (DateTime i = from; i <= to; i = i.AddDays(1))
         {
           var day = i;
-
           // dữ liệu phân ca theo ngày;
           var timeListDate = new HrmTimeListModel.Shift();
           if (timeListUser != null)
+          {
             timeListDate = timeListUser.shifts.Find(i => i.day == day.Ticks);
+          }
           else
+          {
             timeListDate = null;
-
+          }
 
           var checkDayOff = false;
           var checkNotTimeDayOff = false;
@@ -2377,7 +2896,6 @@ else
 
           // không lấy dữ liệu những ngày chưa đến
           var is_over_day = day.Ticks > DateTime.Today.Ticks;
-          var timekeeping = timekeepingList.Find(x => x != null && x.date == day.Ticks && x.user == user.id);
 
           var timesheetDates = timesheetUser.timesheet_dates.Find(i => i.date == day.Ticks);
 
@@ -2394,31 +2912,93 @@ else
           timeSalaryUser += timeSalaryDateUser;
 
           // TH: tạo ca làm mới
-          if ((timesheetDates.shifts_edit.Any()
-              && !string.IsNullOrEmpty(timesheetDates.shifts_edit.Values.FirstOrDefault().work_name)))
-            timekeeping = new();
-
-          if (timekeeping == null && !checkDayOff)
+          if ((timesheetDates.shifts_edit.Any() && !string.IsNullOrEmpty(timesheetDates.shifts_edit.Values.FirstOrDefault().work_name)))
           {
-            if (is_over_day)
-              item.Add("");
-            else if (timeListDate != null && timeListDate.shifts_id.Any())
-              item.Add(Math.Round(timeSalaryDateUser, 2).ToString());
-            else
-              item.Add("-");
+            timekeepingUser = new();
           }
-          else
+
+          if (timekeepingUser == null && !checkDayOff)
           {
-            if (is_over_day)
+            if (locationSelects.Any() || hybridCheck)
               item.Add("");
             else
             {
-              if (timekeeping != null && !checkDayOff)
+              if (is_over_day)
+                item.Add("");
+              else if (timeListDate != null && timeListDate.shifts_id.Any())
                 item.Add(Math.Round(timeSalaryDateUser, 2).ToString());
-              else if (timekeeping != null && checkDayOff)
+              else
+                item.Add("-");
+            }
+          }
+          else
+          {
+            var timeTrackingLocation = new HrmTimekeepingModel.TimeData();
+            if (timekeepingUser != null && (locationSelects.Any() || hybridCheck))
+            {
+              timeTrackingLocation = timekeepingUser.time_tracking.FirstOrDefault(i => (i.is_hybrid && hybridCheck) || (i.location != null && locationSelects.Contains(i.location.id)));
+            }
+            else
+            {
+              timeTrackingLocation = null;
+            }
+
+            if (is_over_day || ((locationSelects.Any() || hybridCheck) && timeTrackingLocation == null))
+              item.Add("");
+            else
+            {
+              var timeSheetUserOt = new List<HrmTimesheetUserModel.TimeSheetEdit>();
+              var timeTracking = new List<HrmTimekeepingModel.TimeData>();
+              if (timekeepingUser != null)
+              {
+                // cập nhật dữ liệu chấm công
+                // TH: OT
+                if (locationSelects.Count == 0 && !hybridCheck)
+                {
+                  if (timesheetDates.shifts_edit.Any())
+                    timeSheetUserOt = timesheetDates.shifts_edit.Values.Where(i => i.is_ot).ToList();
+                }
+                else
+                {
+                  if (timekeepingUser != null && timesheetDates.shifts_edit.Any())
+                  {
+                    timekeepingUser.time_tracking = timekeepingUser.time_tracking.Where(i => (i.is_hybrid && hybridCheck) || (i.location != null && locationSelects.Contains(i.location.id))).ToList();
+                    var timeTrackingsOt = timekeepingUser.time_tracking.Where(i => i.is_ot).GroupBy(i => i.checkin_id);
+
+                    foreach (var timeTrackingOt in timeTrackingsOt)
+                    {
+                      if (timesheetDates.shifts_edit.ContainsKey(timeTrackingOt.FirstOrDefault().checkin_id))
+                        timeSheetUserOt.Add(timesheetDates.shifts_edit[timeTrackingOt.FirstOrDefault().checkin_id]);
+                    }
+                  }
+                }
+
+                timeTracking = timekeepingUser.time_tracking.Where(i => true).ToList();
+
+                // cập nhật phân ca
+                if (timeListDate != null && (locationSelects.Any() || hybridCheck))
+                {
+                  timeListDate.shifts_id = timeListDate.shifts_id.Where(x =>
+                  {
+                    // TH: có lọc địa điểm
+                    var timeTracking = timekeepingUser.time_tracking.Find(i => x == i.time_id && ((i.is_hybrid && hybridCheck) || (i.location != null && locationSelects.Contains(i.location.id))));
+                    if (timeTracking != null)
+                      return true;
+                    else
+                      return false;
+                  }).ToList();
+                }
+              }
+
+              if (timekeepingUser != null && !checkDayOff)
+                item.Add(Math.Round(timeSalaryDateUser, 2).ToString());
+              else if (timekeepingUser != null && checkDayOff)
                 item.Add(Math.Round(timeSalaryDateUser, 2).ToString());
               else if (checkDayOff)
-                item.Add(Math.Round(timeSalaryDateUser, 2).ToString());
+              {
+                var temp = timeListDate != null && timeListDate.shifts_id.Any() ? Math.Round(timeSalaryDateUser, 2).ToString() : "-";
+                item.Add(temp);
+              }
               else if (timesheetDates.shifts_form.Any())
                 item.Add(Math.Round(timeSalaryDateUser, 2).ToString());
             }
@@ -2431,7 +3011,7 @@ else
           if (timekeepingList.Count == 0)
             item.Add("-");
           else
-            item.Add(Math.Round(shiftEditOt.Where(i => i.is_ot).Sum(i => i.time_edit), 2).ToString());
+            item.Add(Math.Round(GetTotalTimeOt(shiftEditOt, timekeepingList, timesheetUser), 2).ToString());
         }
 
         // Các cột đơn từ
@@ -2529,9 +3109,36 @@ else
 
   private async Task SendNotify(HrmTimesheetModel item, int type)
   {
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
     // Gủi thông báo chuông
-    var targetList = Layout.UserList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
+    var targetList = shareStorage.MemberList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
     foreach (var user in targetList)
       await DbNotify.Create(Layout.Company.id, type, item.name, user.id, Layout.User.id);
+  }
+
+  [JSInvokable]
+  public void CloseUser()
+  {
+    userPopup = false;
+    StateHasChanged();
+  }
+
+  [JSInvokable]
+  public void CloseLocation()
+  {
+    locationPopup = false;
+    StateHasChanged();
+  }
+
+  public void Dispose()
+  {
+    try
+    {
+      obj?.Dispose();
+    }
+    catch (Exception ex)
+    {
+      return;
+    }
   }
 }

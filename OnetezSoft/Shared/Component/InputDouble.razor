@@ -1,4 +1,4 @@
-<input @bind="formatData" @bind:event="onchange" class="@Class" type="text" placeholder="@Text" />
+<input @bind="formatData" @bind:event="onchange" class="@Class" style="@Style" type="text" placeholder="@Text" />
 
 @code {
   [Parameter]
@@ -6,13 +6,17 @@
   [Parameter]
   public string Class { get; set; }
   [Parameter]
+  public string Style { get; set; }
+  [Parameter]
   public string Text { get; set; }
+  [Parameter]
+  public bool FormatDouble { get; set; }
   [Parameter]
   public EventCallback<double> OnInput { get; set; }
 
   private string formatData
   {
-    get => Value != 0 ? Format(Value) : "";
+    get => FormatDouble ? Shared.ConvertCurrencyDouble(Value) : (Value != 0 ? Format(Value) : "");
     set
     {
       //if (Double.TryParse(value.Replace(".", "").Replace(",", ""), out double parse))

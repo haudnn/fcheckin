@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models;
 
+[BsonIgnoreExtraElements]
 public class HrmWorkShiftModel
 {
   [BsonId]

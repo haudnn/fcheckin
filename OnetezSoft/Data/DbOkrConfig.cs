@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using OnetezSoft.Models;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
 using MongoDB.Driver;
+using OnetezSoft.Models;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -22,7 +18,6 @@ namespace OnetezSoft.Data
         id = companyId,
         cycles = new(),
         suggests = new(),
-        evaluates = new()
       };
 
       var collection = _db.GetCollection<OkrConfigModel>(_collection);
@@ -53,16 +48,12 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<OkrConfigModel>(_collection);
 
-      var result = await collection.Find(new BsonDocument()).FirstOrDefaultAsync();
+      var result = await collection.FindAsync(new BsonDocument()).Result.FirstOrDefaultAsync();
 
       if (result != null)
       {
-        if (result.cycles == null)
-          result.cycles = new();
-        if (result.suggests == null)
-          result.suggests = new();
-        if (result.evaluates == null)
-          result.evaluates = new();
+        result.cycles ??= new();
+        result.suggests ??= new();
 
         return result;
       }

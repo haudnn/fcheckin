@@ -1,0 +1,151 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
+
+
+<div style="max-height: calc(100vh - 250px)" class="custom-calendar">
+  <ul style="z-index: 0" class="calendar-header mt-0">
+    @for (int i = 2; i <= 8; i++)
+    {
+      var dayOfWeek = (int)DateTime.Today.DayOfWeek == 0 ? 8 : (int)DateTime.Today.DayOfWeek + 1;
+      <li style="padding: 5px;">
+        <p style="text-align: center" class="@(dayOfWeek == i ? "is_today" : "" )">
+          @(i == 8 ? "Chủ nhật" : "Thứ " + i)
+        </p>
+      </li>
+    }
+  </ul>
+  <div id="scroll-calendar" class="calendar-body">
+    @foreach (var row in dateRange)
+    {
+      <ul class="calendar-container">
+
+        @foreach (var col in row)
+        {
+          var isToday = col == DateTime.Today;
+          bool isSunday = (int)col.DayOfWeek == 0;
+          var taskList = tasks.Where(x => Shared.DateToDay(new DateTime(x.date_end)).Ticks == col.Ticks).ToList();
+          if (taskList != null)
+          {
+            <li style="gap: 5px; position: relative; cursor: pointer !important" class="is-flex is-flex-direction-column calendar-item @(isToday ? "is_today" : "") @(CheckOutOfRange(col) ? "out" : "")">
+              <div style="min-height: 25px" class="mb-0 field is-grouped is-justify-content-flex-end">
+                <div class="control">
+                  <p class="calendar-day todo mb-0 is-todolist">
+                    <span class="font_12"> @col.Day</span>
+                  </p>
+                </div>
+              </div>
+              @foreach (var item in taskList)
+              {
+                var priority = WorkService.Status(item.status);
+                bool editRole = WorkService.RoleEditTask(plan, item, Layout.User.id);
+                <div class="plan-calendar-tag @priority.color" @onclick="() => EditTask(item)">
+                  <div class="plan-calendar-tag-status @priority.color"></div>
+                  <div class="dropdown is_members" @onclick:stopPropagation="true">
+                    <_MemberPlan isCalendar="true" members="item.members" sources="shareStorage.MemberList" isEdit="editRole" OnUpdate="() => UpdateMembers(item)" />
+                  </div>
+                  <p style="flex: 1" class="text_1_line font_12 mb-0 ml-3">@item.name</p>
+                  <div @onclick:stopPropagation="true" class="column is-narrow has-text-centered mr-3 more-icon-calendar" style="width: 30px;">
+                    @if (editRole)
+                    {
+                      <Dropdown CloseOnClickMenu=true DropdownClass="is-right">
+                        <Trigger>
+                          <a class="icon has-text-grey">
+                            <i class="material-icons-outlined is-size-6">more_horiz</i>
+                          </a>
+                        </Trigger>
+                        <MenuContent>
+                          <a class="dropdown-item font_12" @onclick="() => AddSub(item)">Tạo công việc phụ</a>
+                          <a class="dropdown-item font_12" @onclick="() => AddTodo(item)">Tạo todolist liên kết</a>
+                          <a class="dropdown-item has-text-danger font_12" @onclick="() => DeleteTask(item)">Xóa công việc này</a>
+                        </MenuContent>
+                      </Dropdown>
+                    }
+                  </div>
+                </div>
+              }
+            </li>
+          }
+        }
+      </ul>
+    }
+  </div>
+</div>
+
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  [Parameter]
+  public long filterDateS { get; set; }
+  [Parameter]
+  public long filterDateE { get; set; }
+  [Parameter]
+  public List<WorkPlanModel.Task> tasks { get; set; }
+  [Parameter]
+  public WorkPlanModel plan { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnEdit { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnAddSub { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnAddTodo { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnDeleteTask { get; set; }
+  [Parameter]
+  public EventCallback<WorkPlanModel.Task> OnUpdateMembers { get; set; }
+  [Parameter]
+  public List<List<DateTime>> dateRange { get; set; }
+
+  private SharedStorage shareStorage;
+
+  protected override async Task OnInitializedAsync()
+  {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+  }
+
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+    {
+      await JSRuntime.InvokeVoidAsync("dragScroll", "scroll-calendar");
+    }
+  }
+  private void UpdateMembers(WorkPlanModel.Task task)
+  {
+    OnUpdateMembers.InvokeAsync(task);
+  }
+
+  private void EditTask(WorkPlanModel.Task task)
+  {
+    OnEdit.InvokeAsync(task);
+  }
+
+  private void DeleteTask(WorkPlanModel.Task task)
+  {
+    OnDeleteTask.InvokeAsync(task);
+  }
+
+  private void AddSub(WorkPlanModel.Task task)
+  {
+    OnAddSub.InvokeAsync(task);
+  }
+
+  private void AddTodo(WorkPlanModel.Task task)
+  {
+    OnAddTodo.InvokeAsync(task);
+  }
+
+
+
+  private bool CheckOutOfRange(DateTime date)
+  {
+    if (date.Ticks < filterDateS || date.Ticks > filterDateE)
+      return true;
+    else
+      return false;
+  }
+
+}

@@ -3,84 +3,87 @@
 @page "/teams/group/{DepartmentId}"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>Đội nhóm</PageTitle>
 
-<section id="page_teams" class="columns is-gapless has_menu_left">
+<section id="page_teams" class="main_content" style="flex-wrap:nowrap">
   @if (staff != null)
   {
-    <div class="column is-narrow">
-      <div class="card teams_left py-3">
-        <div class="px-3">
-          <div class="user_item p-1 @(staff.id == User.id && department == null ? "has_bg" : "")">
-            <img class="image is-24x24 mr-2" src="@User.avatar" alt="IMG">
-            <span class="icon-text">
-              <a href="/teams/personal/@User.id" style="flex-grow: 1;">Cá nhân</a>
-              <a class="icon" @onclick="() => modelTeam = true" title="Ghim phòng ban">
-                <i class="material-icons is-size-5">dashboard_customize</i>
-              </a>
-            </span>
-          </div>
+    <div class="card teams_left py-3">
+      <div class="px-3">
+        <div class="user_item p-1 @(staff.id == User.id && department == null ? "has_bg" : "")">
+          <img class="image is-24x24 mr-2" src="@User.avatar" alt="IMG">
+          <span class="icon-text">
+            <a href="/teams/personal/@User.id" style="flex-grow: 1;">Cá nhân</a>
+            <a class="icon" @onclick="() => modelTeam = true" title="Ghim phòng ban">
+              <i class="material-icons is-size-5">dashboard_customize</i>
+            </a>
+          </span>
         </div>
-        <hr class="my-3" />
-        <div class="scrolly px-3" style="height: calc(100vh - 82px);">
-          @foreach (var id in teamList)
+      </div>
+      <hr class="my-3" />
+      <div class="scrolly px-3" style="height: calc(100vh - 138px);">
+        @foreach (var id in teamList)
+        {
+          var team = departmentAll.SingleOrDefault(x => x.id == id);
+          if (team != null)
           {
-            var team = departmentAll.SingleOrDefault(x => x.id == id);
-            if (team != null)
-            {
-              var expand = toggleTeam.Contains(id);
-              <ul class="columns is-multiline is-variable is-1 mb-2">
-                <li class="column is-full">
-                  <div class="level p-1 is-mobile @(department != null && department.id == id ? "has_bg" : "")">
-                    <div class="level-left">
-                      <a class="has-text-weight-semibold has-text-grey" href="/teams/group/@id">
-                        @team.name
-                      </a>
-                    </div>
-                    <div class="level-right">
-                      <a class="icon has-text-grey" @onclick="() => ToggleTeam(id)">
-                        <i class="material-icons-outlined is-size-6">
-                          @(expand ? "expand_more" : "chevron_right")
-                        </i>
-                      </a>
-                    </div>
+            var expand = toggleTeam.Contains(id);
+            <ul class="columns is-multiline is-variable is-1 mb-2">
+              <li class="column is-full" @ondblclick="() => ToggleTeam(id)">
+                <div class="level p-1 is-mobile @(department != null && department.id == id ? "has_bg" : "")">
+                  <div class="level-left">
+                    <a style="max-width: 150px;" class="has-text-weight-semibold has-text-grey text_1_line" @onclick="() => ViewDepartment(id)">
+                      @team.name
+                    </a>
                   </div>
-                </li>
-                @if (expand)
+                  <div class="level-right">
+                    <a class="icon has-text-grey" @onclick="() => ToggleTeam(id)">
+                      <i class="material-icons-outlined is-size-6">
+                        @(expand ? "expand_more" : "chevron_right")
+                      </i>
+                    </a>
+                  </div>
+                </div>
+              </li>
+              @if (expand)
+              {
+                var members = shareStorage.MemberList.Where(x => x.departments_id.Contains(id)).ToList();
+                foreach (var user in members)
                 {
-                  var members = Layout.UserList.Where(x => x.departments_id.Contains(id)).ToList();
-                  foreach (var user in members)
-                  {
-                    <li class="column is-full pl-4">
-                      <a class="user_item p-1 @(staff.id == user.id && department == null ? "has_bg" : "")"
-                        href="/teams/personal/@user.id">
-                        <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG">
-                        <span class="text_1_line">@user.FullName</span>
-                      </a>
-                    </li>
-                  }
+                  <li class="column is-full pl-4">
+                    <a class="user_item p-1 @(staff.id == user.id && department == null ? "has_bg" : "")"
+                       href="/teams/personal/@user.id">
+                      <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG">
+                      <span class="text_1_line">@user.name</span>
+                    </a>
+                  </li>
                 }
-              </ul>
-            }
+              }
+            </ul>
           }
-          @if (User.teams_id.Count == 0)
-          {
-            <div class="has-text-grey py-4">
-              Chưa ghim phòng ban !
-            </div>
-          }
-        </div>
+        }
+        @if (User.teams_id.Count == 0)
+        {
+          <div class="has-text-grey py-4">
+            Chưa ghim phòng ban !
+          </div>
+        }
       </div>
     </div>
 
-    @if (department == null)
+    @if (department == null && staff != null)
     {
-      <Staff staff="staff" />
+      <div class="is_expanded flex_column scrolly">
+        <Staff staff="staff" />
+      </div>
     }
     else
     {
-      <Group department="department" />
+      <div class="is_expanded is-flex py-3" style="flex-wrap:wrap;column-gap:1rem;">
+        <Group department="department" />
+      </div>
     }
   }
 </section>
@@ -145,27 +148,46 @@
   private List<string> teamList = new();
   private List<string> toggleTeam = new();
   private bool modelTeam = false;
+  private string staffOld = string.Empty;
+
+  private SharedStorage shareStorage = new();
 
   protected override async Task OnInitializedAsync()
   {
-    User = await DbUser.Get(Layout.Company.id, Layout.User.id);
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    User = await DbUser.Get(Layout.Company.id, Layout.User.id, globalService);
     teamList.AddRange(User.teams_id);
 
-    departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    departmentAll = await DbDepartment.GetAll(Layout.Company.id);
     if (User.role == 3)
-      departments = DbDepartment.GetSelectListOfUser(Layout.Company.id, User.departments_id, departmentAll);
+      departments = await DbDepartment.GetSelectListOfUser(Layout.Company.id, User.departments_id, departmentAll);
     else
-      departments = DbDepartment.GetSelectList(Layout.Company.id, null, 0, departmentAll);
+      departments = await DbDepartment.GetSelectList(Layout.Company.id, null, 0, departmentAll);
   }
 
-  private string staffOld = string.Empty;
+
   protected override async Task OnParametersSetAsync()
   {
-    department = await DbDepartment.Get(Layout.Company.id, DepartmentId);
+    try
+    {
+      if (!string.IsNullOrEmpty(DepartmentId))
+      {
+        department = await DbDepartment.Get(Layout.Company.id, DepartmentId);
+      }
+      else
+        department = null;
 
-    staff = await DbUser.Get(Layout.Company.id, string.IsNullOrEmpty(StaffId) ? Layout.User.id : StaffId);
-
-    StateHasChanged();
+      if (!string.IsNullOrEmpty(StaffId))
+        staff = await DbUser.Get(Layout.Company.id, StaffId, globalService);
+      else
+        staff = User;
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnParametersSetAsync()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 
   private void ToggleTeam(string id)
@@ -184,9 +206,8 @@
       teamList.Add(id);
   }
 
-  private async Task CancelTeam()
+  private void CancelTeam()
   {
-    User = await DbUser.Get(Layout.Company.id, Layout.User.id);
     teamList = User.teams_id;
     modelTeam = false;
   }
@@ -194,7 +215,15 @@
   private async Task UpdateTeam()
   {
     User.teams_id = teamList;
-    User = await DbUser.Update(Layout.Company.id, User);
+    User = await DbUser.Update(Layout.Company.id, User, globalService);
     modelTeam = false;
+  }
+
+  private void ViewDepartment(string id)
+  {
+    if (!toggleTeam.Contains(id))
+      toggleTeam.Add(id);
+
+    navigation.NavigateTo($"/teams/group/{id}", false);
   }
 }

@@ -1,0 +1,62 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+@if (model != null && category != null)
+{
+  <section class="modal is-active" id="CMSModal">
+    <div class="modal-background" @onclick="Close"></div>
+    <div class="modal-content" style="border-radius: 6px;">
+      <div class="box scrolly" style="max-height: calc(100vh - 50px);">
+        <div class="is-flex is-justify-content-flex-end">
+          <a class="delete is-medium mb-3" @onclick="Close"></a>
+        </div>
+
+        <div class="image is-3by1 is-radius mb-4">
+          <img src="@model.image" alt="IMG" />
+        </div>
+        <div class="field is-grouped">
+          <div class="control">
+            <span class="icon-text is-secondary-40 font_14">
+              <span class="icon">
+                <i class="material-icons-outlined ">calendar_today</i>
+              </span>
+              <span>
+                @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(model.published))
+              </span>
+            </span>
+          </div>
+          <div class="control">
+            <span class="tag has-text-weight-bold"
+              style="background-color: @(category.color + "30"); color: @category.color;">
+              @category.name
+            </span>
+          </div>
+        </div>
+        <div class="has-text-weight-semibold is-size-4 has-text-link">@model.title</div>
+        @if(!string.IsNullOrEmpty(model.sub_title))
+        {
+          <div class="has-text-weight-semibold font_14" style="color: #474747">@model.sub_title</div>
+        }
+        <hr />
+        <div class="content">@((MarkupString)model.content)</div>
+      </div>
+    </div>
+  </section>
+}
+
+@code 
+{
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public NotificationModel model { get; set; }
+  [Parameter]
+  public EventCallback<string> OnClose { get; set; }
+  [Parameter]
+  public CategoryModel category { get; set;}
+
+  private async Task Close()
+  {
+    await OnClose.InvokeAsync(model.id);
+  }
+}

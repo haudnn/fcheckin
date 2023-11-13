@@ -25,7 +25,7 @@
   [Parameter]
   public List<string> members { get; set; } = new();
   [Parameter]
-  public List<UserModel> sources { get; set; }
+  public List<MemberModel> sources { get; set; }
   [Parameter]
   public string title { get; set; } = "Chọn nhân viên..";
   [Parameter]
@@ -55,10 +55,10 @@
         bool check = true;
         if(!string.IsNullOrEmpty(department) && !item.departments_id.Contains(department))
           check = false;
-        if (!Shared.SearchKeyword(keyword, item.id + item.email + item.FullName))
+        if (!Shared.SearchKeyword(keyword, item.id + item.email + item.name))
           check = false;
         if(check)
-          results.Add(UserService.ConvertToMember(item));
+          results.Add(item);
         if(results.Count >= 5)
           break;
       }

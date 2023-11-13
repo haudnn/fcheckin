@@ -4,26 +4,78 @@
 
 <PageTitle>Thống kê Kế hoạch</PageTitle>
 
-<section class="columns is-gapless has_menu_left">
-  <div class="column is-narrow">
-    <_MenuLeft Company="Layout.Company" User="Layout.User" />
+
+@if (!CheckAccess())
+{
+  <section>
+    <div class="box has-text-centered pt-5">
+      <span class="icon is-large has-text-danger">
+        <i class="material-icons-outlined is-size-1">error_outline</i>
+      </span>
+      <div class="is-size-6 py-4 has-text-weight-semibold">
+        @msgAccess
+      </div>
+    </div>
+  </section>
+}
+else
+{
+  <div class="tabs">
+    <div class="tabs_name">
+      Kế hoạch
+    </div>
+    <ul>
+      <li class="@(subtab == "1" ? "is-active" : "")">
+        <a class="has-text-weight-normal" href="/reports/work?subtab=1">Danh sách</a>
+      </li>
+      <li class="@(subtab == "2" ? "is-active" : "")">
+        <a class="has-text-weight-normal" href="/reports/work?subtab=2">Thống kê</a>
+      </li>
+    </ul>
   </div>
-  <div class="column">
-    <PlanList departmentAll="departmentAll" departments="departments" />
-    <PlanStaff departmentAll="departmentAll" departments="departments" />
-  </div>
-</section>
+
+  <section class="main_content">
+    @if (subtab == "1")
+    {
+      <PlanList departmentAll="departmentAll" departments="departments" />
+    }
+    else if (subtab == "2")
+    {
+      <PlanStaff departmentAll="departmentAll" departments="departments" />
+    }
+  </section>
+
+}
 
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
+  [Parameter]
+  [SupplyParameterFromQuery(Name = "subtab")]
+  public string? subtab { get; set; }
 
   private List<DepartmentModel> departmentAll = new();
   private List<DepartmentModel.SelectList> departments = new();
 
-  protected override void OnInitialized()
+
+  private string msgAccess = string.Empty;
+
+  protected override async Task OnInitializedAsync()
   {
-    departmentAll = DbDepartment.GetAll(Layout.Company.id);
-    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, departmentAll));
+    departmentAll = await DbDepartment.GetAll(Layout.Company.id);
+    departments.AddRange(await DbDepartment.GetSelectList(Layout.Company.id, null, 0, departmentAll));
+  }
+
+  protected override void OnParametersSet()
+  {
+    if (subtab.IsEmpty())
+      subtab = "1";
+  }
+
+
+
+  private bool CheckAccess()
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, "work", out msgAccess);
   }
 }

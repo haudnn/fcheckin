@@ -1,11 +1,10 @@
-﻿using System;
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
+using OnetezSoft.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
 
 namespace OnetezSoft.Data
 {
@@ -49,7 +48,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<DayOffModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
@@ -68,13 +67,13 @@ namespace OnetezSoft.Data
     }
 
 
-    public static List<DayOffModel> GetAll(string companyId)
+    public static async Task<List<DayOffModel>> GetAll(string companyId)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<DayOffModel>(_collection);
 
-      var results = collection.Find(new BsonDocument()).ToList();
+      var results = await collection.FindAsync(new BsonDocument()).Result.ToListAsync();
 
       return results.OrderByDescending(x => x.create).ToList();
     }
@@ -85,7 +84,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<HrmDayOffModel>(_collection);
 
-      var results = await collection.Find(new BsonDocument()).ToListAsync();
+      var results = await collection.FindAsync(new BsonDocument()).Result.ToListAsync();
 
       return results.OrderByDescending(x => x.create).ToList();
     }

@@ -30,6 +30,10 @@
 </section>
 
 @code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string formIdSelect { get; set; }
   [Parameter]
   public EventCallback<bool> OnUpdate { get; set; }
 
@@ -40,6 +44,31 @@
 
   private async Task Update()
   {
+    var checkItem = await DbHrmForm.Get(Layout.Company.id, formIdSelect);
+    if (checkItem != null)
+    {
+      if (checkItem.confirm_users.All(i => i.status == 1))
+      {
+        await DbHrmForm.Delete(Layout.Company.id, formIdSelect);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Thu hồi đơn từ thành công!");
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Đơn từ của bạn đã được phê duyệt!");
+
+      await OnUpdate.InvokeAsync(true);
+
+      // xoá file storage
+      if (checkItem.files.Any())
+        await DeleteStorage(checkItem);
+    }
     await OnUpdate.InvokeAsync(true);
+  }
+
+  private async Task DeleteStorage(HrmFormModel form)
+  {
+    foreach (var item in form.files)
+    {
+      await StorageService.DeleleFileAndLog(item, Layout.User, Layout.Company.id);
+    }
   }
 }

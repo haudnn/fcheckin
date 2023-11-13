@@ -1,14 +1,7 @@
-﻿@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
 
-<div class="card p-5 p-4-mobile is-size-6">
+<div class="is-size-6">
   <ul class="columns is-multiline">
     <li class="column is-one-fifth">
       <div class="has-text-weight-bold has-text-info py-2">Nhập tiêu đề góp ý:</div>
@@ -81,7 +74,7 @@
   [Parameter]
   public EventCallback<bool> OnCreate { get; set; }
 
-  private bool _success = false;
+  private bool success = false;
   private string _message = string.Empty;
   private bool _upload = false;
   private long MaxFileSize = 2 * 1024000;
@@ -91,7 +84,7 @@
   private async Task Upload(InputFileChangeEventArgs e)
   {
     _upload = true;
-    _success = true;
+    success = true;
     var filesUpload = e.GetMultipleFiles();
     if (filesUpload.Count < 6)
     {
@@ -113,24 +106,24 @@
               else
               {
                 _message += $"<br/>{file.Name}: dung lượng file lớn hơn 2 MB";
-                _success = false;
+                success = false;
               }
             }
             else
             {
               _message += $"<br/>{file.Name}: định dạng file không hợp lệ";
-              _success = false;
+              success = false;
             }
           }
           else
           {
             _message = $"Đã đủ số lượng file cho phép tải";
-            _success = false;
+            success = false;
           }
         }
         catch (Exception ex)
         {
-          _message += $"{file.Name}: {ex.Message}";
+          _message += $"{file.Name}: {ex.ToString()}";
         }
       }
       _upload = false;
@@ -140,9 +133,12 @@
     else
     {
       _upload = false;
-      _success = false;
+      success = false;
       _message = "Chỉ cho phép tải lên 5 file đính kèm !";
     }
+
+    if(!success)
+      await JSRuntime.InvokeVoidAsync("tagline", false, _message);
   }
 
   private async Task Cancel()
@@ -151,30 +147,42 @@
     await OnCreate.InvokeAsync(false);
   }
 
-  private async Task Create()
+  private async Task<bool> Create()
   {
-    _success = false;
-    _message = string.Empty;
-
-    if (string.IsNullOrEmpty(feedback.name) || string.IsNullOrEmpty(feedback.content))
+    bool _success = true;
+    try
     {
-      _message = "Nhập đủ tiêu đề và nội dung !";
-      await Task.Delay(5000);
+      success = false;
       _message = string.Empty;
+
+      if (string.IsNullOrEmpty(feedback.name) || string.IsNullOrEmpty(feedback.content))
+      {
+        _message = "Nhập đủ tiêu đề và nội dung !";
+        await JSRuntime.InvokeVoidAsync("tagline", false, _message);
+        _message = string.Empty;
+      }
+      else
+      {
+        feedback.user_id = Layout.User.id;
+        feedback.user_name = Layout.User.FullName;
+        feedback.user_avatar = Layout.User.avatar;
+        feedback.company_id = Layout.Company.id;
+        feedback.company_name = Layout.Company.name;
+
+        DbMainFeedback.Create(feedback);
+
+        feedback = new() { files = new() };
+
+        await OnCreate.InvokeAsync(true);
+      }
     }
-    else
+    catch (Exception ex)
     {
-      feedback.user_id = Layout.User.id;
-      feedback.user_name = Layout.User.FullName;
-      feedback.user_avatar = Layout.User.avatar;
-      feedback.company_id = Layout.Company.id;
-      feedback.company_name = Layout.Company.name;
-
-      DbMainFeedback.Create(feedback);
-
-      feedback = new() { files = new() };
-
-      await OnCreate.InvokeAsync(true);
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Create()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
     }
+    return _success;
   }
 }

@@ -1,4 +1,6 @@
 @inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
 @if (model != null)
 {
@@ -18,7 +20,7 @@
         </div>
         <a class="delete is-medium" @onclick="Cancel"></a>
       </section>
-      @if(isImport)
+      @if (isImport)
       {
         <section class="modal-card-body">
           <table class="table is-fullwidth">
@@ -27,7 +29,6 @@
                 <th>Email</th>
                 <th width="20%">Họ</th>
                 <th width="20%">Tên</th>
-                <th width="20%">Mật khẩu</th>
               </tr>
             </thead>
             <tbody>
@@ -37,7 +38,6 @@
                   <td>@item[0]</td>
                   <td>@item[1]</td>
                   <td>@item[2]</td>
-                  <td>@item[3]</td>
                 </tr>
               }
             </tbody>
@@ -46,7 +46,15 @@
         <section class="modal-card-foot">
           <div class="field is-grouped is-fullwidth">
             <div class="control is-expanded">
-              <FileImport OnUpdate="ImportExcel" />
+              <div class="field is-horizontal">
+                <div class="field-body">
+                  <div class="field">
+                    <p class="control">
+                      <input class="input" type="email" @bind="@emailTarget" placeholder="Email nhận danh sách tài khoản" >
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="control">
               <a class="button" @onclick="Cancel">
@@ -61,7 +69,7 @@
                 <span class="icon">
                   <i class="material-icons-round is-size-6">add</i>
                 </span>
-                <span class="is-size-7">Thêm người dùng</span>
+                <span class="is-size-7">Hoàn tất</span>
               </a>
             </div>
           </div>
@@ -76,7 +84,7 @@
                 <img src="@model.avatar" />
               </div>
               <a class="button is-white is-small is-fullwidth @(uploading ? "is-loading" : "")"
-                  onclick="document.getElementById('file').click()">
+                 onclick="document.getElementById('file').click()">
                 <span class="icon">
                   <i class="material-icons-sharp is-size-6">file_upload</i>
                 </span>
@@ -94,7 +102,7 @@
                   <div class="field">
                     <div class="control has-icons-left">
                       <input @onchange="ChangeEmail" value="@model.email" type="email" class="input is_line"
-                          placeholder="Nhập địa chỉ email của người dùng..." />
+                             placeholder="Nhập địa chỉ email của người dùng..." />
                       <span class="icon is-left has-text-black">
                         <i class="material-icons-round is-size-6">account_circle</i>
                       </span>
@@ -165,7 +173,14 @@
           <div class="field is-grouped is-fullwidth">
             <div class="control is-expanded">
               <FileImport OnUpdate="ImportExcel" />
+              <button class="button is-warning" title="Xuất Excel" @onclick="ExportExcel">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">file_download</i>
+                </span>
+                <span>Tải Excel mẫu</span>
+              </button>
             </div>
+           
             <div class="control">
               <a class="button" @onclick="Cancel">
                 <span class="icon">
@@ -201,8 +216,13 @@
   private bool isLoading = false;
   private bool isImport = false;
   private List<List<string>> dataImport = new();
-
   private List<string> products = new();
+  private bool uploading = false;
+
+  private Dictionary<string, string> newEmails = new();
+  private string emailTarget;
+  private string name;
+
 
   private async Task Cancel()
   {
@@ -211,74 +231,103 @@
     await OnUpdate.InvokeAsync(false);
   }
 
-  private async Task ChangeEmail(ChangeEventArgs e)
+  private async Task<bool> ChangeEmail(ChangeEventArgs e)
   {
-    model.id = string.Empty;
-    model.email = e.Value.ToString().Trim();
-    // Kiểm tra tài khoản
-    var checkUser = await DbMainUser.GetbyEmail(model.email);
-    if (checkUser != null)
+    bool _success = true;
+    try
     {
-      model.first_name = checkUser.first_name;
-      model.last_name = checkUser.last_name;
-      model.avatar = checkUser.avatar;
-      var companyUser = await DbUser.Get(company.id, checkUser.id);
-      if(companyUser != null)
-      {
-        model.id = checkUser.id;
-        await Tagline("Địa chỉ email này đã có trong tổ chức của bạn.");
-      }
-    }
-    else
-    {
-      model.first_name = string.Empty;
-      model.last_name = string.Empty;
-      model.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
-    }
-  }
-
-  private async Task Update()
-  {
-    if (string.IsNullOrEmpty(model.email))
-      await Tagline("Bạn chưa nhập địa chỉ email!");
-    else if (!model.email.Contains("@"))
-      await Tagline("Địa chỉ email không đúng định dạng!");
-    else if (string.IsNullOrEmpty(model.first_name) || string.IsNullOrEmpty(model.last_name))
-      await Tagline("Bạn chưa nhập họ và tên cho tài khoản!");
-    else
-    {
+      model.id = string.Empty;
+      model.email = e.Value.ToString().Trim();
       // Kiểm tra tài khoản
-      var checkUser = await DbMainUser.GetbyEmail(model.email);
-      if (checkUser == null)
+      var checkUser = await DbMainUser.GetbyEmail(model.email, globalService);
+      if (checkUser != null)
       {
-        await DbMainUser.Create(model);
-        // Gửi email cấp tài khoản
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
-        bool send = EmailService.UserInfo(model.email, model.id, model.FullName, company.name, out string message);
-        await JSRuntime.InvokeVoidAsync("tagline", send, message);
+        model.first_name = checkUser.first_name;
+        model.last_name = checkUser.last_name;
+        model.avatar = checkUser.avatar;
+        var companyUser = await DbUser.Get(company.id, checkUser.id, globalService);
+        if (companyUser != null)
+        {
+          model.id = checkUser.id;
+          await Tagline("Địa chỉ email này đã có trong tổ chức của bạn.");
+        }
       }
       else
-        model = checkUser;
-
-      model.products = model.active ? products : new List<string>();
-
-      // Thêm tài khoản vào tổ chức
-      await CompanyService.AddStaff(company, model);
-      await OnUpdate.InvokeAsync(true);
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm tài khoản người dùng sản phẩm!");
-      products = new();
-      isImport = false;
+      {
+        model.first_name = string.Empty;
+        model.last_name = string.Empty;
+        model.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeEmail()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> Update()
+  {
+    bool _success = true;
+    try
+    {
+      if (string.IsNullOrEmpty(model.email))
+        await Tagline("Bạn chưa nhập địa chỉ email!");
+      else if (!model.email.Contains("@"))
+        await Tagline("Địa chỉ email không đúng định dạng!");
+      else if (string.IsNullOrEmpty(model.first_name) || string.IsNullOrEmpty(model.last_name))
+        await Tagline("Bạn chưa nhập họ và tên cho tài khoản!");
+      else
+      {
+        // Kiểm tra tài khoản
+        var checkUser = await DbMainUser.GetbyEmail(model.email, globalService);
+        if (checkUser == null)
+        {
+          model.password = "fastdo@123";
+          await DbMainUser.Create(model);
+          // Gửi email cấp tài khoản
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo tài khoản thành công. Vui lòng kiểm tra email.");
+
+          new Task(() =>
+          {
+            EmailService.UserInfo(model.email, "fastdo@123", model.FullName, company.name, out string message);
+          }).Start();
+        }
+        else
+          model = checkUser;
+
+        model.products = model.active ? products : new List<string>();
+        model.page_default = null;
+        // Thêm tài khoản vào tổ chức
+        await CompanyService.AddStaff(company, model, globalService);
+        await globalService.Update(company.id);
+        await OnUpdate.InvokeAsync(true);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm tài khoản người dùng sản phẩm!");
+        products = new();
+        isImport = false;
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void AccessAllProduct(ChangeEventArgs e)
   {
-    if(Convert.ToBoolean(e.Value))
+    if (Convert.ToBoolean(e.Value))
     {
       foreach (var product in company.products.Where(x => x.active && x.id != "storage"))
       {
         var access = ProductService.CheckAccess(products, product.id);
-        if(!access && product.used < product.total)
+        if (!access && product.used < product.total)
           products.Add(product.id);
       }
     }
@@ -290,22 +339,13 @@
   {
     var access = ProductService.CheckAccess(products, product.id);
     if (access)
-    {
-      // Có quyền rồi → Thì xóa
       products.Remove(product.id);
-    }
     else if (product.used < product.total)
-    {
-      // Chưa có → Thì thêm quyền sử dụng
       products.Add(product.id);
-    }
     else
-    {
       await JSRuntime.InvokeVoidAsync("tagline", false, "Đã hết số lượng người dùng sản phẩm " + product.title);
-    }
   }
 
-  private bool uploading = false;
   private async Task Upload(InputFileChangeEventArgs e)
   {
     uploading = true;
@@ -323,7 +363,7 @@
       }
       catch (Exception ex)
       {
-        await Tagline($"Không thể tải ảnh lên: {ex.Message}");
+        await Tagline($"Không thể tải ảnh lên: {ex.ToString()}");
       }
     }
     uploading = false;
@@ -340,49 +380,89 @@
     dataImport = new();
     foreach (var item in data)
     {
-      if(item.Count > 3)
+      if (item.Count > 2)
         dataImport.Add(item);
     }
   }
 
   private async Task StartImport()
   {
-    isLoading = true;
-    foreach (var item in dataImport)
+    try
     {
-      if(!string.IsNullOrEmpty(item[0]))
+      if (string.IsNullOrEmpty(emailTarget))
+        await Tagline("Vui lòng nhập email nhận danh sách tài khoản!");
+      else if (!emailTarget.Contains("@"))
+        await Tagline("Địa chỉ email không đúng định dạng!");
+      else
       {
-        var email = item[0].ToLower();
-        var user = await DbMainUser.GetbyEmail(email);
-        if (user == null)
+        isLoading = true;
+        newEmails = new();
+        foreach (var item in dataImport)
         {
-          user = new UserModel()
+          if (!string.IsNullOrEmpty(item[0]))
           {
-            email = email,
-            first_name = item[1],
-            last_name = item[2],
-            password = item[3],
-            products = new(),
-            companys = new(),
-            role_manage = new(),
-            role = 3,
-          };
-          await DbMainUser.Create(user);
-          Console.WriteLine("Add user " + email);
+            var email = item[0].ToLower().Trim();
+            var user = await DbMainUser.GetbyEmail(email, globalService);
+            if (user == null)
+            {
+              var id = Mongo.RandomId();
+              var fullName = item[1] + " " + item[2];
+              user = new UserModel()
+                {
+                  id = id,
+                  email = email,
+                  first_name = item[1],
+                  last_name = item[2],
+                  password = "fastdo@123",
+                  products = new(),
+                  companys = new(),
+                  role_manage = new(),
+                  role = 3,
+                };
+              newEmails.Add(user.email, user.password);
+              await DbMainUser.Create(user);
+            }
+
+            user.page_default = null;
+            await CompanyService.AddStaff(company, user, globalService);
+            await globalService.Update(company.id);
+          }
         }
-        else
+
+        if (newEmails.Count > 0)
         {
-          Console.WriteLine("Get user " + email);
+          new Task(() =>
+          {
+            EmailService.UserListInfo(emailTarget, name, newEmails, company.name, out string message);
+          }).Start();
         }
-        // Set quyền truy cập sản phẩm
-        user.products = company.products.Where(x => x.active).Select(x => x.id).ToList();
-        // Thêm tài khoản vào tổ chức
-        await CompanyService.AddStaff(company, user);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm người dùng vào tổ chức.");
+        await OnUpdate.InvokeAsync(true);
+        isImport = false;
       }
     }
-    await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã thêm {dataImport.Count} người dùng vào tổ chức.");
-    await OnUpdate.InvokeAsync(true);
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "StartImport()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+    }
     isLoading = false;
-    isImport = false;
+    emailTarget = string.Empty;
+  }
+
+  private async Task ExportExcel()
+  {
+    var dataExport = new List<List<string>>();
+    dataExport.Add(new List<string>
+    {
+      "Email",
+      "Họ và tên lót",
+      "Tên",
+    });
+
+    var file = Files.ExportExcel(dataExport);
+    await JSRuntime.InvokeAsync<string>("newTab", file);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã tải xuống file Excel mẫu!");
   }
 }

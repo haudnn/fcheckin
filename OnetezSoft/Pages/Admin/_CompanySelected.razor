@@ -1,0 +1,318 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="dropdown @(toggle ? "is-active" : "") @(isUp ? "is-up" : "")">
+  <div class="dropdown-trigger">
+    <div class="avatar_list">
+      @foreach (var item in ShortList())
+      {
+        <span class="image is-rounded is-24x24 has-background-grey" title="@item.name">
+          @if (string.IsNullOrEmpty(item.logo))
+          {
+            <span class="is-text">@item.name</span>
+          }
+          else
+          {
+            <img src="@item.logo" alt="AVT">
+          }
+        </span>
+      }
+      @if (isEdit)
+      {
+        <a class="icon has-background-white has-text-grey is-bordered is-rounded @(companyTemp.Count == 0 ? "" : "ml-3")"
+        @onclick="Toggle">
+          <i class="material-icons-outlined is-size-6">add</i>
+        </a>
+      }
+      else
+      {
+        <a class="icon has-text-grey @(companyTemp.Count == 0 ? "" : "ml-3")" @onclick="Toggle">
+          <i class="material-icons-outlined is-size-5">@(toggle ? "expand_more" : "chevron_right")</i>
+        </a>
+      }
+    </div>
+  </div>
+  @if (toggle)
+  {
+    <div class="dropdown-menu" style="width: 350px;">
+      <div class="dropdown-content px-3 has-text-left" style="max-height: none;">
+        @if (isEdit)
+        {
+          <ul class="columns is-vcentered is-multiline is-variable is-1 mb-3 is-mobile">
+            <li class="column is-half font_14">
+              Danh sách công ty
+            </li>
+            <li class="column is-full">
+              <div class="control has-icons-right">
+                <input id="search_member" class="input is-small is-rounded" type="text" autocomplete="off"
+                @bind="Search" @bind:event="oninput" placeholder="Tìm công ty...">
+                <span class="icon is-right">
+                  <i class="material-icons-outlined is-size-6">search</i>
+                </span>
+              </div>
+            </li>
+          </ul>
+          <div class="scrolly py-1" style="max-height: 250px;">
+            @foreach (var company in companyTemp)
+            {
+              var item = sources.FirstOrDefault(x => x.id == company);
+              <ul class="columns is-vcentered is-variable is-1 is-mobile">
+                <li class="column is-narrow">
+                  <a class="icon is-small has-text-danger" @onclick="() => RemoveItem(item.id)">
+                    <i class="material-icons-outlined is-size-6">remove_circle_outline</i>
+                  </a>
+                </li>
+                <li class="column has-text-weight-medium">
+                  <div class="icon-text">
+                    @if (Shared.IsEmpty(item.logo))
+                    {
+                      <span class="image is-rounded is-24x24">
+                        <i style="font-size: 24px" class="material-icons-round has-text-grey">
+                          help
+                        </i>
+                      </span>
+                    }
+                    else
+                    {
+                      <span class="image is-rounded is-24x24">
+                        <img src="@item.logo" alt="AVT">
+                      </span>
+                    }
+                    <span class="ml-2" style="flex-grow: 1;">@item.name</span>
+                  </div>
+                </li>
+              </ul>
+            }
+            <hr class="my-2" />
+            @if (suggests.Count > 0)
+            {
+              <a class="icon-text has-text-link mb-1" @onclick="() => CheckAll()">
+                <span class="icon is-small">
+                  <i class="material-icons-outlined is-size-6">
+                    @(checkAll && sources.Count == companyTemp.Count ? "check_box" : "check_box_outline_blank")
+                  </i>
+                </span>
+                <span class="has-text-weight-semibold ml-2">Chọn tất cả</span>
+              </a>
+            }
+            else
+            {
+              <div class="py-2 has-text-@(string.IsNullOrEmpty(keyword) ? "white" : "grey")">
+                Không tìm thấy kết quả phù hợp
+              </div>
+            }
+            @foreach (var item in suggests)
+            {
+              <ul class="columns is-vcentered is-variable is-1 is-mobile">
+                <li class="column is-narrow">
+                  <a class="icon is-small has-text-info" @onclick="() => AddItem(item.id)">
+                    <i class="material-icons-outlined is-size-6">add_circle_outline</i>
+                  </a>
+                </li>
+                <li class="column">
+                  <div class="icon-text">
+                    @if (Shared.IsEmpty(item.logo))
+                    {
+                      <span class="image is-rounded is-24x24">
+                        <i style="font-size: 24px" class="material-icons-round has-text-grey">
+                          help
+                        </i>
+                      </span>
+                    }
+                    else
+                    {
+                      <span class="image is-rounded is-24x24">
+                        <img src="@item.logo" alt="AVT">
+                      </span>
+                    }
+                    <span class="ml-2" style="flex-grow: 1;">@item.name</span>
+                  </div>
+                </li>
+              </ul>
+            }
+          </div>
+          <hr class="dropdown-divider">
+          <div class="buttons is-right">
+            <a class="button is-small" @onclick="Toggle">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">close</i>
+              </span>
+              <span class="is-size-7">Hủy</span>
+            </a>
+            <a class="button is-link is-small" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">done</i>
+              </span>
+              <span class="is-size-7">Hoàn tất</span>
+            </a>
+          </div>
+        }
+        else
+        {
+          <div class="scrolly py-1" style="max-height: 250px;">
+            @foreach (var company in companyTemp)
+            {
+              var item = sources.FirstOrDefault(x => x.id == company);
+              <div class="icon-text mb-1">
+                @if (Shared.IsEmpty(item.logo))
+                {
+                  <span class="image is-rounded is-24x24">
+                    <i style="font-size: 24px" class="material-icons-round has-text-grey">
+                      help
+                    </i>
+                  </span>
+                }
+                else
+                {
+                  <span class="image is-rounded is-24x24">
+                    <img src="@item.logo" alt="AVT">
+                  </span>
+                }
+                <span class="ml-2" style="flex-grow: 1;">@item.name</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<string> companys { get; set; }
+  [Parameter]
+  public List<CompanyModel> sources { get; set; }
+  [Parameter]
+  public bool isEdit { get; set; }
+  [Parameter]
+  public bool isUp { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+  private List<string> companyTemp = new();
+  private bool toggle = false;
+  private bool checkAll = false;
+  private string keyword = string.Empty;
+  private List<CompanyModel> suggests = new();
+
+  protected override void OnInitialized()
+  {
+    companyTemp = companys.Where(i => true).ToList();
+  }     
+
+  protected override void OnParametersSet()
+  {
+    toggle = false;
+    keyword = null;
+    checkAll = false;
+  }
+
+  private string Search
+  {
+    get => keyword;
+    set
+    {
+      keyword = value;
+      suggests = GetSuggests();
+    }
+  }
+
+  private async Task Update()
+  {
+    toggle = false;
+    keyword = null;
+
+    companys.Clear();
+
+    foreach (var item in companyTemp)
+    {
+      companys.Add(item);
+    }
+
+
+    await OnUpdate.InvokeAsync(true);
+  }
+
+  private void AddItem(string id)
+  {
+    if (!companyTemp.Contains(id))
+      companyTemp.Add(id);
+    suggests.RemoveAll(x => x.id == id);
+  }
+
+  private void RemoveItem(string id)
+  {
+    companyTemp.Remove(id);
+    if (!string.IsNullOrEmpty(id))
+    {
+      var item = sources.FirstOrDefault(x => x.id == id);
+      suggests.Add(item);
+    }
+  }
+
+
+  private List<CompanyModel> GetSuggests()
+  {
+    var results = new List<CompanyModel>();
+    foreach (var item in sources)
+    { 
+      if (!companyTemp.Contains(item.id))
+      {
+        bool check = true;
+        if (!Shared.SearchKeyword(keyword, item.name))
+          check = false;
+        if (check)
+          results.Add(item);
+      }
+    }
+    return results;
+  }
+
+  private async Task Toggle()
+  {
+    await JSRuntime.InvokeVoidAsync("dropdownClose");
+    keyword = null;
+    checkAll = false;
+    toggle = !toggle;
+    if (toggle)
+      await JSRuntime.InvokeVoidAsync("setFocus", "search_member");
+    else
+      companyTemp = companys.Where(i => true).ToList();
+
+    suggests = GetSuggests();
+  }
+  // List công ty hiển thị
+  private List<CompanyModel> ShortList()
+  {
+    var results = new List<CompanyModel>();
+    for (int i = 0; i < companys.Count; i++)
+    {
+      var item = sources.FirstOrDefault(x => x.id == companys[i]);
+      if (!string.IsNullOrEmpty(item.id))
+      {
+        results.Add(item);
+        if (results.Count == 5)
+          break;
+      }
+    }
+
+    if (companys.Count > 5)
+    {
+      int count = companys.Count - 5 >= 100 ? 99 : companys.Count - 5;
+      results.Add(new() { name = $"+{count}" });
+    }
+
+    return results;
+  }
+
+  // Chọn tất cả
+  private void CheckAll()
+  {
+    companyTemp = companyTemp.Union(suggests.Select(i => i.id).ToList()).ToList();
+    suggests.Clear();
+    checkAll = true;
+  }
+}

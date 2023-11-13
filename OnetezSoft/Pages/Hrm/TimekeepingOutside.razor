@@ -78,9 +78,8 @@
   public long time { get; set; }
   [Parameter]
   public EventCallback<HrmTimekeepingModel.TimeData> OnConfirm { get; set; }
-
-		[Parameter]
- 	public EventCallback OffConfirmOutside { get; set; }
+  [Parameter]
+  public EventCallback OffConfirmOutside { get; set; }
 
   private HrmTimekeepingModel.TimeData model = new();
 
@@ -129,7 +128,7 @@
     }
     catch (System.Exception ex)
     {
-      await JSRuntime.InvokeVoidAsync("tagline", false, $"Lỗi khi upload: {ex.Message}");
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Lỗi khi upload: {ex.ToString()}");
     }
   }
 

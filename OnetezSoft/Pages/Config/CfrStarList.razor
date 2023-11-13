@@ -1,0 +1,447 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
+
+<PageTitle>@_title</PageTitle>
+
+@if (Layout.User.role != 1 && !Layout.User.role_manage.cfr)
+{
+  <PopupNoRole />
+}
+else
+{
+  if (view == 1)
+  {
+    <ul class="columns is-vcentered is-variable is-2 mb-2">
+      <li class="column">
+        <h1 class="title is-5 has-text-info is-uppercase">
+          @_title
+        </h1>
+      </li>
+      <li class="column is-narrow">
+        <a class="button @(isPlus ? "is-link" : "is-danger")" @onclick="() => view = 2">
+          <span class="icon">
+            <span class="material-icons-outlined is-size-6">@(isPlus ? "add" : "remove")</span>
+          </span>
+          <span>@(isPlus ? "Cấp sao" : "Trừ sao")</span>
+        </a>
+      </li>
+    </ul>
+    <ul class="columns is-variable is-2 mb-2">
+      <li class="column is-one-quarter">
+        <div class="select is-fullwidth">
+          <select @onchange="ChangeDepartment" class="is-family-code">
+            <option value="">Tất cả phòng ban</option>
+            @foreach (var item in departments)
+            {
+              <option value="@item.id">@item.name</option>
+            }
+          </select>
+        </div>
+      </li>
+      <li class="column is-one-quarter">
+        <div class="control has-icons-right has_suggest">
+          <input class="input" type="text" placeholder="Nhập tên nhân viên..."
+                 autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
+          <ul class="suggest">
+            @foreach (var item in userSuggests)
+            {
+              <li class="rsitem" @onclick="() => UserSelected(item)">
+                <div class="user_item">
+                  <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
+                  <span>@item.name</span>
+                </div>
+              </li>
+            }
+          </ul>
+          <span class="icon is-right">
+            <i class="material-icons-outlined">search</i>
+          </span>
+        </div>
+      </li>
+      <li class="column">
+        <_InputDate 
+          @bind-Start="filterStart"
+          @bind-End="filterEnd"
+          IsRange
+          HasDropdown
+          ListOptions="new() {1,11,2,22,3}"/>
+      </li>
+      <li class="column is-narrow">
+        <a class="button is-link is-outlined" @onclick="Search">
+          <span class="icon">
+            <i class="material-icons-outlined">search</i>
+          </span>
+          <span>Tìm kiếm</span>
+        </a>
+      </li>
+    </ul>
+    <div class="scrolly inner_section" style="flex:1">
+      <table class="table is-fullwidth is-vcentered is-responsive">
+        <thead>
+          <tr>
+            <th class="pt-0" width="150px">Thời gian</th>
+            <th class="pt-0" width="20%">Nhân viên</th>
+            <th class="pt-0">Phòng ban</th>
+            <th class="pt-0" width="110px">Cấp bậc</th>
+            <th class="pt-0" width="100px">Loại ví</th>
+            <th class="pt-0" width="80px" align="center">@(isPlus ? "Sao cấp" : "Sao trừ")</th>
+            <th class="pt-0" width="18%">Người thực hiện</th>
+            <th class="pt-0" width="50px" align="center">Xử lý</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var item in dataList)
+          {
+            var user = userList.SingleOrDefault(x => x.id == item.user);
+
+            if (user != null)
+            {
+              if (!string.IsNullOrEmpty(filterDepartment) && !user.departments_id.Contains(filterDepartment))
+                continue;
+
+              var create = userList.SingleOrDefault(x => x.id == item.create_id);
+
+              <tr>
+                <td>
+                  @string.Format("{0:HH:mm - dd/MM/yyyy}", new DateTime(item.create_date))
+                </td>
+                <td>
+                  <label class="td-label">Nhân viên</label>
+                  <div class="td-value">
+                    <div class="is-flex is-vcentered">
+                      <figure class="image is-rounded is-24x24 mr-2" style="min-width: 24px;">
+                        <img src="@user.avatar" alt="IMG" />
+                      </figure>
+                      <a class="text_1_line has-text-weight-semibold">@user.name</a>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Phòng ban</label>
+                  <div class="td-value">
+                    <div class="text_1_line">
+                      @user.departments_name
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Cấp bậc</label>
+                  <div class="td-value">
+                    @if (user.title == 1)
+                    {
+                      <span>Quản lý</span>
+                    }
+                    else if (user.title == 2)
+                    {
+                      <span>Phó quản lý</span>
+                    }
+                    else
+                    {
+                      <span>Nhân viên</span>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Loại ví</label>
+                  <div class="td-value">
+                    @(item.wallet == 2 ? "Cá nhân" : "Ghi nhận")
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">@(isPlus ? "Sao cấp" : "Sao trừ")</label>
+                  <div class="td-value has-text-weight-semibold">
+                    @item.star
+                  </div>
+                </td>
+                <td>
+                  <label class="td-label">Người thực hiện</label>
+                  <div class="td-value">
+                    @if (create != null)
+                    {
+                      <div class="is-flex is-vcentered">
+                        <figure class="image is-rounded is-24x24 mr-2" style="min-width: 24px;">
+                          <img src="@create.avatar" alt="IMG" />
+                        </figure>
+                        <a class="text_1_line">@create.name</a>
+                      </div>
+                    }
+                  </div>
+                </td>
+                <td align="center">
+                  <label class="td-label">Xử lý</label>
+                  <div class="td-value">
+                    <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item, user)">
+                      <i class="material-icons-outlined is-size-5">
+                        delete
+                      </i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            }
+            else
+            {
+              <tr>
+                <td>
+                  @string.Format("{0:HH:mm - dd/MM/yyyy}", new DateTime(item.create_date))
+                </td>
+                <td colspan="6">
+                  <i>Nhân viên đã bị xóa</i>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+  else if (view == 2)
+  {
+    <CfrStarAction isPlus=@isPlus OnUpdate="Callback" />
+  }
+}
+
+@if (deleteItem != null)
+{
+  var user = userList.FirstOrDefault(x => x.id == deleteItem.user);
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <div class="modal-card-head">
+        <div class="modal-card-title">
+          Xóa lịch sử @(isPlus ? "cấp sao" : "trừ sao")
+        </div>
+        <a class="delete"></a>
+      </div>
+      <div class="modal-card-body">
+        <div class="field">
+          Bạn đang xóa lịch sử @(isPlus ? "cấp sao" : "trừ sao") của @(user == null ? "tài khoản bị xóa" : user.name) với số sao là @(Math.Abs(deleteItem.star)).
+          Bạn có muốn khôi phục lại số sao đã @(isPlus ? "cấp" : "trừ")?
+        </div>
+        <div class="field is-grouped mt-5">
+          <div class="control is-expanded has-text-danger">
+            Bạn có chắc chắn thực hiện ?
+          </div>
+          <div class="control">
+            <a class="button" @onclick="() => {delete = true; DeleteItem(deleteItem,user,true);}">
+              <span class="icon">
+                <span class="material-icons-outlined">
+                  delete
+                </span>
+              </span>
+              Xóa lịch sử
+            </a>
+          </div>
+          @if (user != null)
+          {
+            <div class="control">
+              <a class="button is-link" @onclick="() => {delete = false; DeleteItem(deleteItem,user,true);}">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">undo</i>
+                </span>
+                <span>Hoàn tác</span>
+              </a>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public bool isPlus { get; set; } = true;
+
+  private bool _loaded = false;
+  private bool success = false;
+  private string _message = string.Empty;
+  private string _title = string.Empty;
+
+  private List<CfrStarModel> dataList = new();
+  private List<DepartmentModel> departmentAll = new();
+  private List<DepartmentModel.SelectList> departments = new();
+
+  private string filterDepartment = string.Empty;
+  private string filterUserName = string.Empty;
+  private string filterUserId = string.Empty;
+  private long filterStart { get; set; }
+  private long filterEnd { get; set; }
+  private List<MemberModel> userSuggests = new();
+
+  private int view = 1;
+
+  private CfrStarModel deleteItem;
+  private bool delete;
+
+  private List<MemberModel> userList = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    userList = shareStorage.MemberList;
+
+    departmentAll = await DbDepartment.GetAll(Layout.Company.id);
+    var departs = await DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+    departments.AddRange(departs);
+
+    _loaded = true;
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+
+    isPlus = navigation.Uri.EndsWith("true");
+    _title = isPlus ? "Lịch sử cấp sao" : "Lịch sử trừ sao";
+
+    Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
+    filterStart = start.Ticks;
+    filterEnd = end.Ticks;
+
+    await Search();
+  }
+
+  private async Task<bool> Search()
+  {
+    bool _success = true;
+    try
+    {
+      dataList = await DbCfrStar.GetList(Layout.Company.id, filterUserId, isPlus, new DateTime(filterStart), new DateTime(filterEnd));
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Search()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> DeleteItem(CfrStarModel item, MemberModel member, bool confirm = false)
+  {
+    bool _success = true;
+    try
+    {
+      if (!confirm)
+      {
+        deleteItem = item;
+        return false;
+      }
+      if (await DbCfrStar.Delete(Layout.Company.id, item.id))
+      {
+        var user = await DbUser.Get(Layout.Company.id, member.id, globalService);
+
+        if (user != null)
+        {
+          // Update data star of Users
+          if (isPlus)
+          {
+            if (item.wallet == 2)
+            {
+              user.star_total -= Math.Abs(deleteItem.star);
+            }
+            else
+            {
+              user.star_distribute -= Math.Abs(deleteItem.star);
+            }
+          }
+          else
+          {
+            if (deleteItem.wallet == 2)
+            {
+              user.star_total += Math.Abs(deleteItem.star);
+            }
+            else
+            {
+              user.star_distribute += Math.Abs(deleteItem.star);
+            }
+          }
+          await DbUser.Update(Layout.Company.id, user, globalService);
+          MessagingCenter.Send(this, "starChanged", user.id);
+        }
+
+        dataList.RemoveAll(x => x.id == deleteItem.id);
+
+        _message = $"Đã xóa dữ liệu {(isPlus ? "cấp" : "trừ")} sao !";
+        await JSRuntime.InvokeVoidAsync("tagline", true, _message);
+        success = true;
+      }
+      else
+      {
+        _message = $"Không thể xóa dữ liệu {(isPlus ? "cấp" : "trừ")} sao này, vui lòng thử lại !";
+        await JSRuntime.InvokeVoidAsync("tagline", false, _message);
+        success = false;
+      }
+
+      deleteItem = null;
+      StateHasChanged();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private void ChangeDepartment(ChangeEventArgs e)
+  {
+    filterDepartment = e.Value.ToString();
+  }
+
+  private void ChangeDate(ChangeEventArgs e)
+  {
+    var type = Convert.ToInt32(e.Value);
+    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
+    filterStart = start.Ticks;
+    filterEnd = end.Ticks;
+  }
+
+  private string UserSearch
+  {
+    get => filterUserName;
+    set
+    {
+      filterUserName = value;
+      userSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in userList)
+        {
+          bool check = true;
+          if (!string.IsNullOrEmpty(filterDepartment))
+            if (item.departments_id == null || !item.departments_id.Contains(filterDepartment))
+              check = false;
+          if (!Handled.Shared.SearchKeyword(filterUserName, item.name))
+            check = false;
+
+          if (check)
+            userSuggests.Add(item);
+        }
+      }
+    }
+  }
+
+  private void UserSelected(MemberModel item)
+  {
+    filterUserId = item.id;
+    filterUserName = item.name;
+    userSuggests = new();
+  }
+
+  private async Task Callback(bool e)
+  {
+    view = 1;
+
+    if (e)
+    {
+      await Search();
+    }
+  }
+}

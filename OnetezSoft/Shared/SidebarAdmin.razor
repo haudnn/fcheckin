@@ -1,7 +1,10 @@
-﻿@inject IJSRuntime JSRuntime
+﻿@using System.Threading;
+@using Microsoft.AspNetCore.SignalR.Client;
+@inject HubService hubService
+@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<section id="sidebar" class="@(navLess ? "is_less" : "") @(navMobile ? "is_expanded" : "")">
+<section id="sidebar" class="@(navLess ? "is_less" : "") @(navMobile ? "is_expanded" : "")" style="height:100%; padding:10px 0; background:var(--color-bg);">
   <div class="columns is-vcentered is-gapless is-mobile px-2 mb-0">
     <div class="column is-narrow">
       <a class="sidebar_toggle button is-white is-hidden-mobile" @onclick="ToggleSidebar">
@@ -33,7 +36,7 @@
           <span class="image is-32x32 is-rounded">
             <img src="@Layout.User.avatar" alt="IMG" />
           </span>
-          <span class="ml-2 has-text-white">Hi, @Layout.User.first_name</span>
+          <span class="ml-2">Hi, @Layout.User.first_name</span>
         </a>
       </li>
       @foreach (var main in ListNav)
@@ -49,6 +52,15 @@
       }
     </ul>
   </nav>
+  @if (ConfigSystem.DeveloperId.Contains(Layout.User.id))
+  {
+    <a class="button is-white btn_logout" @onclick="SendNotificationGlobal" style="bottom:45px">
+      <span class="icon mr-3">
+        <i class="material-icons-round is-size-5">campaign</i>
+      </span>
+      <span>Push thông báo global</span>
+    </a>
+  }
   <a class="button is-white btn_logout" @onclick="Logout" title="Đăng xuất">
     <span class="icon">
       <i class="material-icons-round is-size-5">logout</i>
@@ -57,6 +69,76 @@
   </a>
 </section>
 
+@if (pushNotification)
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card is-medium">
+      <section class="modal-card-head">
+        <div class="modal-card-title">Gửi tin nhắn toàn hệ thống</div>
+        <a class="delete is-medium" @onclick="CancelPushNotification"></a>
+      </section>
+      <section class="modal-card-body">
+        <div class="field">
+          <div class="label">
+            Nội dung
+          </div>
+          <div class="control is-expanded">
+            <textarea class="textarea" @bind="@globalMessage" type="text" placeholder="Nhập nội dung"></textarea>
+          </div>
+        </div>
+        <div class="field is-grouped" style="flex-wrap:nowrap;">
+          <div class="control is-expanded" style="width:33%">
+            <div class="label">
+              Chọn công ty
+            </div>
+            <div class="select">
+              <select @onchange="ChangeCompanyNoti">
+                <option value="all">Tất cả</option>
+                @foreach (var company in companys)
+                {
+                  <option value="@company.id">@company.name</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="control is-expanded">
+            <div class="label">
+              Thời gian timeout (giây)
+            </div>
+            <input class="input" @bind="@timeout" type="number" placeholder="Nhập thời gian" min="60">
+          </div>
+          <div class="control is-expanded">
+            <div class="label">
+              Loại thông báo
+            </div>
+            <label class="checkbox" style="height:35px;">
+              <input type="checkbox" @bind="@isWarning">
+              Cảnh báo
+            </label>
+          </div>
+        </div>
+      </section>
+      <section class="modal-card-foot py-2 has-background-white">
+        <div class="field is-grouped is-grouped-right is-fullwidth">
+          <div class="control">
+            <a class="button is-link" @onclick="PushNotification">
+              <span class="icon"><i class="material-icons-round is-size-6">done</i></span>
+              <span>Hoàn tất</span>
+            </a>
+          </div>
+          <div class="control" @onclick="CancelPushNotification">
+            <a class="button">
+              <span class="icon"><i class="material-icons-round is-size-6">close</i></span>
+              <span>Hủy</span>
+            </a>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+}
+
 @code {
   [CascadingParameter]
   public LayoutAdmin Layout { get; set; }
@@ -64,8 +146,24 @@
   private bool navLess = false;
   private bool navMobile = false;
 
-  protected override void OnInitialized()
+  private bool pushNotification;
+  private bool trigger;
+  private string globalMessage;
+  private int timeout = 60;
+  private Timer timer;
+
+  private List<CompanyModel> companys = new();
+  private string selectCompany = "all";
+  private bool isWarning;
+
+  protected override async Task OnInitializedAsync()
   {
+    companys = await DbMainCompany.GetAll();
+
+    var hubConnection = hubService.GetHubConnection();
+
+    
+
     Navigation();
   }
 
@@ -83,7 +181,7 @@
     }
     catch (Exception ex)
     {
-      await JSRuntime.InvokeVoidAsync("console.warn", ex.Message);
+      await JSRuntime.InvokeVoidAsync("console.warn", ex.ToString());
       return;
     }
   }
@@ -166,7 +264,19 @@
         link = "admin/feedback",
         icon = "feedback"
       });
-    if(Layout.User.id == ConfigSystem.DeveloperId)
+    ListNav.Add(new NavModel
+      {
+        name = "Thông báo hệ thống",
+        link = "admin/notifications",
+        icon = "notifications_active"
+      });
+    ListNav.Add(new NavModel
+      {
+        name = "Monitoring",
+        link = "admin/monitor",
+        icon = "computer"
+      });
+    if (ConfigSystem.DeveloperId.Contains(Layout.User.id))
     {
       ListNav.Add(new NavModel
         {
@@ -174,6 +284,90 @@
           link = "admin/accounts",
           icon = "person_search"
         });
+    }
+    ListNav.Add(new NavModel
+      {
+        name = "Tài khoản đăng nhập lỗi",
+        link = "admin/accountserror",
+        icon = "person_search"
+      });
+    ListNav.Add(new NavModel
+      {
+        name = "Restore kế hoạch",
+        link = "admin/restore-plan",
+        icon = "settings_backup_restore"
+      });
+    
+  }
+
+  private void ChangeCompanyNoti(ChangeEventArgs e)
+  {
+    selectCompany = e.Value.ToString();
+  }
+
+  private void SendNotificationGlobal()
+  {
+    pushNotification = true;
+    selectCompany = "all";
+    isWarning = false;
+    timer?.Dispose();
+  }
+
+  private void CancelPushNotification()
+  {
+    pushNotification = false;
+    globalMessage = string.Empty;
+  }
+
+  private async Task PushNotification()
+  {
+    var hubConnection = hubService.GetHubConnection();
+
+    if (globalMessage.IsEmpty())
+    {
+      await hubConnection
+        .SendAsync("PushNotificationGlobal", globalMessage,selectCompany == "all" ? string.Empty : selectCompany,isWarning);
+      timeout = 0;
+      timer?.Dispose();
+    }
+    else
+    {
+      await hubConnection
+        .SendAsync("PushNotificationGlobal", globalMessage,selectCompany == "all" ? string.Empty : selectCompany,isWarning);
+      if (timeout == 0)
+        timeout = 60;
+
+      timer?.Dispose();
+      timer = new Timer(ClosePushNotification, trigger, timeout * 1000, Timeout.Infinite);
+    }
+
+    CancelPushNotification();
+  }
+
+  private async void ClosePushNotification(object state)
+  {
+    try
+    {
+      if (trigger)
+      {
+        globalMessage = string.Empty;
+        var hubConnection = hubService.GetHubConnection();
+        await hubConnection.SendAsync("PushNotificationGlobal", globalMessage);
+      }
+    }
+    finally
+    {
+      if (timer is not null && !trigger)
+      {
+        trigger = true;
+        timer.Change(timeout * 1000, Timeout.Infinite);
+      }
+      else
+      {
+        timeout = 0;
+        trigger = false;
+        timer?.Dispose();
+      }
     }
   }
 }

@@ -1,11 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+﻿using MongoDB.Driver;
 using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -53,7 +51,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<OkrModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
@@ -63,7 +61,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<OkrModel>(_collection);
 
-      return await collection.Find(x => x.id == id && x.cycle == cycle).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id && x.cycle == cycle).Result.FirstOrDefaultAsync();
     }
 
 
@@ -82,19 +80,19 @@ namespace OnetezSoft.Data
     }
 
 
-    public static List<OkrModel> GetAll(string companyId, string cycle)
+    public static async Task<List<OkrModel>> GetAll(string companyId, string cycle)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<OkrModel>(_collection);
 
-      var results = collection.Find(x => x.cycle == cycle && !x.delete).ToList();
+      var results = await collection.FindAsync(x => x.cycle == cycle && !x.delete).Result.ToListAsync();
 
       return results.OrderByDescending(x => x.user_create).ToList();
     }
 
 
-    public static List<OkrModel> GetList(string companyId, string cycle, string user)
+    public static async Task<List<OkrModel>> GetList(string companyId, string cycle, string user)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
@@ -108,23 +106,23 @@ namespace OnetezSoft.Data
       if (!string.IsNullOrEmpty(user))
         filtered = filtered & builder.Eq("user_create", user);
 
-      var sorted = Builders<OkrModel>.Sort.Ascending("date_create");
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
 
-      return collection.Find(filtered).Sort(sorted).ToList();
+      return result.OrderBy(x => x.date_create).ToList();
     }
 
 
     /// <summary>
     /// Danh sách OKRs theo danh sách User
     /// </summary>
-    public static List<OkrModel> GetList(string companyId, string cycle, List<string> listUser)
+    public static async Task<List<OkrModel>> GetList(string companyId, string cycle, List<string> listUser)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<OkrModel>(_collection);
 
-      var results = collection.Find(x => x.cycle == cycle && !x.delete
-          && listUser.Contains(x.user_create)).ToList();
+      var results = await collection.FindAsync(x => x.cycle == cycle && !x.delete
+          && listUser.Contains(x.user_create)).Result.ToListAsync();
 
       return results.OrderByDescending(x => x.user_create).ToList();
     }
@@ -133,14 +131,14 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Danh sách OKRs mà User là người xem hoặc là người đánh giá
     /// </summary>
-    public static List<OkrModel> GetListByReview(string companyId, string cycle, string userId)
+    public static async Task<List<OkrModel>> GetListByReview(string companyId, string cycle, string userId)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<OkrModel>(_collection);
 
-      var results = collection.Find(x => x.cycle == cycle && !x.delete
-          && (x.review_manager_id == userId || x.review_viewers.Contains(userId))).ToList();
+      var results = await collection.FindAsync(x => x.cycle == cycle && !x.delete
+          && (x.review_manager_id == userId || x.review_viewers.Contains(userId))).Result.ToListAsync();
 
       return results.OrderByDescending(x => x.user_create).ToList();
     }

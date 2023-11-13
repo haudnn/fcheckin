@@ -1,0 +1,747 @@
+﻿@using System.Globalization;
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<div class="custom_datepicker @toId @(Minimal ? "is_minimal" : "")"
+     style="width:@(IsFull ? "100%" : "fit-content")"
+     title="@(IsRange ? $"Từ {start} đến {end}" : $"{start}")">
+  <div class="field has-addons custom_datepicker_input @(IsNavigateSmall ? "is-align-items-center" : "")">
+    @if (ShowIcon)
+    {
+      <div class="control custom_datepicker_icon" @onclick="Toggle">
+        <span class="button is-link">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">
+              event
+            </i>
+          </span>
+        </span>
+      </div>
+    }
+    @if (!string.IsNullOrEmpty(DefaultString) && Start == 0 && End == 0)
+    {
+      <div class="control pl-2" @onclick="Open">
+        <div class="input @InputClass" style="width:@( IsSetWidth ? (width * 2) + "px" : "unset" )">
+          @DefaultString
+        </div>
+      </div>
+    }
+    else
+    {
+      var extenStart = !ShowDateWeek ? 0 : Shared.ConvertWeekdays(new DateTime(Start)).Length + 2;
+      <div class="control @(IsFull ? "is-expanded" : "") custom_datepicker_from @(ShowDateWeek ? "has_week" : "")" @onclick="Open">
+        @if (ShowDateWeek)
+        {
+          <span>
+            @Shared.ConvertWeekdays(new DateTime(Start)) -
+          </span>
+        }
+        @if (isMobile || !AllowInput)
+        {
+          var formatStart = IsShowDetail ? Shared.FormatMonth(start) : start;
+          <div class="input is-link @InputClass"
+               style="width:@($"calc({width}px + {(extenStart == 5 ? 6 : extenStart) * 7 + (Minimal ? 0 : 8)}px)"); padding-left:@((extenStart == 5 ? 7 : extenStart) * 7 + (Minimal ? 0 : 8) + (extenStart > 0 ? 7 : 0 ))px; @InputStyle; @(IsFull ? "width:100%" : "")">
+            @formatStart
+          </div>
+        }
+        else
+        {
+          <input class="input is-link @InputClass"
+          @bind="OnStart"
+          @bind:event="oninput"
+                 readonly="@offEdit"
+                 type="text"
+                 placeholder="@placeHolder"
+                 onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                 style="width:@($"calc({width}px + {(extenStart == 5 ? 6 : extenStart) * 7 + (Minimal ? 0 : 8)}px)"); padding-left:@((extenStart == 5 ? 7 : extenStart) * 7 + (Minimal ? 0 : 8) + (extenStart > 0 ? 7 : 0 ))px; @InputStyle; @(IsFull ? "width:100%" : "")"
+                 max="@Format.Length">
+        }
+      </div>
+      @if (IsRange)
+      {
+        var extenEnd = !ShowDateWeek ? 0 : Shared.ConvertWeekdays(new DateTime(End)).Length + 2;
+        <div class="control @(IsFull ? "is-expanded" : "") custom_datepicker_to @(ShowDateWeek ? "has_week" : "")" @onclick="Open">
+          @if (ShowDateWeek)
+          {
+            <span>
+              @Shared.ConvertWeekdays(new DateTime(End)) -
+            </span>
+          }
+          @if (isMobile || !AllowInput)
+          {
+            <div class="input is-link @InputClass" style="width:@($"calc({width}px + {(extenEnd == 5 ? 6 : extenEnd) * 7 + (Minimal ? 0 : 8)}px)"); padding-left:@((extenEnd == 5 ? 7 : extenEnd) * 7 + (Minimal ? 0 : 8) + (extenEnd > 0 ? 7 : 0 ))px; @InputStyle; @(IsFull ? "width:100%" : "")">
+              @end
+            </div>
+          }
+          else
+          {
+            <input id="@toId"
+                   class="input is-link @InputClass"
+            @bind="OnEnd"
+            @bind:event="oninput"
+                   type="text"
+                   readonly="@offEdit"
+                   placeholder="@placeHolder"
+                   onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57))"
+                   style="width:@($"calc({width}px + {(extenEnd == 5 ? 6 : extenEnd) * 7 + (Minimal ? 0 : 8)}px)"); padding-left:@((extenEnd == 5 ? 7 : extenEnd) * 7 + (Minimal ? 0 : 8) + (extenEnd > 0 ? 7 : 0 ))px; @InputStyle; @(IsFull ? "width:100%" : "")"
+                   max="@Format.Length">
+          }
+        </div>
+      }
+    }
+    @if (HasNavigate)
+    {
+      if (IsNavigateSmall)
+      {
+        <div class="control" @onclick="Prev">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">
+              chevron_left
+            </i>
+          </span>
+        </div>
+        <div class="control" @onclick="Next">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">
+              chevron_right
+            </i>
+          </span>
+        </div>
+      }
+      else
+      {
+        <div class="control custom_datepicker_prev" @onclick="Prev">
+          <a class="button is-link is-outlined">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">
+                chevron_left
+              </i>
+            </span>
+          </a>
+        </div>
+        <div class="control custom_datepicker_next" @onclick="Next">
+          <a class="button is-link is-outlined">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">
+                chevron_right
+              </i>
+            </span>
+          </a>
+        </div>
+      }
+    }
+    @if (HasDropdown)
+    {
+      <div class="control">
+        <div class="select is-link is-fullwidth">
+          <select @onchange="ChangeFilterDate">
+            @foreach (var item in ListOptions)
+            {
+              <option selected="@(DefaultOption == item)" value="@item">@Shared.GetTimeName(item)</option>
+            }
+          </select>
+        </div>
+      </div>
+    }
+  </div>
+  @if (ShowCalendar && toggle && !isMobile && screenHeight >= 550)
+  {
+    <div class="custom_datepicker_calendar @(IsRange ? "is_range" : "") @(IsBottom ? "is_bottom" : "") @(IsRight ? "is_right" : "")" style="@MenuStyle">
+      <div class="field is-grouped mb-2 custom_datepicker_header">
+        <div class="control">
+          <a class="icon is-small" @onclick="() => ChangeMonth(false)">
+            <i class="material-icons-outlined is-size-5">chevron_left</i>
+          </a>
+        </div>
+        <div class="control is-expanded">
+          <select @onchange="ChangeMonth">
+            @for (int m = 12; m > 0; m--)
+            {
+              if (m == month)
+              {
+                <option value="@m" selected>Tháng @m</option>
+              }
+              else
+              {
+                <option value="@m">Tháng @m</option>
+              }
+            }
+          </select>
+        </div>
+        <div class="control">
+          <select @onchange="ChangeYear">
+            @for (int y = DateTime.Today.Year + 2; y > 2020; y--)
+            {
+              if (y == year)
+              {
+                <option value="@y" selected>@y</option>
+              }
+              else
+              {
+                <option value="@y">@y</option>
+              }
+            }
+          </select>
+        </div>
+        <div class="control">
+          <a class="icon is-small" @onclick="() => ChangeMonth(true)">
+            <i class="material-icons-outlined is-size-5">chevron_right</i>
+          </a>
+        </div>
+      </div>
+      <ul class="custom_datepicker_body">
+        <li class="has-text-weight-bold">T2</li>
+        <li class="has-text-weight-bold">T3</li>
+        <li class="has-text-weight-bold">T4</li>
+        <li class="has-text-weight-bold">T5</li>
+        <li class="has-text-weight-bold">T6</li>
+        <li class="has-text-weight-bold">T7</li>
+        <li class="has-text-weight-bold">CN</li>
+        @foreach (var week in calender)
+        {
+          foreach (var item in week)
+          {
+            var tick = item < 0 ? -item : item;
+            if (tick > 0)
+            {
+              var date = new DateTime(tick);
+              var active = false;
+              if (IsRange)
+              {
+                if (End == 0)
+                {
+                  active = tick >= new DateTime(Start).Date.Ticks
+                  && tick <= new DateTime(Start).Date.AddDays(1).AddTicks(-1).Ticks;
+                }
+                else
+                {
+                  active = tick >= new DateTime(Start).Date.Ticks && tick <= End;
+                }
+              }
+              else
+              {
+                active = tick >= new DateTime(Start).Date.Ticks
+                && tick <= new DateTime(Start).Date.AddDays(1).AddTicks(-1).Ticks;
+              }
+              var today = tick == DateTime.Today.Ticks ? "has-text-weight-bold" : "";
+              <li class="@(active ? "is-active" : "") @today" @onclick="() => SelectDay(tick)">
+                <span class="@(item < 0 ? "has-text-grey" : "")">
+                  @date.ToString("dd")
+                </span>
+              </li>
+            }
+            else
+            {
+              <li class="column is-narrow"></li>
+            }
+          }
+        }
+      </ul>
+      @if (HasTime)
+      {
+        <div class="columns is-variable is-1 is-vcentered is-center">
+          <div class="column" style="display:block!important;">
+            <div class="has-text-centered">
+              @(IsRange ? "Bắt đầu" : "Thời gian")
+            </div>
+            <_InputTime @bind-Value="@Start" Callback="TimeCallback" />
+          </div>
+          @if (IsRange)
+          {
+            <div class="column" style="display:block!important;">
+              <div class="has-text-centered">
+                Kết thúc
+              </div>
+              <_InputTime @bind-Value="@End" Callback="TimeCallback" />
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public bool IsFull { get; set; } = false;
+  [Parameter]
+  public bool HasNavigate { get; set; }
+  [Parameter]
+  public bool IsRange { get; set; }
+  [Parameter]
+  public bool ShowCalendar { get; set; } = true;
+  [Parameter]
+  public bool IsSetWidth { get; set; } = true;
+  [Parameter]
+  public long Start { get; set; }
+  [Parameter]
+  public bool HasDropdown { get; set; }
+  [Parameter]
+  public List<int> ListOptions { get; set; } = new();
+  [Parameter]
+  public EventCallback<long> StartChanged { get; set; }
+  [Parameter]
+  public long End { get; set; }
+  [Parameter]
+  public EventCallback<long> EndChanged { get; set; }
+  [Parameter]
+  public EventCallback<long> OnClose { get; set; }
+  [Parameter]
+  public EventCallback<DateRange> OnRangeSelect { get; set; }
+  [Parameter]
+  public EventCallback<DateRange> OnRangeClose { get; set; }
+  [Parameter]
+  public string Format { get; set; } = "dd/MM/yy";
+  [Parameter]
+  public bool ShowDateWeek { get; set; }
+  [Parameter]
+  public bool Minimal { get; set; }
+  [Parameter]
+  public bool HasTime { get; set; }
+  [Parameter]
+  public string DefaultString { get; set; }
+  [Parameter]
+  public bool ShowIcon { get; set; } = true;
+  [Parameter]
+  public string InputClass { get; set; }
+  [Parameter]
+  public string MenuStyle { get; set; }
+  [Parameter]
+  public bool IsRight { get; set; }
+  [Parameter]
+  public string InputStyle { get; set; }
+  [Parameter]
+  public int DefaultOption { get; set; } = 1;
+  /// <summary>
+  /// Next, previous: 1: day, 2: month, 3: year
+  /// </summary>
+
+  [Parameter]
+  public int NavigateType { get; set; } = 1;
+  [Parameter]
+  public bool AllowInput { get; set; }
+  [Parameter]
+  public bool IsBottom { get; set; }
+  [Parameter]
+  public bool offEdit { get; set; }
+  [Parameter]
+  public bool IsNavigateSmall { get; set; }
+  [Parameter]
+  public bool IsShowDetail { get; set; }
+
+  private string start;
+  private string end;
+
+  private string toId;
+  private string placeHolder;
+  private bool isMobile;
+
+  private string OnStart
+  {
+    get => start;
+    set
+    {
+      start = value;
+      start = SupportInput(start);
+      if (start.IsEmpty())
+      {
+        Start = DateTime.Today.Ticks;
+      }
+      if (start.Length == Format.Length)
+      {
+        try
+        {
+          Start = DateTime.ParseExact(start, Format, CultureInfo.InvariantCulture).Ticks;
+          StartChanged.InvokeAsync(Start);
+          if (IsRange)
+          {
+            JSRuntime.InvokeVoidAsync("setFocus", toId);
+            End = 0;
+            end = string.Empty;
+          }
+        }
+        catch (Exception ex)
+        {
+          JSRuntime.InvokeVoidAsync("tagline", false, $"Định dạng thời gian không hợp lệ ({Format})");
+        }
+      }
+    }
+  }
+  private string OnEnd
+  {
+    get => end;
+    set
+    {
+      end = value;
+      end = SupportInput(end);
+      if (end.IsEmpty())
+      {
+        End = DateTime.Today.Ticks;
+      }
+
+      if (end.Length == Format.Length)
+      {
+        try
+        {
+          End = DateTime.ParseExact(end, Format, CultureInfo.InvariantCulture).Ticks;
+          EndChanged.InvokeAsync(End);
+
+          if (End < Start)
+          {
+            Start = new DateTime(End).AddDays(-1).Ticks;
+            start = new DateTime(Start).ToString(Format);
+            StartChanged.InvokeAsync(Start);
+          }
+          else
+          {
+            if (Start > 0 && End > 0)
+            {
+              OnRangeSelect
+                     .InvokeAsync(new DateRange() { Start = new DateTime(Start), End = new DateTime(End) });
+            }
+          }
+        }
+        catch (Exception ex)
+        {
+          JSRuntime.InvokeVoidAsync("tagline", false, $"Định dạng thời gian không hợp lệ ({Format})");
+        }
+      }
+    }
+  }
+
+  private List<List<long>> calender = new();
+  private int month = 0;
+  private int year = 0;
+
+  private bool toggle = false;
+  private bool load = false;
+  private int width;
+
+  private TimeSpan? startTime = new TimeSpan(0, 0, 0);
+  private TimeSpan? endTime = new TimeSpan(23, 59, 0);
+
+  private DotNetObjectReference<_InputDate> obj;
+
+  private int screenHeight;
+
+  protected override void OnInitialized()
+  {
+    placeHolder = DateTime.Today.ToString(Format);
+
+    toId = "id_" + Guid.NewGuid().ToString().Split("-").FirstOrDefault();
+
+    var date = Start > 0 ? new DateTime(Start) : DateTime.Today;
+
+    if (string.IsNullOrEmpty(DefaultString) || (Start > 0))
+    {
+      start = date.ToString(Format);
+
+      if (IsRange)
+      {
+        if (End == 0)
+          End = DateTime.Today.Ticks;
+
+        end = new DateTime(End).ToString(Format);
+      }
+    }
+
+    width = Format.Length * (Minimal ? 7 : 10);
+
+    calender = Shared.CalenderMonth(date);
+    year = date.Year;
+    month = date.Month;
+  }
+
+  protected override void OnParametersSet()
+  {
+    if (!HasTime)
+    {
+      startTime = null;
+      endTime = null;
+    }
+
+    if (Start > 0 && End > 0)
+    {
+      if (new DateTime(Start).ToString(Format) != start
+       || new DateTime(End).ToString(Format) != end)
+      {
+        var date = Start > 0 ? new DateTime(Start) : DateTime.Today;
+
+        if (string.IsNullOrEmpty(DefaultString) || (Start > 0))
+        {
+          start = date.ToString(Format);
+
+          if (IsRange)
+          {
+            if (End == 0)
+              End = DateTime.Today.Ticks;
+
+            end = new DateTime(End).ToString(Format);
+          }
+        }
+
+        calender = Shared.CalenderMonth(date);
+        year = date.Year;
+        month = date.Month;
+      }
+    }
+
+    if (Layout != null)
+    {
+      var info = Layout.GetType();
+      var properties = info.GetProperty("IsMobile");
+      if (properties != null)
+      {
+        isMobile = Layout.IsMobile;
+      }
+    }
+
+    if (!string.IsNullOrEmpty(DefaultString) && Start == 0 && End == 0)
+      width = DefaultString.Length * (Minimal ? 7 : 10);
+    else
+      width = Format.Length * (Minimal ? 7 : 10);
+  }
+
+  protected override async Task OnAfterRenderAsync(bool first)
+  {
+    if (toggle && !load)
+    {
+      obj = DotNetObjectReference.Create(this);
+      await JSRuntime.InvokeVoidAsync("CustomDatepicker", obj, toId);
+      load = true;
+    }
+
+    if (first)
+    {
+      var ratio = await JSRuntime.InvokeAsync<int[]>("window.getScreenRatio");
+      if (ratio != null && ratio.Length == 2)
+      {
+        screenHeight = ratio[1];
+      }
+
+      await InvokeAsync(StateHasChanged);
+    }
+  }
+
+  private async Task SelectDay(long tick)
+  {
+    if (IsRange)
+    {
+      if (Start == 0 || (Start > 0 && End > 0))
+      {
+        Start = startTime == null ? new DateTime(tick).Ticks : (new DateTime(tick) + startTime.Value).Ticks;
+        End = 0;
+        start = new DateTime(Start).ToString(Format);
+        end = string.Empty;
+
+        await StartChanged.InvokeAsync(Start);
+        await EndChanged.InvokeAsync(End);
+      }
+      else if (End == 0)
+      {
+        End = endTime == null ? new DateTime(tick).Ticks : (new DateTime(tick) + endTime.Value).Ticks;
+
+        if (End < Start)
+        {
+          Start = Math.Min(Start, End);
+          End = Math.Max(Start, End);
+        }
+
+        start = new DateTime(Start).ToString(Format);
+        end = new DateTime(End).ToString(Format);
+
+        await StartChanged.InvokeAsync(Start);
+        await EndChanged.InvokeAsync(End);
+      }
+
+      if (Start > 0 && End > 0)
+      {
+        await OnRangeSelect.InvokeAsync(new DateRange() { Start = new DateTime(Start), End = new DateTime(End) });
+
+        if (!HasTime)
+        {
+          Close();
+        }
+      }
+    }
+    else
+    {
+      Start = startTime == null ? new DateTime(tick).Ticks : (new DateTime(tick) + startTime.Value).Ticks;
+      start = new DateTime(Start).ToString(Format);
+
+      await StartChanged.InvokeAsync(Start);
+      Close();
+    }
+  }
+
+  private void ChangeMonth(bool isNext)
+  {
+    var date = new DateTime(year, month, 1);
+    date = isNext ? date.AddMonths(1) : date.AddMonths(-1);
+    month = date.Month;
+    year = date.Year;
+    calender = Shared.CalenderMonth(date);
+  }
+
+  private void ChangeMonth(ChangeEventArgs e)
+  {
+    month = Convert.ToInt32(e.Value);
+    var date = new DateTime(year, month, 1);
+    calender = Shared.CalenderMonth(date);
+  }
+
+  private void ChangeYear(ChangeEventArgs e)
+  {
+    year = Convert.ToInt32(e.Value);
+    var date = new DateTime(year, month, 1);
+    calender = Shared.CalenderMonth(date);
+  }
+
+  private string SupportInput(string source)
+  {
+    if (source.Length < Format.Length)
+    {
+      if (Format[source.Length] == '/')
+        source += "/";
+    }
+    return source;
+  }
+
+  private void Open()
+  {
+    toggle = true;
+    load = false;
+  }
+
+  private void Prev()
+  {
+    if (NavigateType == 1)
+      Start = new DateTime(Start).AddDays(-1).Ticks;
+    else if (NavigateType == 2)
+      Start = new DateTime(Start).AddMonths(-1).Ticks;
+    else if (NavigateType == 3)
+      Start = new DateTime(Start).AddYears(-1).Ticks;
+
+    StartChanged.InvokeAsync(Start);
+    start = new DateTime(Start).ToString(Format);
+
+    if (IsRange || NavigateType == 2 || NavigateType == 3)
+    {
+      if (NavigateType == 1)
+        End = new DateTime(End).AddDays(-1).Ticks;
+      else if (NavigateType == 2)
+        End = new DateTime(End).AddMonths(-1).Ticks;
+      else if (NavigateType == 3)
+        End = new DateTime(End).AddYears(-1).Ticks;
+
+      EndChanged.InvokeAsync(End);
+      end = new DateTime(End).ToString(Format);
+
+      OnRangeSelect
+          .InvokeAsync(new DateRange() { Start = new DateTime(Start), End = new DateTime(End) });
+    }
+  }
+
+  private void Next()
+  {
+    if (NavigateType == 1)
+      Start = new DateTime(Start).AddDays(1).Ticks;
+    else if (NavigateType == 2)
+      Start = new DateTime(Start).AddMonths(1).Ticks;
+    else if (NavigateType == 3)
+      Start = new DateTime(Start).AddYears(1).Ticks;
+
+    StartChanged.InvokeAsync(Start);
+    start = new DateTime(Start).ToString(Format);
+
+    if (IsRange || NavigateType == 2 || NavigateType == 3)
+    {
+      if (NavigateType == 1)
+        End = new DateTime(End).AddDays(1).Ticks;
+      else if (NavigateType == 2)
+        End = new DateTime(End).AddMonths(1).Ticks;
+      else if (NavigateType == 3)
+        End = new DateTime(End).AddYears(1).Ticks;
+
+      EndChanged.InvokeAsync(End);
+      end = new DateTime(End).ToString(Format);
+
+      OnRangeSelect
+          .InvokeAsync(new DateRange() { Start = new DateTime(Start), End = new DateTime(End) });
+    }
+  }
+
+  private async Task ChangeFilterDate(ChangeEventArgs e)
+  {
+    var type = Convert.ToInt32(e.Value);
+    Shared.GetTimeSpan(type, out DateTime from, out DateTime to);
+    Start = from.Ticks;
+    End = to.Ticks;
+
+    var date = new DateTime(from.Year, from.Month, 1);
+    calender = Shared.CalenderMonth(date);
+
+    start = new DateTime(Start).ToString(Format);
+    end = new DateTime(End).ToString(Format);
+
+    await StartChanged.InvokeAsync(Start);
+    await EndChanged.InvokeAsync(End);
+    await OnRangeSelect.InvokeAsync(new DateRange() { Start = new DateTime(Start), End = new DateTime(End) });
+  }
+
+  [JSInvokable]
+  public async Task Close()
+  {
+    toggle = false;
+    load = false;
+    StateHasChanged();
+    if (IsRange)
+    {
+      await OnRangeClose.InvokeAsync(new DateRange() { Start = new DateTime(Start), End = new DateTime(End) });
+    }
+    else
+    {
+      await OnClose.InvokeAsync(Start);
+    }
+  }
+
+  private void Toggle()
+  {
+    if (toggle)
+      Close();
+    else
+      Open();
+  }
+
+  private async Task TimeCallback(long value)
+  {
+    await StartChanged.InvokeAsync(Start);
+    start = new DateTime(Start).ToString(Format);
+    startTime = new DateTime(Start).TimeOfDay;
+    if (IsRange)
+    {
+      await EndChanged.InvokeAsync(End);
+      end = new DateTime(End).ToString(Format);
+      endTime = new DateTime(End).TimeOfDay;
+    }
+
+    if (Start > 0 && End > 0)
+    {
+      await OnRangeSelect
+             .InvokeAsync(new DateRange() { Start = new DateTime(Start), End = new DateTime(End) });
+    }
+  }
+
+  public void Dispose()
+  {
+    try
+    {
+      obj?.Dispose();
+    }
+    catch (Exception ex)
+    {
+      return;
+    }
+  }
+}

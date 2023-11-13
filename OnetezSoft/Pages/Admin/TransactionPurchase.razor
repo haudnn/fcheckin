@@ -104,8 +104,8 @@
     </li>
     <li class="column is-narrow">
       <div class="control is-expanded has-icons-left" style="width: 230px;">
-        <input @bind="filterKeyword" @onkeyup="ChangeKeyword" type="text" class="input is-small" 
-          placeholder="Email, họ và tên KH, tên tổ chức..." />
+        <input @bind="filterKeyword" @onkeyup="ChangeKeyword" type="text" class="input is-small"
+               placeholder="Email, họ và tên KH, tên tổ chức..." />
         <span class="icon is-left has-text-dark">
           <i class="material-icons-round is-size-6">search</i>
         </span>
@@ -236,19 +236,31 @@
   private void ChangeSort(ChangeEventArgs e)
   {
     orderBy = e.Value.ToString();
-    if(orderBy == "latest")
+    if (orderBy == "latest")
       dataList = dataList.OrderByDescending(x => x.date).ToList();
     else
       dataList = dataList.OrderBy(x => x.date).ToList();
   }
 
-  private void GetList()
+  private async Task<bool> GetList()
   {
-    dataList = DbMainTransaction.GetListPurchase(filterKeyword, filterProduct, filterDateS, filterDateE);
-    if(orderBy == "latest")
-      dataList = dataList.OrderByDescending(x => x.date).ToList();
-    else
-      dataList = dataList.OrderBy(x => x.date).ToList();
-    totalMoney = dataList.Select(x => -x.money).Sum();
+    bool _success = true;
+    try
+    {
+      dataList = await DbMainTransaction.GetListPurchase(filterKeyword, filterProduct, filterDateS, filterDateE);
+      if (orderBy == "latest")
+        dataList = dataList.OrderByDescending(x => x.date).ToList();
+      else
+        dataList = dataList.OrderBy(x => x.date).ToList();
+      totalMoney = dataList.Select(x => -x.money).Sum();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

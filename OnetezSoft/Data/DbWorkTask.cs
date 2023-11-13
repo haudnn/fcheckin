@@ -1,12 +1,9 @@
-using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using OnetezSoft.Models;
-using MongoDB.Bson;
+using DocumentFormat.OpenXml.Spreadsheet;
 using MongoDB.Driver;
-using OnetezSoft.Services;
+using OnetezSoft.Models;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -66,7 +63,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<WorkPlanModel.Task>(_collection);
 
-      var result = await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      var result = await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
 
       return result;
     }
@@ -80,7 +77,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<WorkPlanModel.Task>(_collection);
 
-      var results = await collection.Find(x => x.plan_id == planId && x.parent_id == null).ToListAsync();
+      var results = await collection.FindAsync(x => x.plan_id == planId && x.parent_id == null).Result.ToListAsync();
 
       return results;
     }
@@ -94,7 +91,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<WorkPlanModel.Task>(_collection);
 
-      var results = await collection.Find(x => x.plan_id == planId && x.parent_id == null && x.section_id == sectionId).ToListAsync();
+      var results = await collection.FindAsync(x => x.plan_id == planId && x.parent_id == null && x.section_id == sectionId).Result.ToListAsync();
 
       return results;
     }
@@ -108,7 +105,22 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<WorkPlanModel.Task>(_collection);
 
-      var results = await collection.Find(x => x.plan_id == planId && x.parent_id != null).ToListAsync();
+      var results = await collection.FindAsync(x => x.plan_id == planId && x.parent_id != null).Result.ToListAsync();
+
+      return results;
+    }
+
+
+    /// <summary>
+    /// Danh sách công việc phụ trong kế hoạch
+    /// </summary>
+    public static async Task<List<WorkPlanModel.Task>> GetListTaskByPlan(string companyId, string planId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<WorkPlanModel.Task>(_collection);
+
+      var results = await collection.FindAsync(x => x.plan_id == planId).Result.ToListAsync();
 
       return results;
     }
@@ -122,14 +134,20 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<WorkPlanModel.Task>(_collection);
 
-      var results = await collection.Find(x => x.plan_id == planId && x.parent_id == taskId).ToListAsync();
+      var builder = Builders<WorkPlanModel.Task>.Filter;
+
+      var filtered = builder.Eq("plan_id", planId) & builder.Eq("parent_id", taskId);
+
+      var sorted = Builders<WorkPlanModel.Task>.Sort.Ascending("date_start");
+
+      var results = await collection.Find(filtered).Sort(sorted).ToListAsync();
 
       return results;
     }
-    
+
 
     /// <summary>
-    /// Danh sách công việc đang tham gia trong kế hoạch
+    /// Danh sách công việc đang tham gia trong kế hoạch (bao gồm cả công việc chỉ tham gia CVP)
     /// </summary>
     public static async Task<List<WorkPlanModel.Task>> GetListJoin(string companyId, string planId, string userId)
     {
@@ -137,13 +155,21 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<WorkPlanModel.Task>(_collection);
 
-      var list = await collection.Find(x => x.plan_id == planId && x.parent_id == null).ToListAsync();
+      var list = await collection.FindAsync(x => x.plan_id == planId && x.parent_id == null).Result.ToListAsync();
+      var subTask = await collection.FindAsync(x => x.plan_id == planId && !string.IsNullOrEmpty(x.parent_id)).Result.ToListAsync();
 
       var results = new List<WorkPlanModel.Task>();
       foreach (var item in list)
       {
-        if(item.members.Where(x => x.id == userId).Count() > 0)
+        if (item.members.Where(x => x.id == userId).Count() > 0)
           results.Add(item);
+        else
+        {
+          if (subTask.Where(x => x.parent_id == item.id && x.members.Find(x => x.id == userId) != null).Count() > 0)
+          {
+            results.Add(item);
+          }
+        }
       }
 
       return results;

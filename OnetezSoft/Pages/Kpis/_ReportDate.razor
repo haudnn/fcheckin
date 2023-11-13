@@ -1,0 +1,504 @@
+﻿@inject GlobalService globalService
+@inject IJSRuntime JSRuntime
+
+<div class="is-flex is-flex-direction-column scrolly" style="flex: 1;">
+  <ul class="columns is-multiline is-variable is-0 mx-0 mt-4" style="gap: 16px;">
+    @foreach (var metric in metricList)
+    {
+      <li class="column is-narrow" style="width: 220px; background-color: #F1F7F7;">
+        <div class="indicator-card has-text-grey">
+          <p class="mb-1 font_12 has-text-black has-text-weight-semibold">
+            @metric.name
+          </p>
+          <span class="icon-text">
+            <span class="icon">
+              <span class="material-icons-outlined has-text-black is-size-6 has-text-weight-semibold">@(GetIndicateValue(metric) >= 0 ? "add" : "remove")</span>
+            </span>
+            <span class="has-text-black has-text-weight-medium font_14 mr-1">
+              @($"{Shared.ConvertCurrencyDouble(Math.Abs(GetIndicateValue(metric)))} {metric.units}")
+            </span>
+          </span>
+        </div>
+      </li>
+    }
+  </ul>
+
+  <div class="inner_section mt-5" style="flex: 1;">
+    <ul class="columns is-vcentered is-variable is-2 is-multiline">
+      <li class="column">
+        <p class="is-size-6 has-text-weight-semibold">
+          Báo cáo chi tiết
+        </p>
+      </li>
+
+      <li class="column is-narrow">
+        <MemberCheckbox database="memberFilter" departments="departments" usersIdSelect="dataUsersIdSelect" OnUpdate="FilterUser" />
+      </li>
+
+      <li class="column is-narrow">
+        <_KpisCheckbox database="dataKpis" kpisIdSelect="dataKpisIdSelect" kpisRoot="kpisRoot" OnUpdate="FilterKpis" />
+      </li>
+
+      <li class="column is-narrow">
+        <Dropdown CloseOnClickMenu=true DropdownClass="is-right">
+          <Trigger>
+            <div class="field is-grouped is-fullwidth is-clickable font_14 has-text-link">
+              <div class="control m-0">
+                <span class="text_1_line" style="max-width: 175px; height: unset;">@(metricSelect != null ? metricSelect.name : "Loại chỉ số")</span>
+              </div>
+
+              <div class="control is-expanded has-text-right is-size-5">
+                <span class="icon">
+                  <i class="material-icons-outlined">arrow_drop_down</i>
+                </span>
+              </div>
+            </div>
+          </Trigger>
+          <MenuContent>
+            <a class="dropdown-item" @onclick="() => ChangeMetric(null)">
+              Tất cả chỉ số
+            </a>
+            @foreach (var item in metricList)
+            {
+              <a class="dropdown-item text_1_line" style="max-width: 200px; height: unset;" @onclick="() => ChangeMetric(item)">
+                @item.name
+              </a>
+            }
+          </MenuContent>
+        </Dropdown>
+      </li>
+
+      <li class="column is-narrow">
+        <div class="icon-text is-clickable" @onclick="Export">
+          <span class="icon image is-24x24 mr-2">
+            <img src="./images/excel_icon.png" alt="IMG">
+          </span>
+        </div>
+      </li>
+    </ul>
+
+    <table class="table is-fullwidth is-vcentered is-responsive mt-4">
+      <thead class="is-hidden-mobile">
+        <tr class="is_bg has-text-grey">
+          <th width="25%">Loại chỉ số</th>
+          <th width="35%">Tên KPIs</th>
+          <th width="15%">Nhân viên </th>
+          <th width="25%" style="overflow:unset;">
+            <Dropdown CloseOnClickMenu=true>
+              <Trigger>
+                <div class="field is-grouped is-fullwidth has-text-black font_12 is-clickable">
+                  <div class="control m-0">
+                    <span class="icon is-size-6">
+                      <i class="material-icons-outlined">sort</i>
+                    </span>
+                  </div>
+
+                  <span class="text_1_line m-0 control">
+                    Thay đổi: @sortName
+                  </span>
+
+                  <div class="control">
+                    <span class="icon is-size-6">
+                      <i class="material-icons-outlined">arrow_drop_down</i>
+                    </span>
+                  </div>
+                </div>
+              </Trigger>
+              <MenuContent>
+                @foreach (var item in sortList)
+                {
+                  <a class="dropdown-item" @onclick="() => ChangeSort(item.Key)">
+                    <span class="icon-text">
+                      <span>@item.Value</span>
+                      @if (sortBy == item.Key)
+                      {
+                        <span class="icon">
+                          <span class="material-icons-outlined is-size-6 has-text-success">check</span>
+                        </span>
+                      }
+                    </span>
+                  </a>
+                }
+              </MenuContent>
+            </Dropdown>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (dataKpis.Any())
+        {
+          if (dataFilter.Any())
+          {
+            dataFilter = dataFilter.Where(i => i.metrics.FirstOrDefault() != null).ToList();
+            bool isBackgroundColor = false;
+            foreach (var item in dataFilter)
+            {
+              var checkborder = "no-border";
+              var index = dataFilter.FindIndex(i => i.id == item.id);
+              if (index + 1 < dataFilter.Count && dataFilter[index + 1].metrics.FirstOrDefault().id != item.metrics.FirstOrDefault().id)
+              {
+                checkborder = "";
+              }
+
+              if (index > 0 && dataFilter[index - 1].metrics.FirstOrDefault().id != item.metrics.FirstOrDefault().id)
+              {
+                isBackgroundColor = !isBackgroundColor;
+              }
+
+              var metric = item.metrics.FirstOrDefault();
+              var user = dataMember.FirstOrDefault(i => i.id == item.user);
+              var checkin = KpisService.GetDataConfirmCheckin(item, confirmListByDate, dataKpis);
+              double value = checkin.Sum(i => i.value_fluctuate);
+
+              var icon = "";
+              var title = "";
+              if (item.type == 2 && item.parent == kpisRoot.id)
+              {
+                icon = "corporate_fare";
+                title = "KPIs cao nhất";
+              }
+              else if (item.type == 2)
+              {
+                icon = "account_tree";
+                title = "KPIs tự động";
+              }
+              else if (item.type == 1)
+              {
+                icon = "account_circle";
+                title = "KPIs nhập liệu";
+              }
+
+              <tr class="@(isBackgroundColor ? "has-background-white" : "")">
+                <td class="@checkborder">
+                  <label class="td-label">Loại chỉ số</label>
+                  <div class="td-value">
+                    <span class="is-word-break">
+                      @(
+                          metric != null ? metric.name : "-"
+                          )
+                    </span>
+                  </div>
+                </td>
+
+                <td class="@checkborder">
+                  <label class="td-label">Tên KPIs</label>
+                  <div class="td-value">
+                    <span class="icon-text">
+                      <span class="icon is-size-6" title="@title">
+                        <span class="material-icons@(item.type == 2 ? "-outlined" : "") has-text-grey">
+                          @icon
+                        </span>
+                      </span>
+                      <span class="has-text-weight-medium has-text-black text_1_line"
+                            style="line-height: 20px;">
+                        @item.name
+                      </span>
+                    </span>
+                  </div>
+                </td>
+
+
+                <td class="@checkborder">
+                  <label class="td-label">Nhân viên</label>
+                  <div class="td-value">
+                    @if (user != null)
+                    {
+                      <div class="user_item">
+                        <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG">
+                        <span class="text_1_line" style="max-width: 147px;">
+                          @user.name
+                        </span>
+                      </div>
+                    }
+                    else
+                    {
+                      <span>-</span>
+                    }
+                  </div>
+                </td>
+
+                <td class="@checkborder">
+                  <label class="td-label">Thay đổi</label>
+                  <div class="td-value">
+                    @if (metric != null)
+                    {
+                      <span class="icon-text">
+                        <span class="icon">
+                          <span class="material-icons-outlined is-size-6 has-text-weight-semibold">@(value >= 0 ? "add" : "remove")</span>
+                        </span>
+                        <span class="has-text-black has-text-weight-medium font_14 mr-1">
+                          @($"{Shared.ConvertCurrencyDouble(Math.Abs(value))} {metric.units}")
+                        </span>
+                      </span>
+                    }
+                    else
+                    {
+                      <span>-</span>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+          else
+          {
+            <tr>
+              <td colspan="4" align="center">
+                <p class="mt-6">
+                  Không có dữ liệu phù hợp!
+                </p>
+              </td>
+            </tr>
+          }
+        }
+        else
+        {
+          <tr>
+            <td colspan="4" align="center">
+              <p class="mt-6">
+                Không có dữ liệu báo cáo!
+              </p>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+  </div>
+</div>
+
+@code {
+  [CascadingParameter]
+  private LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<KpisModel> database { get; set; } = new();
+  [Parameter]
+  public KpisModel kpisRoot { get; set; }
+  [Parameter]
+  public bool checkReload { get; set; } = true;
+  [Parameter]
+  public EventCallback<bool> checkReloadChanged { get; set; }
+  [Parameter]
+  public bool checkSearchDate { get; set; } = true;
+  [Parameter]
+  public EventCallback<bool> checkSearchDateChanged { get; set; }
+  [Parameter]
+  public long filterStart { get; set; } = DateTime.Today.Ticks;
+  [Parameter]
+  public long filterEnd { get; set; } = DateTime.Today.Ticks;
+
+  private List<KpisCheckinModel> confirmList = new();
+  private List<KpisCheckinModel> confirmListByDate = new();
+  private List<KpisModel> dataKpis = new();
+  private List<KpisModel> dataFilter = new();
+  private List<KpisMetricModel> metricList = new();
+
+  private List<DepartmentModel> dataDepartments = new();
+  private List<DepartmentModel> departments = new();
+
+  private List<MemberModel> dataMember = new();
+  private List<MemberModel> memberFilter = new();
+
+  private List<string> dataUsersIdSelect = new();
+  private List<string> dataKpisIdSelect = new();
+
+  private List<string> usersIdSelect = new();
+  private List<string> kpisIdSelect = new();
+
+  private KpisMetricModel metricSelect;
+
+  private Dictionary<string, string> sortList = new();
+  private string sortBy;
+  private string sortName;
+
+  protected override void OnInitialized()
+  {
+    sortList.Add("value_des", "Cao đến thấp");
+    sortList.Add("value_asc", "Thấp đến cao");
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    if (kpisRoot != null && checkReload)
+    {
+      dataKpis = database.Where(i => i.root == kpisRoot.id).ToList();
+
+      dataUsersIdSelect = dataKpis.Select(i => i.user).ToList();
+      dataUsersIdSelect = dataUsersIdSelect.Distinct().ToList();
+
+      dataKpisIdSelect = dataKpis.Select(i => i.id).ToList();
+      usersIdSelect = dataUsersIdSelect.Where(i => true).ToList();
+      kpisIdSelect = dataKpisIdSelect.Where(i => true).ToList();
+
+      dataMember = await globalService.GetUserList(Layout.Company.id);
+      dataDepartments = await DbDepartment.GetAll(Layout.Company.id);
+      confirmList = await DbKpisCheckin.GetListCheckinConfirm(Layout.Company.id, kpisRoot.cycle, kpisRoot.id);
+
+      memberFilter = dataMember.Where(x => dataKpis.Select(i => i.user).Contains(x.id)).ToList();
+      departments = dataDepartments.Where(x => memberFilter.SelectMany(i => i.departments_id).Contains(x.id)).ToList();
+
+      metricList = KpisService.GetMetricsByKpis(dataKpis);
+      metricList = metricList.OrderBy(i => i.name).ToList();
+
+      confirmListByDate = confirmList.Where(x => x.date_confirm >= filterStart && x.date_confirm <= filterEnd).ToList();
+
+      sortName = "Cao đến thấp";
+      sortBy = "value_des";
+      Filter();
+
+      checkReload = false;
+      await checkReloadChanged.InvokeAsync(checkReload);
+    }
+
+    if (checkSearchDate)
+    {
+      confirmListByDate = confirmList.Where(x => x.date_confirm >= filterStart && x.date_confirm <= filterEnd).ToList();
+      Filter();
+      checkSearchDate = false;
+      await checkSearchDateChanged.InvokeAsync(checkSearchDate);
+    }
+  }
+
+  private double GetIndicateValue(KpisMetricModel metric)
+  {
+    double result = 0;
+    if (metric != null)
+    {
+      var kpisByMetric = dataKpis.Where(i => i.metrics.FirstOrDefault() != null
+                                        && i.metrics.FirstOrDefault().id == metric.id).ToList();
+
+      var checkinList = confirmListByDate.Where(x => kpisByMetric.Select(i => i.id).Contains(x.kpis)).ToList();
+
+      result = checkinList.Sum(i => i.value_fluctuate);
+    }
+
+    return result;
+  }
+
+  private string GetTotalCheckinValue(KpisModel kpis, KpisMetricModel metric)
+  {
+    double result = 0;
+    if (kpis != null && metric != null)
+    {
+      var checkinList = confirmListByDate.Where(x => kpis.id == x.kpis).ToList();
+
+      result = checkinList.Sum(i => i.value_fluctuate);
+    }
+    return Shared.ConvertCurrencyDouble(result);
+  }
+
+  /// <summary>Tìm kiếm</summary>
+  private void Search()
+  {
+    Filter();
+  }
+
+  private void ChangeMetric(KpisMetricModel metric)
+  {
+    metricSelect = Shared.Clone(metric);
+    Filter();
+  }
+
+  private void FilterKpis(List<string> kpis)
+  {
+    kpisIdSelect = kpis.Where(i => true).ToList();
+    Filter();
+  }
+
+  private void FilterUser(List<string> user)
+  {
+    usersIdSelect = user.Where(i => true).ToList();
+    Filter();
+  }
+
+  private void ChangeSort(string key)
+  {
+    if (sortList.ContainsKey(key))
+    {
+      sortName = sortList[key];
+      sortBy = key;
+      GetListSort();
+    }
+  }
+
+  private void GetListSort()
+  {
+    dataFilter = dataFilter.Where(i => i.metrics.FirstOrDefault() != null).ToList();
+    if (sortBy == "value_asc")
+      dataFilter = dataFilter.OrderBy(i => i.metrics.FirstOrDefault().name)
+                             .ThenBy(x => KpisService.GetDataConfirmCheckin(x, confirmListByDate, dataKpis).Sum(i => i.value_fluctuate))
+                             .ToList();
+    else if (sortBy == "value_des")
+      dataFilter = dataFilter.OrderBy(i => i.metrics.FirstOrDefault().name)
+                             .ThenByDescending(x => KpisService.GetDataConfirmCheckin(x, confirmListByDate, dataKpis).Sum(i => i.value_fluctuate))
+                             .ToList();
+  }
+
+
+  /// <summary>Lọc kết quả tìm kiếm và phòng ban</summary>
+  private void Filter()
+  {
+    dataFilter = dataKpis.Where(x =>
+    {
+      var metric = x.metrics.FirstOrDefault();
+      return x.root == kpisRoot.id
+             && usersIdSelect.Contains(x.user)
+             && kpisIdSelect.Contains(x.id)
+             && (metricSelect == null ? true : metric != null && metricSelect.id == metric.id);
+    }).ToList();
+
+    GetListSort();
+  }
+
+  private async Task Export()
+  {
+    var dataExport = new List<List<string>>();
+
+    var header = new List<string>
+    {
+      "Loại chỉ số",
+      "Tên KPIs",
+      "Nhân viên",
+      "Thay đổi",
+      "Đơn vị"
+    };
+
+    dataExport.Add(header);
+
+    foreach (var kpis in dataFilter)
+    {
+      var metric = kpis.metrics.FirstOrDefault();
+      var user = dataMember.FirstOrDefault(i => i.id == kpis.user);
+      var checkin = KpisService.GetDataConfirmCheckin(kpis, confirmListByDate, dataKpis);
+      double value = checkin.Sum(i => i.value_fluctuate);
+
+      var item = new List<string>();
+
+      item.Add(metric != null ? metric.name : "-");
+      item.Add(kpis.name);
+      item.Add(user != null ? user.name : "-");
+      item.Add(value.ToString());
+      item.Add(metric.units);
+
+      dataExport.Add(item);
+    }
+
+    var date = "";
+    if (new DateTime(filterStart).Date.Ticks == new DateTime(filterEnd).Date.Ticks)
+      date = $"vào ngày {new DateTime(filterStart).ToString("dd'-'MM'-'yyyy")}";
+    else
+      date = $"từ {new DateTime(filterStart).ToString("dd'-'MM'-'yyyy")} đến {new DateTime(filterEnd).ToString("dd'-'MM'-'yyyy")}";
+
+    var nameFile = $"Báo cáo {kpisRoot.name} {date}";
+    var fileLink = Files.ExportExcel(dataExport, nameFile);
+    if (fileLink.StartsWith("/"))
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Bạn đã export file bảng báo cáo ngày!");
+      await JSRuntime.InvokeAsync<string>("newTab", fileLink);
+    }
+    else
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", false, fileLink);
+    }
+  }
+}

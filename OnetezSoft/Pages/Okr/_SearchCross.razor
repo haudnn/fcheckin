@@ -8,7 +8,7 @@
       <li class="rsitem" @onclick="() => AddCross(item)">
         <div class="user_item">
           <img class="image is-24x24 mr-2" src="@item.avatar">
-          <span>@item.FullName</span>
+          <span>@item.name</span>
         </div>
       </li>
     }
@@ -22,11 +22,11 @@
   [Parameter]
   public OkrModel.KeyResult Kr { get; set; }
   [Parameter]
-  public List<UserModel> UserList { get; set; }
+  public List<MemberModel> UserList { get; set; } = new();
   [Parameter]
   public EventCallback<string> OnAddCross { get; set; }
 
-  private List<UserModel> userSuggests = new();
+  private List<MemberModel> userSuggests = new();
   private string filterUserName = string.Empty;
 
   private string UserSearch
@@ -40,14 +40,14 @@
       {
         foreach (var item in UserList)
         {
-          if (Handled.Shared.SearchKeyword(filterUserName, item.FullName))
+          if (Handled.Shared.SearchKeyword(filterUserName, item.name))
             userSuggests.Add(item);
         }
       }
     }
   }
 
-  private async Task AddCross(UserModel item)
+  private async Task AddCross(MemberModel item)
   {
     if (Kr.cross_links == null)
       Kr.cross_links = new();

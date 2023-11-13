@@ -1,28 +1,19 @@
 ﻿@page "/kaizen/{Id}"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
-
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
 
 @if (kaizen != null)
 {
   var status = DbKaizen.Status(kaizen.status);
   var type = Layout.Company.kaizen.SingleOrDefault(x => x.id == kaizen.type);
-  var user = Layout.UserList.SingleOrDefault(x => x.id == kaizen.user_create);
+  var user = shareStorage.MemberList.SingleOrDefault(x => x.id == kaizen.user_create);
 
-  <section class="p-4 @(_loaded ? "" : "is-loading")">
-    <div class="card p-5">
-      <ul class="columns is-vcentered is-variable is-2 mb-5">
+  <section class="main_content @(_loaded ? "" : "is-loading")">
+    <div class="card flex_column is_fullheight">
+      <ul class="columns is-vcentered is-variable is-2 mb-2">
         <li class="column">
           <h1 class="title is-5 has-text-info">
             CHI TIẾT KAIZEN
@@ -37,203 +28,205 @@
           </a>
         </li>
       </ul>
-      <article class="media">
-        <div class="media-content">
-          <ul class="columns is-multiline is-vcentered is-variable is-2">
-            @if (user != null)
-            {
-              <li class="column is-narrow">
-                <div class="image is-40x40 is-rounded">
-                  <img src="@user.avatar" alt="IMG" />
-                </div>
-              </li>
-              <li class="column">
-                <div class="has-text-weight-semibold">
-                  @user.FullName
-                </div>
-                <div class="field is-grouped is-multiline has-text-grey is-size-7">
-                  <div class="control">
-                    @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(kaizen.date_create))
+      <article class="media" style="flex:1;">
+        <div class="media-content flex_column" style="height:100%">
+          <div class="scrolly inner_section mb-4" style="flex:1">
+            <ul class="columns is-multiline is-vcentered is-variable is-2">
+              @if (user != null)
+              {
+                <li class="column is-narrow">
+                  <div class="image is-40x40 is-rounded">
+                    <img src="@user.avatar" alt="IMG" />
                   </div>
-                  <div class="control">•</div>
-                  <div class="control text_1_line" style="max-width: 280px;">
-                    @user.departments_name
+                </li>
+                <li class="column">
+                  <div class="has-text-weight-semibold">
+                    @user.name
                   </div>
-                </div>
-              </li>
-            }
-            else
-            {
-              <li class="column is-narrow">
-                <div class="image is-40x40 is-rounded">
-                  <img src="/images/avatar.png" alt="IMG" />
-                </div>
-              </li>
-              <li class="column">
-                <div class="has-text-weight-semibold">
-                  @kaizen.user_create
-                </div>
-                <div class="field is-grouped is-multiline has-text-grey is-size-7">
-                  <div class="control">
-                    @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(kaizen.date_create))
-                  </div>
-                </div>
-              </li>
-            }
-            <li class="column is-narrow">
-              <span class="icon-text @status.color">
-                <span class="icon mr-2">
-                  <i class="material-icons-outlined is-size-4">@status.icon</i>
-                </span>
-                <span>@status.name</span>
-              </span>
-            </li>
-            @if (Layout.User.role == 1 || Layout.User.role == 2)
-            {
-              <li class="column is-narrow">
-                <div class="dropdown is-hoverable is-right">
-                  <div class="dropdown-trigger">
-                    <a class="button is-white">
-                      <span class="icon">
-                        <i class="material-icons-outlined is-size-5">more_horiz</i>
-                      </span>
-                    </a>
-                  </div>
-                  <div class="dropdown-menu">
-                    <div class="dropdown-content">
-                      <a class="dropdown-item" @onclick="() => ReviewPopup(kaizen)">
-                        Đánh giá Kaizen
-                      </a>
-                      <a class="dropdown-item has-text-danger" @onclick="DeleteItem">
-                        Xóa Kaizen
-                      </a>
+                  <div class="field is-grouped is-multiline has-text-grey is-size-7">
+                    <div class="control">
+                      @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(kaizen.date_create))
+                    </div>
+                    <div class="control">•</div>
+                    <div class="control text_1_line" style="max-width: 280px;">
+                      @user.departments_name
                     </div>
                   </div>
-                </div>
+                </li>
+              }
+              else
+              {
+                <li class="column is-narrow">
+                  <div class="image is-40x40 is-rounded">
+                    <img src="/images/avatar.png" alt="IMG" />
+                  </div>
+                </li>
+                <li class="column">
+                  <div class="has-text-weight-semibold">
+                    @kaizen.user_create
+                  </div>
+                  <div class="field is-grouped is-multiline has-text-grey is-size-7">
+                    <div class="control">
+                      @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(kaizen.date_create))
+                    </div>
+                  </div>
+                </li>
+              }
+              <li class="column is-narrow">
+                <span class="icon-text @status.color">
+                  <span class="icon mr-2">
+                    <i class="material-icons-outlined is-size-4">@status.icon</i>
+                  </span>
+                  <span>@status.name</span>
+                </span>
               </li>
-            }
-            @if (type != null)
-            {
+              @if (Layout.User.role == 1 || Layout.User.role == 2)
+              {
+                <li class="column is-narrow">
+                  <div class="dropdown is-hoverable is-right">
+                    <div class="dropdown-trigger">
+                      <a class="button is-transparent">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-5">more_horiz</i>
+                        </span>
+                      </a>
+                    </div>
+                    <div class="dropdown-menu">
+                      <div class="dropdown-content">
+                        <a class="dropdown-item" @onclick="() => ReviewPopup(kaizen)">
+                          Đánh giá Kaizen
+                        </a>
+                        <a class="dropdown-item has-text-danger" @onclick="DeleteItem">
+                          Xóa Kaizen
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              }
+              @if (type != null)
+              {
+                <li class="column is-full">
+                  <span class="has-text-dark">Loại phiếu:</span>
+                  <span class="has-text-weight-semibold">@type.name</span>
+                </li>
+              }
               <li class="column is-full">
-                <span class="has-text-dark">Loại phiếu:</span>
-                <span class="has-text-weight-semibold">@type.name</span>
+                <hr class="my-0" />
               </li>
-            }
-            <li class="column is-full">
-              <hr class="my-0" />
-            </li>
-            <li class="column is-full">
-              <div class="has-text-weight-semibold is-size-6 mb-2">
-                @kaizen.name
-              </div>
-              <div class="content has-text-grey">
-                @((MarkupString)Shared.GetLinks(kaizen.content))
-              </div>
-            </li>
-          </ul>
-          <div class="level is-mobile mt-5">
-            <ul class="level-left">
-              <li class="level-item">
-                <a class="icon-text @(kaizen.likes.Contains(Layout.User.id) ? "has-text-success" : "has-text-grey")"
-                 @onclick="LikeItem">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">arrow_circle_up</i>
-                  </span>
-                  <span>@kaizen.likes.Count</span>
-                </a>
-              </li>
-              <li class="level-item">
-                <a class="icon-text @(kaizen.hates.Contains(Layout.User.id) ? "has-text-danger" : "has-text-grey")"
-                 @onclick="HateItem">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">arrow_circle_down</i>
-                  </span>
-                  <span>@kaizen.hates.Count</span>
-                </a>
-              </li>
-              <li class="level-item">
-                <a class="icon-text">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">mode_comment</i>
-                  </span>
-                  <span>@kaizen.comments.Count bình luận</span>
-                </a>
+              <li class="column is-full">
+                <div class="has-text-weight-semibold is-size-6 mb-2">
+                  @kaizen.name
+                </div>
+                <div class="content has-text-grey">
+                  @((MarkupString)Shared.GetLinks(kaizen.content))
+                </div>
               </li>
             </ul>
-          </div>
-          @foreach (var comment in kaizen.comments)
-          {
-            var commentUser = Layout.UserList.SingleOrDefault(x => x.id == comment.user);
+            <div class="level is-mobile mt-5">
+              <ul class="level-left">
+                <li class="level-item">
+                  <a class="icon-text @(kaizen.likes.Contains(Layout.User.id) ? "has-text-success" : "has-text-grey")"
+                  @onclick="LikeItem">
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">arrow_circle_up</i>
+                    </span>
+                    <span>@kaizen.likes.Count</span>
+                  </a>
+                </li>
+                <li class="level-item">
+                  <a class="icon-text @(kaizen.hates.Contains(Layout.User.id) ? "has-text-danger" : "has-text-grey")"
+                  @onclick="HateItem">
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">arrow_circle_down</i>
+                    </span>
+                    <span>@kaizen.hates.Count</span>
+                  </a>
+                </li>
+                <li class="level-item">
+                  <a class="icon-text">
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-6">mode_comment</i>
+                    </span>
+                    <span>@kaizen.comments.Count bình luận</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+            @foreach (var comment in kaizen.comments)
+            {
+              var commentUser = shareStorage.MemberList.SingleOrDefault(x => x.id == comment.user);
 
-            <article class="media">
-              <figure class="media-left">
-                <div class="image is-32x32 is-rounded">
-                  <img src="@(commentUser != null ? commentUser.avatar : "/images/avatar.png")" alt="IMG" />
-                </div>
-              </figure>
-              <div class="media-content">
-                <ul class="columns is-variable is-2 is-vcentered mb-1">
-                  <li class="column">
-                    <div class="has-text-weight-semibold">
-                      @(commentUser != null ? commentUser.FullName : comment.user)
-                    </div>
-                    <div class="field is-grouped is-multiline has-text-grey is-size-7">
-                      <div class="control mb-0">
-                        @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(comment.date))
+              <article class="media">
+                <figure class="media-left">
+                  <div class="image is-32x32 is-rounded">
+                    <img src="@(commentUser != null ? commentUser.avatar : "/images/avatar.png")" alt="IMG" />
+                  </div>
+                </figure>
+                <div class="media-content">
+                  <ul class="columns is-variable is-2 is-vcentered mb-1">
+                    <li class="column">
+                      <div class="has-text-weight-semibold">
+                        @(commentUser != null ? commentUser.name : comment.user)
                       </div>
-                      @if (commentUser != null)
-                      {
-                        <div class="control mb-0">•</div>
-                        <div class="control text_1_line" style="max-width: 280px;">
-                          @commentUser.departments_name
+                      <div class="field is-grouped is-multiline has-text-grey is-size-7">
+                        <div class="control mb-0">
+                          @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(comment.date))
                         </div>
-                      }
-                    </div>
-                  </li>
-                  @if (comment.pin)
-                  {
-                    <li class="column is-narrow">
-                      <span class="icon has-text-link">
-                        <i class="material-icons-outlined is-size-5">push_pin</i>
-                      </span>
+                        @if (commentUser != null)
+                        {
+                          <div class="control mb-0">•</div>
+                          <div class="control text_1_line" style="max-width: 280px;">
+                            @commentUser.departments_name
+                          </div>
+                        }
+                      </div>
                     </li>
-                  }
-                  @if (Layout.User.role == 1 || Layout.User.role == 2)
-                  {
-                    <li class="column is-narrow">
-                      <div class="dropdown is-hoverable is-right">
-                        <div class="dropdown-trigger">
-                          <a class="button is-white">
-                            <span class="icon">
-                              <i class="material-icons-outlined is-size-5">more_horiz</i>
-                            </span>
-                          </a>
-                        </div>
-                        <div class="dropdown-menu">
-                          <div class="dropdown-content">
-                            <a class="dropdown-item" @onclick="() => CommentPin(comment)">
-                              @(comment.pin ? "Bỏ ghim bình luận" : "Ghim bình luận")
-                            </a>
-                            <a class="dropdown-item has-text-danger" @onclick="() => CommentDelete(comment)">
-                              Xóa bình luận
+                    @if (comment.pin)
+                    {
+                      <li class="column is-narrow">
+                        <span class="icon has-text-link">
+                          <i class="material-icons-outlined is-size-5">push_pin</i>
+                        </span>
+                      </li>
+                    }
+                    @if (Layout.User.role == 1 || Layout.User.role == 2)
+                    {
+                      <li class="column is-narrow">
+                        <div class="dropdown is-hoverable is-right">
+                          <div class="dropdown-trigger">
+                            <a class="button is-transparent">
+                              <span class="icon">
+                                <i class="material-icons-outlined is-size-5">more_horiz</i>
+                              </span>
                             </a>
                           </div>
+                          <div class="dropdown-menu">
+                            <div class="dropdown-content">
+                              <a class="dropdown-item" @onclick="() => CommentPin(comment)">
+                                @(comment.pin ? "Bỏ ghim bình luận" : "Ghim bình luận")
+                              </a>
+                              <a class="dropdown-item has-text-danger" @onclick="() => CommentDelete(comment)">
+                                Xóa bình luận
+                              </a>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </li>
-                  }
-                </ul>
-                <div class="content">
-                  @((MarkupString)Shared.GetLinks(comment.content))
+                      </li>
+                    }
+                  </ul>
+                  <div class="content">
+                    @((MarkupString)Shared.GetLinks(comment.content))
+                  </div>
                 </div>
-              </div>
-            </article>
-          }
+              </article>
+            }
+          </div>
           <div class="field is-grouped">
             <div class="control is-expanded has-icons-right">
               <textarea @bind="content" id="replyInput" class="textarea scrolly" rows="1" placeholder="Nội dung bình luận..." />
               <a class="icon is-right has-text-link" onclick="document.getElementById('file').click()"
-               title="Đính kèm hình ảnh" style="pointer-events: auto;">
+                 title="Đính kèm hình ảnh" style="pointer-events: auto;">
                 <i class="material-icons-outlined is-size-5">image</i>
               </a>
               <InputFile OnChange="Upload" accept="image/*" class="is-hidden" id="file" />
@@ -255,7 +248,7 @@
 
 @if (review != null)
 {
-  var user = Layout.UserList.SingleOrDefault(x => x.id == review.user_create);
+  var user = shareStorage.MemberList.SingleOrDefault(x => x.id == review.user_create);
   var type = Layout.Company.kaizen.SingleOrDefault(x => x.id == review.type);
 
   <div class="modal is-active">
@@ -273,7 +266,7 @@
             </li>
             <li class="column">
               <div class="has-text-weight-semibold">
-                @user.FullName
+                @user.name
               </div>
               <div class="field is-grouped is-multiline has-text-grey is-size-7">
                 <div class="control">
@@ -355,7 +348,7 @@
   public string Id { get; set; }
 
   private bool _loaded = false;
-  private bool _success = false;
+  private bool success = false;
   private string _message = string.Empty;
   private string _title = "Chi tiết Kaizen";
 
@@ -365,9 +358,12 @@
   private List<DepartmentModel> departmentAll = new();
   private string content = string.Empty;
 
+  private SharedStorage shareStorage = new();
+
   protected override async Task OnInitializedAsync()
   {
-    departmentAll = DbDepartment.GetAll(Layout.Company.id);
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    departmentAll = await DbDepartment.GetAll(Layout.Company.id);
     kaizen = await DbKaizen.Get(Layout.Company.id, Id);
     if (kaizen != null)
     {
@@ -377,51 +373,90 @@
     else
     {
       _message = "Dữ liệu không tồn tại hoặc đã bị xóa !";
+      await JSRuntime.InvokeVoidAsync("tagline", success, _message);
+      success = false;
     }
     _loaded = true;
   }
 
-  private async Task DeleteItem()
+  private async Task<bool> DeleteItem()
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa Kaizen này?"))
-      return;
-
-    await DbKaizen.Delete(Layout.Company.id, kaizen.id);
-
-    // Gửi thông báo chuông cho người tạo
-    await DbNotify.Create(Layout.Company.id, 101, kaizen.id, kaizen.user_create, Layout.User.id);
-
-    // Gửi thông báo chuông cho Admin
-    if (Layout.User.role == 2)
+    bool _success = true;
+    try
     {
-      var adminList = await DbUser.GetManager(Layout.Company.id, true);
-      foreach (var user in adminList)
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa Kaizen này?"))
+        return false;
+
+      await DbKaizen.Delete(Layout.Company.id, kaizen.id);
+
+      // Gửi thông báo chuông cho người tạo
+      await DbNotify.Create(Layout.Company.id, 101, kaizen.id, kaizen.user_create, Layout.User.id);
+
+      // Gửi thông báo chuông cho Admin
+      if (Layout.User.role == 2)
       {
-        await DbNotify.Create(Layout.Company.id, 106, kaizen.id, user.id, Layout.User.id);
+        var adminList = await DbUser.GetManager(Layout.Company.id, true, globalService);
+        foreach (var user in adminList)
+        {
+          await DbNotify.Create(Layout.Company.id, 106, kaizen.id, user.id, Layout.User.id);
+        }
+      }
+
+      navigation.NavigateTo("/kaizen", false);
+
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> LikeItem()
+  {
+    bool _success = true;
+    try
+    {
+      if (!kaizen.likes.Contains(Layout.User.id))
+      {
+        kaizen.likes.Add(Layout.User.id);
+        kaizen.hates.Remove(Layout.User.id);
+        await DbKaizen.Update(Layout.Company.id, kaizen);
       }
     }
-
-    navigation.NavigateTo("/kaizen", false);
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "LikeItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task LikeItem()
+  private async Task<bool> HateItem()
   {
-    if (!kaizen.likes.Contains(Layout.User.id))
+    bool _success = true;
+    try
     {
-      kaizen.likes.Add(Layout.User.id);
-      kaizen.hates.Remove(Layout.User.id);
-      await DbKaizen.Update(Layout.Company.id, kaizen);
+      if (!kaizen.hates.Contains(Layout.User.id))
+      {
+        kaizen.hates.Add(Layout.User.id);
+        kaizen.likes.Remove(Layout.User.id);
+        await DbKaizen.Update(Layout.Company.id, kaizen);
+      }
     }
-  }
-
-  private async Task HateItem()
-  {
-    if (!kaizen.hates.Contains(Layout.User.id))
+    catch (Exception ex)
     {
-      kaizen.hates.Add(Layout.User.id);
-      kaizen.likes.Remove(Layout.User.id);
-      await DbKaizen.Update(Layout.Company.id, kaizen);
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "HateItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
     }
+    return _success;
   }
 
   private void ReviewPopup(KaizenModel item)
@@ -430,42 +465,65 @@
     reviewStatus = item.status;
   }
 
-  private async Task ReviewCancel()
+  private async Task<bool> ReviewCancel()
   {
-    review = null;
-    kaizen = await DbKaizen.Get(Layout.Company.id, kaizen.id);
+    bool _success = true;
+    try
+    {
+      review = null;
+      kaizen = await DbKaizen.Get(Layout.Company.id, kaizen.id);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ReviewCancel()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task ReviewItem()
+  private async Task<bool> ReviewItem()
   {
-    review.date_status = DateTime.Now.Ticks;
-    await DbKaizen.Update(Layout.Company.id, review);
-
-    // Tính toán Thành tựu
-    if(reviewStatus == -1)
-      await DbKaizen.Achievement(Layout.Company.id, review.user_create);
-
-    // Gửi thông báo chuông cho người tạo
-    await DbNotify.Create(Layout.Company.id, 104, review.id, review.user_create, Layout.User.id);
-
-    // Gửi thông báo chuông cho Admin
-    if (Layout.User.role == 2)
+    bool _success = true;
+    try
     {
-      var adminList = await DbUser.GetManager(Layout.Company.id, true);
-      foreach (var user in adminList)
-      {
-        await DbNotify.Create(Layout.Company.id, 105, review.id, user.id, Layout.User.id);
-      }
-    }
+      review.date_status = DateTime.Now.Ticks;
+      await DbKaizen.Update(Layout.Company.id, review);
 
-    review = null;
+      // Tính toán Thành tựu
+      if (reviewStatus == -1)
+        await DbKaizen.Achievement(Layout.Company.id, review.user_create, globalService);
+
+      // Gửi thông báo chuông cho người tạo
+      await DbNotify.Create(Layout.Company.id, 104, review.id, review.user_create, Layout.User.id);
+
+      // Gửi thông báo chuông cho Admin
+      if (Layout.User.role == 2)
+      {
+        var adminList = await DbUser.GetManager(Layout.Company.id, true, globalService);
+        foreach (var user in adminList)
+        {
+          await DbNotify.Create(Layout.Company.id, 105, review.id, user.id, Layout.User.id);
+        }
+      }
+      review = null;
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ReviewItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task Upload(InputFileChangeEventArgs e)
   {
     foreach (var file in e.GetMultipleFiles())
     {
-      _success = false;
+      success = false;
       _message = "Đang upload file...";
 
       try
@@ -482,72 +540,121 @@
         }
         else
         {
-          _success = false;
+          success = false;
           _message = $"Chỉ cho phép file tối đa {string.Format("{0:0,0}", Layout.MaxFileSize / 1024000)} MB";
+          await JSRuntime.InvokeVoidAsync("tagline", false, _message);
         }
       }
       catch (Exception ex)
       {
-        _success = false;
-        _message = $"ERROR: {ex.Message}";
+        success = false;
+        _message = $"ERROR: {ex.ToString()}";
       }
     }
   }
 
-  private async Task Comment()
+  private async Task<bool> Comment()
   {
-    _success = false;
-    _message = string.Empty;
-
-    if (string.IsNullOrEmpty(content))
+    bool _success = true;
+    try
     {
-      _message = "Chưa nhập nội dung bình luận !";
-      await Task.Delay(5000);
+      _success = false;
       _message = string.Empty;
+
+      if (string.IsNullOrEmpty(content))
+      {
+        _message = "Chưa nhập nội dung bình luận !";
+        await JSRuntime.InvokeVoidAsync("tagline", false, _message);
+        _message = string.Empty;
+      }
+      else
+      {
+        kaizen = await DbKaizen.Comment(Layout.Company.id, kaizen.id, Layout.User.id, content);
+        content = string.Empty;
+
+        // Gửi thông báo chuông
+        await DbNotify.Create(Layout.Company.id, 102, kaizen.id, kaizen.user_create, Layout.User.id);
+
+        MessagingCenter.Send(this, "kaizen_" + kaizen.id, kaizen.id);
+      }
     }
-    else
+    catch (Exception ex)
     {
-      kaizen = await DbKaizen.Comment(Layout.Company.id, kaizen.id, Layout.User.id, content);
-      content = string.Empty;
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Comment()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> CommentPin(KaizenModel.Comment item)
+  {
+    bool _success = true;
+    try
+    {
+      if (item.pin)
+        item.pin = false;
+      else
+      {
+        foreach (var cmt in kaizen.comments)
+          cmt.pin = false;
+        item.pin = true;
+      }
+      await DbKaizen.Update(Layout.Company.id, kaizen);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "CommentPin()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> CommentDelete(KaizenModel.Comment item)
+  {
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa bình luận này?"))
+        return false;
+
+      kaizen.comments.Remove(item);
+      await DbKaizen.Update(Layout.Company.id, kaizen);
 
       // Gửi thông báo chuông
-      await DbNotify.Create(Layout.Company.id, 102, kaizen.id, kaizen.user_create, Layout.User.id);
-
-      MessagingCenter.Send(this, "kaizen_" + kaizen.id, kaizen.id);
+      await DbNotify.Create(Layout.Company.id, 103, kaizen.id, item.user, Layout.User.id);
     }
-  }
-
-  private async Task CommentPin(KaizenModel.Comment item)
-  {
-    if (item.pin)
-      item.pin = false;
-    else
+    catch (Exception ex)
     {
-      foreach (var cmt in kaizen.comments)
-        cmt.pin = false;
-      item.pin = true;
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "CommentDelete()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
     }
-    await DbKaizen.Update(Layout.Company.id, kaizen);
+    return _success;
   }
 
-  private async Task CommentDelete(KaizenModel.Comment item)
+  public async Task<bool> ListenCallback()
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa bình luận này?"))
-      return;
-
-    kaizen.comments.Remove(item);
-    await DbKaizen.Update(Layout.Company.id, kaizen);
-
-    // Gửi thông báo chuông
-    await DbNotify.Create(Layout.Company.id, 103, kaizen.id, item.user, Layout.User.id);
-  }
-
-  public void ListenCallback()
-  {
-    MessagingCenter.Subscribe<KaizenDetail, string>(this, "kaizen_" + kaizen.id, (sender, value) =>
+    bool _success = true;
+    try
     {
-      kaizen = DbKaizen.GetById(Layout.Company.id, value);
-      InvokeAsync(StateHasChanged);
-    });
+      MessagingCenter.Subscribe<KaizenDetail, string>(this, "kaizen_" + kaizen.id, async (sender, value) =>
+      {
+        kaizen = await DbKaizen.GetById(Layout.Company.id, value);
+        await InvokeAsync(StateHasChanged);
+      });
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ListenCallback()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

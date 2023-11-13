@@ -1,6 +1,7 @@
 @inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
 
-@if(data != null)
+@if (data != null)
 {
   <section class="modal is-active">
     <div class="modal-background"></div>
@@ -27,7 +28,7 @@
               <select @onchange="ChangeDepartment" class="is-family-code">
                 @foreach (var item in departments)
                 {
-                  if(department == item.id)
+                  if (department == item.id)
                   {
                     <option value="@item.id" selected>@item.name</option>
                   }
@@ -43,7 +44,7 @@
 
         <div class="control has-icons-right has_suggest">
           <input class="input is-rounded is_bg" type="text" autocomplete="off"
-            placeholder="Nhập tiêu đề bài viết để tìm và ghim..." value="@keyword" @oninput="Search" />
+                 placeholder="Nhập tiêu đề bài viết để tìm và ghim..." value="@keyword" @oninput="Search" />
           <span class="icon is-right">
             <i class="material-icons-outlined is-size-5">search</i>
           </span>
@@ -60,8 +61,13 @@
           </ul>
         </div>
 
-        <Dropzone Items="data" TItem="BlogModel" InstantReplace="true"
-          OnItemDrop="x => OnItemDragdrop(x)">
+        <Dropzone 
+          Class="drop_blog_list"
+          Items="data" 
+          TItem="BlogModel" 
+          InstantReplace="true"
+          OnItemDrop="x => OnItemDragdrop(x)"
+          WrapperClass="drop_blog_item">
           <ul class="columns is-vcentered is-variable is-2 mt-4">
             <li class="column is-narrow" style="width: 40px;">
               <a class="icon has-text-grey">
@@ -101,11 +107,11 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   [Parameter]
-  public List<BlogModel> data { get; set; }
+  public List<BlogModel> data { get; set; } = new();
   [Parameter]
   public string department { get; set; }
   [Parameter]
-  public List<DepartmentModel.SelectList> departments { get; set; }
+  public List<DepartmentModel.SelectList> departments { get; set; } = new();
   [Parameter]
   public int mainpin { get; set; }
   [Parameter]
@@ -127,63 +133,112 @@
     await GetList();
   }
 
-  private async Task GetList()
+  private async Task<bool> GetList()
   {
-    dataList = await DbBlog.GetList(Layout.Company.id, department);
-    data = dataList.Where(x => x.pin).OrderBy(x => x.pos).ToList();
-    suggests.Clear();
+    bool _success = true;
+    try
+    {
+      dataList = await DbBlog.GetList(Layout.Company.id, department);
+      data = dataList.Where(x => x.pin).OrderBy(x => x.pos).ToList();
+      suggests.Clear();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task Search(ChangeEventArgs e)
   {
-    if(dataList.Count == 0)
+    if (dataList.Count == 0)
       await GetList();
     keyword = e.Value.ToString();
     suggests = dataList.Where(x => !x.pin && Shared.SearchKeyword(keyword, x.name)).Take(5).ToList();
   }
 
-  private async Task AddItem(BlogModel item)
+  private async Task<bool> AddItem(BlogModel item)
   {
-    if(data.Count > 4)
+    bool _success = true;
+    try
     {
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chỉ có thể ghim tối đa 5 bài!");
+      if (data.Count > 4)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chỉ có thể ghim tối đa 5 bài!");
+      }
+      else
+      {
+        item.pin = true;
+        item.pos = data.Count;
+        await DbBlog.Update(Layout.Company.id, item);
+        data = dataList.Where(x => x.pin).ToList();
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm bài viết vào danh sách ghim");
+      }
+      keyword = string.Empty;
+      suggests.Clear();
+      ChangeMainPin();
     }
-    else
+    catch (Exception ex)
     {
-      item.pin = true;
-      item.pos = data.Count;
-      await DbBlog.Update(Layout.Company.id, item);
-      data = dataList.Where(x => x.pin).ToList();
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm bài viết vào danh sách ghim");
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "AddItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
     }
-    keyword = string.Empty;
-    suggests.Clear();
-    ChangeMainPin();
+    return _success;
   }
 
-  private async Task DeleteItem(BlogModel item)
+  private async Task<bool> DeleteItem(BlogModel item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn bỏ ghim bài này?"))
-     return;
-    item.pin = false;
-    await DbBlog.Update(Layout.Company.id, item);
-    data.Remove(item);
-    ChangeMainPin();
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn bỏ ghim bài này?"))
+        return false;
+      item.pin = false;
+      await DbBlog.Update(Layout.Company.id, item);
+      data.Remove(item);
+      ChangeMainPin();
+
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void ChangeMainPin()
   {
-    if(departments.Any(x => x.id == department && x.level == 0))
+    if (departments.Any(x => x.id == department && x.level == 0))
       mainpin = data.Count;
   }
 
-  private async Task OnItemDragdrop(BlogModel item)
+  private async Task<bool> OnItemDragdrop(BlogModel item)
   {
-    for (int pos = 0; pos < data.Count; pos++)
+    bool _success = true;
+    try
     {
-      var blog = data[pos];
-      blog.pos = pos;
-      await DbBlog.Update(Layout.Company.id, blog);
+      for (int pos = 0; pos < data.Count; pos++)
+      {
+        var blog = data[pos];
+        blog.pos = pos;
+        await DbBlog.Update(Layout.Company.id, blog);
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnItemDragdrop()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

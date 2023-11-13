@@ -1,6 +1,5 @@
-﻿@page "/config/system"
-@page "/config/system/department/list"
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
 @inject NavigationManager navigation
 
 <PageTitle>@_title</PageTitle>
@@ -11,48 +10,40 @@
 }
 else
 {
-  <section class="columns is-gapless has_menu_left">
-    <div class="column is-narrow">
-      <div class="card p-3 menu_left">
-        <a class="is-active" href="/config/system/department/list">
-          Phòng ban
+  @if (viewType == 1)
+  {
+    <ul class="columns is-vcentered is-variable is-2">
+      <li class="column">
+        <h1 class="title is-5 has-text-info is-uppercase">
+          Danh sách phòng ban
+        </h1>
+      </li>
+      <li class="column is-narrow">
+        <a class="button" @onclick="Add">
+          <span class="icon">
+            <span class="material-icons-outlined is-size-6">add</span>
+          </span>
+          <span>Thêm mới</span>
         </a>
-        <a href="/config/system/user/list">
-          Nhân sự
-        </a>
-        <a href="/config/system/dayoff">
-          Thiết lập ngày nghỉ
-        </a>
-      </div>
+      </li>
+    </ul>
+    <div class="menu mt-4 scrolly inner_section" style="flex:1">
+      <ul class="menu-list">
+        @foreach (var child in dataList)
+        {
+          <_Department CompanyId="@Layout.Company.id" DepartmentAll="@database" Current="child" OnViewDetail="ViewDetail" />
+        }
+      </ul>
     </div>
-    <div class="column">
-      <div class="card p-5">
-        <ul class="columns is-vcentered">
-          <li class="column is-narrow">
-            <h1 class="title is-5 has-text-info is-uppercase">
-              Danh sách phòng ban
-            </h1>
-          </li>
-          <li class="column has-text-right">
-            <a class="button" href="/config/system/department/add">
-              <span class="icon">
-                <span class="material-icons-outlined is-size-6">add</span>
-              </span>
-              <span>Thêm mới</span>
-            </a>
-          </li>
-        </ul>
-        <div class="menu">
-          <ul class="menu-list">
-            @foreach (var child in dataList)
-            {
-              <_Department CompanyId="@Layout.Company.id" DepartmentAll="@database" Current="child" />
-            }
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
+  }
+  else if (viewType == 2)
+  {
+    <DepartmentEdit Id="@departId" OnUpdate="DepartUpdate" />
+  }
+  else if (viewType == 3)
+  {
+    <DepartmentStaff Id="@departId" OnUpdate="DepartUpdate" />
+  }
 }
 
 
@@ -61,27 +52,89 @@ else
   public LayoutMain Layout { get; set; }
   private string _title = "Danh sách phòng ban";
 
+  private string departId;
+
   private List<DepartmentModel> database = new();
   private List<DepartmentModel> dataList = new();
 
+  private int viewType = 1;
+
   protected override async Task OnInitializedAsync()
   {
-    database = DbDepartment.GetAll(Layout.Company.id);
+    database = await DbDepartment.GetAll(Layout.Company.id);
     dataList = database.Where(x => string.IsNullOrEmpty(x.parent)).ToList();
     await UpdateUserDepartmentName();
   }
 
 
-  private async Task UpdateUserDepartmentName()
+  private async Task<bool> UpdateUserDepartmentName()
   {
-    var companyId = Layout.Company.id;
-    var userList = DbUser.GetAll(companyId);
-    foreach (var user in userList)
+    bool _success = true;
+    try
     {
-      var department = DbDepartment.GetNameListOfUser(companyId, user.departments_id, database);
-      user.departments_name = String.Join(" / ", department);
-      await DbUser.Update(companyId, user);
+      var companyId = Layout.Company.id;
+      var userList = await DbUser.GetAll(companyId, globalService);
+      foreach (var user in userList)
+      {
+        var department = await DbDepartment.GetNameListOfUser(companyId, user.departments_id, database);
+        await JSRuntime.InvokeVoidAsync("console.log", department);
+        user.departments_name = String.Join(" / ", department);
+        await DbUser.Update(companyId, user, globalService);
+      }
+      await Layout.RefreshData();
     }
-    await Layout.RefreshData();
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateUserDepartmentName()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private void Add()
+  {
+    viewType = 2;
+    departId = string.Empty;
+  }
+
+  private async Task DepartUpdate(bool e)
+  {
+    viewType = 1;
+    departId = string.Empty;
+
+    if (e)
+    {
+      database = await DbDepartment.GetAll(Layout.Company.id);
+      dataList = database.Where(x => string.IsNullOrEmpty(x.parent)).ToList();
+      await UpdateUserDepartmentName();
+    }
+  }
+
+  private async Task ViewDetail(string id)
+  {
+    if (id == "delete")
+    {
+      viewType = 1;
+      departId = string.Empty;
+
+      database = await DbDepartment.GetAll(Layout.Company.id);
+      dataList = database.Where(x => string.IsNullOrEmpty(x.parent)).ToList();
+      await UpdateUserDepartmentName();
+    }
+    else
+    {
+      if (id.Contains("depart"))
+      {
+        viewType = 2;
+        departId = id.Split("_").Last();
+      }
+      else
+      {
+        viewType = 3;
+        departId = id.Split("_").Last();
+      }
+    }
   }
 }

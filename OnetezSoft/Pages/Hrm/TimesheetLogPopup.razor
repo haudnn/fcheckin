@@ -1,9 +1,10 @@
 @inject IJSRuntime JSRuntime
+@inject GlobalService globalService
 
 @if (data != null)
 {
   string titleLast = string.Empty;
-  <section class="modal is-active">
+  <section class="modal is-active p-2">
     <div class="modal-background"></div>
     <section class="modal-card is-medium">
       <section class="modal-card-head">
@@ -21,7 +22,7 @@
           @for (int i = 0; i < data.Count; i++)
           {
             var item = data[i];
-            var user = UserService.GetUser(Layout.UserList, item.editor);
+            var user = UserService.GetMember(shareStorage.MemberList, item.editor);
             var title = string.Format("Ca {0} - Ngày {1:dd/MM/yyyy}", item.shift_name, new DateTime(item.day));
             if (titleLast != title)
             {
@@ -78,7 +79,7 @@
               <div class="has-text-weight-medium pb-2">Người thực hiện</div>
               <div class="user_item has-text-grey">
                 <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
-                <span class="text_1_line">@user.FullName</span>
+                <span class="text_1_line">@user.name</span>
               </div>
             </li>
           }
@@ -94,9 +95,16 @@
   [Parameter]
   public string staff { get; set; } // Họ tên nhân viên
   [Parameter]
-  public List<HrmTimesheetLogModel> data { get; set; }
+  public List<HrmTimesheetLogModel> data { get; set; } = new();
   [Parameter]
   public EventCallback OnClose { get; set; }
+
+  private SharedStorage shareStorage = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+  }
 
   private async Task Cancel()
   {

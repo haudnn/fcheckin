@@ -1,0 +1,677 @@
+﻿@page "/hrm/statistical"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
+
+
+<PageTitle>Thống kê chấm công</PageTitle>
+@if (!_access)
+{
+  <PopupNoRole />
+}
+else
+{
+  if (Layout.IsMobile)
+  {
+    <NoSupportMobile />
+  }
+  else
+  {
+    if (!isLoading)
+    {
+      var now = DateTime.Today.AddDays(-1).ToString("dd/MM/yyyy");
+      <section class="main_content timesheet">
+        <div class="card flex_column is_fullheight">
+          <ul class="columns is-vcentered is-multiline is-variable is-2">
+            <li class="column">
+              <h1 class="title is-6 has-text-info is-uppercase text_1_line" style="height:auto; overflow: unset">
+                <span>THỐNG KÊ CHẤM CÔNG</span>
+              </h1>
+            </li>
+            <li class="column">
+              <div class="select is-fullwidth">
+                <select @onchange="ChangeDepartment">
+                  <option value="">Phòng ban</option>
+                  @foreach (var item in departmentAll)
+                  {
+                    <option value="@item.id" selected="@(filterDepartment == item.id)">@item.name</option>
+                  }
+                </select>
+              </div>
+            </li>
+            <li class="column">
+              <form class="control has-icons-left" @onsubmit="Search">
+                <input @bind="filterKeyword" class="input is-rounded" type="text" placeholder="Tìm tên nhân viên...">
+                <span class="icon is-left">
+                  <i class="material-icons-outlined is-size-5">search</i>
+                </span>
+              </form>
+            </li>
+            <li class="column is-narrow">
+              <_InputDate @bind-Start="filterDateS"
+              @bind-End="filterDateE"
+                          InputClass="is-default-pointer"
+                                        HasNavigate
+                           ShowCalendar=false
+                           Format="MM/yyyy"
+                           NavigateType="2"
+                           offEdit="true"
+                           OnRangeSelect="ChangeDate" />
+             </li>
+
+             <li class="column is-narrow">
+               <button class="button is-warning @(isLoadingExport ? "is-loading" : "")" title="Xuất Excel" @onclick="ExportExcel">
+                 <span class="icon">
+                   <i class="material-icons-outlined is-size-5">file_download</i>
+                 </span>
+               </button>
+             </li>
+
+           </ul>
+           <p class="has-text-grey is-italic font_14 my-2">(*) Dữ liệu được cập nhật đến ngày @now</p>
+           <div id="scrollbox" class="table-container scrolly" style="overflow: auto; flex: 1 1 0%; min-height: 200px; cursor: grab; user-select: none">
+             <table class="table is-fullwidth is-vcentered sticky" style="width: max-content;">
+               <thead>
+                 <tr>
+                   <th width="200px" class="sticky last user p-2" style="left:0;background-color:#AEC6FF">Tên nhân viên</th>
+                   <th width="200px" style="background-color:#AEC6FF; padding-top: 7px;">Phòng ban</th>
+                   @foreach (StaticModel item in headingColumnData)
+                  {
+                    <th style="background: #3c6d2630; color:#3c6d26; font-weight: 600; padding-top: 7px;" width="200px" align="center">
+                      @item.name
+                    </th>
+                  }
+                  @foreach (var form in dataRules.forms)
+                  {
+                    if (form.is_active)
+                    {
+                      <th width="200px" align="center" style="background: @(form.color)30; color:@form.color;font-weight: 600; padding-top: 7px;">
+                        @form.name (@(form.sign))
+                      </th>
+                    }
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @foreach (var user in userSeclect)
+                {
+                  <tr>
+                    <td class="sticky last" style="left:0;">
+                      <span>
+                        @user.name
+                      </span>
+                    </td>
+                    <td>
+                      @if (!Shared.IsEmpty(user.departments_name))
+                      {
+                        <p style="width:200px;" class="text_1_line">@user.departments_name.Split("/").Last()</p>
+                      }
+                      else
+                      {
+                        <p style="width:200px;" class="text_1_line">Không có phòng ban</p>
+                      }
+                    </td>
+                    @{
+                      var timeKeeping = keepings.Where(x => x.user == user.id).ToList();
+                      var timeListInfo = timeList.Where(x => x.id == user.id).FirstOrDefault();
+                      var formsInfo = forms.Where(x => x.user == user.id).ToList();
+                      Dictionary<string, Dictionary<string, List<string>>> data = HrmService.HandleStatistical(timeKeeping, workShifts, timeListInfo, filterDateS, filterDateE, formsInfo);
+                      if (data != null)
+                      {
+                        var infoLate = data["inLate"]["info"];
+                        var countLate = data["inLate"]["count"][0];
+
+                        var infoMinutesLate = data["inLateMinutes"]["info"];
+                        var countMinutesLate = data["inLateMinutes"]["count"][0];
+
+                        var infoEarly = data["early"]["info"];
+                        var countEarly = data["early"]["count"][0];
+
+                        var infoMinutesEarly = data["earlyMinutes"]["info"];
+                        var countMinutesEarly = data["earlyMinutes"]["count"][0];
+
+                        var infoMissingKeeping = data["missTimekeeping"]["info"];
+                        var countMissingKeeping = data["missTimekeeping"]["count"][0];
+
+                        var infoNoPermission = data["noPermission"]["info"];
+                        var countNoPermission = data["noPermission"]["count"][0];
+
+                        var infoPermission = data["permission"]["info"];
+                        var countPermission = data["permission"]["count"][0];
+
+                        <td @onclick="() => OnShowPopup(1, infoLate, user, countLate)" align="center">@countLate</td>
+                        <td @onclick="() => OnShowPopup(2, infoMinutesLate, user, countMinutesLate)" align="center">@countMinutesLate</td>
+                        <td @onclick="() => OnShowPopup(3, infoEarly, user, countEarly)" align="center">@countEarly</td>
+                        <td @onclick="() => OnShowPopup(4, infoMinutesEarly, user, countMinutesEarly)" align="center">@countMinutesEarly</td>
+                        <td @onclick="() => OnShowPopup(5, infoMissingKeeping, user, countMissingKeeping)" align="center">@countMissingKeeping</td>
+                        <td @onclick="() => OnShowPopup(6, infoNoPermission, user, countNoPermission)" align="center">@countNoPermission</td>
+                        <td @onclick="() => OnShowPopup(7, infoPermission, user, countPermission)" align="center">@countPermission</td>
+                      }
+                      else
+                      {
+                        <td align="center">0</td>
+                        <td align="center">0</td>
+                        <td align="center">0</td>
+                        <td align="center">0</td>
+                        <td align="center">0</td>
+                        <td align="center">0</td>
+                        <td align="center">0</td>
+                      }
+                      @foreach (var form in dataRules.forms)
+                      {
+                        var formsUser = forms.Where(x => x.user == user.id).ToList();
+                        if (form.is_active)
+                        {
+                          var filterForm = formsUser.Where(x => x.form.id == form.id && x.confirm_date > 0).ToList();
+                          Dictionary<string, List<string>> countForm = HrmService.HandleStatisticalForm(filterForm, filterDateS, filterDateE);
+                          if (countForm != null)
+                          {
+                            var infoForm = countForm["info"];
+                            var count = countForm["count"][0];
+
+                            <td @onclick="() => OnShowPopup(8, infoForm, user, count, form.id)" align="center">@count</td>
+                          }
+                          else
+                          {
+                            <td align="center">0</td>
+                          }
+                        }
+                      }
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    }
+    else
+    {
+      <LoadingModel />
+    }
+  }
+
+  if (isShowPopup)
+  {
+
+    var currentMonth = new DateTime(filterDateS).ToString("MM/yyyy");
+    string contentHeading = currentType == 8 ? dataRules.forms.FirstOrDefault(x => x.id == currentForm).name : headingColumnData.FirstOrDefault(x => x.id == currentType).name;
+    contentHeading = currentType == 8 ? "Đơn từ " + contentHeading : contentHeading;
+    string contentBody = HrmService.ConvertBodyByType(currentType);
+    <Slider Size="@ComponentModel.SizeType.Normal" Style="z-index: 10;" hasFooter="false">
+      <Header>
+        <ul class="columns">
+          <li class="column">
+            <span class="is-size-5 has-text-weight-semibold is-primary-40">@contentHeading</span>
+          </li>
+          <li class="column is-narrow">
+            <a class="icon-text" @onclick="OnClosePopup">
+              <span class="icon is-small has-text-link">
+                <i class="material-icons-outlined">chevron_right</i>
+              </span>
+              <span class="has-text-link is-size-7">Đóng</span>
+            </a>
+          </li>
+        </ul>
+      </Header>
+      <Body>
+        <div class="mt-4">
+          <div class="columns">
+            <div class="column">
+              <div class="is-flex is-align-items-center">
+                <img src="@currentUser.avatar" alt="" class="image is-40x40 mr-2 is-rounded" style="object-fit: cover" />
+                <div>
+                  <span class="has-text-weight-semibold is-size-6 is-secondary-20">@currentUser.name</span>
+                  <p class="is-secondary-10 font_14 has-text-weight-semibold">@currentCount <span class="is-secondary-40 has-text-weight-normal">@contentBody</span></p>
+                </div>
+              </div>
+            </div>
+            <div class="column is-narrow">
+              <span class="icon-text">
+                <span class="icon is-secondary-20">
+                  <i class="material-icons-outlined font_14">calendar_today</i>
+                </span>
+                <span class="is-secondary-20 font_14">@currentMonth</span>
+              </span>
+            </div>
+          </div>
+          <div class="px-2">
+            <div class="timeline font_14">
+              @if (currentInfo.Any())
+              {
+                <Virtualize Items="currentInfo" Context="item" ItemSize="40">
+                  <div class="item pb-4">
+                    @if (currentType == 5)
+                    {
+                      var parts = item.Split('|');
+                      var timeId = parts[0].Trim();
+                      var timeKeepingID = parts[1].Trim();
+                      var find = keepings.Where(x => x.id == timeKeepingID).FirstOrDefault();
+                      if (find != null)
+                      {
+                        var data = find.time_tracking.FirstOrDefault(x => x.time_id == timeId);
+                        if (data != null)
+                        {
+                          var shift = workShifts.FirstOrDefault(x => x.id == data.time_id);
+                          <div class="is-flex is-align-items-center">
+                            <span class="font_14 has-text-weight-medium is-secondary-10">
+                              @(new DateTime(data.time_active_tick).ToString("dd/MM/yyyy"))
+                            </span>
+                            <span class="mx-1">
+                              •
+                            </span>
+                            <span class="font_14 has-text-weight-medium is-secondary-10">
+                              @(shift.name + ": " + shift.checkin + " - " + shift.checkout)
+                            </span>
+                          </div>
+                          <div class="icon-text mt-2 is-secondary-40 font_14">
+                            <span class="icon is-small">
+                              <i class="material-icons-outlined">timer</i>
+                            </span>
+                            <span>Thời gian check-in: <span class="is-secondary-20">@(new DateTime(data.time_active_tick).ToString("HH:mm"))</span></span>
+                          </div>
+                        }
+                      }
+                    }
+                    else if (currentType == 6)
+                    {
+                      var parts = item.Split('|');
+                      var shiftId = parts[0].Trim();
+                      var date = parts[1].Trim();
+                      var shift = workShifts.FirstOrDefault(x => x.id == shiftId);
+                      <div class="is-flex is-align-items-center">
+                        <span class="font_14 has-text-weight-medium is-secondary-10">
+                          @date
+                        </span>
+                        <span class="mx-1">
+                          •
+                        </span>
+                        <span class="font_14 has-text-weight-medium is-secondary-10">
+                          @(shift.name + ": " + shift.checkin + " - " + shift.checkout)
+                        </span>
+                      </div>
+                    }
+                    else if (currentType == 7)
+                    {
+                      var parts = item.Split('|');
+                      var shiftId = parts[0].Trim();
+                      var formId = parts[1].Trim();
+                      var shift = workShifts.FirstOrDefault(x => x.id == shiftId);
+                      var form = forms.FirstOrDefault(x => x.id == formId);
+
+                      <div class="is-flex is-align-items-center">
+                        <span class="font_14 is-secondary-40">
+                          Áp dụng:
+                          <span class="font_14 has-text-weight-medium is-secondary-10">
+                            @(new DateTime(form.work_date_shifts[0].start).ToString("dd/MM/yyyy HH:mm"))
+                          </span>
+                        </span>
+                        <span class="mx-1">
+                          •
+                        </span>
+                        <span class="font_14 is-secondary-40">
+                          @(shift.name + ": ")
+                          <span class="font_14 has-text-weight-medium is-secondary-10">
+                            @(shift.checkin + " - " + shift.checkout)
+                          </span>
+                        </span>
+                      </div>
+                      <div class="icon-text mt-2 is-secondary-40 font_14">
+                        <span class="icon is-small">
+                          <i class="material-icons-outlined">insert_drive_file</i>
+                        </span>
+                        <span>Loại đơn từ: <span class="is-secondary-10 has-text-weight-medium">@form.form.name</span></span>
+                      </div>
+                      <div class="icon-text mt-2 is-secondary-40 font_14">
+                        <span class="icon is-small">
+                          <i class="material-icons-outlined">date_range</i>
+                        </span>
+                        <span>
+                          Ngày tạo:
+                          <span class="is-secondary-10 has-text-weight-medium">@(new DateTime(form.created).ToString("dd/MM/yyyy")) - @(new DateTime(form.created).ToString("HH:mm"))</span>
+                        </span>
+                      </div>
+                      <div class="mt-2">
+                        <div class="icon-text is-secondary-40 font_14">
+                          <span class="icon is-small">
+                            <i class="material-icons-outlined">notes</i>
+                          </span>
+                          <span>Lý do áp dụng:</span>
+                        </div>
+                        <p class="font_14 is-secondary-10">
+                          @form.reason
+                        </p>
+                      </div>
+
+                    }
+                    else if (currentType == 8)
+                    {
+                      var data = forms.Where(x => x.id == item).FirstOrDefault();
+                      if (data != null)
+                      {
+                        <div class="is-flex is-align-items-center">
+                          <span class="font_14 is-secondary-40">
+                            Áp dụng từ:
+                            <span class="font_14 has-text-weight-medium is-secondary-10">
+                              @(new DateTime(data.work_date_shifts[0].start).ToString("dd/MM/yyyy")) - @(new DateTime(data.work_date_shifts[0].start).ToString("HH:mm"))
+                            </span>
+                          </span>
+
+                          <span class="font_14 is-secondary-40 ml-2">
+                            Đến:
+                            <span class="font_14 has-text-weight-medium is-secondary-10">
+                              @(new DateTime(data.work_date_shifts[0].end).ToString("dd/MM/yyyy")) - @(new DateTime(data.work_date_shifts[0].end).ToString("HH:mm"))
+                            </span>
+                          </span>
+                        </div>
+                        <div class="icon-text mt-2 is-secondary-40 font_14">
+                          <span class="icon is-small">
+                            <i class="material-icons-outlined">date_range</i>
+                          </span>
+                          <span>
+                            Ngày tạo:
+                            <span class="is-secondary-10 has-text-weight-medium">@(new DateTime(data.created).ToString("dd/MM/yyyy")) - @(new DateTime(data.created).ToString("HH:mm"))</span>
+                          </span>
+                        </div>
+                        <div class="icon-text mt-2 is-secondary-40 font_14">
+                          <span class="icon is-small">
+                            <i class="material-icons-outlined">playlist_add_check</i>
+                          </span>
+                          <span>
+                            Ngày phê duyệt:
+                            <span class="is-secondary-10 has-text-weight-medium">@(new DateTime(data.confirm_date).ToString("dd/MM/yyyy")) - @(new DateTime(data.confirm_date).ToString("HH:mm"))</span>
+                          </span>
+                        </div>
+                        <div class="mt-2">
+                          <div class="icon-text is-secondary-40 font_14">
+                            <span class="icon is-small">
+                              <i class="material-icons-outlined">notes</i>
+                            </span>
+                            <span>Lý do áp dụng:</span>
+                          </div>
+                          <p class="font_14 is-secondary-10">
+                            @data.reason
+                          </p>
+                        </div>
+                      }
+                    }
+                    else
+                    {
+                      var parts = item.Split('|');
+                      var timeId = parts[0].Trim();
+                      var timeKeepingID = parts[1].Trim();
+                      var find = keepings.Where(x => x.id == timeKeepingID).FirstOrDefault();
+                      if (find != null)
+                      {
+                        var data = currentType == 1 || currentType == 2 ? find.time_tracking.FirstOrDefault(x => x.time_id == timeId) : find.time_tracking.FirstOrDefault(x => x.time_id == timeId && x.time_type == "Check-out");
+                        string content = currentType == 1 || currentType == 2 ? "checkin trễ" : "checkout sớm";
+                        string content2 = currentType == 1 || currentType == 2 ? "checkin" : "checkout";
+                        if (data != null)
+                        {
+                          var shift = workShifts.FirstOrDefault(x => x.id == data.time_id);
+                          <div class="is-flex is-align-items-center">
+                            <span class="font_14 has-text-weight-medium is-secondary-10">
+                              @(new DateTime(data.time_active_tick).ToString("dd/MM/yyyy"))
+                            </span>
+                            <span class="mx-1">
+                              •
+                            </span>
+                            <span class="font_14 has-text-weight-medium is-secondary-10">
+                              @(shift.name + ": " + shift.checkin + " - " + shift.checkout)
+                            </span>
+                          </div>
+
+                          <div class="icon-text mt-2 is-secondary-40 font_14">
+                            <span class="icon is-small">
+                              <i class="material-icons-outlined">timer</i>
+                            </span>
+                            <span>
+                              Thời gian @content2:
+                              <span class="is-secondary-10 has-text-weight-medium">@(data.time_active)</span>
+                            </span>
+                          </div>
+
+
+                          <div class="icon-text mt-2 is-secondary-40 font_14">
+                            <span class="icon is-small">
+                              <i class="material-icons-outlined">av_timer</i>
+                            </span>
+                            <span>
+                              Số phút @content:
+                              <span class="is-secondary-10 has-text-weight-medium">@Math.Abs(data.time_difference) phút</span>
+                            </span>
+                          </div>
+                        }
+                      }
+                    }
+                  </div>
+                </Virtualize>
+              }
+              else
+              {
+                <div class="has-text-centered font_14 has-text-weight-medium">Không có dữ liệu</div>
+              }
+            </div>
+          </div>
+        </div>
+      </Body>
+    </Slider>
+
+  }
+
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private List<MemberModel> users = new();
+  private List<StaticModel> headingColumnData = new();
+  private List<DepartmentModel> departmentAll = new();
+  private List<HrmTimekeepingModel> keepings = new();
+  private List<HrmFormModel> forms = new();
+  private List<HrmWorkShiftModel> workShifts = new();
+  private List<HrmTimeListModel> timeList = new();
+  private HrmRulesModel dataRules = new();
+  private List<string> currentInfo = new();
+  private MemberModel currentUser = new();
+  private List<MemberModel> userSeclect = new();
+  private string filterKeyword;
+  private string filterDepartment;
+
+
+  private long filterDateS;
+  private long filterDateE;
+  private bool isLoading = false;
+  private bool isShowPopup = false;
+  private int currentType;
+  private string currentForm = "";
+  private string currentCount = "";
+  private bool isLoadingExport = false;
+  private bool _access = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    _access = Layout.User.role == 1 || (Layout.User.role == 2 && Layout.User.role_manage.timekeeping);
+
+    isLoading = true;
+    InitDataHeading();
+    InitialTime();
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    users = shareStorage.MemberList;
+    userSeclect = users.ToList();
+    await GetList();
+    await GetData();
+    isLoading = false;
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+      await JSRuntime.InvokeVoidAsync("dragScrollX");
+
+  }
+
+  private void InitialTime()
+  {
+    DateTime start = DateTime.Today;
+    DateTime end = DateTime.Today;
+    Shared.GetTimeSpan(2, out start, out end);
+    filterDateS = start.Ticks;
+    filterDateE = end.Ticks;
+  }
+
+
+  private void InitDataHeading()
+  {
+    headingColumnData.Add(new StaticModel { id = 1, name = "Số lần checkin trễ" });
+    headingColumnData.Add(new StaticModel { id = 2, name = "Số phút checkin trễ" });
+    headingColumnData.Add(new StaticModel { id = 3, name = "Số lần checkout sớm" });
+    headingColumnData.Add(new StaticModel { id = 4, name = "Số phút checkout sớm" });
+    headingColumnData.Add(new StaticModel { id = 5, name = "Số lần quên checkout ca trong ngày" });
+    headingColumnData.Add(new StaticModel { id = 6, name = "Số lần vắng không xin phép" });
+    headingColumnData.Add(new StaticModel { id = 7, name = "Số lần vắng xin phép" });
+  }
+
+  private async Task GetList()
+  {
+    timeList = await DbHrmTimeList.GetListByMonth(Layout.Company.id, filterDateS, filterDateE);
+    keepings = await DbHrmTimekeeping.GetListByRange(Layout.Company.id, filterDateS, filterDateE);
+  }
+
+  private async Task GetData()
+  {
+    dataRules = await DbHrmRules.Get(Layout.Company.id, Layout.Company.id);
+    departmentAll = await DbDepartment.GetAll(Layout.Company.id);
+    workShifts = await DbHrmWorkShift.GetList(Layout.Company.id);
+    forms = await DbHrmForm.GetList(Layout.Company.id);
+  }
+
+  private void Search()
+  {
+    userSeclect = users.Where(x =>
+    {
+      return
+      (string.IsNullOrEmpty(filterDepartment) ? true : x.departments_id.Contains(filterDepartment)) &&
+    (string.IsNullOrEmpty(filterKeyword) ? true : Shared.SearchKeyword(filterKeyword, x.name));
+    }).ToList();
+  }
+
+  private void ChangeDepartment(ChangeEventArgs e)
+  {
+    filterDepartment = e.Value.ToString();
+    filterKeyword = String.Empty;
+    Search();
+  }
+
+
+  private void OnShowPopup(int type, List<string> info, MemberModel user, string count, string form = "")
+  {
+    currentType = type;
+    currentInfo = info;
+    currentUser = user;
+    currentForm = form;
+    currentCount = count;
+    isShowPopup = true;
+  }
+
+  private void OnClosePopup()
+  {
+    currentType = 0;
+    currentInfo = new();
+    isShowPopup = false;
+    currentUser = new();
+    currentForm = "";
+    currentCount = "";
+  }
+
+  private async Task ChangeDate()
+  {
+    isLoading = true;
+    await GetList();
+    isLoading = false;
+  }
+
+  private async Task ExportExcel()
+  {
+    isLoadingExport = true;
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Chúng tôi đang xử lý file Excel của bạn...");
+    var dataExport = new List<List<string>>();
+    var header = new List<string>
+    {
+        "Tên nhân viên",
+        "Phòng ban"
+    };
+
+    header.AddRange(headingColumnData.Select(x => x.name));
+
+    header.AddRange(dataRules.forms.Where(x => x.is_active).Select(x => x.name));
+    dataExport.Add(header);
+
+    foreach (var user in userSeclect)
+    {
+      var department = !Shared.IsEmpty(user.departments_name) ? user.departments_name.Split("/").Last() : "";
+      var item = new List<string>
+        {
+         user.name,
+         department
+        };
+
+      var timeKeeping = keepings.Where(x => x.user == user.id).ToList();
+      var timeListInfo = timeList.Where(x => x.id == user.id).FirstOrDefault();
+      var formsInfo = forms.Where(x => x.user == user.id).ToList();
+      Dictionary<string, Dictionary<string, List<string>>> data = HrmService.HandleStatistical(timeKeeping, workShifts, timeListInfo, filterDateS, filterDateE, formsInfo);
+      if (data != null)
+      {
+        item.Add(data["inLate"]["count"][0]);
+        item.Add(data["inLateMinutes"]["count"][0]);
+        item.Add(data["early"]["count"][0]);
+        item.Add(data["earlyMinutes"]["count"][0]);
+        item.Add(data["missTimekeeping"]["count"][0]);
+        item.Add(data["noPermission"]["count"][0]);
+        item.Add(data["permission"]["count"][0]);
+      }
+      else
+      {
+        item.Add("0");
+        item.Add("0");
+        item.Add("0");
+        item.Add("0");
+        item.Add("0");
+        item.Add("0");
+        item.Add("0");
+      }
+      foreach (var form in dataRules.forms)
+      {
+        var formsUser = forms.Where(x => x.user == user.id).ToList();
+        if (form.is_active)
+        {
+          var filterForm = formsUser.Where(x => x.form.id == form.id && x.confirm_date > 0).ToList();
+          Dictionary<string, List<string>> countForm = HrmService.HandleStatisticalForm(filterForm, filterDateS, filterDateE);
+          if (countForm != null)
+          {
+            item.Add(countForm["count"][0]);
+          }
+          else
+          {
+            item.Add("0");
+          }
+        }
+      }
+
+      dataExport.Add(item);
+    }
+
+    var fileLink = Files.ExportExcel(dataExport, "Bảng thống kê chấm công");
+    if (fileLink.StartsWith("/"))
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hoàn thành việc tải xuống file Excel!");
+      await JSRuntime.InvokeAsync<string>("newTab", fileLink);
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, fileLink);
+    isLoadingExport = false;
+  }
+
+}

@@ -1,4 +1,5 @@
-﻿
+﻿@inject GlobalService globalService
+
 @if(model != null)
 {
   var manager = GetManager();
@@ -14,7 +15,7 @@
       {
         <a class="user_item" @onclick="() => ShowOKRsUser(manager.id)">
           <img class="image is-24x24 mr-2" src="@manager.avatar" alt="IMG" />
-          <span class="text_1_line">@manager.FullName</span>
+          <span class="text_1_line">@manager.name</span>
         </a>
       }
     </li>
@@ -24,7 +25,7 @@
     <li class="column is-2-tablet is-full-mobile has-text-right has-text-weight-semibold">
       @if(manager != null)
       {
-        var okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, manager.id);
+        var okrList = allOkrs.Where(x => x.user_create == manager.id).ToList();
         var progress = GetProgress(okrList);
         var progressColor = Shared.ProgressColor(progress);
 
@@ -44,7 +45,7 @@
         var item = childs[i];
         var childList = database.Where(x => x.parent == item.id).ToList();
         var color = string.IsNullOrEmpty(Color) ? Shared.ColorRandom(i + 1) : Color;
-        <_ListViewItem model="item" childs="childList" database="database" ShowChilds="false" Color="@color" />
+        <_ListViewItem model="item" childs="childList" database="database" allOkrs="allOkrs" ShowChilds="false" Color="@color" />
       }
       @if (childs.Count == 0)
       {
@@ -62,19 +63,29 @@
   [Parameter]
   public DepartmentModel model { get; set; }
   [Parameter]
-  public List<DepartmentModel> childs { get; set; }
+  public List<OkrModel> allOkrs { get; set; } = new();
   [Parameter]
-  public List<DepartmentModel> database { get; set; }
+  public List<DepartmentModel> childs { get; set; } = new();
+  [Parameter]
+  public List<DepartmentModel> database { get; set; } = new();
   [Parameter]
   public bool ShowChilds { get; set; }
   [Parameter]
   public string Color { get; set; }
 
-  private UserModel GetManager()
+  private List<UserModel> allUser = new();
+
+  protected override async Task OnInitializedAsync()
   {
+    allUser = await DbUser.GetAll(Layout.Company.id, globalService);
+  }
+
+  private MemberModel GetManager()
+  {
+    var allMember = allUser.Select(x => UserService.ConvertToMember(x));
     var manager = model.members_list.Where(x => x.role < 3).OrderBy(x => x.role).FirstOrDefault();
-    if(manager != null)
-      return Layout.UserList.FirstOrDefault(x => x.id == manager.id);
+    if (manager != null)
+      return allMember.FirstOrDefault(x => x.id == manager.id);
     return null;
   }
 

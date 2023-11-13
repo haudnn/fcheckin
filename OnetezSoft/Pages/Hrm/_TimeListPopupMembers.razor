@@ -1,16 +1,17 @@
 @inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
 
 <section class="modal is-active" style="z-index: 100;">
   <div class="modal-background"></div>
   <div class="modal-card is-medium" style="overflow: visible;">
     <div class="modal-card-head">
       <div class="modal-card-title">
-        @(view_mode == 1 ? "Phân ca theo nhân viên" : "Đăng ký ca làm")
+        @(Tab == "shift" ? "Phân ca theo nhân viên" : "Đăng ký ca làm")
       </div>
       <a @onclick="Cancel" class="delete is-medium"></a>
     </div>
     <div class="modal-card-body" style="overflow: visible;">
-      @if (view_mode == 1)
+      @if (Tab == "shift")
       {
         <div class="mb-3">
           <p class="mb-2 has-text-weight-medium is-secondary-20">
@@ -19,7 +20,7 @@
           <div class="avatar_list">
             @foreach (var item in users.Take(15))
             {
-              <span class="image is-rounded is-24x24 has-background-grey" title="@item.FullName">
+              <span class="image is-rounded is-24x24 has-background-grey" title="@item.name">
                 <img src="@item.avatar" alt="AVT">
               </span>
             }
@@ -75,7 +76,10 @@
                   {
                     <input for="shift-@shift.id" type="checkbox" class="mr-2" @onchange="() => SelectedShiftDay(shift.id)" />
                   }
-                  <label id="shift-@shift.id" class="has-text-weight-semibold is-secondary-40">@shift.name • @($"{shift.checkin} - {shift.checkout}") • @shift.value</label>
+                  <label id="shift-@shift.id"
+                         class="has-text-weight-semibold is-secondary-40">
+                    @shift.name • @($"{shift.checkin} - {shift.checkout}") • @shift.value @(shift.is_byhour ? "(H)" : "")
+                  </label>
                 </a>
               }
             }
@@ -85,88 +89,27 @@
             }
           </div>
         </div>
+        <p style="font-size: 12px" class="is-italic">*Chú thích: (H) là những ca làm theo giờ</p>
         <div class="is-flex is-align-items-center" style="gap: 0 50px">
           <div class="is-flex is-flex-direction-column">
             <p class="mb-2 has-text-weight-medium is-secondary-20">
               Ngày áp dụng
             </p>
-            <div class="field has-addons flex-1 mb-0">
-              <div class="control">
-                <span class="button is-link">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">event</i>
-                  </span>
-                </span>
-              </div>
-              <div class="control">
-                <DateRangePicker SingleDatePicker="true" @bind-StartDate="startDate">
-                  <PickerTemplate>
-                    <div class="input is-link is-family-code" id="@context.Id" @onclick="context.Toggle" title="Chọn ngày">
-                      @if (context.TStartDate != null)
-                      {
-                        <span>@Shared.ConvertDateWeek(context.TStartDate.Value.Ticks)</span>
-                      }
-                    </div>
-                  </PickerTemplate>
-                </DateRangePicker>
-              </div>
-              <div class="control">
-                <a class="button is-link is-outlined" @onclick="() => DateTodoNavi(false, true)">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">chevron_left</i>
-                  </span>
-                </a>
-              </div>
-              <div class="control">
-                <a class="button is-link is-outlined" @onclick="() => DateTodoNavi(true, true)">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">chevron_right</i>
-                  </span>
-                </a>
-              </div>
-            </div>
-          </div>
-          <div class="is-flex is-flex-direction-column">
-            <p class="mb-2 has-text-weight-medium is-secondary-20">
-              Ngày kết thúc
-            </p>
-            <div class="field has-addons flex-1 mb-0">
-              <div class="control">
-                <span class="button is-link">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">event</i>
-                  </span>
-                </span>
-              </div>
-              <div class="control">
-                <DateRangePicker SingleDatePicker="true" @bind-StartDate="endDate">
-                  <PickerTemplate>
-                    <div class="input is-link is-family-code" id="@context.Id" @onclick="context.Toggle" title="Chọn ngày">
-                      @if (context.TStartDate != null)
-                      {
-                        <span>@Shared.ConvertDateWeek(context.TStartDate.Value.Ticks)</span>
-                      }
-                    </div>
-                  </PickerTemplate>
-                </DateRangePicker>
-              </div>
-              <div class="control">
-                <a class="button is-link is-outlined" @onclick="() => DateTodoNavi(false, false)">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">chevron_left</i>
-                  </span>
-                </a>
-              </div>
-              <div class="control">
-                <a class="button is-link is-outlined" @onclick="() => DateTodoNavi(true, false)">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">chevron_right</i>
-                  </span>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
+            <_InputDate Start="startDate.Ticks"
+                        StartChanged="e => DateTodoNaviStart(e)"
+                                        HasNavigate
+                                        ShowDateWeek />
+           </div>
+           <div class="is-flex is-flex-direction-column">
+             <p class="mb-2 has-text-weight-medium is-secondary-20">
+               Ngày kết thúc
+             </p>
+             <_InputDate Start="endDate.Ticks"
+                         StartChanged="e => DateTodoNaviEnd(e)"
+                                        HasNavigate
+                                        ShowDateWeek />
+           </div>
+         </div>
       }
       else
       {
@@ -205,7 +148,7 @@
                         </li>
                       }
                     }
-                    <div class="dropdown is-left @(dataShiftsWeek.ContainsKey(currentDay) ? "" : "disable-shift")  @(dayToggle == currentDay ? "is-active" : "")">
+                    <li class="dropdown is-left @(dataShiftsWeek.ContainsKey(currentDay) ? "" : "disable-shift")  @(dayToggle == currentDay ? "is-active" : "")">
                       <div class="dropdown-trigger tag has-text-weight-bold border-dashed" style="background-color: unset;" @onclick="() => ChangeDayToggle(currentDay)">
                         <span class="icon">
                           <i class="material-icons-round is-size-6">add</i>
@@ -226,7 +169,10 @@
                                 {
                                   <input for="shift-@shift.id" type="checkbox" class="mr-2" @onchange="() => SelectedShiftWeek(shift.id)" />
                                 }
-                                <label id="shift-@shift.id" class="has-text-weight-semibold has-text-link">@shift.name <span class="has-text-weight-normal has-text-info"> • @($"{shift.checkin} - {shift.checkout}") • @shift.value</span> </label>
+                                <label id="shift-@shift.id"
+                                       class="has-text-weight-semibold has-text-link">
+                                  @shift.name <span class="has-text-weight-normal has-text-info"> • @($"{shift.checkin} - {shift.checkout}") • @shift.value @(shift.is_byhour ? "(H)" : "")</span>
+                                </label>
                               </a>
                             }
                           }
@@ -236,6 +182,7 @@
                               <span class="has-text-grey p-1">Không có dữ liệu ca làm!</span>
                             </a>
                           }
+
                           <hr class="dropdown-divider">
                           <div class="buttons is-right">
                             <a class="button is-danger is-small" @onclick="() => ChangeDayToggle(10)">
@@ -258,95 +205,34 @@
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </li>
                   </ul>
                 </div>
               }
             </div>
           </div>
         </div>
+        <p style="font-size: 12px" class="is-italic">*Chú thích: (H) là những ca làm theo giờ</p>
         <div class="is-flex is-align-items-center" style="gap: 0 50px">
           <div class="is-flex is-flex-direction-column">
             <p class="mb-2 has-text-weight-medium is-secondary-20">
               Ngày áp dụng
             </p>
-            <div class="field has-addons flex-1 mb-0">
-              <div class="control">
-                <span class="button is-link">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">event</i>
-                  </span>
-                </span>
-              </div>
-              <div class="control">
-                <DateRangePicker SingleDatePicker="true" @bind-StartDate="startDate">
-                  <PickerTemplate>
-                    <div class="input is-link is-family-code" id="@context.Id" @onclick="context.Toggle" title="Chọn ngày">
-                      @if (context.TStartDate != null)
-                      {
-                        <span>@Shared.ConvertDateWeek(context.TStartDate.Value.Ticks)</span>
-                      }
-                    </div>
-                  </PickerTemplate>
-                </DateRangePicker>
-              </div>
-              <div class="control">
-                <a class="button is-link is-outlined" @onclick="() => DateTodoNavi(false, true)">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">chevron_left</i>
-                  </span>
-                </a>
-              </div>
-              <div class="control">
-                <a class="button is-link is-outlined" @onclick="() => DateTodoNavi(true, true)">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">chevron_right</i>
-                  </span>
-                </a>
-              </div>
-            </div>
-          </div>
-          <div class="is-flex is-flex-direction-column">
-            <p class="mb-2 has-text-weight-medium is-secondary-20">
-              Ngày kết thúc
-            </p>
-            <div class="field has-addons flex-1 mb-0">
-              <div class="control">
-                <span class="button is-link">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">event</i>
-                  </span>
-                </span>
-              </div>
-              <div class="control">
-                <DateRangePicker SingleDatePicker="true" @bind-StartDate="endDate">
-                  <PickerTemplate>
-                    <div class="input is-link is-family-code" id="@context.Id" @onclick="context.Toggle" title="Chọn ngày">
-                      @if (context.TStartDate != null)
-                      {
-                        <span>@Shared.ConvertDateWeek(context.TStartDate.Value.Ticks)</span>
-                      }
-                    </div>
-                  </PickerTemplate>
-                </DateRangePicker>
-              </div>
-              <div class="control">
-                <a class="button is-link is-outlined" @onclick="() => DateTodoNavi(false, false)">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">chevron_left</i>
-                  </span>
-                </a>
-              </div>
-              <div class="control">
-                <a class="button is-link is-outlined" @onclick="() => DateTodoNavi(true, false)">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">chevron_right</i>
-                  </span>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
+            <_InputDate Start="startDate.Ticks"
+                        StartChanged="e => DateTodoNaviStart(e)"
+                                        HasNavigate
+                                        ShowDateWeek />
+           </div>
+           <div class="is-flex is-flex-direction-column">
+             <p class="mb-2 has-text-weight-medium is-secondary-20">
+               Ngày kết thúc
+             </p>
+             <_InputDate Start="endDate.Ticks"
+                         StartChanged="e => DateTodoNaviEnd(e)"
+                                        HasNavigate
+                                        ShowDateWeek />
+           </div>
+         </div>
       }
     </div>
     <div style="background-color: #fff; border: unset" class="modal-card-foot is-right">
@@ -367,8 +253,10 @@
 </section>
 
 @code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
   [Parameter]
-  public List<UserModel> users { get; set; }
+  public List<MemberModel> users { get; set; }
   [Parameter]
   public EventCallback<HrmTimeListModel.ShiftsData> OnUpdateWeek { get; set; }
   [Parameter]
@@ -378,11 +266,11 @@
   [Parameter]
   public List<HrmWorkShiftModel> shifts { get; set; }
   [Parameter]
-  public DateTimeOffset? startDate { get; set; }
+  public DateTimeOffset startDate { get; set; }
   [Parameter]
-  public DateTimeOffset? endDate { get; set; }
+  public DateTimeOffset endDate { get; set; }
   [Parameter]
-  public int view_mode { get; set; } = 1;
+  public string Tab { get; set; }
 
   private Dictionary<int, List<string>> dataShiftsWeek = new();
   private List<string> dataShiftsDay = new();
@@ -395,12 +283,14 @@
 
   public bool isLoading = false;
 
-  private void DateTodoNavi(bool next, bool isStart)
+  private void DateTodoNaviStart(long date)
   {
-    if (isStart)
-      startDate = startDate.Value.DateTime.AddDays(next ? 1 : -1);
-    else
-      endDate = endDate.Value.DateTime.AddDays(next ? 1 : -1);
+    startDate = new DateTime(date);
+  }
+
+  private void DateTodoNaviEnd(long date)
+  {
+    endDate = new DateTime(date);
   }
 
   private void SelectedShiftDay(string id)
@@ -470,73 +360,80 @@
 
   private async Task Update()
   {
-    bool isValid = await IsValidDate();
-    if (!isValid)
-      return;
-    // Update ngày
-    if (isDay)
+    try
     {
-      if (dataShiftsDay.Count == 0)
+      bool isValid = await IsValidDate();
+      if (!isValid) return;
+      // Update ngày
+      if (isDay)
       {
-        if (view_mode == 1)
-          await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang chưa áp dụng ca làm việc nào!");
-        else if (view_mode == 2)
-          await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang chưa đăng ký ca làm việc nào!");
-        return;
-      }
-      var check = HrmService.CheckGapShifts(shifts.Where(x => dataShiftsDay.Contains(x.id)).ToList());
-      if (check)
-      {
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Ca làm việc không được chồng lên nhau!");
-        return;
-      }
-      isLoading = true;
-      var data = new HrmTimeListModel.ShiftsData()
+        if (dataShiftsDay.Count == 0)
         {
-          start = startDate.Value.DateTime.Ticks,
-          end = endDate.Value.DateTime.Ticks,
-          days = dataShiftsDay,
-        };
-      await OnUpdateDay.InvokeAsync(data);
-      isLoading = false;
-    }
-    // Update tuần
-    else
-    {
-      if (dataShiftsWeek.Count == 0)
-      {
-        if (view_mode == 1)
-          await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang chưa áp dụng ca làm việc nào!");
-        else if (view_mode == 2)
-          await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang chưa đăng ký ca làm việc nào!");
-        return;
-      }
-      if (dataShiftsWeek.Any(k => k.Value.Count == 0))
-      {
-        if (view_mode == 1)
-          await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang chưa áp dụng ca làm việc nào!");
-        else if (view_mode == 2)
-          await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang chưa đăng ký ca làm việc nào!");
-        return;
-      }
-      foreach (var item in dataShiftsWeek)
-      {
-        var check = HrmService.CheckGapShifts(shifts.Where(x => item.Value.Contains(x.id)).ToList());
-        if (check)
+          if (Tab == "shift")
+            await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang chưa áp dụng ca làm việc nào!");
+          else if (Tab == "register")
+            await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang chưa đăng ký ca làm việc nào!");
+          return;
+        }
+        if (HrmService.CheckGapShifts(shifts.Where(x => dataShiftsDay.Contains(x.id)).ToList()))
         {
           await JSRuntime.InvokeVoidAsync("tagline", false, "Ca làm việc không được chồng lên nhau!");
           return;
         }
+        isLoading = true;
+        var data = new HrmTimeListModel.ShiftsData()
+          {
+            start = startDate.DateTime.Ticks,
+            end = endDate.DateTime.Ticks,
+            days = dataShiftsDay,
+          };
+        await OnUpdateDay.InvokeAsync(data);
+        isLoading = false;
       }
-      isLoading = true;
-      var data = new HrmTimeListModel.ShiftsData()
+      // Update tuần
+      else
+      {
+        if (dataShiftsWeek.Count == 0)
         {
-          start = startDate.Value.DateTime.Ticks,
-          end = endDate.Value.DateTime.Ticks,
-          week = dataShiftsWeek,
-        };
-      await OnUpdateWeek.InvokeAsync(data);
-      isLoading = false;
+          if (Tab == "shift")
+            await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang chưa áp dụng ca làm việc nào!");
+          else if (Tab == "register")
+            await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang chưa đăng ký ca làm việc nào!");
+          return;
+        }
+        if (dataShiftsWeek.Any(k => k.Value.Count == 0))
+        {
+          if (Tab == "shift")
+            await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang chưa áp dụng ca làm việc nào!");
+          else if (Tab == "register")
+            await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang chưa đăng ký ca làm việc nào!");
+          return;
+        }
+        foreach (var item in dataShiftsWeek)
+        {
+          var check = HrmService.CheckGapShifts(shifts.Where(x => item.Value.Contains(x.id)).ToList());
+          if (check)
+          {
+            await JSRuntime.InvokeVoidAsync("tagline", false, "Ca làm việc không được chồng lên nhau!");
+            return;
+          }
+        }
+        isLoading = true;
+        var data = new HrmTimeListModel.ShiftsData()
+          {
+            start = startDate.DateTime.Ticks,
+            end = endDate.DateTime.Ticks,
+            week = dataShiftsWeek,
+          };
+        await OnUpdateWeek.InvokeAsync(data);
+        isLoading = false;
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
     }
   }
 
@@ -555,20 +452,15 @@
   private async Task<bool> IsValidDate()
   {
     var timeNow = DateTime.Today.Ticks;
-    var start = startDate.Value.DateTime.Ticks;
-    var end = endDate.Value.DateTime.Ticks;
+    var start = startDate.DateTime.Ticks;
+    var end = endDate.DateTime.Ticks;
 
     if (start > end)
-    {
       await JSRuntime.InvokeVoidAsync("tagline", false, "Thời gian kết thúc phải lớn hơn hoặc bằng thời gian áp dụng!");
-      return false;
-    }
     else if (start <= timeNow)
-    {
       await JSRuntime.InvokeVoidAsync("tagline", false, "Thời gian áp dụng phải lớn hơn ngày hiện tại!");
-      return false;
-    }
     else
       return true;
+    return false;
   }
 }

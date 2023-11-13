@@ -2,368 +2,566 @@
 
 @if (day > 0)
 {
+  var checkout = data.time_tracking.FirstOrDefault(x => x.time_type == "Check-out" && x.checkin_id == model.checkin_id);
+  var infoShift = shifts.FirstOrDefault(x => x.id == model.time_id);
 
-	var checkout = data.time_tracking.FirstOrDefault(x => x.time_type == "Check-out" && x.checkin_id == model.checkin_id);
   <section class="modal is-active">
-  	<div class="modal-background"></div>
-  	<section class="modal-card" style="padding: 0 10px;">
-  		<section class="modal-card-head">
-  			<div class="modal-card-title">
-  				Chi tiết chấm công
-  			</div>
-  			<a class="delete is-medium" @onclick="Cancel"></a>
-  		</section>
-  		<section class="modal-card-body p-0">
-  			<div class="columns is-vcentered is-variable is-0 h-full">
-  				<div class="column is-4 h-full is-bg-grey">
-  					<div class="columns is-multiline is-variable is-2 scrolly h-full">
-  						<div class="column is-full has-flex-mobile">
-									<div class="column is-narrow is-flex-direction-column pb-0">
-										<div class="is-flex is-align-items-center">
-											<span class="icon-text has-text-weight-medium"> 
-												<span class="icon mr-2">
-													<span class="material-icons-outlined is-size-6">account_circle</span>
-												</span>
-												<span>@Layout.User.FullName</span>
-											</span>
-										</div>
-										<div class="is-flex is-align-items-center">
-											<span class="icon-text has-text-weight-medium"> 
-												<span class="icon mr-2">
-													<span class="material-icons-outlined is-size-6">date_range</span>
-												</span>
-												<span>@string.Format("{0:dd/MM/yyyy}", new DateTime(day))</span>
-											</span>
-										</div>
-										<div class="is-flex is-align-items-center">
-											<span class="icon-text has-text-weight-medium"> 
-												<span class="icon mr-2">
-													<span class="material-icons-outlined is-size-6">monetization_on</span>
-												</span>
-												<span>Công ngày: @GetTotalTimeWorkInDay(data)</span>
-											</span>
-										</div>
-									</div>
-  							@foreach (var item in data.time_tracking.Where(x => x.time_type == "Check-in"))
-  							{
-										var shift = shifts.FirstOrDefault(x => x.id == item.time_id);
-										<div class="column is-narrow">
-											<div class="button is-justify-content-flex-start @(item.checkin_id == model.checkin_id ? " is-link is-blue" : "is-grey" )" @onclick="() => Change(item.checkin_id)"style="min-width:150px">
-											@if(shift != null && !shift.is_deleted)
-											{
-												<span class="text_1_line has-text-weight-medium">@item.time_name</span>
-											}
-											else if(shift != null && shift.is_deleted)
-											{
-												<span class="text_1_line has-text-weight-medium">Ca làm đã xóa</span>
-											}
-											else
-											{
-												<span class="text_1_line has-text-weight-medium">@item.time_name</span>
-											}
-											</div>
-										</div>
-  							}
-  						</div>
-  					</div>
-  				</div>
-  				<div class="column is-8 h-full">
-  					<div class="p-3 is-flex" style="height:100%;flex-direction:column">
-  						@if (!model.is_ot)
-  						{
-  						if (checkout != null)
-  						{
-									<div class="mb-2">
-										<span class="has-text-weight-bold">@(model.time_name): @(model.time_shift) - @(checkout.time_shift)</span>
-									</div>
-									<div class="mb-2 ml-3">
-										<span class="has-text-grey mr-1">Công ghi nhận: <span class="has-text-weight-medium has-text-black">@GetTimeWorkInDay(model)</span></span>
-									</div>
-  						}
-  						else
-  						{
-									<div class="has-text-weight-bold">
-										@(model.time_name): @(model.time_shift) - Không có dữ liệu
-									</div>
-  						}
-  						}
-  						else
-  						{
-									var minutes = @GetTimeWorkInDay(model);
-									<div class="mb-2">
-										<span class="has-text-weight-bold">@model.time_name</span>
-									</div>
-									<div class="mb-2 ml-3">
-										<span class="has-text-grey mr-1">Tổng giờ làm: <span class="has-text-weight-medium has-text-black">@minutes phút</span></span>
-									</div>
-  						}
-								<div class="is-flex is-align-items-center mb-4 ml-3">
-									@if (model.location == null)
-									{
-										<span class="has-text-grey mr-1">
-											Địa điểm:
-										</span>
-										<span class="has-text-weight-medium has-text-black">Chế độ linh động</span>
-									}
-									else 
-									{
-										<span class="has-text-grey mr-1">
-											Địa điểm:
-										</span>
-										<span class="has-text-weight-medium has-text-black">@model.location.name</span>
-									}
-								</div>
+    <div class="modal-background"></div>
+    <section class="modal-card" style="padding: 0 10px;">
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          Chi tiết chấm công
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section  class="modal-card-body p-0">
+        <div class="columns is-vcentered is-variable is-0 h-full">
+          <div class="column is-4 h-full is-bg-grey">
+            <div class="columns is-multiline is-variable is-2 scrolly h-full">
+              <div class="column is-full has-flex-mobile">
+                <div class="column is-narrow is-flex-direction-column pb-0">
+                  <div class="is-flex is-align-items-center">
+                    <span class="icon-text has-text-weight-medium">
+                      <span class="icon mr-2">
+                        <span class="material-icons-outlined is-size-6">account_circle</span>
+                      </span>
+                      <span>@Layout.User.FullName</span>
+                    </span>
+                  </div>
+                  <div class="is-flex is-align-items-center">
+                    <span class="icon-text has-text-weight-medium">
+                      <span class="icon mr-2">
+                        <span class="material-icons-outlined is-size-6">date_range</span>
+                      </span>
+                      <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(day))</span>
+                    </span>
+                  </div>
+                  <div class="is-flex is-align-items-center">
+                    <span class="icon-text has-text-weight-medium">
+                      <span class="icon mr-2">
+                        <span class="material-icons-outlined is-size-6">monetization_on</span>
+                      </span>
+                      <span>Công ngày: @GetTotalTimeWorkInDay(data)</span>
+                    </span>
+                  </div>
+                </div>
+                @foreach (var item in data.time_tracking.Where(x => x.time_type == "Check-in"))
+                {
+                  var shift = shifts.FirstOrDefault(x => x.id == item.time_id);
+                  <div class="column is-narrow">
+                    <div class="button is-justify-content-flex-start @(item.checkin_id == model.checkin_id ? " is-link is-blue" : "is-grey" )" @onclick="() => Change(item.checkin_id)" style="min-width:150px">
+                      @if (shift != null && !shift.is_deleted)
+                      {
+                        <span class="text_1_line has-text-weight-medium">@item.time_name</span>
+                      }
+                      else if (shift != null && shift.is_deleted)
+                      {
+                        <span class="text_1_line has-text-weight-medium">Ca làm đã xóa</span>
+                      }
+                      else
+                      {
+                        <span class="text_1_line has-text-weight-medium">@item.time_name</span>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+          @if (!isShowMap)
+          {
+            <div class="column is-8 h-full">
+              <div class="p-3 is-flex scrolly" style="max-height:500px;flex-direction:column">
+                @if (!model.is_ot)
+                {
+                  if (checkout != null)
+                  {
+                    <div class="mb-2">
+                      <span class="has-text-weight-bold">@(model.time_name): @(model.time_shift) - @(checkout.time_shift)</span>
+                    </div>
+                  }
+                  else
+                  {
+                    <div class="has-text-weight-bold">
+                      @(model.time_name): @(model.time_shift) - Không có dữ liệu
+                    </div>
+                  }
+                }
+                else
+                {
+                  var minutes = @GetTimeWorkInDay(model);
+                  <div class="mb-2">
+                    <span class="has-text-weight-bold">@model.time_name</span>
+                  </div>
+                }
+                <div class="is-flex is-align-items-center mb-2 ml-3">
+                  @if (model.location == null)
+                  {
+                    <span class="has-text-grey mr-1">
+                      Địa điểm:
+                    </span>
+                    <span class="has-text-weight-medium has-text-black">Chế độ linh động</span>
+                  }
+                  else
+                  {
+                    <span class="has-text-grey mr-1">
+                      Địa điểm:
+                    </span>
+                    <span class="has-text-weight-medium has-text-black">@model.location.name</span>
+                  }
+                </div>
 
-  						<div>
-									@if (Shared.IsEmpty(model.time_active))
-									{
-										<div class="is-flex is-align-items-center" style="gap: 5px;">
-											<span class="has-text-weight-medium">Check-in</span>
-											<div class="break_line"></div>
-										</div>
-										<div style="min-height: 100px;" class="is-flex is-align-items-center is-justify-content-center">
-											<span class="has-text-grey">Không có dữ liệu</span>
-										</div>
-									}
-									else
-									{
-										<div class="is-flex is-align-items-center" style="gap: 5px;">
-											<span class="has-text-weight-medium">Check-in</span>
-											<div class="break_line"></div>
-										</div>
+                @if (infoShift != null)
+                {
+                  if (infoShift.is_byhour)
+                  {
+                    <div class="is-flex mb-2 ml-3">
+                      <span class="has-text-grey mr-1" style="min-width: 100px;">
+                        Thời gian nghỉ:
+                      </span>
+                      <div class="is-flex is-align-items-center is-flex-wrap-wrap" style="gap: 10px;">
+                        @if (infoShift.break_times.Any())
+                        {
+                          @foreach (var item in infoShift.break_times)
+                          {
+                            <div class="tag">
+                              <span class="has-text-weight-medium has-text-black">@(item.start + " - " + item.end)</span>
+                            </div>
+                          }
+                        }
+                        else
+                        {
+                          <span class="has-text-weight-medium has-text-black">Ca làm này không có thời gian nghỉ</span>
+                        }
+                      </div>
+                    </div>
 
-										<div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
-											<span style="margin-left:-6px" class="icon-text">
-												@if(model.time_difference > 0)
-												{
-													<span class="icon mr-0 has-text-warning">
-														<span class="material-icons-outlined">error_outline</span>
-													</span>
-												}
-												else
-												{
-													<span class="icon mr-0 has-text-success">
-														<span class="material-icons-outlined">done</span>
-													</span>
-												}
-												<div class="is-flex is-align-items-center" style="gap: 7px;">
-													<span class="has-text-weight-medium">Thời gian:</span>
-													<span class="has-text-grey">@model.time_active</span>
-													@if(model.time_difference > 0)
-													{
-														<span class="has-text-danger">
-														(Trễ @model.time_difference phút)
-														</span>
-													}
-												</div>
-											</span>
-										</div>
+                    <div class="is-flex mb-2 ml-3 is-align-items-center">
+                      <span class="has-text-grey mr-1" style="min-width: 100px;">
+                        Thời gian làm thực tế:
+                      </span>
+                      <div class="icon-text tooltip is-flex is-align-items-center">
 
-										@if (!model.in_company)
-										{
-											<div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
-												<span style="margin-left:-6px" class="icon-text">
-													<span class="icon mr-0 has-text-warning">
-														<span class="material-icons-outlined">error_outline</span>
-													</span>
-												<div class="is-flex is-align-items-center" style="gap: 7px;">
-													<span class="has-text-weight-medium">Địa điểm:</span>
-													<span class="has-text-danger has-text-weight-normal">Ngoài vị trí</span>
-												</div>
-												</span>
-											</div>
-										}
-										else
-										{
-											<div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
-												<span style="margin-left:-6px" class="icon-text">
-													<span class="icon mr-0 has-text-success">
-														<span class="material-icons-outlined">done</span>
-													</span>
-												<div class="is-flex is-align-items-center" style="gap: 7px;">
-													<span class="has-text-weight-medium">Địa điểm:</span>
-													<span class="has-text-success has-text-weight-normal">Hợp lệ</span>
-												</div>
-												</span>
-											</div>
-										}
+                        <span class="has-text-weight-medium has-text-black">@(Shared.MinutesToHours(GetTimeWorkByHour(model)))</span>
+                        <a class="icon is-small has-text-dark mr-2">
+                          <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                        </a>
+                        <span class="tooltiptext">Đã trừ thời gian nghỉ, thời gian vào sớm, ra trễ</span>
+                      </div>
+                    </div>
+                  }
+                }
 
-										@if(isCheckDevice && !model.is_valid_device)
-										{
-											<div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
-												<span style="margin-left:-6px" class="icon-text">
-													<span class="icon mr-0 has-text-danger">
-														<span class="material-icons-outlined">app_blocking</span>
-													</span>
-													<div class="is-flex is-align-items-center" style="gap: 7px;">
-														<span class="has-text-danger">Thiết bị không hợp lệ</span>
-													</div>
-												</span>
-											</div>
-										}
+                @if (!model.is_ot)
+                {
+                  if (checkout != null)
+                  {
+                    <div class="mb-2 ml-3">
+                      <span class="has-text-grey mr-1">Công ghi nhận: <span class="has-text-weight-medium has-text-black">@GetTimeWorkInDay(model) công</span></span>
+                      @if (infoShift.is_byhour)
+                      {
+                        <span class="has-text-weight-medium has-text-black">@("(1 giờ = " + CaculatorWorkPerHour(infoShift) + " công)")</span>
+                      }
+                    </div>
+                  }
+                }
+                else
+                {
+                  var minutes = @GetTimeWorkInDay(model);
+                  <div class="mb-2 ml-3">
+                    <span class="has-text-grey mr-1">Tổng giờ làm: <span class="has-text-weight-medium has-text-black">@minutes phút</span></span>
+                  </div>
+                }
 
-										@if (!model.in_company)
-										{
-											<div style="margin-left: 20px;">
-												@if(!Shared.IsEmpty(model.reason))
-												{
-												<div class="mb-1">
-													<span class="has-text-weight-medium">
-														Lý do:
-													</span>
-													<span class="has-text-grey">@model.reason</span>
-												</div>
-												}
-												@if(!Shared.IsEmpty(model.note))
-												{
-												<div class="mb-1">
-													<span class="has-text-weight-medium">
-														Ghi chú:
-													</span>
-													<span class="has-text-grey">@model.note</span>
-												</div>
-												}
-												@if (model.images.Count > 0)
-												{
-												@foreach (var image in model.images)
-												{
-												<div class="mb-1">
-													<img src="@image" alt="In Outside" class="image" style="border-radius:5px; max-height:100px; object-fit:cover; width: 100%; min-height: 100px" />
-												</div>
-												}
-												}
-											</div>
-										}
-									}
-  						</div>
-  						<div class="mt-2">
-									@if (Shared.IsEmpty(checkout.time_active))
-									{
-										<div class="is-flex is-align-items-center" style="gap: 5px;">
-											<span class="has-text-weight-medium">Check-out</span>
-											<div class="break_line"></div>
-										</div>
-										<div style="min-height: 100px;" class="is-flex is-align-items-center is-justify-content-center">
-											<span class="has-text-grey">Không có dữ liệu</span>
-										</div>
-									}
-									else
-									{
-										<div class="is-flex is-align-items-center" style="gap: 5px;">
-											<span class="has-text-weight-medium">Check-out</span>
-											<div class="break_line"></div>
-										</div>
+                <div class="mt-2">
+                  @if (Shared.IsEmpty(model.time_active))
+                  {
+                    <div class="is-flex is-align-items-center" style="gap: 5px;">
+                      <span class="has-text-weight-medium">Check-in</span>
+                      <div class="break_line"></div>
+                    </div>
+                    <div style="min-height: 100px;" class="is-flex is-align-items-center is-justify-content-center">
+                      <span class="has-text-grey">Không có dữ liệu</span>
+                    </div>
+                  }
+                  else
+                  {
+                    <div class="is-flex is-align-items-center" style="gap: 5px;">
+                      <span class="has-text-weight-medium">Check-in</span>
+                      <div class="break_line"></div>
+                    </div>
 
-										<div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
-											<span style="margin-left:-6px" class="icon-text">
-												@if(checkout.time_difference > 0 && !checkout.is_ot)
-												{
-													<span class="icon mr-0 has-text-warning">
-														<span class="material-icons-outlined">error_outline</span>
-													</span>
-												}
-												else
-												{
-													<span class="icon mr-0 has-text-success">
-														<span class="material-icons-outlined">done</span>
-													</span>
-												}
-												<div class="is-flex is-align-items-center" style="gap: 7px;">
-													<span class="has-text-weight-medium">Thời gian:</span>
-													<span class="has-text-grey">@checkout.time_active</span>
-													@if(checkout.time_difference > 0 && !checkout.is_ot)
-													{
-														<span class="has-text-danger">
-														(Sớm @checkout.time_difference phút)
-														</span>
-													}
-												</div>
-											</span>
-										</div>
+                    <div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
+                      <div style="margin-left:-6px" class="icon-text">
+                        @if (model.time_difference > 0)
+                        {
+                          <span class="icon mr-0 has-text-warning">
+                            <span class="material-icons-outlined">error_outline</span>
+                          </span>
+                        }
+                        else
+                        {
+                          <span class="icon mr-0 has-text-success">
+                            <span class="material-icons-outlined">done</span>
+                          </span>
+                        }
+                        <div class="is-flex is-align-items-center" style="gap: 7px;">
+                          <span class="has-text-weight-medium">Thời gian:</span>
+                          <span class="has-text-grey">@model.time_active</span>
+                          @if (model.time_difference > 0)
+                          {
+                            <span class="has-text-danger">
+                              (Trễ @model.time_difference phút)
+                            </span>
+                          }
+                        </div>
+                      </div>
+                    </div>
 
-										@if (!checkout.in_company)
-										{
-											<div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
-												<span style="margin-left:-6px" class="icon-text">
-													<span class="icon mr-0 has-text-warning">
-														<span class="material-icons-outlined">error_outline</span>
-													</span>
-												<div class="is-flex is-align-items-center" style="gap: 7px;">
-													<span class="has-text-weight-medium">Địa điểm:</span>
-													<span class="has-text-danger has-text-weight-normal">Ngoài vị trí</span>
-												</div>
-												</span>
-											</div>
-										}
-										else
-										{
-											<div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
-												<span style="margin-left:-6px" class="icon-text">
-													<span class="icon mr-0 has-text-success">
-														<span class="material-icons-outlined">done</span>
-													</span>
-												<div class="is-flex is-align-items-center" style="gap: 7px;">
-													<span class="has-text-weight-medium">Địa điểm:</span>
-													<span class="has-text-success has-text-weight-normal">Hợp lệ</span>
-												</div>
-												</span>
-											</div>
-										}
-										
-										@if(isCheckDevice && !checkout.is_valid_device)
-										{
-											<div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
-												<span style="margin-left:-6px" class="icon-text">
-													<span class="icon mr-0 has-text-danger">
-														<span class="material-icons-outlined">app_blocking</span>
-													</span>
-													<div class="is-flex is-align-items-center" style="gap: 7px;">
-														<span class="has-text-danger">Thiết bị không hợp lệ</span>
-													</div>
-												</span>
-											</div>
-										}
+                    @if (!model.in_company || model.is_hybrid)
+                    {
+                      @if (model.coordinates != null)
+                      {
+                        <div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
+                          <div style="margin-left:-6px" class="icon-text">
+                            <span class="icon mr-0 has-text-link is-size-6">
+                              <span class="material-icons-outlined">location_on</span>
+                            </span>
+                            <div class="is-flex is-align-items-center" style="gap: 7px;">
+                              <span class="has-text-weight-medium">Toạ độ GPS:</span>
+                              <span style="cursor: pointer" class="icon-text" @onclick="() => isShowMap = !isShowMap">
+                                <span class="has-text-link has-text-weight-normal">Mở bản đồ</span>
+                                <span class="icon mr-0 has-text-link is-size-5">
+                                  <span class="material-icons-outlined">navigate_next</span>
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                      else
+                      {
+                        <div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
+                          <div style="margin-left:-6px" class="icon-text">
+                            <span class="icon mr-0 has-text-link is-size-6">
+                              <span class="material-icons-outlined">location_on</span>
+                            </span>
+                            <div class="is-flex is-align-items-center" style="gap: 7px;">
+                              <span class="has-text-weight-medium">Toạ độ GPS:</span>
+                              <span class="has-text-success has-text-weight-normal">Lỗi khi lấy vị trí</span>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    }
 
-										@if(!checkout.in_company)
-										{
-											<div style="margin-left: 20px;">
-												@if(!Shared.IsEmpty(checkout.reason))
-												{
-													<div class="mb-1">
-														<span class="has-text-weight-medium">
-															Lý do:
-														</span>
-														<span class="has-text-grey">@checkout.reason</span>
-													</div>
-												}
-												@if(!Shared.IsEmpty(checkout.note))
-												{
-													<div class="mb-1">
-														<span class="has-text-weight-medium">
-															Ghi chú:
-														</span>
-														<span class="has-text-grey">@checkout.note</span>
-													</div>
-												}
-												@if(checkout.images.Count > 0)
-												{
-													@foreach (var image in checkout.images)
-													{
-													<div class="mb-1">
-														<img src="@image" alt="In Outside" class="image"
-															style="border-radius:5px;max-height:100px;object-fit:cover;" />
-													</div>
-													}
-												}
-											</div>
-										}
-									}
-  						</div>
-  					</div>
-  				</div>
-  			</div>
-  		</section>
-  	</section>
+                    @if (!model.in_company)
+                    {
+                      <div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
+                        <div style="margin-left:-6px" class="icon-text">
+                          <span class="icon mr-0 has-text-warning">
+                            <span class="material-icons-outlined">error_outline</span>
+                          </span>
+                          <div class="is-flex is-align-items-center" style="gap: 7px;">
+                            <span class="has-text-weight-medium">Địa điểm:</span>
+                            <span class="has-text-danger has-text-weight-normal">Ngoài vị trí</span>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                    else
+                    {
+                      <div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
+                        <div style="margin-left:-6px" class="icon-text">
+                          <span class="icon mr-0 has-text-success">
+                            <span class="material-icons-outlined">done</span>
+                          </span>
+                          <div class="is-flex is-align-items-center" style="gap: 7px;">
+                            <span class="has-text-weight-medium">Địa điểm:</span>
+                            <span class="has-text-success has-text-weight-normal">Hợp lệ</span>
+                          </div>
+                        </div>
+                      </div>
+                    }
+
+                    @if (isCheckDevice && !model.is_valid_device)
+                    {
+                      <div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
+                        <div style="margin-left:-6px" class="icon-text">
+                          <span class="icon mr-0 has-text-danger">
+                            <span class="material-icons-outlined">app_blocking</span>
+                          </span>
+                          <div class="is-flex is-align-items-center" style="gap: 7px;">
+                            <span class="has-text-danger">Thiết bị không hợp lệ</span>
+                          </div>
+                        </div>
+                      </div>
+                    }
+
+                    @if (!model.in_company)
+                    {
+                      <div style="margin-left: 20px;">
+                        @if (!Shared.IsEmpty(model.reason))
+                        {
+                          <div class="mb-1">
+                            <span class="has-text-weight-medium">
+                              Lý do:
+                            </span>
+                            <span class="has-text-grey">@model.reason</span>
+                          </div>
+                        }
+                        @if (!Shared.IsEmpty(model.note))
+                        {
+                          <div class="mb-1">
+                            <span class="has-text-weight-medium">
+                              Ghi chú:
+                            </span>
+                            <span class="has-text-grey">@model.note</span>
+                          </div>
+                        }
+                        @if (model.images.Count > 0)
+                        {
+                          <div style="gap: 10px" class="is-flex">
+                            @foreach (var image in model.images)
+                            {
+                              <div class="mb-1">
+                                <img src="@image" alt="In Outside" class="image" style="border-radius:5px; max-height:100px; object-fit:cover; width: 100%; min-height: 100px" />
+                              </div>
+                            }
+                          </div>
+
+                        }
+                      </div>
+                    }
+                  }
+                </div>
+                <div class="mt-2">
+                  @if (Shared.IsEmpty(checkout.time_active))
+                  {
+                    <div class="is-flex is-align-items-center" style="gap: 5px;">
+                      <span class="has-text-weight-medium">Check-out</span>
+                      <div class="break_line"></div>
+                    </div>
+                    <div style="min-height: 100px;" class="is-flex is-align-items-center is-justify-content-center">
+                      <span class="has-text-grey">Không có dữ liệu</span>
+                    </div>
+                  }
+                  else
+                  {
+                    <div class="is-flex is-align-items-center" style="gap: 5px;">
+                      <span class="has-text-weight-medium">Check-out</span>
+                      <div class="break_line"></div>
+                    </div>
+
+                    <div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
+                      <div style="margin-left:-6px" class="icon-text">
+                        @if (checkout.time_difference > 0 && !checkout.is_ot)
+                        {
+                          <span class="icon mr-0 has-text-warning">
+                            <span class="material-icons-outlined">error_outline</span>
+                          </span>
+                        }
+                        else
+                        {
+                          <span class="icon mr-0 has-text-success">
+                            <span class="material-icons-outlined">done</span>
+                          </span>
+                        }
+                        <div class="is-flex is-align-items-center" style="gap: 7px;">
+                          <span class="has-text-weight-medium">Thời gian:</span>
+                          <span class="has-text-grey">@checkout.time_active</span>
+                          @if (checkout.time_difference > 0 && !checkout.is_ot)
+                          {
+                            <span class="has-text-danger">
+                              (Sớm @checkout.time_difference phút)
+                            </span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    @if (!checkout.in_company || checkout.is_hybrid)
+                    {
+                      @if (checkout.coordinates != null)
+                      {
+                        <div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
+                          <div style="margin-left:-6px" class="icon-text">
+                            <span class="icon mr-0 has-text-link is-size-6">
+                              <span class="material-icons-outlined">location_on</span>
+                            </span>
+                            <div class="is-flex is-align-items-center" style="gap: 7px;">
+                              <span class="has-text-weight-medium">Toạ độ GPS:</span>
+                              <span style="cursor: pointer" class="icon-text" @onclick="() => isShowMap = !isShowMap">
+                                <span class="has-text-link has-text-weight-normal">Mở bản đồ</span>
+                                <span class="icon mr-0 has-text-link is-size-5">
+                                  <span class="material-icons-outlined">navigate_next</span>
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                      else
+                      {
+                        <div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
+                          <div style="margin-left:-6px" class="icon-text">
+                            <span class="icon mr-0 has-text-link is-size-6">
+                              <span class="material-icons-outlined">location_on</span>
+                            </span>
+                            <div class="is-flex is-align-items-center" style="gap: 7px;">
+                              <span class="has-text-weight-medium">Toạ độ GPS:</span>
+                              <span class="has-text-success has-text-weight-normal">Lỗi khi lấy vị trí</span>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    }
+
+                    @if (!checkout.in_company)
+                    {
+                      <div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
+                        <div style="margin-left:-6px" class="icon-text">
+                          <span class="icon mr-0 has-text-warning">
+                            <span class="material-icons-outlined">error_outline</span>
+                          </span>
+                          <div class="is-flex is-align-items-center" style="gap: 7px;">
+                            <span class="has-text-weight-medium">Địa điểm:</span>
+                            <span class="has-text-danger has-text-weight-normal">Ngoài vị trí</span>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                    else
+                    {
+                      <div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
+                        <div style="margin-left:-6px" class="icon-text">
+                          <span class="icon mr-0 has-text-success">
+                            <span class="material-icons-outlined">done</span>
+                          </span>
+                          <div class="is-flex is-align-items-center" style="gap: 7px;">
+                            <span class="has-text-weight-medium">Địa điểm:</span>
+                            <span class="has-text-success has-text-weight-normal">Hợp lệ</span>
+                          </div>
+                        </div>
+                      </div>
+                    }
+
+                    @if (isCheckDevice && !checkout.is_valid_device)
+                    {
+                      <div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
+                        <div style="margin-left:-6px" class="icon-text">
+                          <span class="icon mr-0 has-text-danger">
+                            <span class="material-icons-outlined">app_blocking</span>
+                          </span>
+                          <div class="is-flex is-align-items-center" style="gap: 7px;">
+                            <span class="has-text-danger">Thiết bị không hợp lệ</span>
+                          </div>
+                        </div>
+                      </div>
+                    }
+
+                    @if (!checkout.in_company)
+                    {
+                      <div style="margin-left: 20px;">
+                        @if (!Shared.IsEmpty(checkout.reason))
+                        {
+                          <div class="mb-1">
+                            <span class="has-text-weight-medium">
+                              Lý do:
+                            </span>
+                            <span class="has-text-grey">@checkout.reason</span>
+                          </div>
+                        }
+                        @if (!Shared.IsEmpty(checkout.note))
+                        {
+                          <div class="mb-1">
+                            <span class="has-text-weight-medium">
+                              Ghi chú:
+                            </span>
+                            <span class="has-text-grey">@checkout.note</span>
+                          </div>
+                        }
+                        @if (checkout.images.Count > 0)
+                        {
+                          @foreach (var image in checkout.images)
+                          {
+                            <div class="mb-1">
+                              <img src="@image" alt="In Outside" class="image" style="border-radius:5px;max-height:100px;object-fit:cover;" />
+                            </div>
+                          }
+                        }
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+            </div>
+          }
+          else
+          {
+            <div class="column is-8 h-full">
+              <div class="p-3 is-flex scrolly" style="max-height:500px; flex-direction:column">
+                <div style="cursor: pointer; margin-left: -6px" class="mb-2 icon-text" @onclick="() => isShowMap = !isShowMap">
+                  <span class="icon mr-0 has-text-black is-size-5">
+                    <span class="material-icons-outlined">navigate_before</span>
+                  </span>
+                  <span class="has-text-weight-medium">Quay lại</span>
+                </div>
+
+                <div class="mt-2">
+                  <div class="is-flex is-align-items-center" style="gap: 5px;">
+                    <span class="has-text-weight-medium">Check-in</span>
+                    <div class="break_line"></div>
+                  </div>
+                  <div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
+                    <div style="margin-left: -6px" class="icon-text">
+                      <span class="icon mr-0 has-text-link is-size-6">
+                        <span class="material-icons-outlined">location_on</span>
+                      </span>
+                      <div class="is-flex is-align-items-center" style="gap: 7px;">
+                        <span class="has-text-weight-medium">Toạ độ GPS:</span>
+                        <span class="has-text-link has-text-weight-normal">@(model.coordinates.latitude + ", " + model.coordinates.longitude)</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mt-2">
+                    <img src="https://maps.googleapis.com/maps/api/staticmap?center=@model.coordinates.latitude,@model.coordinates.longitude&zoom=18&size=400x400&markers=color:red|@model.coordinates.latitude,@model.coordinates.longitude&key=AIzaSyD5-kgedsaAbUYepGcZC2JwZBLp_3In2LI"
+                         alt="MAP" />
+                  </div>
+                </div>
+
+                @if (!Shared.IsEmpty(checkout.time_active))
+                {
+                  @if ((!checkout.in_company || checkout.is_hybrid) && checkout.coordinates != null)
+                  {
+                    <div class="mt-2">
+                      <div class="is-flex is-align-items-center" style="gap: 5px;">
+                        <span class="has-text-weight-medium">Check-out</span>
+                        <div class="break_line"></div>
+                      </div>
+                      <div class="is-flex is-align-items-center mb-1" style="gap: 5px;">
+                        <div style="margin-left: -6px" class="icon-text">
+                          <span class="icon mr-0 has-text-link is-size-6">
+                            <span class="material-icons-outlined">location_on</span>
+                          </span>
+                          <div class="is-flex is-align-items-center" style="gap: 7px;">
+                            <span class="has-text-weight-medium">Toạ độ GPS:</span>
+                            <span class="has-text-link has-text-weight-normal">@(checkout.coordinates.latitude + ", " + checkout.coordinates.longitude)</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="mt-2">
+                        <img src="https://maps.googleapis.com/maps/api/staticmap?center=@checkout.coordinates.latitude,@checkout.coordinates.longitude&zoom=18&size=400x400&markers=color:red|@checkout.coordinates.latitude,@checkout.coordinates.longitude&key=AIzaSyD5-kgedsaAbUYepGcZC2JwZBLp_3In2LI"
+                             alt="MAP" />
+                      </div>
+                    </div>
+                  }
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    </section>
   </section>
 }
 
@@ -375,20 +573,23 @@
   [Parameter]
   public HrmTimekeepingModel data { get; set; }
   [Parameter]
-  public List<HrmWorkShiftModel> shifts { get; set; }
+  public List<HrmWorkShiftModel> shifts { get; set; } = new();
 
   [Parameter]
   public EventCallback OnClose { get; set; }
-		[Parameter]
-		public bool isCheckDevice { get; set; }
+  [Parameter]
+  public bool isCheckDevice { get; set; }
 
-		[Parameter]
-		public HrmTimekeepingModel.TimeData model { get; set; }
-	
+  [Parameter]
+  public HrmTimekeepingModel.TimeData model { get; set; }
+
+  private bool isShowMap = false;
+
   private async Task Cancel()
   {
-   await OnClose.InvokeAsync();
-			model = null;
+    await OnClose.InvokeAsync();
+    model = null;
+    isShowMap = false;
   }
 
   /// <summary>
@@ -397,47 +598,61 @@
   private double GetTotalTimeWorkInDay(HrmTimekeepingModel timekeeping)
   {
     double result = 0;
-    if(timekeeping != null)
+    if (timekeeping != null)
     {
-					result = timekeeping.time_tracking
-					.Where(t => t.time_type == "Check-out" && t.is_valid && timekeeping.time_tracking.Any(ct => ct.checkin_id == t.checkin_id && ct.time_type == "Check-in" && ct.is_valid))
-					.GroupBy(t => t.time_id)
-					.Select(group => group.Sum(t => t.time_work))
-					.Sum();
+      result = timekeeping.time_tracking
+      .Where(t => t.time_type == "Check-out" && t.is_valid && timekeeping.time_tracking.Any(ct => ct.checkin_id == t.checkin_id && ct.time_type == "Check-in" && ct.is_valid))
+      .GroupBy(t => t.time_id)
+      .Select(group => group.Sum(t => t.time_work))
+      .Sum();
     }
     return Math.Round(result, 2);
   }
-	
-	/// <summary>
-	/// Lấy tổng công của 1 ca làm
-	/// </summary>
-	/// <param name="checkin"></param>
-	/// <returns></returns>
-	private double GetTimeWorkInDay(HrmTimekeepingModel.TimeData checkin)
-  {
-   double result = 0;
-			if(!checkin.is_valid)
-				return result;
-			if(checkin.is_ot)
-			{
-				var checkout = data.time_tracking.FirstOrDefault(x => x.time_type == "Check-out" && x.checkin_id == checkin.checkin_id && x.time_active != null);
-				if(checkout != null)
-				{
-					TimeSpan timeSpan = TimeSpan.FromTicks(checkout.time_active_tick - checkin.time_active_tick);
-					result = Math.Round(timeSpan.TotalMinutes);
-				}
-				else
-					return result;
-			}
-		else
-				result = data.time_tracking.Where(x => x.time_type == "Check-out" && x.is_valid == true && x.checkin_id == checkin.checkin_id && x.time_active != null).Sum(x => x.time_work);
 
-		return Math.Round(result, 2);
+  /// <summary> Lấy tổng công của 1 ca làm </summary>
+
+  private double GetTimeWorkInDay(HrmTimekeepingModel.TimeData checkin)
+  {
+    double result = 0;
+    if (!checkin.is_valid)
+      return result;
+    if (checkin.is_ot)
+    {
+      var checkout = data.time_tracking.FirstOrDefault(x => x.time_type == "Check-out" && x.checkin_id == checkin.checkin_id && x.time_active != null);
+      if (checkout != null)
+      {
+        TimeSpan timeSpan = TimeSpan.FromTicks(checkout.time_active_tick - checkin.time_active_tick);
+        result = Math.Round(timeSpan.TotalMinutes);
+      }
+      else
+        return result;
+    }
+    else
+      result = data.time_tracking.Where(x => x.time_type == "Check-out" && x.is_valid == true && x.checkin_id == checkin.checkin_id && x.time_active != null).Sum(x => x.time_work);
+
+    return Math.Round(result, 2);
   }
 
-	private void Change(string checkinId)
-	{
-		model = data.time_tracking.FirstOrDefault(x => x.checkin_id == checkinId);
-		StateHasChanged();
-	}
+  private void Change(string checkinId)
+  {
+    model = data.time_tracking.FirstOrDefault(x => x.checkin_id == checkinId);
+    StateHasChanged();
+  }
+
+  private double GetTimeWorkByHour(HrmTimekeepingModel.TimeData checkin)
+  {
+    double result = 0;
+    var checkout = data.time_tracking.FirstOrDefault(x => x.time_type == "Check-out" && x.checkin_id == checkin.checkin_id && x.time_active != null);
+    if (checkout != null)
+      result = checkout.time_work_real;
+
+    return result;
+  }
+
+  private double CaculatorWorkPerHour(HrmWorkShiftModel shift)
+  {
+    return Math.Round((60 * shift.value) / shift.minutes, 2);
+  }
+
+
 }

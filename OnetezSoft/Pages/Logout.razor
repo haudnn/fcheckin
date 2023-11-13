@@ -11,35 +11,18 @@
     {
       try
       {
-        var cookieUser = await JSRuntime.InvokeAsync<string>("getCookie", "_user");
-        if (!string.IsNullOrEmpty(cookieUser))
-        {
-          var user = await DbMainUser.GetbySession(cookieUser);
-          if (user != null)
-          {
-            user.session = null;
-            await DbMainUser.Update(user);
-          }
-        }
-      }
-      catch (Exception ex)
-      {
-        await JSRuntime.InvokeVoidAsync("console.warn", "Logout: " + ex.Message);
-      }
-
-      try
-      {
-        await JSRuntime.InvokeVoidAsync("localStorage.clear");
         await JSRuntime.InvokeVoidAsync("deleteCookie", "_user");
         await JSRuntime.InvokeVoidAsync("deleteCookie", "_cycle");
         await JSRuntime.InvokeVoidAsync("deleteCookie", "_company");
       }
       catch (Exception ex)
       {
-        await JSRuntime.InvokeVoidAsync("console.warn", "Logout: " + ex.Message);
+        await JSRuntime.InvokeVoidAsync("console.warn", "Logout: " + ex.ToString());
       }
-
-      navigation.NavigateTo("/", true);
+      finally
+      {
+        navigation.NavigateTo("/", true);
+      }
     }
   }
 }

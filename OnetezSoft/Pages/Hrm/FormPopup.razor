@@ -1,58 +1,80 @@
 ﻿@using System.Globalization;
 @inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
-<section class="modal is-active px-4">
-  <div class="modal-background"></div>
-  <section class="modal-card is-medium">
-    <section class="modal-card-head">
-      <div class="modal-card-title">
-        TẠO ĐƠN TỪ
+<Slider Size="@ComponentModel.SizeType.Large">
+  <Header>
+    <div class="columns is-variable is-2 is-mobile is-vcentered">
+      <div class="column">
+        <div class="has-text-weight-bold is-size-5">
+          Tạo đơn từ
+        </div>
       </div>
-      <a class="delete is-medium" @onclick="Cancel"></a>
-    </section>
-    <section class="modal-card-body scrolly" style="overflow: auto !important;">
-      <ul class="columns is-multiline is-variable is-2">
-        <li class="column is-full has-text-weight-semibold is-size-5">
-          Đơn từ áp dụng
-        </li>
+      <div class="column is-narrow">
+        <Button Content="Đóng" IconLeft="close" Onclick="Cancel" />
+      </div>
+    </div>
+  </Header>
+  <Body>
+    <ul class="columns is-multiline is-gapless">
+      <li class="column is-full has-text-weight-semibold mb-2">
+        Đơn từ áp dụng
+      </li>
 
-        <li class="column is-full">
-          <div class="select is-fullwidth">
-            <select @onchange="ChangeForm">
-              <option value="">Chọn loại đơn từ</option>
-              @if (forms.Any() && model.form != null)
+      <li class="column is-full @(model.form != null ? "mb-2" : "mb-5")">
+        <div class="select is-fullwidth">
+          <select @onchange="ChangeForm">
+            <option value="">Chọn loại đơn từ</option>
+            @if (forms.Any() && model.form != null)
+            {
+              foreach (var item in forms)
               {
-                foreach (var item in forms)
+                if (item.is_active)
                 {
-                  if (item.is_active)
-                  {
-                    <option value="@item.id" selected="@(model.form.id == item.id)">@item.name</option>
-                  }
+                  <option value="@item.id" selected="@(model.form.id == item.id)">@item.name</option>
                 }
               }
-              else
+            }
+            else
+            {
+              foreach (var item in forms)
               {
-                foreach (var item in forms)
+                if (item.is_active)
                 {
-                  if (item.is_active)
-                  {
-                    <option value="@item.id">@item.name</option>
-                  }
+                  <option value="@item.id">@item.name</option>
                 }
               }
-            </select>
-          </div>
-        </li>
+            }
+          </select>
+        </div>
+      </li>
 
-        <li class="column is-full is-flex is-align-items-center">
-          <div class="is-flex is-align-items-center has-text-weight-bold">
+      @if (model.form != null)
+      {
+        <li class="column is-full is-flex is-align-items-center mb-5">
+          <div class="is-flex is-align-items-center has-text-weight-semibold is-flex-wrap-wrap" style="gap: 10px;">
             @if (workDateShifts.Any())
             {
-              <span class="mr-1">Tổng công đăng ký: </span>
-              <span>@Math.Round(totalTime, 2)</span>
-              <span class="mx-2">•</span>
-              <span class="mr-1">Tổng số ngày nghỉ: </span>
-              <span>@(totalDateOff > 0 ? totalDateOff : 0)</span>
+              <div>
+                <span class="mx-2">•</span>
+                <span class="mr-1">Tổng công đăng ký: </span>
+                <span>@Math.Round(totalTime, 2)</span>
+              </div>
+
+              <div>
+                <span class="mx-2">•</span>
+                <span class="mr-1">Tổng ngày nghỉ thực tế: </span>
+                <span>@(totalDateOff > 0 ? totalDateOff : 0)</span>
+              </div>
+              @if (!Shared.IsEmpty(remainTimeString) && model.form != null && model.form.is_limit)
+              {
+                <div>
+                  <span class="mx-2">•</span>
+                  <span class="mr-1">Số lần sử dụng còn lại: </span>
+                  <span>@remainTimeString</span>
+                </div>
+              }
             }
           </div>
         </li>
@@ -90,11 +112,11 @@
             }
           }
 
-          <li class="column is-full">
-            <div class="columns is-variable is-1 mb-2">
+          <li class="column is-full mb-5">
+            <div class="columns is-variable is-1">
               <div class="column is-one-third">
                 <div class="field">
-                  <label class="label has-text-weight-bold">Ngày bắt đầu:</label>
+                  <label class="label has-text-weight-semibold">Ngày bắt đầu:</label>
                   <div class="field has-addons">
                     <div class="control">
                       <span class="button is-link">
@@ -121,7 +143,7 @@
 
               <div class="column is-one-third">
                 <div class="field">
-                  <label class="label has-text-weight-bold">Ngày kết thúc:</label>
+                  <label class="label has-text-weight-semibold">Ngày kết thúc:</label>
                   <div class="field has-addons is-flex is-align-content-center">
                     <div class="is-flex">
                       <div class="control">
@@ -147,14 +169,12 @@
                   </div>
                 </div>
               </div>
-              <div class="column is-one-third pt-5">
+              <div class="column is-one-third flex_column">
                 @if (item.end == workDateShifts.LastOrDefault().end && workDateShifts.Count > 1)
                 {
-                  <div class="icon-text is-align-items-center is-justify-content-center ml-2">
-                    <a class="icon has-text-danger is-clickable" @onclick="() => RemoveDateRange(item)">
-                      <i class="material-icons-outlined is-size-5">delete_outline</i>
-                    </a>
-                  </div>
+                  <a class="icon has-text-danger" @onclick="() => RemoveDateRange(item)" style="margin-top:auto;">
+                    <i class="material-icons-outlined is-size-5">delete_outline</i>
+                  </a>
                 }
               </div>
             </div>
@@ -168,26 +188,28 @@
           }
         }
 
-
-        <li class="column is-full has-text-weight-semibold">
-          <div class="has-text-centered">
-            <a class="icon-text has-text-link" @onclick="AddDateRange">
-              <span class="icon"><i class="material-icons-outlined is-size-6">add</i></span>
-              <span>Thêm thời gian áp dụng</span>
-            </a>
-          </div>
-        </li>
+        @if (!model.form.is_limit)
+        {
+          <!--<li class="column is-full has-text-weight-semibold">
+            <div class="has-text-centered">
+              <a class="icon-text has-text-link" @onclick="AddDateRange">
+                <span class="icon"><i class="material-icons-outlined is-size-6">add</i></span>
+                <span>Thêm thời gian áp dụng</span>
+              </a>
+            </div>
+          </li>-->
+        }
 
         @if (totalDateOff < 7)
         {
-          <li class="column is-full has-text-weight-semibold">
+          <li class="column is-full has-text-weight-semibold mb-2">
             Ca làm:
           </li>
 
           @if (shiftByDates.Values.Where(i => i != null).SelectMany(i => i).Any())
           {
-            <li class="column is-full scrolly" style="overflow-y: auto; height: 150px;">
-              <ul class="columns is-multiline is-variable" style="width: 100%;">
+            <li class="column is-full mb-5">
+              <ul class="columns is-multiline is-variable is-2" style="width: 100%;">
                 @foreach (var item in shiftByDates)
                 {
                   if (item.Value != null && item.Value.Any())
@@ -234,7 +256,7 @@
                   if (item.Value == null)
                   {
                     // TH: ngày nghỉ;
-                    <li class="column is-one-quarter is-flex is-align-items-center py-1">
+                    <li class="column is-one-third is-flex is-align-items-center py-1">
                       <div class="is-flex is-align-items-center">
                         <span class="is-fullwidth text_1_line">
                           @(new DateTime(item.Key).ToString("dd'/'MM'/'yyyy"))
@@ -242,7 +264,7 @@
                       </div>
                     </li>
 
-                    <li class="column is-three-quarters">
+                    <li class="column is-two-thirds">
                       <span class="has-text-danger">Ngày nghỉ</span>
                     </li>
 
@@ -262,7 +284,7 @@
             @foreach (var item in shiftByDates)
             {
               // TH: ngày nghỉ;
-              <li class="column is-one-quarter is-flex is-align-items-center py-1">
+              <li class="column is-one-third is-flex is-align-items-center py-1">
                 <div class="is-flex is-align-items-center">
                   <span class="is-fullwidth text_1_line">
                     @(new DateTime(item.Key).ToString("dd'/'MM'/'yyyy"))
@@ -270,7 +292,7 @@
                 </div>
               </li>
 
-              <li class="column is-three-quarters">
+              <li class="column is-two-thirds">
                 <span class="has-text-danger">Ngày nghỉ</span>
               </li>
 
@@ -289,125 +311,138 @@
             </li>
           }
         }
+      }
 
-        <li class="column is-full has-text-weight-semibold">
-          Người phê duyệt:
-        </li>
+      <li class="column is-full has-text-weight-semibold mb-2">
+        Người phê duyệt:
+      </li>
 
-        <li class="column is-full">
-          @{
-            var i = 1;
-          }
-          @foreach (var item in confirmUserList.OrderBy(i => i.pos).ToList())
-          {
-            <ul class="columns is-multiline is-variable">
-              <li class="column is-one-third is-flex is-align-items-center">
-                Người phê duyệt lần @i:
-              </li>
-
-              <li class="column is-one-third is-flex is-align-items-center">
-                <MemberConfirmSelected confirmUserList="confirmUserList" model="item"
-                                       sources="userList.Where(i => !confirmUserList.Select(i => i.user).Contains(i.id)).ToList()"
-                                       OnUpdate="StateHasChanged" />
-              </li>
-
-              <li class="column is-one-third is-flex is-align-items-center is-justify-content-space-between">
-                @{
-                  var member = userList.FirstOrDefault(i => i.id == item.user);
-                  if (member != null)
-                  {
-                    <div class="icon-text">
-                      <span class="image is-rounded is-24x24">
-                        <img src="@member.avatar" alt="AVT">
-                      </span>
-                      <span class="ml-2 text_1_line" style="max-width: 200px;">@member.FullName</span>
-                    </div>
-                  }
-
-                  @if (item.pos == confirmUserList.OrderBy(i => i.pos).ToList().LastOrDefault().pos && confirmUserList.Count > 1)
-                  {
-                    <div class="icon-text is-align-items-center is-justify-content-center ml-2 is-clickable" @onclick="() => RemoveUserConfirm(item)">
-                      <a class="icon has-text-danger">
-                        <i class="material-icons-outlined is-size-5">delete_outline</i>
-                      </a>
-                    </div>
-                  }
-                }
-              </li>
-            </ul>
-            i++;
-          }
-        </li>
-
-        <li class="column is-full has-text-weight-semibold">
-          <div class="has-text-centered">
-            <a class="icon-text has-text-link" @onclick="AddConfirmUser">
-              <span class="icon"><i class="material-icons-outlined is-size-6">add</i></span>
-              <span>Thêm người phê duyệt</span>
-            </a>
-          </div>
-        </li>
-
-        <li class="column is-full has-text-weight-semibold">
-          Nhập lý do
-        </li>
-        <li class="column is-full">
-          <textarea @bind="model.reason" class="textarea is_bg" rows="2" placeholder="Nhập lý do.." />
-        </li>
-
-        <li class="column is-full has-text-weight-semibold">
-          Đính kèm hình ảnh (Tối đa 3)
-        </li>
-
-        <li class="column is-full">
-          <div class="control has-icons-left">
-            <InputFile OnChange="Upload" class="input" accept="image/*" multiple />
-            <span class="icon is-left">
-              <i class="material-icons is-size-5">photo_camera</i>
-            </span>
-          </div>
-        </li>
-
-        <li class="column is-full">
+      <li class="column is-full mb-2">
+        @{
+          var i = 1;
+        }
+        @foreach (var item in confirmUserList.OrderBy(i => i.pos).ToList())
+        {
           <ul class="columns is-multiline is-variable">
-            @foreach (var image in model.images)
-            {
-              <li class="column is-one-third">
-                <div class="image is-4by3 is-radius">
-                  <img src="@image" alt="IMG">
-                  <a class="delete" @onclick="() => DeleteImage(image)"></a>
-                </div>
-              </li>
-            }
+            <li class="column is-one-third is-flex is-align-items-center">
+              Người phê duyệt lần @i:
+            </li>
+
+            <li class="column is-one-third is-flex is-align-items-center">
+              <MemberConfirmSelected confirmUserList="confirmUserList" model="item"
+                                     sources="userList.Where(i => !confirmUserList.Select(i => i.user).Contains(i.id)).ToList()"
+                                     OnUpdate="StateHasChanged" />
+            </li>
+
+            <li class="column is-one-third is-flex is-align-items-center is-justify-content-space-between">
+              @{
+                var member = userList.FirstOrDefault(i => i.id == item.user);
+                if (member != null)
+                {
+                  <div class="icon-text">
+                    <span class="image is-rounded is-24x24">
+                      <img src="@member.avatar" alt="AVT">
+                    </span>
+                    <span class="ml-2 text_1_line" style="max-width: 200px;">@member.name</span>
+                  </div>
+                }
+
+                @if (item.pos == confirmUserList.OrderBy(i => i.pos).ToList().LastOrDefault().pos && confirmUserList.Count > 1)
+                {
+                  <div class="icon-text is-align-items-center is-justify-content-center ml-2 is-clickable" @onclick="() => RemoveUserConfirm(item)">
+                    <a class="icon has-text-danger">
+                      <i class="material-icons-outlined is-size-5">delete_outline</i>
+                    </a>
+                  </div>
+                }
+              }
+            </li>
+          </ul>
+          i++;
+        }
+      </li>
+
+      <li class="column is-full has-text-weight-semibold mb-5">
+        <div class="has-text-centered">
+          <a class="icon-text has-text-link" @onclick="AddConfirmUser">
+            <span class="icon"><i class="material-icons-outlined is-size-6">add</i></span>
+            <span>Thêm người phê duyệt</span>
+          </a>
+        </div>
+      </li>
+
+      <li class="column is-full has-text-weight-semibold mb-2">
+        Nhập lý do
+      </li>
+      <li class="column is-full mb-5">
+        <textarea @bind="model.reason" class="textarea is_bg" rows="2" placeholder="Nhập lý do.." />
+      </li>
+
+      @if (ProductService.CheckStorage(Layout.Company))
+      {
+        <li class="column is-full mb-5">
+          <ul class="columns is-variable is-1">
+            <li class="column is-narrow has-text-grey" style="width: 100px;">File đính kèm:</li>
+            <li class="column is-narrow">
+              <FileUpload Path="form/attach" Multiple="true" Small="true" Cloud="true" OnUpload="x => model.files.AddRange(x)" />
+            </li>
+            <li class="column">
+              <FileViews Delete="true" Values="model.files" />
+            </li>
           </ul>
         </li>
+      }
 
-      </ul>
-    </section>
+      <li class="column is-full has-text-weight-semibold mb-2">
+        Đính kèm hình ảnh (Tối đa 3)
+      </li>
 
-    <section class="modal-card-foot is-right">
-      <a class="button" @onclick="Cancel">
-        <span class="icon">
-          <i class="material-icons-round is-size-6">close</i>
-        </span>
-        <span>Hủy</span>
-      </a>
+      <li class="column is-full mb-2">
+        <div class="control has-icons-left">
+          <InputFile OnChange="Upload" class="input" accept="image/*" multiple />
+          <span class="icon is-left">
+            <i class="material-icons is-size-5">photo_camera</i>
+          </span>
+        </div>
+      </li>
 
-      <a class="button is-link" @onclick="Update">
-        <span class="icon">
-          <i class="material-icons-round is-size-6">send</i>
-        </span>
-        <span>Gửi</span>
-      </a>
-    </section>
-  </section>
-</section>
+      <li class="column is-full">
+        <ul class="columns is-multiline is-variable">
+          @foreach (var image in model.images)
+          {
+            <li class="column is-one-third">
+              <div class="image is-4by3 is-radius">
+                <img src="@image" alt="IMG">
+                <a class="delete" @onclick="() => DeleteImage(image)"></a>
+              </div>
+            </li>
+          }
+        </ul>
+      </li>
 
+    </ul>
+  </Body>
+  <Footer>
+    <div class="field is-grouped is-grouped-right" style="gap:10px;">
+      <Button Content="Hủy"
+              IconLeft="close"
+              Color="@ComponentModel.ColorType.Info"
+              Onclick="Cancel" />
+
+      <Button Content="Gửi"
+              IconLeft="send"
+              Color="@ComponentModel.ColorType.Link"
+              Onclick="Update" />
+    </div>
+  </Footer>
+</Slider>
 @code {
   [Parameter]
   public EventCallback<bool> OnUpdate { get; set; }
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<HrmFormModel> dataList { get; set; } = new();
 
   private HrmFormModel model = new();
   private HrmRulesModel rulesData;
@@ -416,103 +451,129 @@
   private List<HrmTimeListModel.Shift> shiftList = new();
   private Dictionary<long, List<string>> shiftByDates = new();
   private List<string> userIdList = new();
-  private List<UserModel> userList = new();
+  private List<MemberModel> userList = new();
   private List<HrmFormModel.FormConfirm> confirmUserList = new();
   private List<HrmFormModel.WorkDateShift> workDateShifts = new();
-  private long totalDateOff;
+  private int totalDateOff;
   private double totalTime;
+  private string remainTimeString = string.Empty;
+  private int remainTime;
 
   protected override async Task OnInitializedAsync()
   {
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
     rulesData = await DbHrmRules.Get(Layout.Company.id, Layout.Company.id);
     dataShiftList = await DbHrmWorkShift.GetListWithoutDelete(Layout.Company.id);
-    userList = Layout.UserList.Where(i => i.id != Layout.User.id).ToList();
+    userList = shareStorage.MemberList.Where(i => i.id != Layout.User.id).ToList();
     if (rulesData != null)
       forms = rulesData.forms;
 
     confirmUserList.Add(new()
-    {
-      pos = 1
-    });
+      {
+        pos = 1
+      });
 
     workDateShifts.Add(new()
-    {
-      start = DateTime.Today.Ticks,
-      end = DateTime.Today.AddDays(1).Ticks
-    });
-
+      {
+        start = DateTime.Today.Ticks,
+        end = DateTime.Today.Ticks + new TimeSpan(23, 55, 00).Ticks
+      });
     await GetData();
   }
 
   public async Task GetData()
   {
-    totalTime = 0;
-    totalDateOff = 0;
-
-    shiftList = new();
-
-    foreach (var item in workDateShifts)
+    try
     {
-      var shiftListTemp = await DbHrmTimeList.GetByRangeDate(Layout.Company.id, Layout.User.id, new DateTime(item.start).Date.Ticks, new DateTime(item.end).Date.Ticks);
-      if (shiftListTemp.Any())
-        shiftList.AddRange(shiftListTemp);
-      totalDateOff += (item.end - item.start);
-    }
-    totalDateOff = TimeSpan.FromTicks(totalDateOff).Days;
+      totalTime = 0;
+      totalDateOff = 0;
 
-    var dateOff = shiftList.Where(i => !string.IsNullOrEmpty(i.dayoff_id)).ToList().Count;
-    totalDateOff = totalDateOff - dateOff;
+      shiftList = new();
 
-    shiftByDates = new();
-
-    shiftList = shiftList.Where(i => true).OrderBy(i => i.day).ToList();
-
-    if (shiftList.Any())
-    {
-      foreach (var item in shiftList)
+      foreach (var item in workDateShifts)
       {
-        if (!string.IsNullOrEmpty(item.dayoff_id))
+        var shiftListTemp = await DbHrmTimeList.GetByRangeDate(Layout.Company.id, Layout.User.id, new DateTime(item.start).Date.Ticks, item.end);
+        if (shiftListTemp.Any())
+          shiftList.AddRange(shiftListTemp);
+        totalDateOff += (new DateTime(item.end).Date - new DateTime(item.start).Date).Days + 1;
+      }
+
+      var dateOff = shiftList.Where(i => !string.IsNullOrEmpty(i.dayoff_id)).ToList().Count;
+      totalDateOff = totalDateOff - dateOff;
+
+      shiftByDates = new();
+
+      shiftList = shiftList.Where(i => true).OrderBy(i => i.day).ToList();
+
+      if (shiftList.Any())
+      {
+        foreach (var item in shiftList)
         {
-          //TH: ngày nghỉ
-          shiftByDates.Add(item.day, null);
-        }
-        else
-        {
-          var shiftsId = item.shifts_id.Where(i => true).ToList();
-          foreach (var shiftId in item.shifts_id)
+          if (!string.IsNullOrEmpty(item.dayoff_id))
           {
-            var workShift = dataShiftList.Find(i => i.id == shiftId);
-            if (workShift != null)
-            {
-              var timeInString = new DateTime(item.day).ToString("dd'/'MM'/'yyyy") + " " + workShift.checkin;
-              var timeInCheck = DateTime.ParseExact(timeInString, "dd'/'MM'/'yyyy HH:mm", CultureInfo.InvariantCulture).Ticks;
-              if (!workDateShifts.Any(i => i.start <= timeInCheck && timeInCheck <= i.end))
-                shiftsId.RemoveAll(i => i == workShift.id);
-            }
+            //TH: ngày nghỉ
+            shiftByDates.TryAdd(item.day, null);
           }
-          shiftByDates.Add(item.day, shiftsId);
+          else
+          {
+            var shiftsId = item.shifts_id.Where(i => true).ToList();
+            foreach (var shiftId in item.shifts_id)
+            {
+              var workShift = dataShiftList.Find(i => i.id == shiftId);
+              if (workShift != null)
+              {
+                var timeInString = new DateTime(item.day).ToString("dd'/'MM'/'yyyy") + " " + workShift.checkin;
+                var timeInCheck = DateTime.ParseExact(timeInString, "dd'/'MM'/'yyyy HH:mm", CultureInfo.InvariantCulture).Ticks;
+                var timeOutString = new DateTime(item.day).ToString("dd'/'MM'/'yyyy") + " " + workShift.checkout;
+                var timeOutCheck = DateTime.ParseExact(timeOutString, "dd'/'MM'/'yyyy HH:mm", CultureInfo.InvariantCulture).Ticks;
+                if (!workDateShifts.Any(i => (i.start <= timeInCheck && timeInCheck <= i.end) || (timeInCheck <= i.start && i.start <= timeOutCheck)))
+                  shiftsId.RemoveAll(i => i == workShift.id);
+              }
+            }
+            if (shiftByDates.ContainsKey(item.day))
+            {
+              shiftByDates[item.day].AddRange(shiftsId);
+              shiftByDates[item.day] = shiftByDates[item.day].Distinct().ToList();
+            }
+            else
+              shiftByDates.TryAdd(item.day, shiftsId);
+          }
         }
       }
-    }
 
-    foreach (var item in shiftByDates.Values.Where(i => i != null).ToList())
-    {
-      foreach (var shiftId in item)
+      foreach (var item in shiftByDates.Values.Where(i => i != null).ToList())
       {
-        if (dataShiftList.Find(i => i.id == shiftId) != null)
+        foreach (var shiftId in item)
         {
-          totalTime += dataShiftList.Find(i => i.id == shiftId).value;
+          if (dataShiftList.Find(i => i.id == shiftId) != null)
+          {
+            totalTime += dataShiftList.Find(i => i.id == shiftId).value;
+          }
         }
       }
-    }
 
-    shiftByDates = shiftByDates.OrderBy(i => i.Key).ToDictionary(i => i.Key, i => i.Value);
+      shiftByDates = shiftByDates.OrderBy(i => i.Key).ToDictionary(i => i.Key, i => i.Value);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetData()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 
   /// <summary>Thay đổi đơn từ</summary>
-  private void ChangeForm(ChangeEventArgs e)
+  private async Task ChangeForm(ChangeEventArgs e)
   {
     model.form = forms.Find(i => i.id == e.Value.ToString());
+    workDateShifts.Clear();
+    workDateShifts.Add(new()
+      {
+        start = DateTime.Today.Ticks,
+        end = DateTime.Today.Ticks + new TimeSpan(23, 55, 00).Ticks
+      });
+    await GetData();
+    CheckRemainTime();
   }
 
   /// <summary>Thay đổi date range</summary>
@@ -522,22 +583,36 @@
     var index = workDateShifts.FindIndex(i => i.start == item.start);
     if (index - 1 > -1)
     {
-      if (workDateShifts[index - 1].end > range.Start.Ticks)
+      if (workDateShifts[index - 1].end >= range.Start.Ticks)
       {
         await JSRuntime.InvokeVoidAsync("tagline", false, "Chọn khoảng thời gian không hợp lệ!");
         return;
       }
     }
-
-    workDateShifts.Remove(item);
-    workDateShifts.Add(new()
+    if (!model.form.is_limit)
     {
-      start = range.Start.Ticks,
-      end = (item.end <= range.Start.Ticks ? range.Start.AddDays(1).Ticks : item.end)
-    });
+      workDateShifts.Remove(item);
+      workDateShifts.Add(new()
+        {
+          start = range.Start.Ticks,
+          end = (range.Start.Ticks == range.Start.Date.Ticks ? range.Start.Ticks + new TimeSpan(23, 55, 00).Ticks : range.Start.Ticks + new TimeSpan(1, 0, 0).Ticks)
+        });
+    }
+    else
+    {
+      workDateShifts.Clear();
+      workDateShifts.Add(new()
+        {
+          start = range.Start.Ticks,
+          end = (range.Start.Ticks == range.Start.Date.Ticks ? range.Start.Ticks + new TimeSpan(23, 55, 00).Ticks : range.Start.Ticks + new TimeSpan(1, 0, 0).Ticks)
+        });
+    }
 
     workDateShifts = workDateShifts.OrderBy(i => i.start).ToList();
+
     await GetData();
+
+    CheckRemainTime();
   }
 
   private async Task UpdateDateEnd(DateRange range, HrmFormModel.WorkDateShift item)
@@ -557,14 +632,7 @@
       await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc phải lớn hơn ngày bắt đầu!");
     else
     {
-      workDateShifts.Remove(item);
-      workDateShifts.Add(new()
-      {
-        start = item.start,
-        end = range.Start.Ticks
-      });
-      workDateShifts = workDateShifts.OrderBy(i => i.start).ToList();
-      await GetData();
+      await CheckAddDateForm(range, item);
     }
   }
 
@@ -574,20 +642,19 @@
     var lastDateItem = workDateShifts.LastOrDefault();
     if (workDateShifts.Any())
     {
-
       workDateShifts.Add(new()
-      {
-        start = new DateTime(lastDateItem.end).AddDays(1).Ticks,
-        end = new DateTime(lastDateItem.end).AddDays(2).Ticks
-      });
+        {
+          start = new DateTime(lastDateItem.end).Date.AddDays(1).Ticks,
+          end = new DateTime(lastDateItem.end).Date.AddDays(1).Ticks + new TimeSpan(23, 55, 00).Ticks
+        });
     }
     else
     {
       workDateShifts.Add(new()
-      {
-        start = DateTime.Today.Ticks,
-        end = DateTime.Today.AddDays(1).Ticks
-      });
+        {
+          start = DateTime.Today.Ticks,
+          end = DateTime.Today.AddDays(1).Ticks
+        });
     }
 
     workDateShifts = workDateShifts.OrderBy(i => i.start).ToList();
@@ -610,25 +677,39 @@
 
   private async Task Update()
   {
-    if (model.form == null)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn loại đơn từ!");
-    else if (confirmUserList.Any(i => string.IsNullOrEmpty(i.user)))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn người phê duyệt!");
-    else if (Shared.IsEmpty(model.reason))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập lý do!");
-    else
+    try
     {
-      workDateShifts = workDateShifts.OrderBy(i => i.start).ToList();
-      model.work_date_shifts = workDateShifts;
+      if (model.form == null)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn loại đơn từ!");
+      else if (confirmUserList.Any(i => string.IsNullOrEmpty(i.user)))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn người phê duyệt!");
+      else if (Shared.IsEmpty(model.reason))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập lý do!");
+      else if (remainTime - workDateShifts.Count < 0 && model.form.is_limit)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đã hết số lần sử dụng đơn từ này!");
+      else
+      {
+        workDateShifts = workDateShifts.OrderBy(i => i.start).ToList();
+        model.work_date_shifts = workDateShifts;
 
-      //model.date_shift = workList;
-      model.user = Layout.User.id;
-      model.confirm_users = confirmUserList;
+        //model.date_shift = workList;
+        model.user = Layout.User.id;
+        model.confirm_users = confirmUserList;
 
-      await DbHrmForm.Create(Layout.Company.id, model);
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã đăng ký đơn từ thành công!");
-      await SendNotify(813);
-      await OnUpdate.InvokeAsync(false);
+        model.users_comment.Add(model.confirm_users.Find(i => i.pos == model.confirm_users.Min(i => i.pos)).user);
+
+        await DbHrmForm.Create(Layout.Company.id, model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã đăng ký đơn từ thành công!");
+        await OnUpdate.InvokeAsync(false);
+        SendMail(model);
+        await SendNotify(813);
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
     }
   }
 
@@ -661,7 +742,7 @@
     }
     catch (System.Exception ex)
     {
-      await JSRuntime.InvokeVoidAsync("tagline", false, $"Lỗi khi upload: {ex.Message}");
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Lỗi khi upload: {ex.ToString()}");
     }
   }
 
@@ -685,23 +766,175 @@
     if (confirmUserList.Any())
     {
       confirmUserList.Add(new()
-      {
-        pos = confirmUserList.Max(i => i.pos) + 1
-      });
+        {
+          pos = confirmUserList.Max(i => i.pos) + 1
+        });
     }
     else
     {
       confirmUserList.Add(new()
-      {
-        pos = 1
-      });
+        {
+          pos = 1
+        });
     }
   }
 
   private async Task SendNotify(int notifyType)
   {
-    // Gủi thông báo chuông
     var item = model.confirm_users.Find(i => i.pos == model.confirm_users.Min(i => i.pos));
+    // Gủi thông báo chuông
     await DbNotify.Create(Layout.Company.id, notifyType, model.form.name, item.user, model.user);
+  }
+
+  private async Task SendMail(HrmFormModel form)
+  {
+    var itemForm = model.confirm_users.Find(i => i.pos == model.confirm_users.Min(i => i.pos));
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    var creator = shareStorage.MemberList.Find(i => i.id == model.user);
+    var receiverUser = shareStorage.MemberList.Find(i => i.id == itemForm.user);
+
+    if (creator != null && receiverUser != null)
+    {
+      string message = string.Empty;
+      // Gửi mail
+      var range = form.work_date_shifts.FirstOrDefault();
+      var start = new DateTime(range.start);
+      var end = new DateTime(range.end);
+
+      var date = "";
+      if (start.Date.Ticks == end.Date.Ticks)
+        date = $"Ngày {start.ToString("dd'/'MM'/'yyyy")} (từ {start.ToString("HH'h'mm")} đến {end.ToString("HH'h'mm")})";
+      else
+        date = $"Ngày {start.ToString("dd'/'MM'/'yyyy '-' HH'h'mm")} đến Ngày {end.ToString("dd'/'MM'/'yyyy '-' HH'h'mm")}";
+
+      var title = $"{creator.name} đã đăng ký đơn từ {form.form.name} {date}";
+
+      new Task(() =>
+      {
+        EmailService.FormMail(Layout.Company, receiverUser.email, title, form, date, shareStorage.MemberList, $"{navigation.BaseUri}hrm/form/2", out message);
+      }).Start();
+    }
+  }
+
+  private void CheckRemainTime()
+  {
+    var formUsed = new List<HrmFormModel>();
+    // tính số lượng còn lại của đơn từ
+    if (model.form != null && model.form.is_limit && model.form.units != 0)
+    {
+      // tính tổng đơn từ đã sử dụng
+      foreach (var item in workDateShifts)
+      {
+        var startCheck = new DateTime(item.start);
+        var endCheck = new DateTime(item.end);
+
+        if (model.form.units == 1)
+        {
+          startCheck = startCheck.Date;
+          endCheck = new DateTime(endCheck.Date.Ticks + new TimeSpan(23, 59, 59).Ticks);
+        }
+        else
+        {
+          int type = 0;
+          if (model.form.units == 2)
+            type = 1;
+          else if (model.form.units == 3)
+            type = 2;
+          else if (model.form.units == 4)
+            type = 3;
+          else if (model.form.units == 5)
+            type = 8;
+
+          Shared.GetTimeSpanForm(type, startCheck, out DateTime start, out DateTime end);
+          startCheck = start;
+          endCheck = new DateTime(end.Ticks + new TimeSpan(23, 59, 59).Ticks);
+        }
+
+        formUsed = dataList.Where(i => i.user == Layout.User.id && i.confirm_users.All(x => x.status != 3) && i.form.id == model.form.id && i.work_date_shifts.Count == 1
+                                       && i.work_date_shifts.Any(x => (x.start >= startCheck.Ticks && x.start <= endCheck.Ticks) ||
+                                                                      (x.start <= startCheck.Ticks && x.end >= startCheck.Ticks))).ToList();
+      }
+
+      remainTime = model.form.frequency;
+      foreach (var countItem in formUsed)
+      {
+        remainTime -= countItem.work_date_shifts.Count;
+      }
+
+      if (model.form.units == 1)
+        remainTimeString = (remainTime >= 0 ? remainTime : 0) + " lần/ngày";
+      else if (model.form.units == 2)
+        remainTimeString = (remainTime >= 0 ? remainTime : 0) + " lần/tuần";
+      else if (model.form.units == 3)
+        remainTimeString = (remainTime >= 0 ? remainTime : 0) + " lần/tháng";
+      else if (model.form.units == 4)
+        remainTimeString = (remainTime >= 0 ? remainTime : 0) + " lần/quý";
+      else if (model.form.units == 5)
+        remainTimeString = (remainTime >= 0 ? remainTime : 0) + " lần/năm";
+    }
+  }
+
+  private async Task CheckAddDateForm(DateRange range, HrmFormModel.WorkDateShift item)
+  {
+    #region check số lượng đơn từ
+    if (model.form.units == 1)
+    {
+      if (new DateTime(item.start).Date.Ticks != range.Start.Date.Ticks)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Đơn từ này chỉ cho phép đăng ký trong ngày!");
+        return;
+      }
+    }
+    else if (model.form.units == 2)
+    {
+      Shared.GetTimeSpanForm(1, new DateTime(item.start).Date, out DateTime start1, out DateTime end1);
+      Shared.GetTimeSpanForm(1, range.Start.Date, out DateTime start2, out DateTime end2);
+      if (start1.Ticks != start2.Ticks || end1.Ticks != end2.Ticks)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Đơn từ này chỉ cho phép đăng ký trong tuần!");
+        return;
+      }
+    }
+    else if (model.form.units == 3)
+    {
+      Shared.GetTimeSpanForm(2, new DateTime(item.start).Date, out DateTime start1, out DateTime end1);
+      Shared.GetTimeSpanForm(2, range.Start.Date, out DateTime start2, out DateTime end2);
+      if (start1.Ticks != start2.Ticks || end1.Ticks != end2.Ticks)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Đơn từ này chỉ cho phép đăng ký trong tháng!");
+        return;
+      }
+    }
+    else if (model.form.units == 4)
+    {
+      Shared.GetTimeSpanForm(3, new DateTime(item.start).Date, out DateTime start1, out DateTime end1);
+      Shared.GetTimeSpanForm(3, range.Start.Date, out DateTime start2, out DateTime end2);
+      if (start1.Ticks != start2.Ticks || end1.Ticks != end2.Ticks)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Đơn từ này chỉ cho phép đăng ký trong quý!");
+        return;
+      }
+    }
+    else if (model.form.units == 5)
+    {
+      Shared.GetTimeSpanForm(8, new DateTime(item.start).Date, out DateTime start1, out DateTime end1);
+      Shared.GetTimeSpanForm(8, range.Start.Date, out DateTime start2, out DateTime end2);
+      if (start1.Ticks != start2.Ticks || end1.Ticks != end2.Ticks)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Đơn từ này chỉ cho phép đăng ký trong năm!");
+        return;
+      }
+    }
+    #endregion
+
+    workDateShifts.Remove(item);
+    workDateShifts.Add(new()
+      {
+        start = item.start,
+        end = range.Start.Ticks
+      });
+    workDateShifts = workDateShifts.OrderBy(i => i.start).ToList();
+    await GetData();
+    CheckRemainTime();
   }
 }

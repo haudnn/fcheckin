@@ -1,0 +1,85 @@
+﻿@inject IJSRuntime JSRuntime
+
+
+<div class="container-box">
+  <div>
+    <div class="field is-grouped">
+      <div style="min-width: 100px;" class="control is-flex is-align-items-center">
+        <span class="font_14">Lặp lại mỗi: 1</span>
+      </div>
+      <div class="control is-flex is-align-items-center">
+        <div class="select is-fullwidth">
+          <select @bind="currentTodo.cycle">
+            @foreach (var cycle in DbTodolist.Cycles())
+            {
+              if (cycle.id == currentTodo.cycle)
+              {
+                <option value="@cycle.id" selected>@cycle.name</option>
+              }
+              else
+              {
+                <option value="@cycle.id">@cycle.name</option>
+              }
+            }
+          </select>
+        </div>
+      </div>
+    </div>
+    @if (currentTodo.cycle == 2)
+    {
+      <div class="field">
+        <label class="label">Lặp lại vào</label>
+        <div class="days-wrap">
+          @foreach (var week in DbTodolist.Weeks())
+          {
+            <div class="day-tag @(currentTodo.weeks.Contains(week.id) ? "active" : "default")" @onclick='() => ChangedWeekApply(week.id)'>@week.name</div>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="field mt-3 is-grouped is-align-items-center">
+      <label style="min-width: 100px;" class="label mr-3 mb-0">Kết thúc vào:</label>
+      <div class="control">
+        @{
+          long startFormat = currentTodo.dateEnd_cycle > 0 ? currentTodo.dateEnd_cycle : currentTodo.date;
+          <_InputDate Start="startFormat"
+                      offEdit="true"
+                      Format="dd/MM/yyyy"
+                      ShowCalendar="true"
+                      StartChanged="DateTodoChange" />
+        }
+      </div>
+    </div>
+    @if (currentTodo.cycle == 3)
+    {
+      var getDay = new DateTime(currentTodo.date).Day;
+      var getWeekDay = Shared.ConvertWeekdays(new DateTime(currentTodo.date), true);
+      <div class="field">
+        <span class="is-italic">(*) Hàng tháng vào ngày @getDay</span>
+      </div>
+    }
+
+  </div>
+</div>
+
+
+@code {
+  [Parameter]
+  public TodolistModel.Todo currentTodo { get; set; }
+
+
+  private void DateTodoChange(long date)
+  {
+    currentTodo.dateEnd_cycle = date;
+  }
+
+  private void ChangedWeekApply(int weekDay)
+  {
+    if (currentTodo.weeks.Contains(weekDay))
+      currentTodo.weeks.Remove(weekDay);
+    else
+      currentTodo.weeks.Add(weekDay);
+  }
+
+}

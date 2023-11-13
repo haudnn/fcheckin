@@ -1,6 +1,6 @@
-@page "/config/gift/category"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>Danh mục cửa hàng</PageTitle>
 
@@ -10,80 +10,66 @@
 }
 else
 {
-  <section class="columns is-gapless has_menu_left">
-    <div class="column is-narrow">
-      <div class="card p-3 menu_left">
-        <a href="/config/gift">
-          Cửa hàng
-        </a>
-        <a href="/config/gift/exchange">
-          Đơn hàng
-        </a>
-        <a class="is-active" href="/config/gift/category">
-          Danh mục
-        </a>
-        <a  href="/config/gift/banner">
-          Ưu đãi
-        </a>
-      </div>
-    </div>
-    <div class="column">
-      <div class="card p-5">
-        <ul class="columns is-vcentered">
-          <li class="column">
-            <h1 class="title is-5 has-text-info">
-              DANH MỤC CỬA HÀNG
-            </h1>
+  <ul class="columns is-vcentered is-variable is-2 mb-2">
+    <li class="column">
+      <h1 class="title is-5 has-text-info">
+        DANH MỤC CỬA HÀNG
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <a class="button is-link" @onclick="() => EditItem(null)">
+        <span class="icon">
+          <span class="material-icons-outlined is-size-6">add</span>
+        </span>
+        <span>Thêm mới</span>
+      </a>
+    </li>
+  </ul>
+  <div class="scrolly inner_section flex_column" style="flex:1">
+    <ul class="columns is-vcentered is-variable is-1 has-text-grey is-table">
+    <li class="column is-narrow" style="width: 6%;"></li>
+    <li class="column is-narrow" style="width: 10%;">Hình ảnh</li>
+    <li class="column" style="width:76%;">Tên danh mục</li>
+    <li class="column is-narrow has-text-centered" style="width: 8%;">Xử lý</li>
+  </ul>
+    <div class="scrolly"  style="flex:1">
+      <Dropzone 
+        Class="drop_gift_list"
+        Items="company.gift_category" 
+        TItem="StaticModel" 
+        InstantReplace="true"
+        OnItemDrop="x => OnItemDragdrop(x)"
+        WrapperClass="drop_gift_item">
+        <ul class="columns is-vcentered is-variable is-1 has-text-grey is-table">
+          <li class="column is-narrow" style="width: 6%;">
+            <span class="icon has-text-grey">
+              <i class="material-icons-outlined is-size-5">swap_vert</i>
+            </span>
           </li>
-          <li class="column is-narrow">
-            <a class="button is-link" @onclick="() => EditItem(null)">
-              <span class="icon">
-                <span class="material-icons-outlined is-size-6">add</span>
-              </span>
-              <span>Thêm mới</span>
+          <li class="column is-narrow" style="width: 10%;">
+            <a class="image is-48x48" href="@context.icon" target="_blank">
+              <img src="@context.icon" alt="IMG" style="object-fit: contain;">
+            </a>
+          </li>
+          <li class="column" style="width:76%;">
+            <a class="has-text-weight-semibold" @onclick="() => EditItem(context)">@context.name</a>
+          </li>
+          <li class="column is-narrow has-text-centered" style="width: 8%;">
+            <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(context)">
+              <i class="material-icons-outlined is-size-5">
+                edit
+              </i>
+            </a>
+            <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(context)">
+              <i class="material-icons-outlined is-size-5">
+                delete
+              </i>
             </a>
           </li>
         </ul>
-
-        <ul class="columns is-vcentered is-variable is-1 has-text-grey is-table">
-          <li class="column is-narrow" style="width: 6%;"></li>
-          <li class="column is-narrow" style="width: 10%;">Hình ảnh</li>
-          <li class="column" style="width:76%;">Tên danh mục</li>
-          <li class="column is-narrow has-text-centered" style="width: 8%;">Xử lý</li>
-        </ul>
-        <Dropzone Items="company.gift_category" TItem="StaticModel" InstantReplace="true"
-          OnItemDrop="x => OnItemDragdrop(x)">
-          <ul class="columns is-vcentered is-variable is-1 has-text-grey is-table">
-            <li class="column is-narrow" style="width: 6%;">
-              <span class="icon has-text-grey">
-                <i class="material-icons-outlined is-size-5">swap_vert</i>
-              </span>
-            </li>
-            <li class="column is-narrow" style="width: 10%;">
-              <a class="image is-48x48" href="@context.icon" target="_blank">
-                <img src="@context.icon" alt="IMG" style="object-fit: contain;">
-              </a>
-            </li>
-            <li class="column" style="width:76%;">
-              <a class="has-text-weight-semibold" @onclick="() => EditItem(context)">@context.name</a>
-            </li>
-            <li class="column is-narrow has-text-centered" style="width: 8%;">
-              <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(context)">
-                <i class="material-icons-outlined is-size-5">
-                  edit
-                </i>
-              </a>
-              <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(context)">
-                <i class="material-icons-outlined is-size-5">
-                  delete
-                </i>
-              </a>
-            </li>
-          </ul>
-        </Dropzone>
-      </div>
+      </Dropzone>
     </div>
-  </section>
+  </div>
 }
 
 @if (model != null)
@@ -115,7 +101,7 @@ else
             <div class="control is-expanded">
               <input @bind="model.icon" class="input" type="text" placeholder="Nhập link hình..." />
             </div>
-            <FileUpload Accept="image/*" Size="400" OnUpload="x => model.icon = x[0]" />
+            <FileUpload Path="gift/category" Cloud Accept="image/*" Size="400" OnUpload="x => model.icon = x[0]" />
           </div>
         </div>
         <div class="field mt-5">
@@ -150,23 +136,36 @@ else
   /// <summary>
   ///   Xóa danh mục
   /// </summary>
-  private async Task DeleteItem(StaticModel item)
+  private async Task<bool> DeleteItem(StaticModel item)
   {
-    var products = await DbGiftProduct.GetListOfCategory(Layout.Company.id, item.id);
-    if(products.Count > 0)
+    bool _success = true;
+    try
     {
-      await JSRuntime.InvokeVoidAsync("tagline", false, 
-        $"Danh mục {item.name} đang có {products.Count} sản phẩm, thực hiện thay đổi danh mục của sản phẩm trước khi xoá danh mục này! ");
+      var products = await DbGiftProduct.GetListOfCategory(Layout.Company.id, item.id);
+      if (products.Count > 0)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false,
+          $"Danh mục {item.name} đang có {products.Count} sản phẩm, thực hiện thay đổi danh mục của sản phẩm trước khi xoá danh mục này! ");
+      }
+      else
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+          return false;
+        company.gift_category.Remove(item);
+        await DbMainCompany.Update(company);
+        await globalService.Update(company.id);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa danh mục sản phẩm.");
+        Files.DeleteFile(item.icon);
+      }
     }
-    else
+    catch (Exception ex)
     {
-      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
-        return;
-      company.gift_category.Remove(item);
-      await DbMainCompany.Update(company);
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa danh mục sản phẩm.");
-      Files.DeleteFile(item.icon);
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
     }
+    return _success;
   }
 
   /// <summary>
@@ -189,32 +188,45 @@ else
   /// Update danh mục
   /// </summary>
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (Shared.IsEmpty(model.name))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa nhập tên danh mục!");
-    else if(Shared.IsEmpty(model.icon))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa chọn hình ảnh danh mục!");
-    else
+    bool _success = true;
+    try
     {
-      if (model.id == 0)
-      {
-        model.id = RandomId();
-        company.gift_category.Add(model);
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã tạo danh mục sản phẩm mới.");
-      }
+      if (Shared.IsEmpty(model.name))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa nhập tên danh mục!");
+      else if (Shared.IsEmpty(model.icon))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa chọn hình ảnh danh mục!");
       else
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin danh mục.");
-      company.gift_category = company.gift_category.OrderBy(x => x.color).ToList();
-      await DbMainCompany.Update(company);
-      model = null;
+      {
+        if (model.id == 0)
+        {
+          model.id = RandomId();
+          company.gift_category.Add(model);
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đã tạo danh mục sản phẩm mới.");
+        }
+        else
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin danh mục.");
+        company.gift_category = company.gift_category.OrderBy(x => x.color).ToList();
+        await DbMainCompany.Update(company);
+        await globalService.Update(company.id);
+        model = null;
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private int RandomId()
   {
     var id = Shared.RandomInt(1, int.MaxValue);
-    if(company.gift_category.Where(x => x.id == id).Count() > 0)
+    if (company.gift_category.Where(x => x.id == id).Count() > 0)
       return RandomId();
     else
       return id;
@@ -225,14 +237,27 @@ else
   /// Sắp xếp danh mục
   /// </summary>
 
-  private async Task OnItemDragdrop(StaticModel item)
+  private async Task<bool> OnItemDragdrop(StaticModel item)
   {
-    for (int pos = 0; pos < company.gift_category.Count; pos++)
+    bool _success = true;
+    try
     {
-      var category = company.gift_category[pos];
-      category.color = string.Format("{0:0,0}", pos);
+      for (int pos = 0; pos < company.gift_category.Count; pos++)
+      {
+        var category = company.gift_category[pos];
+        category.color = string.Format("{0:0,0}", pos);
+      }
+      company.gift_category = company.gift_category.OrderBy(x => x.color).ToList();
+      await DbMainCompany.Update(company);
+      await globalService.Update(company.id);
     }
-    company.gift_category = company.gift_category.OrderBy(x => x.color).ToList();
-    await DbMainCompany.Update(company);
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnItemDragdrop()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

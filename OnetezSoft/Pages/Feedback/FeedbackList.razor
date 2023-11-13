@@ -4,195 +4,177 @@
 @inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 <PageTitle>@_title</PageTitle>
-
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<section class="p-4 @(_loaded ? "" : "is-loading")">
-  <ul class="columns is-multiline">
-    <li class="column is-full">
-      <div class="card p-5 p-4-mobile">
-        <ul class="columns is-vcentered is-multiline is-variable is-2">
-          <li class="column is-three-quarters">
-            <h1 class="title is-5 has-text-info">
-              GÓP Ý HỆ THỐNG
-            </h1>
-          </li>
-          <li class="column is-one-quarter has-text-right">
-            @if (isAdd)
-            {
-              <a class="button is-info" @onclick="() => isAdd = false">
-                <span class="icon">
-                  <i class="material-icons-outlined is-size-6">cancel</i>
-                </span>
-                <span>Hủy tạo mới</span>
-              </a>
-            }
-            else
-            {
-              <a class="button is-link" @onclick="() => isAdd = true">
-                <span class="icon">
-                  <i class="material-icons-outlined">add</i>
-                </span>
-                <span>Tạo góp ý mới</span>
-              </a>
-            }
-          </li>
-          <li class="column is-narrow">
-            <div class="field has-addons">
-              <div class="control">
-                <span class="button is-link">
-                  <span class="icon">
-                    <i class="material-icons-outlined">calendar_today</i>
-                  </span>
-                </span>
-              </div>
-              <div class="control" style="width: 190px;">
-                <div class="input">
-                  <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE"
-                                   OnRangeSelect="ChangeDate" />
-                </div>
-              </div>
-            </div>
-          </li>
-          <li class="column is-narrow">
-            <div class="select is-fullwidth">
-              <select @onchange="ChangeStatus">
-                <option value="0">Tất cả trạng thái</option>
-                @foreach (var sl in DbMainFeedback.Status())
-                {
-                  <option value="@sl.id">@sl.name</option>
-                }
-              </select>
-            </div>
-          </li>
-        </ul>
-      </div>
-    </li>
-    @if (isAdd)
-    {
+<section class="main_content h-full p-5 @(_loaded ? "" : "is-loading")">
+  <div class="flex_column is-fullwidth">
+    <ul class="columns is-vcentered is-variable is-2 is-mobile is-multiline">
       <li class="column is-full">
-        <_Create OnCreate="CreateHandler" />
-      </li>
-    }
-    else
-    {
-      foreach (var feedback in dataList)
-      {
-        var status = DbMainFeedback.Status(feedback.status);
-        var comment = feedback.comments.LastOrDefault();
-
-        <li class="column is-full">
-          <div class="card p-4">
-            <ul class="columns is-multiline is-variable is-1 is-mobile">
-              <li class="column is-four-fifths">
-                <div class="box_color_left ml-2 pl-3 @status.color.Replace("has-text-", "is-")">
-                  <div class="has-text-weight-bold is-size-6 text_1_line pb-1">
-                    <a class="has-text-info" href="/feedback/@feedback.id">@feedback.name</a>
-                  </div>
-                  <div class="is-itatic is-size-7 has-text-grey">
-                    @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(feedback.date))
-                  </div>
-                </div>
-              </li>
-              <li class="column is-one-fifth has-text-right">
-                <span class="icon-text @status.color">
+        <div class="">
+          <ul class="columns is-vcentered is-multiline is-variable is-2">
+            <li class="column">
+              <h1 class="title is-5 has-text-info">
+                GÓP Ý HỆ THỐNG
+              </h1>
+            </li>
+            <li class="column is-narrow">
+              <_InputDate @bind-Start="filterDateS" IsRange
+              @bind-End="filterDateE" OnRangeSelect="ChangeDate" />
+            </li>
+            <li class="column is-narrow">
+              <div class="select is-fullwidth">
+                <select @onchange="ChangeStatus">
+                  <option value="0">Tất cả trạng thái</option>
+                  @foreach (var sl in DbMainFeedback.Status())
+                  {
+                    <option value="@sl.id">@sl.name</option>
+                  }
+                </select>
+              </div>
+            </li>
+            <li class="column is-narrow">
+              @if (isAdd)
+              {
+                <a class="button is-info" @onclick="() => isAdd = false">
                   <span class="icon">
-                    <i class="material-icons">fiber_manual_record</i>
+                    <i class="material-icons-outlined is-size-6">cancel</i>
                   </span>
-                  <span class="has-text-weight-bold">@status.name</span>
-                </span>
-                @if (feedback.new_admin)
-                {
-                  <span class="icon-text has-text-danger ml-3">
-                    <span class="icon">
-                      <i class="material-icons">fiber_manual_record</i>
-                    </span>
-                    <span class="has-text-weight-bold">Mới</span>
-                  </span>
-                }
-              </li>
-              <li class="column is-full has-text-grey">
-                <div class="has-text-grey text_2_line pl-2" onclick="toggleText(this)">
-                  @((MarkupString)Shared.TextToHtml(feedback.content))
-                </div>
-              </li>
-              @foreach (var file in feedback.files)
-              {
-                var fileName = Files.FileName(file);
-                <li class="column is-narrow">
-                  <a class="icon-text has-text-link" href="@file" target="_blank">
-                    <span class="icon">
-                      <i class="material-icons-outlined is-size-6">description</i>
-                    </span>
-                    <span class="font_14semibold">@fileName</span>
-                  </a>
-                </li>
+                  <span>Hủy tạo mới</span>
+                </a>
               }
-              @if (comment != null)
+              else
               {
-                var avatar = comment.user_admin ? Configuration["Icon"] + ".png" : comment.user_avatar;
-                var fullname = comment.user_admin ? Configuration["Title"] : comment.user_name;
+                <a class="button is-link" @onclick="() => isAdd = true">
+                  <span class="icon">
+                    <i class="material-icons-outlined">add</i>
+                  </span>
+                  <span>Tạo góp ý mới</span>
+                </a>
+              }
+            </li>
+          </ul>
+        </div>
+      </li>
+    </ul>
+    <div class="inner_section scrolly h-full mt-5" style="flex:1;">
+      <ul class="columns is-multiline is-mobile is-variable is-2">
+        @if (isAdd)
+        {
+          <li class="column is-full">
+            <_Create OnCreate="CreateHandler" />
+          </li>
+        }
+        else
+        {
+          foreach (var feedback in dataList)
+          {
+            var status = DbMainFeedback.Status(feedback.status);
+            var comment = feedback.comments.LastOrDefault();
 
-                <li class="column is-full pl-3">
-                  <hr class="mt-1 mb-2" />
-                  <article class="media pt-2">
-                    <div class="media-left">
-                      <div class="image is-32x32 is-rounded">
-                        <img src="@avatar" alt="IMG" />
+            <li class="column is-full">
+              <div class="inner_section">
+                <ul class="columns is-multiline is-variable is-1 is-mobile">
+                  <li class="column is-four-fifths">
+                    <div class="box_color_left ml-2 pl-3 @status.color.Replace("has-text-", "is-")">
+                      <div class="has-text-weight-bold is-size-6 text_1_line pb-1">
+                        <a class="has-text-info" href="/feedback/@feedback.id">@feedback.name</a>
+                      </div>
+                      <div class="is-itatic is-size-7 has-text-grey">
+                        @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(feedback.date))
                       </div>
                     </div>
-                    <div class="media-content">
-                      <ul class="columns is-multiline is-variable is-1 is-mobile">
-                        <li class="column is-full pl-2">
-                          <div class="has-text-weight-bold has-text-info">
-                            @fullname - @comment.company_name
-                          </div>
-                          <div class="is-size-7 has-text-grey">
-                            @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(comment.date))
-                          </div>
-                          <div class="has-text-grey text_2_line" onclick="toggleText(this)">
-                            @((MarkupString)Shared.TextToHtml(comment.content))
-                          </div>
-                        </li>
-                        @foreach (var file in comment.files)
-                        {
-                          var fileName = Files.FileName(file);
-                          <li class="column is-narrow">
-                            <a class="icon-text has-text-link" href="@file" target="_blank">
-                              <span class="icon">
-                                <i class="material-icons-outlined">description</i>
-                              </span>
-                              <span class="font_13">@fileName</span>
-                            </a>
-                          </li>
-                        }
-                      </ul>
+                  </li>
+                  <li class="column is-one-fifth has-text-right">
+                    <span class="icon-text @status.color">
+                      <span class="icon">
+                        <i class="material-icons">fiber_manual_record</i>
+                      </span>
+                      <span class="has-text-weight-bold">@status.name</span>
+                    </span>
+                    @if (feedback.new_admin)
+                    {
+                      <span class="icon-text has-text-danger ml-3">
+                        <span class="icon">
+                          <i class="material-icons">fiber_manual_record</i>
+                        </span>
+                        <span class="has-text-weight-bold">Mới</span>
+                      </span>
+                    }
+                  </li>
+                  <li class="column is-full has-text-grey">
+                    <div class="has-text-grey text_2_line pl-2" onclick="toggleText(this)">
+                      @((MarkupString)Shared.TextToHtml(feedback.content))
                     </div>
-                  </article>
-                </li>
-              }
-            </ul>
-          </div>
-        </li>
-      }
-      if (dataList.Count == 0)
-      {
-        <li class="column is-full">
-          <div class="card p-5 has-text-grey">
-            Kết quả tìm kiếm trống
-          </div>
-        </li>
-      }
-    }
-  </ul>
+                  </li>
+                  @foreach (var file in feedback.files)
+                  {
+                    var fileName = Files.FileName(file);
+                    <li class="column is-narrow">
+                      <a class="icon-text has-text-link" href="@file" target="_blank">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-6">description</i>
+                        </span>
+                        <span class="font_14semibold">@fileName</span>
+                      </a>
+                    </li>
+                  }
+                  @if (comment != null)
+                  {
+                    var avatar = comment.user_admin ? Configuration["Icon"] + ".png" : comment.user_avatar;
+                    var fullname = comment.user_admin ? Configuration["Title"] : comment.user_name;
+
+                    <li class="column is-full pl-3">
+                      <hr class="mt-1 mb-2" />
+                      <article class="media pt-2">
+                        <div class="media-left">
+                          <div class="image is-32x32 is-rounded">
+                            <img src="@avatar" alt="IMG" />
+                          </div>
+                        </div>
+                        <div class="media-content">
+                          <ul class="columns is-multiline is-variable is-1 is-mobile">
+                            <li class="column is-full pl-2">
+                              <div class="has-text-weight-bold has-text-info">
+                                @fullname - @comment.company_name
+                              </div>
+                              <div class="is-size-7 has-text-grey">
+                                @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(comment.date))
+                              </div>
+                              <div class="has-text-grey text_2_line" onclick="toggleText(this)">
+                                @((MarkupString)Shared.TextToHtml(comment.content))
+                              </div>
+                            </li>
+                            @foreach (var file in comment.files)
+                            {
+                              var fileName = Files.FileName(file);
+                              <li class="column is-narrow">
+                                <a class="icon-text has-text-link" href="@file" target="_blank">
+                                  <span class="icon">
+                                    <i class="material-icons-outlined">description</i>
+                                  </span>
+                                  <span class="font_13">@fileName</span>
+                                </a>
+                              </li>
+                            }
+                          </ul>
+                        </div>
+                      </article>
+                    </li>
+                  }
+                </ul>
+              </div>
+            </li>
+          }
+          if (dataList.Count == 0)
+          {
+            <li class="column is-full">
+              <div class="has-text-grey has-text-centered">
+                Kết quả tìm kiếm trống
+              </div>
+            </li>
+          }
+        }
+      </ul>
+    </div>
+  </div>
 </section>
 
 @code {
@@ -200,7 +182,7 @@
   public LayoutMain Layout { get; set; }
 
   private bool _loaded = false;
-  private bool _success = false;
+  private bool success = false;
   private string _message = string.Empty;
   private string _title = "Góp ý hệ thống";
 
@@ -208,14 +190,14 @@
   private bool isAdd = false;
 
   private int filterStatus = 0;
-  private DateTimeOffset? filterDateS { get; set; }
-  private DateTimeOffset? filterDateE { get; set; }
+  private long filterDateS { get; set; }
+  private long filterDateE { get; set; }
 
   protected override async Task OnInitializedAsync()
   {
     Shared.GetTimeSpan(5, out DateTime start, out DateTime end);
-    filterDateS = start;
-    filterDateE = end;
+    filterDateS = start.Ticks;
+    filterDateE = end.Ticks;
 
     await GetList();
   }
@@ -231,17 +213,28 @@
     await GetList();
   }
 
-  private async Task GetList()
+  private async Task<bool> GetList()
   {
-    dataList = await DbMainFeedback.GetList(Layout.User.id);
-    if (filterStatus != 0)
-      dataList = dataList.Where(x => x.status == Convert.ToInt32(filterStatus)).ToList();
-    if (filterDateS != null)
-      dataList = dataList.Where(x => x.date >= filterDateS.Value.DateTime.Ticks).ToList();
-    if (filterDateE != null)
-      dataList = dataList.Where(x => x.date < filterDateE.Value.DateTime.AddDays(1).Ticks).ToList();
-
+    bool _success = true;
+    try
+    {
+      dataList = await DbMainFeedback.GetList(Layout.User.id);
+      if (filterStatus != 0)
+        dataList = dataList.Where(x => x.status == Convert.ToInt32(filterStatus)).ToList();
+      if (filterDateS > 0)
+        dataList = dataList.Where(x => x.date >= filterDateS).ToList();
+      if (filterDateE > 0)
+        dataList = dataList.Where(x => x.date < new DateTime(filterDateE).AddDays(1).Ticks).ToList();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
     _loaded = true;
+    return _success;
   }
 
   protected async void CreateHandler(bool isCreate)
@@ -250,8 +243,9 @@
     if (isCreate)
     {
       await GetList();
-      _success = true;
+      success = true;
       _message = "Đã gửi góp ý thành công";
+      await JSRuntime.InvokeVoidAsync("tagline", true, _message);
     }
     await InvokeAsync(StateHasChanged);
   }

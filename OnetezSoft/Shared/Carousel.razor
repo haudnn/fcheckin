@@ -1,7 +1,7 @@
-﻿@inject IJSRuntime JSRuntime
-@inject NavigationManager navigation
+﻿@inject NavigationManager navigation
+@inject IJSRuntime JSRuntime
 
-<section id="slider" class="@(count > 0 ? "py-4 px-4" : "")">
+<section id="slider" class="@(count > 0 ? "mb-4" : "")">
   <div class="banner_main">
     <div class="carousel">
       <BlazorSlickCarousel @ref="banner" Configurations="configurations">
@@ -28,23 +28,27 @@
   private List<BannerModel> database = new();
   private List<BannerModel> dataList = new();
   private int count = 0;
-  private List<string> hideList = new ()
+  private List<string> hideList = new()
   {
     "/config",
-    "/user",
+    "/user/info",
     "/feedback",
     "/work",
     "/hrm",
     "/okr/overview",
+    "/todolist",
+    "/teams",
+    "/reports"
   };
 
 
-  protected override void OnInitialized()
+  protected override async Task OnInitializedAsync()
   {
-    database = DbBanner.GetList(Layout.Company.id);
+    database = await DbBanner.GetList(Layout.Company.id);
     ConfigSlide();
     SlideFirst();
   }
+
 
   private void ConfigSlide()
   {
@@ -65,19 +69,26 @@
       };
   }
 
-  protected override async Task OnParametersSetAsync()
+  private void SlideFirst()
   {
-    await SlideChange();
+    var uri = new Uri(navigation.Uri);
+    var url = uri.GetLeftPart(UriPartial.Path).Replace(navigation.BaseUri, "/");
+    if (!url.StartsWith("/configs/"))
+      dataList = GetList();
+    else
+      dataList = new();
+
+    count = dataList.Count;
   }
 
-  private async Task SlideChange()
+  private void SlideChange()
   {
-    if(banner != null)
+    if (banner != null)
     {
       var url = navigation.Uri.Replace(navigation.BaseUri, "/");
-      if(count > 0)
+      if (count > 0)
         for (int i = 0; i < count; i++)
-          await banner.Remove(0, false);
+          banner.Remove(0, false);
 
       var list = GetList();
       foreach (var item in list)
@@ -85,18 +96,10 @@
         var html = $"<a class=\"image\" href=\"{item.link}\" target=\"_blank\" title=\"{item.name}\">";
         html += $"<img src=\"{item.image}\" alt=\"img\" />";
         html += "</a>";
-        await banner.Add(html);
+        banner.Add(html);
       }
       count = list.Count;
     }
-  }
-
-  private void SlideFirst()
-  {
-    var url = navigation.Uri.Replace(navigation.BaseUri, "/");
-    if (PageShows(url))
-      dataList = GetList();
-    count = dataList.Count;
   }
 
   private List<BannerModel> GetList()
@@ -109,7 +112,7 @@
       {
         if (Layout.User.departments_id.Contains(item.department) || string.IsNullOrEmpty(item.department))
         {
-          if(item.pages.Count == 0)
+          if (item.pages.Count == 0 || url.Contains("homepage"))
           {
             list.Add(item);
           }
@@ -132,9 +135,6 @@
 
   private bool PageShows(string url)
   {
-    foreach (var item in hideList)
-      if(url.StartsWith(item))
-        return false;
-    return true;
+    return !hideList.Any(url.StartsWith);
   }
 }

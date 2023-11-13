@@ -1,0 +1,52 @@
+.mention-wrapper {
+   position: relative;
+   display: inline-block;
+   width:100%;
+
+   .mention-options {
+      box-sizing: border-box;
+      position: absolute;
+      width: fit-content;
+      opacity: 0;
+      bottom:calc(100% + 4px);
+      pointer-events: none;
+      background: #FFF;
+      color: #333;
+      display: flex;
+      flex-wrap: wrap;
+      border-radius:4px;
+      overflow-y:auto;
+      max-height:300px;
+      box-shadow:0 4px 8px rgba(0,0,0,.14);
+
+      &.mention-options-reverse {
+         flex-direction: column-reverse;
+         top: initial;
+         bottom: 100%;
+      }
+
+      .mention-option {
+         box-sizing: border-box;
+         background: #FFF;
+         position: relative;
+         cursor: pointer;
+         display: none;
+         width: 100%;
+         padding:8px;
+
+         &.hover, &:hover {
+            background: #AAAAAA40;
+            color: inherit;
+         }
+      }
+
+      &.show {
+         opacity: 1;
+         pointer-events: initial;
+
+         .mention-option.show {
+            display: block;
+         }
+      }
+   }
+}

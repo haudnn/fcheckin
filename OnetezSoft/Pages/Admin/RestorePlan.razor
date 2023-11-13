@@ -1,0 +1,39 @@
+﻿@page "/admin/restore-plan"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+
+<section class="p-5">
+  <div class="field">
+    <button class="@(isLoading ? "is-loading" : "") button is-link" @onclick="OnRestore">Restore</button>
+  </div>
+
+  <div class="field">
+    <button class="@(isLoading2 ? "is-loading" : "") button is-link" @onclick="OnRestore2">Restore</button>
+  </div>
+
+</section>
+
+@code {
+  private bool isLoading = false;
+  private bool isLoading2 = false;
+
+  private async Task OnRestore()
+  {
+    isLoading = true;
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đang khôi phục...");
+    await WorkService.RestoreSectionPlan("237O695B8A", "239T313FDE");
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Hoàn thành khôi phục!");
+    isLoading = false;
+  }
+
+  private async Task OnRestore2()
+  {
+    isLoading = true;
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đang khôi phục...");
+    await WorkService.RestoreSectionPlan("237O695B8A", "23AGC3E086");
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Hoàn thành khôi phục!");
+    isLoading = false;
+  }
+}

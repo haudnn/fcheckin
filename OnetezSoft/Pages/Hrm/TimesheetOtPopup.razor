@@ -1,4 +1,4 @@
-﻿<div class="modal is-active">
+﻿<div class="modal is-active p-2">
   <div class="modal-background"></div>
   <div class="modal-card is-medium">
     <div class="modal-card-head">
@@ -41,7 +41,7 @@
             @foreach (var timekeeping in timekeepingOtList)
             {
               long day = 0;
-              var shiftEdits = timeSheetUser.timesheet_dates.SelectMany(i => i.shifts_edit).ToDictionary(i => i.Key, i => i.Value);
+              var shiftEdits = timeSheetUser.timesheet_dates.Where(i => i.date == timekeeping.date).SelectMany(i => i.shifts_edit).ToDictionary(i => i.Key, i => i.Value);
               foreach (var in_out in timekeeping.time_tracking.GroupBy(i => i.checkin_id))
               {
                 var _in = in_out.ToList().Find(i => i.time_type == "Check-in");
@@ -179,6 +179,10 @@
   public List<HrmTimekeepingModel> dataTimekeeping { get; set; } = new();
   [Parameter]
   public HrmTimesheetModel timeSheet { get; set; }
+  [Parameter]
+  public List<string> locationSelects { get; set; } = new();
+  [Parameter]
+  public bool hybridCheck { get; set; }
 
   private HrmTimesheetUserModel timeSheetUser = null;
 
@@ -199,6 +203,23 @@
     if (timekeepingList.Any())
     {
       timekeepingOtList = timekeepingList.Where(i => i != null && i.time_tracking.Any(i => i.is_ot)).ToList();
+    }
+
+    if (locationSelects.Any() || hybridCheck)
+    {
+      var timekeepingOtListTemp = timekeepingOtList.Where(i => true).ToList();
+      foreach (var item in timekeepingOtList)
+      {
+        var itemTemp = Shared.Clone(item);
+        var timeTracking = item.time_tracking.Where(i => (i.is_hybrid && hybridCheck) || (i.location != null && locationSelects.Contains(i.location.id))).ToList();
+        if (timeTracking.Any())
+        {
+          itemTemp.time_tracking = timeTracking;
+          timekeepingOtListTemp.RemoveAll(i => i.id == item.id);
+          timekeepingOtListTemp.Add(itemTemp);
+        }
+      }
+      timekeepingOtList = timekeepingOtListTemp.Where(i => true).ToList();
     }
 
     // tính tổng giờ làm

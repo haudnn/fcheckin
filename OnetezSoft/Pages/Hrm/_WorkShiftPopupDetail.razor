@@ -1,0 +1,48 @@
+﻿@if(item != null)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card" style="padding: 0 10px;">
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          Chi tiết ca làm việc
+        </div>
+        <a class="delete is-medium" @onclick="Close"></a>
+      </section>
+      <section class="modal-card-body">
+        <p class="mb-2 label m-0">
+          Tên ca làm việc: <span class="has-text-weight-normal">@item.name</span>
+        </p>
+        <p class="mb-2 label mb-0">Thời gian ca làm: <span class="tag has-text-weight-normal">@(item.checkin + " - " + item.checkout)</span></p>
+        <p class="mb-2 label mb-0">Loại ca làm: <span class="tag has-text-weight-normal">@(item.is_byhour ? "Ca làm theo giờ" : "Ca làm bình thường")</span></p>
+        <p class="mb-2 label mb-0">Thời gian làm: <span class="tag has-text-weight-normal">@(item.is_overday ? "Kéo dài qua ngày" : "Trong ngày")</span></p>
+        <p class="mb-2 label mb-0">Số công ca làm: <span class="has-text-weight-normal">@(item.value) công</span></p>
+        @if (item.is_byhour)
+        {
+          <p class="mb-2 label mb-0">Thời gian tính đủ công: <span class="has-text-weight-normal">@(Shared.MinutesToHours(item.minutes))</span></p>
+          <p class="mb-2 label mb-0">Công theo giờ: <span class="has-text-weight-normal">@(Math.Round((60 * item.value) / item.minutes, 2)) công/giờ</span></p>
+          <div class="is-flex" style="gap: 10px">
+            <p class="mb-2 label mb-0">Thời gian nghỉ:</p>
+            <div class="is-flex" style="gap: 10px">
+              @foreach(var item in item.break_times)
+              {
+                <span class="tag has-text-weight-normal">@(item.start + " - " + item.end)</span>
+              }
+            </div>
+          </div>
+        }
+      </section>
+    </section>
+  </section>
+}
+@code {
+  [Parameter]
+  public HrmWorkShiftModel item { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnClose { get; set; }
+
+  private async Task Close()
+  {
+    await OnClose.InvokeAsync(true);
+  }
+}

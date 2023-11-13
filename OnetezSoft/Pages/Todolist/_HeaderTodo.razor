@@ -1,0 +1,144 @@
+﻿@inject NavigationManager navigation
+
+<div class="columns is-variable is-2 is-vcentered is-multiline mb-3">
+  <div class="column">
+    <div style="gap: 10px 0" class="columns is-mobile is-multiline is-variable is-1  pt-2 ">
+      <h1 class="pl-2 is-12-mobile title is-5 has-text-weight-bold mr-3 mb-0 is-secondary-40">
+        TODOLIST
+      </h1>
+      <p class="is-12-mobile is-italic font_14 is-secondary-40">Bạn đang có <span style="margin-right: 2px;" class="has-text-success">@achievement</span>ngày liên tiếp không trễ Todolist!</p>
+    </div>
+  </div>
+</div>
+<div class="is-flex is-0 is-justify-content-space-between mb-4 is-align-items-flex-end">
+  <div class="@(Layout.IsMobile ? "scrolly" : "")">
+    <ul class="tabs_container @(Layout.IsMobile ? "scrollx pt-3" : "")">
+      <li class="tabs_item @(tab == 1 ? "is-active" : "")" @onclick="() => ChangeTab(1)">
+        <a class="has-text-weight-medium is-secondary-40 font_14 is-block has-text-centered">Todolist của tôi</a>
+      </li>
+      <li class="tabs_item @(tab == 2 ? "is-active" : "")" @onclick="() => ChangeTab(2)">
+        <a class="has-text-weight-medium is-secondary-40 font_14 is-block has-text-centered">Việc được giao</a>
+        @if (countJob > 0)
+        {
+          @if (countJob >= 5)
+          {
+            <span class="noti-count">@("+" + countJob)</span>
+          }
+          else
+          {
+            <span class="noti-count">@countJob</span>
+          }
+        }
+      </li>
+      <li class="tabs_item @(tab == 3 ? "is-active" : "")" @onclick="() => ChangeTab(3)">
+        <a class="has-text-weight-medium is-secondary-40 font_14 is-block has-text-centered">Việc đã giao</a>
+        @if (countWork > 0)
+        {
+          @if (countWork >= 5)
+          {
+            <span class="noti-count">@("+" + countWork)</span>
+          }
+          else
+          {
+            <span class="noti-count">@countWork</span>
+          }
+        }
+      </li>
+      <li class="tabs_item @(tab == 4 ? "is-active" : "")" @onclick="() => ChangeTab(4)">
+        <a class="has-text-weight-medium is-secondary-40 font_14 is-block has-text-centered">Danh sách todolist</a>
+      </li>
+    </ul>
+  </div>
+  @if(!Layout.IsMobile)
+  {
+    if (tab == 1)
+    {
+      <div style="gap: 0 10px;" class="is-flex is-align-items-center">
+        <Dropdown DropdownClass="is-right" CloseOnClickMenu=true>
+          <Trigger>
+            <a class="icon-text">
+              @{
+                var view = DbTodolist.ViewList().Where(x => x.id == currentView).FirstOrDefault();
+                <span class="icon is-secondary-20">
+                  <i class="material-icons-outlined font_14">@view.icon</i>
+                </span>
+                <span class="has-text-weight-medium font_14 is-secondary-20">@view.name</span>
+              }
+              <span class="icon is-secondary-20 is-size-5">
+                <i class="material-icons-outlined">arrow_drop_down</i>
+              </span>
+            </a>
+
+          </Trigger>
+          <MenuContent>
+            @foreach (var item in DbTodolist.ViewList())
+            {
+              <a class="dropdown-item icon-text" @onclick="() => ChangeView(item.id)">
+                <span class="icon font_14 @(currentView == item.id ? "has-text-link" : "is-secondary-20")">
+                  <i class="material-icons-outlined">@item.icon</i>
+                </span>
+                <span class="font_14 @(currentView == item.id ? "has-text-link" : "is-secondary-20") has-text-weight-medium">@item.name</span>
+              </a>
+            }
+          </MenuContent>
+        </Dropdown>
+      </div>
+    }
+  }
+
+
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public EventCallback<int> OnChangedTab { get; set; }
+  [Parameter]
+  public int tab { get; set; }
+  [Parameter]
+  public int countJob { get; set; }
+  [Parameter]
+  public int countWork { get; set; }
+  [Parameter]
+  public int currentView { get; set; }
+  [Parameter]
+  public EventCallback<int> OnChangedView { get; set; }
+
+  private int achievement = 0;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await GetAchievement();
+  }
+
+  private async Task<bool> GetAchievement()
+  {
+    bool _success = true;
+    try
+    {
+      // Tính thành tựu Todolist
+      Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
+      achievement = await DbTodolist.DataAchievement(Layout.Company.id, Layout.User.id, start, end);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetAchievement()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private void ChangeTab(int _tab)
+  {
+    OnChangedTab.InvokeAsync(_tab);
+  }
+
+  private async Task ChangeView(int _view)
+  {
+    await OnChangedView.InvokeAsync(_view);
+    StateHasChanged();
+  }
+}

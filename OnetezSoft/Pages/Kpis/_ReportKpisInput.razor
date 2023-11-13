@@ -1,0 +1,23 @@
+﻿<div class="inner_section p-4 h-full is-flex is-flex-direction-column">
+  <p class="has-text-weight-semibold font_14 mb-5">
+    Thống kê KPIs nhập liệu theo tiến độ
+  </p>
+
+  <div id="chartKpisCheck" class="@(hiddenChart ? "is-hidden" : "")">
+    <div class="is-flex is-justify-content-center" style="height: 190px;">
+      <canvas id="chartKpisProgress" width="350" height="190"></canvas>
+    </div>
+  </div>
+
+  @if (hiddenChart)
+  {
+    <div class="is-flex is-justify-content-center is-align-items-center" style="flex: 1;">
+      <span>Không có dữ liệu !</span>
+    </div>
+  }
+</div>
+
+@code {
+  [Parameter]
+  public bool hiddenChart { get; set; }
+}

@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class BannerModel
   {
     [BsonId]
@@ -22,7 +23,7 @@ namespace OnetezSoft.Models
     public long date { get; set; }
 
     public int pos { get; set; }
-    
+
     // Trang hiển thị
     public Dictionary<string, string> pages { get; set; }
   }

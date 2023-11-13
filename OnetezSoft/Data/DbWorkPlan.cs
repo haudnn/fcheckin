@@ -1,11 +1,9 @@
-using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using OnetezSoft.Models;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using OnetezSoft.Models;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -66,7 +64,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<WorkPlanModel>(_collection);
 
-      var result = await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      var result = await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
 
       return result;
     }
@@ -86,7 +84,7 @@ namespace OnetezSoft.Data
       var results = new List<WorkPlanModel>();
       foreach (var item in list)
       {
-        if(item.members.Where(x => x.id == userId).Count() > 0)
+        if (item.members.Where(x => x.id == userId).Count() > 0)
           results.Add(item);
       }
 
@@ -103,12 +101,12 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<WorkPlanModel>(_collection);
 
-      var list = await collection.Find(x => x.status == status).ToListAsync();
+      var list = await collection.FindAsync(x => x.status == status).Result.ToListAsync();
 
       var results = new List<WorkPlanModel>();
       foreach (var item in list)
       {
-        if(item.members.Where(x => x.id == userId).Count() > 0)
+        if (item.members.Where(x => x.id == userId).Count() > 0)
           results.Add(item);
       }
 
@@ -125,9 +123,57 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<WorkPlanModel>(_collection);
 
-      var results = await collection.Find(new BsonDocument()).ToListAsync();
+      var results = await collection.FindAsync(new BsonDocument()).Result.ToListAsync();
 
       return results.OrderBy(x => x.date_end).ToList();
+    }
+
+
+    public static async Task UpdateSection(string companyId, string modelId, WorkPlanModel.Section item)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<WorkPlanModel>(_collection);
+
+      var filter = Builders<WorkPlanModel>.Filter.Eq(x => x.id, modelId);
+
+      var update = Builders<WorkPlanModel>.Update.Push(x => x.sections, item);
+
+      await collection.UpdateOneAsync(filter, update);
+
+      return;
+    }
+
+    public static async Task AddSheet(string companyId, string modelId, WorkPlanModel.Sheet item)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<WorkPlanModel>(_collection);
+
+      var filter = Builders<WorkPlanModel>.Filter.Eq(x => x.id, modelId);
+
+      var update = Builders<WorkPlanModel>.Update.Push(x => x.sheets, item);
+
+      await collection.UpdateOneAsync(filter, update);
+
+      return;
+    }
+
+    public static async Task UpdateSheet(string companyId, string modelId, WorkPlanModel.Sheet item)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+      var collection = _db.GetCollection<WorkPlanModel>(_collection);
+
+      var builderFilter = Builders<WorkPlanModel>.Filter;
+      var builder = Builders<WorkPlanModel>.Update;
+
+      var filter = builderFilter.Eq(x => x.id, modelId) & builderFilter.Where(x => x.sheets.Any(y => y.id == item.id));
+
+      var update = builder.Set("sheets.$", item);
+
+      await collection.UpdateOneAsync(filter, update);
+
+      return;
     }
   }
 }

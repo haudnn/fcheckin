@@ -1,4 +1,5 @@
 @inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
 
 <section class="modal is-active" style="z-index: 100;">
   <div class="modal-background"></div>
@@ -10,56 +11,56 @@
       <a class="delete is-medium" @onclick="Cancel"></a>
     </section>
     <section class="modal-card-body">
-					<ul class="columns is-multiline is-variable is-2">
-						<li class="column is-full">
-							<div class="field">
-									<label class="label">Tên bảng phân ca *</label>
-									<div class="control">
-										<input type="text" class="input" placeholder="Nhập tên bảng phân ca..." @bind="model.name">
-									</div>
-							</div>
-						</li>
-						<li class="column is-full">
-							<div class="field is-grouped">
-								<div class="control">
-									<label for="" class="label">Ngày bắt đầu</label>
-         <div class="control has-icons-left">
-          <div class="input">
-           <DateRangePicker SingleDatePicker="true" @bind-StartDate="model.start" />
+      <ul class="columns is-multiline is-variable is-2">
+        <li class="column is-full">
+          <div class="field">
+            <label class="label">Tên bảng phân ca *</label>
+            <div class="control">
+              <input type="text" class="input" placeholder="Nhập tên bảng phân ca..." @bind="model.name">
+            </div>
           </div>
-          <span class="icon is-left">
-          	<i class="material-icons-outlined">
-            calendar_today
-           </i>
-          </span>
-         </div>
-								</div>
-								<div class="control">
-         <label class="label">Ngày kết thúc</label>
-         <div class="control has-icons-left">
-          <div class="input">
-          	<DateRangePicker SingleDatePicker="true" @bind-StartDate="model.end" />
+        </li>
+        <li class="column is-full">
+          <div class="field is-grouped">
+            <div class="control">
+              <label for="" class="label">Ngày bắt đầu</label>
+              <div class="control has-icons-left">
+                <div class="input">
+                  <DateRangePicker SingleDatePicker="true" @bind-StartDate="model.start" />
+                </div>
+                <span class="icon is-left">
+                  <i class="material-icons-outlined">
+                    calendar_today
+                  </i>
+                </span>
+              </div>
+            </div>
+            <div class="control">
+              <label class="label">Ngày kết thúc</label>
+              <div class="control has-icons-left">
+                <div class="input">
+                  <DateRangePicker SingleDatePicker="true" @bind-StartDate="model.end" />
+                </div>
+                <span class="icon is-left">
+                  <i class="material-icons-outlined">
+                    calendar_today
+                  </i>
+                </span>
+              </div>
+            </div>
           </div>
-          <span class="icon is-left">
-           <i class="material-icons-outlined">
-            calendar_today
-           </i>
-          </span>
-         </div>
-        </div>
-							</div>
-						</li>
-					</ul>
+        </li>
+      </ul>
     </section>
     <section class="modal-card-foot is-right">
       <a class="button is-transparent has-text-danger" @onclick="Cancel">
         <span>Hủy</span>
       </a>
       <a class="button is-link" @onclick="Update">
-       <span class="icon">
-        <i class="material-icons-round is-size-6">check</i>
-       </span>
-       <span>Xác nhận</span>
+        <span class="icon">
+          <i class="material-icons-round is-size-6">check</i>
+        </span>
+        <span>Xác nhận</span>
       </a>
     </section>
   </section>
@@ -67,35 +68,39 @@
 
 @code
 {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
   [Parameter]
   public EventCallback<bool> OnUpdate { get; set; }
-		[Parameter]
-		public HrmTimeListModel.ExportData model { get; set; }
+  [Parameter]
+  public HrmTimeListModel.ExportData model { get; set; }
 
   private async Task Cancel()
   {
-   await OnUpdate.InvokeAsync(false);
+    await OnUpdate.InvokeAsync(false);
   }
 
   private async Task Update()
   {
-			var start = model.start.Value.DateTime.Ticks;
-   var end = model.end.Value.DateTime.Ticks;
-			if(model.start == null || model.end == null)
-			{
-				await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần chọn ngày bắt đầu và kết thúc!");
-				return;
-			}
-			if(Shared.IsEmpty(model.name))
-			{
-				await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa	nhập tên bảng phân ca!");
-				return;
-			}
-			if(start > end)
-			{
-				await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc phải lớn hơn ngày bắt đầu!");
-				return;
-			}
-   await OnUpdate.InvokeAsync(true);
+    try
+    {
+      var start = model.start.Value.DateTime.Ticks;
+      var end = model.end.Value.DateTime.Ticks;
+
+      if (model.start == null || model.end == null)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần chọn ngày bắt đầu và kết thúc!");
+      else if (Shared.IsEmpty(model.name))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa	nhập tên bảng phân ca!");
+      else if (start > end)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc phải lớn hơn ngày bắt đầu!");
+      else
+        await OnUpdate.InvokeAsync(true);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.Message, Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 }

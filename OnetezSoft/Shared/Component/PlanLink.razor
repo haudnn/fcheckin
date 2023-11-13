@@ -1,0 +1,297 @@
+﻿@inject IJSRuntime JSRuntime
+
+<div class="@(isEdit ? "p-4 mt-2" : "")" style="@(isEdit ? "box-shadow: 0px 0px 0px 1px #e2e2e2 !important;" : "")">
+  @if (isEdit)
+  {
+    if (CheckAccess())
+    {
+      <Dropdown CloseOnClickMenu=true DropdownClass="is-fullwidth" MenuClass="p-2 is-fullwidth" isFullwidth=true>
+        <Trigger>
+          <div class="field has_bg is-grouped is-fullwidth py-1 px-2 is-clickable" style="border-radius: 4px; border: 1px solid #dbdbdb;">
+            <div class="control">
+              @if (type == 1)
+              {
+                <span>Đính kèm link</span>
+              }
+              else if (type == 2)
+              {
+                <span>Thêm kế hoạch</span>
+              }
+            </div>
+            <div class="control is-expanded has-text-right">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+              </span>
+            </div>
+          </div>
+        </Trigger>
+        <MenuContent>
+          <a class="dropdown-item px-4 py-2 is-clickable is-fullwidth" @onclick="() => ChangeType(1)">
+            <span class="text_1_line has-text-info">Đính kèm link</span>
+          </a>
+          <a class="dropdown-item px-4 py-2 is-clickable is-fullwidth" @onclick="() => ChangeType(2)">
+            <span class="text_1_line has-text-info">Thêm kế hoạch</span>
+          </a>
+        </MenuContent>
+      </Dropdown>
+    }
+
+    <!--Link từ bên ngoài-->
+    @if (type == 1)
+    {
+      <ul class="columns is-vcentered is-variable is-1 is-multiline @(CheckAccess() ? "mt-2" : "")">
+        <li class="column is-half">
+          <span class="is-size-7 has-text-black has-text-weight-medium">Link kế hoạch</span>
+          <input class="input is_bg" type="text" @bind="linkPlan.link" placeholder="Nhập link kế hoạch..." />
+        </li>
+        <li class="column is-half">
+          <span class="is-size-7 has-text-black has-text-weight-medium">Mô tả</span>
+          <input class="input is_bg" type="text" @bind="linkPlan.description" placeholder="Nhập mô tả..." />
+        </li>
+        <li class="column is-full has-text-right mt-2">
+          <span class="has-text-link is-clickable" @onclick="() => AddLink()">Áp dụng</span>
+        </li>
+      </ul>
+    }
+
+    <!--Link từ kế hoạch-->
+    @if (type == 2 && CheckAccess())
+    {
+      <div class="control has-icons-right mt-4">
+        <input @bind="keyword" @bind:event="oninput" type="text"
+               class="input is_bg" placeholder="Tìm kiếm hoặc nhập link kế hoạch...">
+        <span class="icon is-right">
+          <i class="material-icons-round is-size-6">search</i>
+        </span>
+      </div>
+
+      <div class="pt-4">
+        @foreach (var type in typeList.OrderBy(x => x.id))
+        {
+          var hidden = toggle.Contains(type.id);
+          <a class="icon-text is-fullwidth @(type.id == 1 ? "" :"mt-3")"
+          @onclick="() => Toggle(type.id)">
+            <span class="icon mr-2 has-text-black is-relative" style="border-radius: 4px; background: @type.color; height: 20px; width: 20px;">
+              <i class="material-icons-outlined is-size-7">@type.icon</i>
+            </span>
+            <span class="is-size-7 has-text-weight-semibold" style="flex-grow: 1;">@type.name</span>
+            <span class="icon is-small is-relative">
+              <i class="material-icons-outlined is-size-6 has-text-black">@(hidden ? "arrow_drop_down" : "arrow_right")</i>
+            </span>
+          </a>
+          if (hidden)
+          {
+            var list = planList.ContainsKey(type.id) ? planList[type.id] : new();
+            @foreach (var plan in SortPlan(list))
+            {
+              var show = string.IsNullOrEmpty(keyword) || Shared.SearchKeyword(keyword, plan.name);
+              <div class="mt-2 is-fullwidth is-clickable plan-link-hover
+                   @(show ? "icon-text is-justify-content-space-between " : "is-hidden")">
+                <span class="icon-text">
+                  <span class="icon" style="@(dataPlanKpis.FirstOrDefault(i => i.id_plan == plan.id) != null ? "" : "opacity: 0;")">
+                    <span class="material-icons-outlined is-size-6 has-text-info">check</span>
+                  </span>
+                  <span class="has-text-info is-clickable" title="@plan.name">
+                    @plan.name
+                  </span>
+                </span>
+
+                @if (dataPlanKpis.FirstOrDefault(i => i.id_plan == plan.id) != null)
+                {
+                  <span class="icon-text has-text-danger icon-hover is-flex-mobile" style="flex-shrink: 0;" @onclick="() => AddLink(plan)">
+                    <span class="icon">
+                      <span class="material-icons-outlined">remove_circle_outline</span>
+                    </span>
+                    <span class="is-hidden-mobile" style="overflow: unset;">Huỷ áp dụng</span>
+                  </span>
+                }
+                else
+                {
+                  <span class="icon-text has-text-link icon-hover is-flex-mobile" style="flex-shrink: 0;" @onclick="() => AddLink(plan)">
+                    <span class="icon">
+                      <span class="material-icons-outlined">add</span>
+                    </span>
+                    <span class="is-hidden-mobile" style="overflow: unset;">Áp dụng</span>
+                  </span>
+                }
+              </div>
+            }
+
+            if (list.Count == 0)
+            {
+              <div class="sidebar_plan_item has-text-grey">Không có kế hoạch</div>
+            }
+          }
+        }
+      </div>
+    }
+  }
+
+  @if (dataPlanKpis.Any())
+  {
+    if (isEdit)
+    {
+      <hr class="my-2" />
+    }
+
+    <ul class="columns is-vcentered is-variable is-1 is-multiline">
+      @foreach (var link in dataPlanKpis.OrderBy(i => i.type))
+      {
+        var plan = dataPlanList.FirstOrDefault(i => i.id == link.id_plan);
+        var namePlan = "";
+        if (link.type == 1)
+          namePlan = !Shared.IsEmpty(link.description) ? link.description : link.link;
+        else if (link.type == 2 && plan != null)
+          namePlan = plan.name;
+
+        if (link.type == 1 || (link.type == 2 && plan != null && CheckAccess()))
+        {
+          <li class="column is-narrow">
+            <div class="tag p-2 @(link.type == 1 ? "is-link" : "") is-light">
+              <span class="icon-text">
+                <a class="icon @(link.type == 1 ? "has-text-link" : "has-text-grey-dark")" target="_blank"
+                   href="@(link.type == 1 ? link.link : $"/work/{link.id_plan}")">
+                  <span class="material-icons-outlined is-size-6">
+                    @(link.type == 1 ? "link" : "post_add")
+                  </span>
+                </a>
+                <a style="width: 90px" target="_blank" class="@(link.type == 1 ? "has-text-link" : "has-text-grey-dark")"
+                   href="@(link.type == 1 ? link.link : $"/work/{link.id_plan}")">
+                  @namePlan
+                </a>
+
+                @if (isEdit)
+                {
+                  <span class="icon is-clickable" @onclick="() => RemovePlan(link)">
+                    <span class="material-icons-outlined">
+                      close
+                    </span>
+                  </span>
+                }
+              </span>
+            </div>
+          </li>
+        }
+      }
+    </ul>
+  }
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<KpisModel.Plan> dataPlanKpis { get; set; } = new();
+  [Parameter]
+  public bool isEdit { get; set; } = false;
+
+  private string url = string.Empty;
+  private List<int> toggle = new() { 1 };
+  private Dictionary<int, List<WorkPlanModel>> planList = new();
+  private List<WorkPlanModel> dataPlanList = new();
+  private string keyword = string.Empty;
+  private List<StaticModel> typeList = new();
+  private bool isChangeType;
+  private int type = 1;
+  private KpisModel.Plan linkPlan = new();
+
+
+  protected override async Task OnInitializedAsync()
+  {
+    typeList.Clear();
+    typeList.Add(new() { id = 3, name = "Kế hoạch lưu trữ", icon = "archive", color = "#FFEDE9" });
+    typeList.Add(new() { id = 1, name = "Kế hoạch đang diễn ra", icon = "show_chart", color = "#FFFDC6" });
+    typeList.Add(new() { id = 2, name = "Kế hoạch hoàn thành", icon = "done_all", color = "#CEF9CC" });
+    await GetList();
+  }
+
+  private async Task GetList()
+  {
+    // Lấy dự án tham gia
+    dataPlanList = await DbWorkPlan.GetListJoin(Layout.Company.id, Layout.User.id);
+
+    // Phân nhóm
+    planList.Clear();
+    foreach (var type in typeList)
+    {
+      var list = new List<WorkPlanModel>();
+      if (type.id == 3)
+        list = dataPlanList.Where(x => Layout.User.plans_hide.Contains(x.id)).ToList();
+      else if (type.id == 1 || type.id == 2)
+        list = dataPlanList.Where(x => x.status == type.id).ToList();
+      planList.Add(type.id, list);
+    }
+  }
+
+  private void Toggle(int id)
+  {
+    if (toggle.Contains(id))
+      toggle.Remove(id);
+    else
+      toggle.Add(id);
+  }
+
+  private void ChangeType(int typePlan)
+  {
+    type = typePlan;
+    if (type == 1)
+      linkPlan = new();
+  }
+
+  private async Task AddLink(WorkPlanModel planAdd = null)
+  {
+    if (type == 1)
+    {
+      if (Shared.IsEmpty(linkPlan.link))
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Bạn chưa nhập link kế hoạch!");
+      else
+      {
+        linkPlan.type = 1;
+        dataPlanKpis.Add(linkPlan);
+        linkPlan = new();
+      }
+    }
+    else if (type == 2 && planAdd != null)
+    {
+      if (!dataPlanKpis.Select(i => i.id_plan).Contains(planAdd.id))
+      {
+        var plan = new KpisModel.Plan();
+        plan.id_plan = planAdd.id;
+        plan.type = 2;
+        dataPlanKpis.Add(plan);
+      }
+      else
+        dataPlanKpis.RemoveAll(i => i.id_plan == planAdd.id);
+    }
+  }
+
+  private List<WorkPlanModel> SortPlan(List<WorkPlanModel> list)
+  {
+    var result = new List<WorkPlanModel>();
+    var notActive = new List<WorkPlanModel>();
+
+    foreach (var plan in list)
+    {
+      if (dataPlanKpis.FirstOrDefault(i => i.id_plan == plan.id) != null)
+        result.Add(plan);
+      else
+        notActive.Add(plan);
+    }
+
+    result.AddRange(notActive);
+    return result;
+  }
+
+  private void RemovePlan(KpisModel.Plan item)
+  {
+    if (item.type == 1)
+      dataPlanKpis.Remove(item);
+    else if (item.type == 2)
+      dataPlanKpis.RemoveAll(i => i.id_plan == item.id_plan);
+  }
+
+  private bool CheckAccess()
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, "work", out string message);
+  }
+}

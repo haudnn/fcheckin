@@ -2,6 +2,7 @@
 @layout LayoutAdmin
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
@@ -25,6 +26,17 @@
           <span class="is-size-7 has-text-weight-bold">Người dùng</span>
         </a>
       </li>
+      @if (CheckAccess())
+      {
+        <li>
+          <a class="icon-text has-text-white" href="/client/companys/@company.id/setup">
+            <span class="icon">
+              <i class="material-icons-round is-size-5">settings</i>
+            </span>
+            <span class="is-size-7 has-text-weight-bold">Lấy dữ liệu mẫu</span>
+          </a>
+        </li>
+      }
     </ul>
 
     <div class="mb-4">
@@ -60,7 +72,7 @@
       <tbody class="has-text-weight-medium">
         @foreach (var item in productList)
         {
-          var module = company.products.SingleOrDefault(x => x.id == item.id);
+          var module = company.products.FirstOrDefault(x => x.id == item.id);
 
           <tr class="@(module == null ? "is_opacity" : "")">
             <td>
@@ -74,7 +86,7 @@
             @if (module != null)
             {
               <td>
-                @if(item.id == "storage")
+                @if (item.id == "storage")
                 {
                   <span class="has-text-weight-bold">
                     @string.Format("{0:0.00}/{1}", (double)module.used/1024, module.total)
@@ -148,10 +160,8 @@ else
 @code {
   [CascadingParameter]
   public LayoutAdmin Layout { get; set; }
-
   [Parameter]
   public string Id { get; set; }
-
   private string _title = "Sản phẩm sở hữu";
   private CompanyModel company = null;
   private List<UserModel> members = new();
@@ -161,41 +171,88 @@ else
   private CompanyModel.Product upgrade = null;
   private List<PromotionModel> promotions = new();
 
+
+  private bool CheckAccess()
+  {
+    return Layout.User.is_admin && !Layout.User.delete && !company.isUsed;
+  }
+
   protected override async Task OnInitializedAsync()
   {
     company = await DbMainCompany.Get(Id);
     if (company != null)
     {
-      members = DbUser.GetAll(company.id);
+      members = await DbUser.GetAll(company.id, globalService);
       productList = await DbMainProduct.GetList();
 
       // Cập nhật số lượng người dùng
       company.members = members.Count;
       await DbMainCompany.Update(company);
+      await globalService.Update(company.id);
     }
   }
 
-  private void RenewItem(ProductModel item)
+  private async Task<bool> RenewItem(ProductModel item)
   {
-    product = item;
-    renew = company.products.SingleOrDefault(x => x.id == item.id);
-    // Chương trình khuyến mãi
-    promotions = DbMainPromotion.GetList(1);
+    bool _success = true;
+    try
+    {
+      product = item;
+      renew = company.products.FirstOrDefault(x => x.id == item.id);
+      // Chương trình khuyến mãi
+      promotions = await DbMainPromotion.GetList(1);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "RenewItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private void UpgradeItem(ProductModel item)
+  private async Task<bool> UpgradeItem(ProductModel item)
   {
-    product = item;
-    upgrade = company.products.SingleOrDefault(x => x.id == item.id);
-    // Chương trình khuyến mãi
-    promotions = DbMainPromotion.GetList(2);
+    bool _success = true;
+    try
+    {
+      product = item;
+      upgrade = company.products.FirstOrDefault(x => x.id == item.id);
+      // Chương trình khuyến mãi
+      promotions = await DbMainPromotion.GetList(2);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpgradeItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task OnUpdate(bool isUpdate)
+  private async Task<bool> OnUpdate(bool isUpdate)
   {
-    renew = null;
-    upgrade = null;
-    if(isUpdate)
-      company = await CompanyService.UpdateProductAccess(company.id);
+    bool _success = true;
+    try
+    {
+      renew = null;
+      upgrade = null;
+      if (isUpdate)
+      {
+        company = await CompanyService.UpdateProductAccess(company.id, globalService);
+        await globalService.Update(company.id);
+      }
+
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnUpdate()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

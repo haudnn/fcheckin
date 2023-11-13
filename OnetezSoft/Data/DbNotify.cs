@@ -1,12 +1,13 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using OnetezSoft.Models;
-using MongoDB.Bson;
+﻿using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml.Spreadsheet;
 using MongoDB.Driver;
+using OnetezSoft.Models;
 using OnetezSoft.Services;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -17,7 +18,10 @@ namespace OnetezSoft.Data
     public static async Task<NotifyModel> Create(string companyId, NotifyModel model)
     {
       model.id = Guid.NewGuid().ToString();
-      model.date = DateTime.Now.Ticks;
+
+      if (model.date == 0)
+        model.date = DateTime.Now.Ticks;
+
 
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
@@ -58,17 +62,35 @@ namespace OnetezSoft.Data
     }
 
 
-    public static async Task<NotifyModel> GetbyKey(string companyId, string key)
+    public static async Task<List<NotifyModel>> GetbyKey(string companyId, string key)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<NotifyModel>(_collection);
 
-      var result = await collection.Find(x => x.key == key).FirstOrDefaultAsync();
+      var result = await collection.FindAsync(x => x.key == key).Result.ToListAsync();
 
       return result;
     }
 
+    public static async Task<bool> GetbyKeyAndDelete(string companyId, string key)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<NotifyModel>(_collection);
+
+      var notifications = await GetbyKey(companyId, key);
+      if (notifications == null)
+        return false;
+      else
+      {
+        foreach (var item in notifications)
+        {
+          await collection.DeleteOneAsync(x => x.id == item.id);
+        }
+        return true;
+      }
+    }
 
     /// <summary>
     /// Lấy thông báo của một người
@@ -83,14 +105,46 @@ namespace OnetezSoft.Data
 
       var builder = Builders<NotifyModel>.Filter;
 
-      var filtered = builder.Gt("date", DateTime.Now.AddDays(-14).Ticks)
+      var filtered = builder.Gt("date", DateTime.Now.AddDays(-30).Ticks)
         & builder.Eq("user", user);
 
       var sorted = Builders<NotifyModel>.Sort.Descending("date");
 
-      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      await DeleteOverTime(companyId);
+
+      return (from x in result orderby x.date descending select x).ToList();
     }
 
+    public static async Task DeleteOverTime(string companyId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<NotifyModel>(_collection);
+
+      var builder = Builders<NotifyModel>.Filter;
+
+      var filtered = builder.Lte("date", DateTime.Now.AddDays(-30).Ticks);
+
+      var sorted = Builders<NotifyModel>.Sort.Descending("date");
+
+      var result = await collection.DeleteManyAsync(filtered);
+    }
+
+
+    public static async Task<List<NotifyModel>> GetListByType(string companyId, List<int> type)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<NotifyModel>(_collection);
+
+      var builder = Builders<NotifyModel>.Filter;
+
+      var result = await collection.FindAsync(x => type.Contains(x.type)).Result.ToListAsync();
+
+      return (from x in result orderby x.date descending select x).ToList();
+    }
 
     /// <summary>
     /// Lấy thông báo mới trong vào 30s của một người
@@ -110,7 +164,52 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<NotifyModel>.Sort.Descending("date");
 
-      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      return (from x in result orderby x.date descending select x).ToList();
+    }
+
+    /// <summary>
+    /// Lấy thông báo mới trong 4p của tất cả user trong công ty
+    /// </summary>
+    /// <param name="companyId"></param>
+    /// <param name="user"></param>
+    public static async Task<List<NotifyModel>> GetNews(string companyId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<NotifyModel>(_collection);
+
+      var builder = Builders<NotifyModel>.Filter;
+
+      var filtered = builder.Gt("date", DateTime.Now.AddMinutes(-4).Ticks);
+
+      var sorted = Builders<NotifyModel>.Sort.Descending("date");
+
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
+
+      return (from x in result orderby x.date descending select x).ToList();
+    }
+
+    /// <summary>
+    /// Lấy thông báo mới trong vào 30s của cms
+    /// </summary>
+    /// <param name="companyId"></param>
+    /// <param name="user"></param>
+    public static async Task<NotifyModel> GetNewsCMS(string companyId, string user)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+      var collection = _db.GetCollection<NotifyModel>(_collection);
+      var builder = Builders<NotifyModel>.Filter;
+
+      var filtered = builder.Gt("date", DateTime.Now.AddSeconds(-30).Ticks) &
+                     builder.Eq("user", user) &
+                     builder.Eq("isCMS", true) &
+                     builder.Eq("type", 400) &
+                     builder.Eq("read", false);
+
+      var latestNotification = await collection.FindAsync(filtered).Result.ToListAsync();
+      return latestNotification.OrderByDescending(x => x.date).FirstOrDefault();
     }
 
 
@@ -119,7 +218,7 @@ namespace OnetezSoft.Data
     /// </summary>
     public static async Task<NotifyModel> Create(string companyId, int type, string key, string target, string create)
     {
-      var user = await DbUser.Get(companyId, create);
+      var user = await DbUser.Get(companyId, create, null);
       var creator = "<b>" + (user != null ? user.FullName : create) + "</b>";
       var name = string.Empty;
       var link = string.Empty;
@@ -155,17 +254,17 @@ namespace OnetezSoft.Data
       else if (type == 21)
       {
         name = $"{creator} đã thêm một phòng ban <b>{key}</b>";
-        link = "/config/system/department/list";
+        link = "/configs/system/department/list";
       }
       else if (type == 22)
       {
         name = $"{creator} đã chỉnh sửa thông tin phòng ban <b>{key}</b>";
-        link = "/config/system/department/list";
+        link = "/configs/system/department/list";
       }
       else if (type == 23)
       {
         name = $"{creator} đã xóa phòng ban <b>{key}</b>";
-        link = "/config/system/department/list";
+        link = "/configs/system/department/list";
       }
       else if (type == 30)
       {
@@ -220,43 +319,43 @@ namespace OnetezSoft.Data
       {
         var current = await DbTodoItem.Get(companyId, key);
         name = $"{creator} đã giao cho bạn công việc <b>{current.name}</b>";
-        link = "/todolist";
+        link = "/todolist/receive";
       }
       else if (type == 202)
       {
         var current = await DbTodoItem.Get(companyId, key);
         name = $"{creator} đã xác nhận yêu cầu công việc <b>{current.name}</b>";
-        link = "/todolist#assigned_list";
+        link = "/todolist/send";
       }
       else if (type == 203)
       {
         var current = await DbTodoItem.Get(companyId, key);
         name = $"{creator} đã từ chối yêu cầu công việc <b>{current.name}</b>";
-        link = "/todolist#assigned_list";
+        link = "/todolist/send";
       }
       else if (type == 212)
       {
         var current = await DbTodoItem.Get(companyId, key);
         name = $"{creator} đã cập nhật trạng thái Pending cho công việc <b>{current.name}</b>";
-        link = "/todolist#assigned_list";
+        link = "/todolist/send";
       }
       else if (type == 214)
       {
         var current = await DbTodoItem.Get(companyId, key);
         name = $"{creator} đã cập nhật trạng thái Done cho công việc <b>{current.name}</b>";
-        link = "/todolist#assigned_list";
+        link = "/todolist/send";
       }
       else if (type == 215)
       {
         var current = await DbTodoItem.Get(companyId, key);
         name = $"{creator} đã cập nhật trạng thái Cancel cho công việc <b>{current.name}</b>";
-        link = "/todolist#assigned_list";
+        link = "/todolist/send";
       }
       // ĐỔI QUÀ
       else if (type == 300)
       {
         name = $"{creator} đã yêu cầu đổi quà, cần quản lý phê duyệt.";
-        link = "/config/gift/exchange";
+        link = "/configs/gift/exchange";
       }
       else if (type == 301)
       {
@@ -273,28 +372,7 @@ namespace OnetezSoft.Data
         name = $"Bạn đã nhận được một món quà từ {creator}. Hãy khám phá xem đây là món quà gì nào?";
         link = "/gift/exchange?tab=give";
       }
-      // OKRs & CFRS
-      else if (type == 500)
-      {
-        name = Convert.ToInt32(key) > 0 ? $"Bạn đã được cấp {key} sao." : $"Bạn đã bị trừ {key} sao.";
-        link = "/cfr";
-      }
-      else if (type == 501)
-      {
-        name = $"Bạn đã nhận được ghi nhận từ {creator}.";
-        link = "/cfr";
-      }
-      else if (type == 502)
-      {
-        name = $"{creator} đã tặng cho bạn {key} sao.";
-        link = "/cfr";
-      }
-      else if (type == 512)
-      {
-        var cfrType = key == "2" ? "ghi nhận" : "tặng sao";
-        name = $"{creator} đã thả tim cho hành động {cfrType} của bạn.";
-        link = $"/cfr?type={key}&send=true";
-      }
+      // OKRs
       else if (type == 503)
       {
         var current = await DbOkrCheckin.Get(companyId, key);
@@ -347,6 +425,11 @@ namespace OnetezSoft.Data
         name = $"{creator} đã gửi đánh giá OKR. Bạn hãy xem đánh giá nhé!";
         link = $"/okr/review/{current.user_create}/{key}";
       }
+      else if (type == 513)
+      {
+        name = $"{creator} đã thêm bạn vào hành động thuộc OKRs!";
+        link = $"/okr/tasks/user/{create}";
+      }
 
       // ĐÀO TẠO
       else if (type == 600)
@@ -373,40 +456,41 @@ namespace OnetezSoft.Data
         name = $"Bài thi của bạn ở Khoá học '{current.course_name}' đã được chấm.";
         link = "/educate/course/list/learn/" + current.lesson;
       }
+
       else if (type == 800)
       {
         name = $"{creator} đã tạo ca làm <b>{key}</b>";
-        link = $"/hrm/setup/work-shift";
+        link = $"/configs/timekeeping/work-shift";
       }
       else if (type == 801)
       {
         name = $"{creator} đã chỉnh sửa thông tin ca làm <b>{key}</b>";
-        link = $"/hrm/setup/work-shift";
+        link = $"/configs/timekeeping/work-shift";
       }
       else if (type == 802)
       {
         name = $"{creator} đã xóa ca làm <b>{key}</b>";
-        link = $"/hrm/setup/work-shift";
+        link = $"/configs/timekeeping/work-shift";
       }
       else if (type == 803)
       {
         name = $"{creator} đã tạo địa điểm chấm công <b>{key}</b>";
-        link = $"/hrm/setup/locations";
+        link = $"/configs/timekeeping/locations";
       }
       else if (type == 804)
       {
         name = $"{creator} đã chỉnh sửa thông tin của <b>{key}</b>";
-        link = $"/hrm/setup/locations";
+        link = $"/configs/timekeeping/locations";
       }
       else if (type == 805)
       {
         name = $"{creator} đã xóa địa điểm chấm công <b>{key}</b>";
-        link = $"/hrm/setup/locations";
+        link = $"/configs/timekeeping/locations";
       }
       else if (type == 806)
       {
         name = $"{creator} đã chỉnh sửa thông tin <b>{key}</b>";
-        link = $"/hrm/setup/rules";
+        link = $"/configs/timekeeping/rules";
       }
       else if (type == 807)
       {
@@ -428,20 +512,18 @@ namespace OnetezSoft.Data
       else if (type == 810)
       {
         name = $"{creator} đã tạo mới ngày nghỉ <b>{key}</b>";
-        link = $"/hrm/setup/dayoff";
+        link = $"/configs/timekeeping/dayoff";
       }
       else if (type == 811)
       {
         name = $"{creator} đã chỉnh sửa ngày nghỉ <b>{key}</b>";
-        link = $"/hrm/setup/dayoff";
+        link = $"/configs/timekeeping/dayoff";
       }
       else if (type == 812)
       {
         name = $"{creator} đã xoá ngày nghỉ <b>{key}</b>";
-        link = $"/hrm/setup/dayoff";
+        link = $"/configs/timekeeping/dayoff";
       }
-
-
 
       // đơn từ
       else if (type == 813)
@@ -464,7 +546,7 @@ namespace OnetezSoft.Data
       else if (type == 816)
       {
         name = $"{creator} đã yêu cầu đăng ký thiết bị mới";
-        link = $"/hrm/setup/device";
+        link = $"/configs/timekeeping/device";
       }
       else if (type == 817)
       {
@@ -479,17 +561,374 @@ namespace OnetezSoft.Data
         name = $"{creator} đã phê duyệt bảng đăng ký ca làm {key}";
         link = $"/hrm/timelist";
       }
+      else if (type == 820)
+      {
+        name = $"{creator} đã yêu cầu phân địa điểm chấm công, vui lòng cân nhắc thực hiện nó";
+        link = $"/configs/timekeeping/locationassign";
+      }
+      else if (type == 821)
+      {
+        var form = await DbHrmForm.Get(companyId, key);
+        var userForm = await DbUser.Get(companyId, form.user, null);
+        var userTemp = "<b>" + (userForm != null ? userForm.FullName : key) + "</b>";
 
+        if (form != null)
+        {
+          if (target == form.user)
+            name = $"Đơn từ <b>{form.form.name}</b> của bạn có bình luận mới.";
+          else
+            name = $"Đơn từ <b>{form.form.name}</b> của {userTemp} có bình luận mới.";
+
+          link = $"/hrm/form/1?form={key}&tab=2";
+        }
+      }
+      else if (type == 822)
+      {
+        var form = await DbHrmForm.Get(companyId, key);
+        var userForm = await DbUser.Get(companyId, form.user, null);
+        var userTemp = "<b>" + (userForm != null ? userForm.FullName : key) + "</b>";
+        if (form != null)
+        {
+          if (target == form.user)
+            name = $"{creator} đã nhắc đến bạn trong 1 bình luận tại đơn từ <b>{form.form.name}</b>!";
+          else
+            name = $"{creator} đã nhắc đến bạn trong 1 bình luận tại đơn từ <b>{form.form.name}</b> của <b>{userTemp}</b>!";
+
+          link = $"/hrm/form/1?form={key}&tab=2";
+        }
+      }
+
+      // CFRs
+      else if (type == 900)
+      {
+        name = Convert.ToInt32(key) > 0 ? $"Bạn đã được cấp {key} sao." : $"Bạn đã bị trừ {key} sao.";
+        link = "/cfr";
+      }
+      else if (type == 901)
+      {
+        name = $"Bạn đã nhận được ghi nhận từ {creator}.";
+        link = "/cfr";
+      }
+      else if (type == 902)
+      {
+        name = $"{creator} đã tặng cho bạn {key} sao.";
+        link = "/cfr";
+      }
+      else if (type == 903)
+      {
+        var cfrType = key == "2" ? "ghi nhận" : "tặng sao";
+        name = $"{creator} đã thả tim cho hành động {cfrType} của bạn.";
+        link = $"/cfr?type={key}&send=true";
+      }
+
+
+      // KPIs
+      // Chu kỳ
+      else if (type == 1000)
+      {
+        name = $"{creator} đã tạo chu kỳ <b>{key}</b>";
+        link = $"/configs/kpis/cycle";
+      }
+      else if (type == 1001)
+      {
+        name = $"{creator} đã chỉnh sửa thông tin của chu kỳ <b>{key}</b>";
+        link = $"/configs/kpis/cycle";
+      }
+      else if (type == 1002)
+      {
+        name = $"{creator} đã xóa chu kỳ <b>{key}</b>";
+        link = $"/configs/kpis/cycle";
+      }
+      else if (type == 1003)
+      {
+        name = $"{creator} đã tạo chỉ số <b>{key}</b>";
+        link = $"/configs/kpis/metric";
+      }
+      else if (type == 1004)
+      {
+        name = $"{creator} đã chỉnh sửa thông tin của chỉ số <b>{key}</b>";
+        link = $"/configs/kpis/metric";
+      }
+      else if (type == 1005)
+      {
+        name = $"{creator} đã xóa chỉ số <b>{key}</b>";
+        link = $"/configs/kpis/metric";
+      }
+
+      // Cây KPIs
+      // content[0]: Tên KPIs, content[1]: Tên chu kỳ, content[2]: Id KPIs
+      // tạo KPIs
+      // Người quản lý và người xem
+      else if (type == 1006)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã tạo KPIs {content[0]} trong cây KPIs {content[2]} thuộc chu kỳ {content[4]}";
+          link = $"/kpis/root/{content[3]}?id={content[1]}&tab_overview=2";
+        }
+      }
+      // Người giám sát
+      else if (type == 1007)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã giao cho bạn KPIs quản lý {content[0]} trong chu kỳ {content[4]}";
+          link = $"/kpis/manager/list?id={content[1]}";
+        }
+      }
+      // Người thực hiện
+      else if (type == 1008)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã giao cho bạn KPIs nhập liệu {content[0]} trong chu kỳ {content[4]}";
+          link = $"/kpis/person/{content[1]}";
+        }
+      }
+      // chỉnh sửa KPIs
+      // Người quản lý và người xem
+      else if (type == 1009)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã chỉnh sửa thông tin của KPIs {content[0]} trong cây KPIs {content[2]} thuộc chu kỳ {content[4]}";
+          link = $"/kpis/root/{content[3]}?id={content[1]}&tab_overview=2";
+        }
+      }
+      // Người giám sát
+      else if (type == 1010)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã chỉnh sửa thông tin của KPIs quản lý {content[0]} trong chu kỳ {content[4]}";
+          link = $"/kpis/manager/list?id={content[1]}";
+        }
+      }
+      // Người thực hiện
+      else if (type == 1011)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã chỉnh sửa thông tin của KPIs nhập liệu {content[0]} trong chu kỳ {content[4]}";
+          link = $"/kpis/person/{content[1]}";
+        }
+      }
+      // xoá KPIs
+      // Người quản lý và người xem
+      else if (type == 1012)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã xóa KPIs {content[0]} trong cây KPIs {content[2]} thuộc chu kỳ {content[4]}";
+          link = $"/kpis/root/{content[3]}?tab_overview=2";
+        }
+      }
+      // Người giám sát
+      else if (type == 1013)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã xóa KPIs quản lý {content[0]} trong chu kỳ {content[4]}";
+          link = $"/kpis/manager/list";
+        }
+      }
+      // Người thực hiện
+      else if (type == 1014)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã xóa KPIs nhập liệu {content[0]} trong chu kỳ {content[4]}";
+          link = $"/kpis/person/{content[1]}";
+        }
+      }
+
+      //checkin KPIs
+      else if (type == 1015)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã gửi bản check-in của KPIs nhập liệu {content[0]} trong chu kỳ {content[4]}";
+          link = $"/kpis/manager/confirm?id={content[1]}&confirm=true";
+        }
+      }
+      else if (type == 1016)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã cập nhật bản check-in của KPIs nhập liệu {content[0]} trong chu kỳ {content[4]}";
+          link = $"/kpis/manager/confirm?id={content[1]}&confirm=true";
+        }
+      }
+      // Phê duyệt
+      else if (type == 1017)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã xác nhận bản check-in của KPIs {content[0]} trong chu kỳ {content[4]}";
+          link = $"/kpis/person/{content[1]}";
+        }
+      }
+
+      // tạo cây kpis trong 1 chu kỳ 
+      // quản lý chu kỳ
+      else if (type == 1018)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} tạo cây KPIs {content[0]} trong chu kỳ {content[4]}";
+          link = $"/kpis/root/{content[3]}";
+        }
+      }
+      // quản lý cây kpis
+      else if (type == 1019)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã cấp cho bạn quyền quản lý cây KPIs {content[0]} trong chu kỳ {content[4]}";
+          link = $"/kpis/root/{content[3]}";
+        }
+      }
+      // quản lý người xem
+      else if (type == 1020)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã cấp cho bạn quyền người xem cây KPIs {content[0]} trong chu kỳ {content[4]}";
+          link = $"/kpis/root/{content[3]}";
+        }
+      }
+      // chỉnh sửa cây kpis
+      else if (type == 1021)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã chỉnh sửa thông tin của cây KPIs {content[0]} trong chu kỳ {content[4]}";
+          link = $"/kpis/root/{content[3]}";
+        }
+      }
+      // xoá cây KPIs
+      else if (type == 1022)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã xóa cây KPIs {content[0]} trong chu kỳ {content[4]}";
+          link = $"/kpis/root";
+        }
+      }
+
+      // bình luận KPIs
+      // người tham gia bình luận nhập liệu
+      else if (type == 1023)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã bình luận trong KPIs nhập liệu {content[0]} thuộc chu kỳ {content[4]}";
+          link = $"/kpis/person/{content[1]}?tab=2";
+        }
+      }
+      // người tham gia bình luận giám sát
+      else if (type == 1024)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã bình luận trong KPIs tự động {content[0]} thuộc chu kỳ {content[4]}";
+          link = $"/kpis/manager/list?id={content[1]}&tab=3";
+        }
+      }
+      // quản lý phía trên
+      else if (type == 1025)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã bình luận tại KPIs {content[0]} của cây KPIs {content[2]} thuộc chu kỳ {content[4]}";
+          link = $"/kpis/manager/list?id={content[1]}&tab=3";
+        }
+      }
+      // quản lý cây kpis, quản lý chu kỳ, người xem
+      else if (type == 1026)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã bình luận tại KPIs {content[0]} của cây KPIs {content[2]} thuộc chu kỳ {content[4]}";
+          link = $"/kpis/root/{content[3]}?id={content[1]}&tab=3&tab_overview=2";
+        }
+      }
+
+      // người được tag trong bình luận
+      // người sở hữu nhập liệu
+      else if (type == 1027)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã nhắc đến bạn trong 1 bình luận tại KPIs {content[0]} thuộc chu kỳ {content[4]}";
+          link = $"/kpis/person/{content[1]}?tab=2";
+        }
+      }
+      // người sở hữu giám sát
+      else if (type == 1028)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã nhắc đến bạn trong 1 bình luận tại KPIs {content[0]} thuộc chu kỳ {content[4]}";
+          link = $"/kpis/manager/list?id={content[1]}&tab=3";
+        }
+      }
+      // quản lý phía trên
+      else if (type == 1029)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã nhắc đến bạn trong 1 bình luận tại KPIs {content[0]} của cây KPIs {content[2]} thuộc chu kỳ {content[4]}";
+          link = $"/kpis/manager/list?id={content[1]}&tab=3";
+        }
+      }
+      // quản lý kpis, quản lý chu kỳ, người xem
+      else if (type == 1030)
+      {
+        var content = key.Split("@@@");
+        if (content.Length >= 6)
+        {
+          name = $"{creator} đã nhắc đến bạn trong 1 bình luận tại KPIs {content[0]} của cây KPIs {content[2]} thuộc chu kỳ {content[4]}";
+          link = $"/kpis/root/{content[3]}?id={content[1]}&tab=3&tab_overview=2";
+        }
+      }
       #endregion
 
       if (create != target && !string.IsNullOrEmpty(name))
       {
-        var model = new NotifyModel();
-        model.name = name;
-        model.link = link;
-        model.user = target;
-        model.type = type;
-        model.key = key;
+        var model = new NotifyModel
+        {
+          name = name,
+          link = link,
+          user = target,
+          type = type,
+          key = key,
+          user_send = user.id
+        };
 
         return await Create(companyId, model);
       }
@@ -502,12 +941,16 @@ namespace OnetezSoft.Data
     /// </summary>
     public static async Task<NotifyModel> ForPlan(string companyId, int type, string planId, string itemId, string target, string create)
     {
-      var user = await DbUser.Get(companyId, create);
+      var user = await DbUser.Get(companyId, create, null);
       var creator = "<b>" + (user != null ? user.FullName : create) + "</b>";
       var name = string.Empty;
       var link = string.Empty;
 
       var plan = await DbWorkPlan.Get(companyId, planId);
+
+      if (plan == null)
+        return null;
+
       if (type == 700)
       {
         name = $"Kế hoạch <b>{plan.name}</b> đã được tạo bởi {creator}";
@@ -628,13 +1071,13 @@ namespace OnetezSoft.Data
         name = $"Kế hoạch <b>{plan.name}</b> đã được chuyển trạng thái thành <b>{data.name}</b>.";
         link = $"/work/{planId}";
       }
-						// Tag tên kế hoạch
-						else if (type == 721)
-						{
-								var task = await DbWorkTask.Get(companyId, itemId);
-								name = $"<b>{creator}</b> đã nhắc đến bạn trong 1 bình luận tại kế hoạch <b>{plan.name}</b>!";
-								link = $"/work/{planId}/task?task={task.id}&tab=4";
-						}
+      // Tag tên kế hoạch
+      else if (type == 721)
+      {
+        var task = await DbWorkTask.Get(companyId, itemId);
+        name = $"<b>{creator}</b> đã nhắc đến bạn trong 1 bình luận tại kế hoạch <b>{plan.name}</b>!";
+        link = $"/work/{planId}/task?task={task.id}&tab=4";
+      }
 
       if (create != target)
       {
@@ -644,6 +1087,7 @@ namespace OnetezSoft.Data
         model.user = target;
         model.type = type;
         model.key = planId;
+        model.user_send = user.id;
 
         return await Create(companyId, model);
       }
@@ -700,6 +1144,16 @@ namespace OnetezSoft.Data
       else if (800 <= type && type < 900)
       {
         result.name = "HRM";
+        result.color = "is-link";
+      }
+      else if (900 <= type && type < 999)
+      {
+        result.name = "Chấm công";
+        result.color = "is-link";
+      }
+      else if (1000 <= type && type < 1099)
+      {
+        result.name = "KPIs";
         result.color = "is-link";
       }
 

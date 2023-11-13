@@ -1,0 +1,357 @@
+﻿@page "/client/companys/{Id}/setup"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
+
+<PageTitle>@_title</PageTitle>
+
+@if (CheckAccess())
+{
+  if (company != null && company.admin_id == Layout.User.id)
+  {
+    <section class="px-4">
+      <ul class="menu_bar mb-4">
+        <li>
+          <a class="icon-text has-text-white" href="/client/companys/@company.id/products">
+            <span class="icon">
+              <i class="material-icons-round is-size-5">apps</i>
+            </span>
+            <span class="is-size-7 has-text-weight-bold">Sản phẩm</span>
+          </a>
+        </li>
+        <li>
+          <a class="icon-text has-text-white" href="/client/companys/@company.id/users">
+            <span class="icon">
+              <i class="material-icons-round is-size-5">group_add</i>
+            </span>
+            <span class="is-size-7 has-text-weight-bold">Người dùng</span>
+          </a>
+        </li>
+        <li>
+          <a class="icon-text has-text-white is-active" href="/client/companys/@company.id/setup">
+            <span class="icon">
+              <i class="material-icons-round is-size-5">settings</i>
+            </span>
+            <span class="is-size-7 has-text-weight-bold">Lấy dữ liệu mẫu</span>
+          </a>
+        </li>
+      </ul>
+
+      <div>
+        <div class="field " style="gap: 10px">
+          <label class="label">Số lượng nhân viên* (Công ty này hiện tại đang có: @memberList.Count nhân viên)</label>
+          <div class="control">
+            <input @bind="total" style="max-width: 100px" type="text" class="input" placeholder="Nhập số lượng nhân viên" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="label">Chọn sản phẩm cần kích hoạt*</label>
+          <div>
+            <div class="control">
+              <div class="label mb-3">1. Sản phẩm trả phí:</div>
+              <label class="checkbox has-text-link">
+                @if (!isSelectedAll)
+                {
+                  <input type="checkbox" @onchange="() => ToggleCheckAll(true)">
+                  <span class="has-text-weight-medium">Chọn tất cả (@checkList.Count())</span>
+                }
+                else
+                {
+                  <input type="checkbox" @onchange="() => ToggleCheckAll(false)" checked>
+                  <span class="has-text-weight-medium">Bỏ chọn tất cả (@checkList.Count())</span>
+                }
+              </label>
+              <ul class="is-flex is-flex-direction-column mt-3" style="gap: 10px">
+                @foreach (var item in productList)
+                {
+                  <li class="is-flex is-align-items-center">
+                    <div class="is-flex is-align-items-center" style="gap: 0 10px; width: 350px">
+                      @if (checkList.Contains(item.id))
+                      {
+                        <input type="checkbox" @onchange="() => CheckItem(item.id)" checked />
+                      }
+                      else
+                      {
+                        <input type="checkbox" @onchange="() => CheckItem(item.id)" />
+                      }
+                      <div class="icon-text">
+                        <span class="image is-40x40 mr-2">
+                          <img src="@item.icon" alt="icon" />
+                        </span>
+                        <span class="has-text-weight-bold">@item.title</span>
+                        @if (item.id == "storage")
+                        {
+                          <span class="ml-2">(Mặc định là 5GB lưu trữ)</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="field is-flex is-align-items-center mb-0">
+                      <label class="label mb-0 mr-3">Thời gian hết hạn:</label>
+                      <div class="control">
+                        <span>@DateTime.Today.AddDays(2).ToString("dd/MM/yyyy")</span>
+                      </div>
+                    </div>
+                    <div class="field ml-2" @onclick="() => Edit(item)">
+                      <a class="icon-text">
+                        <span class="icon">
+                          <i class="material-icons-round is-size-6">edit</i>
+                        </span>
+                      </a>
+                    </div>
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="control">
+              <div class="label mb-3">2. Sản phẩm miễn phí:</div>
+              <label class="checkbox has-text-link">
+                @if (!isSelectedAllFree)
+                {
+                  <input type="checkbox" @onchange="() => ToggleCheckAllFree(true)">
+                  <span class="has-text-weight-medium">Chọn tất cả (@checkListFree.Count())</span>
+                }
+                else
+                {
+                  <input type="checkbox" @onchange="() => ToggleCheckAllFree(false)" checked>
+                  <span class="has-text-weight-medium">Bỏ chọn tất cả (@checkListFree.Count())</span>
+                }
+              </label>
+              <ul class="is-flex is-flex-direction-column  mt-3" style="gap: 10px">
+                @foreach (var item in productsFree)
+                {
+                  <li class="is-flex is-align-items-center">
+                    <div class="is-flex is-align-items-center" style="gap: 0 10px; width: 350px">
+                      @if (checkListFree.Contains(item.id))
+                      {
+                        <input type="checkbox" @onchange="() => CheckItemFree(item.id)" checked />
+                      }
+                      else
+                      {
+                        <input type="checkbox" @onchange="() => CheckItemFree(item.id)" />
+                      }
+                      <div class="icon-text">
+                        <span class="image is-40x40 mr-2">
+                          <img style="border-radius: 8px;" src="@item.icon" alt="icon" />
+                        </span>
+                        <span class="has-text-weight-bold">@item.name</span>
+                      </div>
+                    </div>
+                    <div class="field is-flex is-align-items-center mb-0">
+                      <label class="label mb-0 mr-3">Thời gian hết hạn:</label>
+                      <div class="control">
+                        <span>Miễn phí</span>
+                      </div>
+                    </div>
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="field is-flex mt-5">
+          <a class="button is-link @(isLoading ? "is-loading" : "")" @onclick="UpdateSetup">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">done</i>
+            </span>
+            <span class="is-size-7">Cập nhật</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  }
+  else
+  {
+    <section class="p-4">
+      <div class="has-text-grey has-text-centered py-6">
+        Dữ liệu không tồn tại hoặc đã xóa
+      </div>
+    </section>
+  }
+}
+else
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <div class="modal-card-head">
+        <div class="modal-card-title">Thông báo</div>
+      </div>
+      <div class="modal-card-body">
+        <div class="content">
+          Bạn không đủ quyền hạn để thao tác với chức năng này !
+          <br />
+          Liên hệ Admin để được cấp thêm quyền.
+        </div>
+      </div>
+      <div class="modal-card-foot">
+        <a class="button" onclick="goBack()">Quay lại</a>
+      </div>
+    </div>
+  </section>
+}
+
+
+
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  [Parameter]
+  public string Id { get; set; }
+  private string _title = "Lấy dữ liệu mẫu";
+  private CompanyModel company = null;
+  private List<ProductModel> productList = new();
+  private List<UserModel> memberList = new();
+  private ProductModel product = null;
+  private bool isLoading = false;
+  private List<string> checkList = new();
+  private bool isSelectedAll = false;
+  private int total;
+
+  private List<int> checkListFree = new();
+  private bool isSelectedAllFree = false;
+  private List<StaticModel> productsFree = new();
+
+  private bool CheckAccess()
+  {
+    return Layout.User.is_admin && !Layout.User.delete;
+  }
+
+  protected override async Task OnInitializedAsync()
+  {
+    company = await DbMainCompany.Get(Id);
+    if (company != null)
+    {
+      productList = await DbMainProduct.GetList();
+      memberList = await DbUser.GetAll(company.id, globalService);
+      total = memberList.Count;
+      productsFree = ModulesFree();
+    }
+  }
+
+  // Hàm update setup
+  private async Task<bool> UpdateSetup()
+  {
+    bool _success = true;
+    try
+    {
+      if (total <= 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Số lượng nhân viên phải lớn hơn 0!");
+      else if (total < memberList.Count)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Số lượng nhân viên bạn vừa nhập đang nhỏ hơn số lượng nhân viên hiện tại!");
+      else if (checkList.Count == 0 && checkListFree.Count == 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần kích hoạt ít nhất 1 sản phẩm!");
+      else
+      {
+        isLoading = true;
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Vui lòng chờ đợi trong ít phút...");
+        var modules = new List<string>();
+        // Xử lý thêm module
+        foreach (var item in checkList)
+        {
+          var productItem = productList.FirstOrDefault(x => x.id == item);
+          var model = new CompanyModel.Product
+          {
+            id = productItem.id,
+            title = productItem.title,
+            active = true,
+            total = total,
+            used = memberList.Count,
+            start = DateTime.Today.Ticks,
+            end = DateTime.Today.AddDays(2).Ticks,
+          };
+          if (model.id == "storage")
+            model.total = 5;
+          company.products.Add(model);
+          company.isUsed = true;
+          modules.Add(productItem.id);
+          await DbMainCompany.Update(company);
+
+          // Add nhân viên vào module
+          foreach (var user in memberList)
+          {
+            user.products.Add(productItem.id);
+            await DbUser.Update(company.id, user, globalService);
+          }
+        }
+
+        foreach (var i in checkListFree)
+        {
+          var item = productsFree.FirstOrDefault(x => x.id == i);
+          modules.Add(item.name);
+        }
+        // Xử ý tự động config data
+        var isDone = await CompanyService.InitCompanyTemplate(company.id, company.name, modules, memberList, globalService);
+
+        if (isDone)
+        {
+          isLoading = false;
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hoàn thành xong việc setup!");
+          navigation.NavigateTo("/client/companys/" + company.id + "/users", false);
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateSetup()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+
+  private void CheckItem(string id)
+  {
+    if (checkList.Contains(id))
+      checkList.Remove(id);
+    else
+      checkList.Add(id);
+  }
+
+  private void CheckItemFree(int id)
+  {
+    if (checkListFree.Contains(id))
+      checkListFree.Remove(id);
+    else
+      checkListFree.Add(id);
+  }
+
+  private void ToggleCheckAll(bool value)
+  {
+    if (value)
+      checkList = productList.Select(x => x.id).ToList();
+    else
+      checkList = new();
+
+    isSelectedAll = value;
+  }
+
+  private void ToggleCheckAllFree(bool value)
+  {
+    if (value)
+      checkListFree = productsFree.Select(x => x.id).ToList();
+    else
+      checkListFree = new();
+
+    isSelectedAllFree = value;
+  }
+
+  private async Task Edit(ProductModel model)
+  {
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Tính năng này đang trong quá trình phát triển, vui lòng đợi...");
+  }
+
+  private static List<StaticModel> ModulesFree()
+  {
+    var modules = new List<StaticModel>();
+
+    modules.Add(new StaticModel { id = 1, name = "fShop", icon = "https://ui-avatars.com/api/?background=random&color=fff&name=S&length=3" });
+    modules.Add(new StaticModel { id = 2, name = "fNews", icon = "https://ui-avatars.com/api/?background=random&color=fff&name=N&length=3" });
+    return modules;
+  }
+}

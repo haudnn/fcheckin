@@ -1,0 +1,739 @@
+﻿@using System.Globalization;
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
+
+@if (form != null)
+{
+  <Slider Size="@ComponentModel.SizeType.Large">
+    <Header>
+      <div class="columns is-variable is-2 is-mobile is-vcentered">
+        <div class="column">
+          <div class="has-text-weight-bold is-size-5">
+            Chi tiết đơn từ
+          </div>
+        </div>
+        <div class="column is-narrow">
+          <Button Content="Đóng" IconLeft="close" Onclick="Cancel" />
+        </div>
+      </div>
+    </Header>
+    <Body>
+      <ul class="flex_column"
+          style="height:100%;">
+        <li class="mb-2">
+          <ul class="is-flex">
+            <div class="button mr-2 @(tab == 1 ? " is-link is-blue" : " is-grey")"
+            @onclick="() => ChangeTab(1)">
+              <span class="text_1_line is-size-6">
+                Thông tin chung
+              </span>
+            </div>
+
+            <div title="@(form.comment > 0 ? $"Có {form.comment} bình luận" : "Chưa có bình luận")"
+                 class="button @(tab == 2 ? " is-link is-blue" : " is-grey")"
+            @onclick="() => ChangeTab(2)">
+              <span class="text_1_line is-size-6">
+                Bình luận
+              </span>
+            </div>
+          </ul>
+        </li>
+        @if (tab == 1)
+        {
+          <li 
+            class="scrolly"
+            style="flex:1">
+            <div class="columns is-multiline is-mobile is-variable is-2">
+              <div class="column is-full has-text-grey">
+                <span>Loại đơn</span>
+                <span class="text_1_line mt-2 is-size-6 has-text-weight-medium has-text-black">
+                  @form.form.name
+                </span>
+              </div>
+              <div class="column is-full-mobile is-half-tablet has-text-grey">
+                <span>Người tạo đơn</span>
+                <div class="user_item mt-2">
+                  <img class="image is-24x24 mr-2" src="@users.Find(i => i.id == form.user).avatar" alt="IMG">
+                  <span class="text_2_line is-size-6 has-text-weight-medium has-text-black">
+                    @users.Find(i => i.id == form.user).FullName
+                    <p class="is-size-7 has-text-grey">
+                      @users.Find(i => i.id == form.user)?.departments_name?.Split("/").Last()
+                    </p>
+                  </span>
+                </div>
+              </div>
+              <div class="column is-full-mobile is-half-tablet has-text-grey">
+                <span>Ngày tạo</span>
+                <span class="text_1_line mt-2 is-size-6 has-text-weight-medium has-text-black">
+                  <span>@(new DateTime(form.created).ToString("dd'/'MM'/'yyyy"))</span>
+                  <span>•</span>
+                  <span>@(new DateTime(form.created).ToString("HH:mm"))</span>
+                </span>
+              </div>
+
+              <div class="column is-half has-text-grey">
+                <span>Công đăng ký</span>
+                <span class="text_1_line mt-2 is-size-6 has-text-weight-medium has-text-black">
+                  @Math.Round(totalTime, 2)
+                </span>
+              </div>
+
+              <div class="column is-half has-text-grey">
+                <span>Ngày nghỉ thực tế</span>
+                <span class="text_1_line mt-2 is-size-6 has-text-weight-medium has-text-black">
+                  @totalDateOff
+                </span>
+              </div>
+
+              <div class="column is-full has-text-grey is-flex is-align-items-center py-0">
+                <span class="mr-4" style="white-space: nowrap;">Thời gian áp dụng</span>
+                <hr class="is-fullwidth" />
+              </div>
+
+              <div class="column is-full">
+                @if (form.work_date_shifts.Any())
+                {
+                  <div class="is-flex is-flex-wrap-wrap" style="gap: 20px;">
+                    @foreach (var workDate in form.work_date_shifts)
+                    {
+                      <div class="tag p-2 has-background-link-light font_14" style="min-width: 288px;">
+                        <span>
+                          @(new DateTime(workDate.start).ToString("dd'/'MM'/'yyyy"))
+                        </span>
+                        <span class="has-text-weight-normal ml-1">
+                          @(new DateTime(workDate.start).ToString("HH:mm"))
+                        </span>
+
+                        <span class="material-icons mx-1">
+                          arrow_right_alt
+                        </span>
+
+                        <span>
+                          @(new DateTime(workDate.end).ToString("dd'/'MM'/'yyyy"))
+                        </span>
+                        <span class="has-text-weight-normal ml-1">
+                          @(new DateTime(workDate.end).ToString("HH:mm"))
+                        </span>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+
+              <div class="column is-full has-text-grey is-flex is-align-items-center py-0">
+                <span class="mr-4" style="white-space: nowrap;">Ca làm</span>
+                <hr class="is-fullwidth" />
+              </div>
+              @if (totalDateOff < 7)
+              {
+                <div class="column is-full px-1 py-0">
+                  @if (shiftByDates.Values.Where(i => i != null).SelectMany(i => i).Any())
+                  {
+                    <ul class="columns is-multiline is-variable is-2 m-0">
+                      @foreach (var item in shiftByDates)
+                      {
+                        if (item.Value != null && item.Value.Any())
+                        {
+                          <li class="column is-half-tablet is-full-mobile">
+                            <div class="is-flex is-align-items-center">
+                              <span class="is-fullwidth mb-2 text_1_line is-size-6 has-text-black has-text-weight-medium">
+                                @(new DateTime(item.Key).ToString("dd'/'MM'/'yyyy"))
+                              </span>
+                            </div>
+
+                            <ul class="columns is-multiline is-variable m-0">
+                              @foreach (var shiftId in item.Value)
+                              {
+                                var workShift = workShiftList.FirstOrDefault(i => i.id == shiftId);
+                                @if (workShift != null)
+                                {
+                                  <li class="column font_14 p-0">
+                                    <div class="is-flex is-align-items-center has-text-grey">
+                                      <span class="text_1_line is-flex is-align-items-center">
+                                        <span class="text_1_line">@workShift.name</span>
+                                        <span class="mx-1">•</span>
+                                        <span>
+                                          @($"{workShift.checkin} - {workShift.checkout}")
+                                        </span>
+                                        <span class="mx-1">•</span>
+                                        <span>
+                                          @($"Số công: {workShift.value}")
+                                        </span>
+                                      </span>
+                                    </div>
+                                  </li>
+                                }
+                              }
+                            </ul>
+                          </li>
+                        }
+
+                        if (item.Value == null)
+                        {
+                          // TH: ngày nghỉ;
+                          <li class="column is-half">
+                            <span class="is-fullwidth mb-2 text_1_line is-size-6 has-text-black has-text-weight-medium">
+                              @(new DateTime(item.Key).ToString("dd'/'MM'/'yyyy"))
+                            </span>
+                            <span class="has-text-danger">Ngày nghỉ</span>
+                          </li>
+                        }
+                      }
+                    </ul>
+                  }
+                  else if (shiftByDates.Values.Where(i => i == null).Any())
+                  {
+                    @foreach (var item in shiftByDates)
+                    {
+                      // TH: ngày nghỉ;
+                      <div class="column is-half">
+                        <span class="is-fullwidth mb-2 text_1_line is-size-6 has-text-black has-text-weight-medium">
+                          @(new DateTime(item.Key).ToString("dd'/'MM'/'yyyy"))
+                        </span>
+                        <span class="has-text-danger">Ngày nghỉ</span>
+                      </div>
+                    }
+                  }
+                  else
+                  {
+                    <div class="column is-full has-text-weight-semibold has-text-danger has-text-centered">
+                      Không có ca làm vào thời gian trên
+                    </div>
+                  }
+                </div>
+              }
+
+              <div class="column has-text-grey is-flex is-align-items-center py-0">
+                <span class="mr-4" style="white-space: nowrap;">Lý do</span>
+                <hr class="is-fullwidth" />
+              </div>
+              <div class="column is-full" style="word-break: break-word;">
+                @form.reason
+              </div>
+
+              @if (ProductService.CheckStorage(Layout.Company) && form.files.Any())
+              {
+                <div class="column has-text-grey is-12 is-flex is-align-items-center py-0">
+                  <span class="mr-4" style="white-space: nowrap;">File đính kèm</span>
+                  <hr class="is-fullwidth" />
+                </div>
+                <div class="column is-full">
+                  <FileViews Delete="false" Values="form.files" />
+                </div>
+              }
+
+
+              <div class="column has-text-grey is-flex is-align-items-center py-0">
+                <span class="mr-4" style="white-space: nowrap;">Tiến trình</span>
+                <hr class="is-fullwidth" />
+              </div>
+              <div class="column is-full font_14 p-0">
+                @{
+                  var checkCancel = false;
+                }
+                <div class="columns is-multiline is-vcentered is-vertical m-0">
+                  @foreach (var confirmItem in form.confirm_users.OrderBy(i => i.pos).ToList())
+                  {
+                    var user = users.Find(i => i.id == confirmItem.user);
+                    var confirm = new StaticModel();
+
+                    if (user != null)
+                    {
+
+                      if (checkCancel)
+                      {
+                        confirm = DbHrmForm.GetConfirmStatusDetail(4);
+                      }
+                      else
+                      {
+                        confirm = DbHrmForm.GetConfirmStatusDetail(confirmItem.status);
+                      }
+
+                      if (confirmItem.status == 3)
+                      {
+                        checkCancel = true;
+                      }
+
+                      <div class="column is-half is-flex is-align-items-center" title="@confirm.name"
+                           style="opacity: @(confirmItem.status == 1 || confirmItem.status == 4 ? "0.2" : "1");">
+                        <div class="user_item is-fullwidth" title="@user.FullName">
+                          <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG">
+                          <div style="flex-grow: 0;">
+                            <span class="text_1_line is-size-6 has-text-black has-text-weight-medium">
+                              @user.FullName
+                            </span>
+
+                            @if (confirmItem.date > 0)
+                            {
+                              <span class="has-text-grey font_14">@(new DateTime(confirmItem.date).ToString("HH':'mm dd'/'MM'/'yyyy"))</span>
+                            }
+                          </div>
+                          <span class="material-icons-outlined ml-4 @confirm.color">
+                            @confirm.icon
+                          </span>
+                        </div>
+
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+
+              @if (form.images.Any())
+              {
+                <div class="column has-text-grey is-flex is-align-items-center py-0">
+                  <span class="mr-4" style="white-space: nowrap;">Hình ảnh</span>
+                  <hr class="is-fullwidth" />
+                </div>
+                <div class="column font_14">
+                  <ul class="columns is-multiline is-variable">
+                    @foreach (var image in form.images)
+                    {
+                      <li class="column is-one-third">
+                        <a class="image is-4by3 is-radius is-block" href="@image" target="_blank">
+                          <img src="@image" alt="IMG">
+                        </a>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+            </div>
+          </li>
+        }
+        else if (tab == 2)
+        {
+          <li class="is-size-7" style="flex:1;">
+            <div style="height: 100%" class="is-size-7 is-flex is-flex-direction-column">
+              @if (Layout.IsMobile)
+              {
+                <div class="is-size-6 has-text-weight-medium">BÌNH LUẬN</div>
+              }
+              <FormComments form="form" comments="comments" members="members" />
+            </div>
+
+          </li>
+        }
+      </ul>
+    </Body>
+    <Footer>
+      <div class="field is-grouped is-grouped-right" style="gap:10px;">
+        @if(tab == 1)
+      {
+        @if (form.user == Layout.User.id)
+        {
+          if (form.confirm_users.All(i => i.status == 1))
+          {
+            <Button Content="Hủy"
+                    IconLeft="close"
+                    Color="@ComponentModel.ColorType.Info"
+                    Onclick="Cancel" />
+
+            <Button Content="Thu hồi"
+                    IconLeft="history"
+                    Color="@ComponentModel.ColorType.Danger"
+                    Onclick="() => {confirmCancel = true; formIdSelect = form.id;}" />
+          }
+          else
+          {
+            <Button 
+              Disabled
+              Content="Thu hồi"
+              IconLeft="history"
+              Color="@ComponentModel.ColorType.Danger"
+              Onclick="() => {}" />
+          }
+        }
+
+        @if (form.confirm_users.Select(i => i.user).Contains(Layout.User.id))
+        {
+          var confirm = form.confirm_users.Find(i => i.user == Layout.User.id);
+          <!--Trường hợp chưa xác nhận-->
+          @if (confirm.status == 1)
+          {
+            <Button Content="Hủy"
+                    IconLeft="close"
+                    Color="@ComponentModel.ColorType.Info"
+                    Onclick="Cancel" />
+
+            <Button Content="Từ chối"
+                    IconLeft="cancel"
+                    IsInverted
+                    Color="@ComponentModel.ColorType.Danger"
+                    Onclick="() => Confirm(form, 3)" />
+
+            <Button Content="Phê duyệt"
+                    IconLeft="check"
+                    Color="@ComponentModel.ColorType.Success"
+                    Onclick="() => Confirm(form, 2)" />
+          }
+          else
+          {
+            // đã xác nhận
+            if (confirm.status == 2)
+            {
+              <span class="is-flex is-align-items-center mr-2">
+                <span class="icon">
+                  <span class="material-icons-outlined is-size-6 has-text-success">check</span>
+                </span>
+                <span class="has-text-success">Đã phê duyệt</span>
+              </span>
+            }
+
+            // đã từ chối
+            if (confirm.status == 3)
+            {
+              <span class="is-flex is-align-items-center mr-2">
+                <span class="icon">
+                  <span class="material-icons-outlined is-size-6 has-text-danger">cancel</span>
+                </span>
+                <span class="has-text-danger">Đã từ chối</span>
+              </span>
+            }
+          }
+        }
+      }
+      </div>
+    </Footer>
+  </Slider>
+}
+
+<!-- Xác nhận thu hồi  -->
+@if (confirmCancel)
+{
+  <CancelFormPopup formIdSelect="@formIdSelect" OnUpdate="ConfirmCancel" />
+}
+
+<!-- Xác nhận phê duyệt bảng công bị xoá  -->
+@if (lockConfirmShow)
+{
+  <LockFormPopup dateLock="dateLock" OnUpdate="ConfirmLock" />
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public HrmFormModel form { get; set; }
+  [Parameter]
+  public List<UserModel> users { get; set; } = new();
+  [Parameter]
+  public List<HrmTimeListModel> timeList { get; set; } = new();
+  [Parameter]
+  public List<HrmWorkShiftModel> workShiftList { get; set; } = new();
+  [Parameter]
+  public List<HrmDayOffModel> dayOffs { get; set; } = new();
+  [Parameter]
+  public bool commentTab { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+  private List<HrmTimeListModel.Shift> shiftList = new();
+  private Dictionary<long, List<string>> shiftByDates = new();
+  private List<HrmFormModel.WorkDateShift> workDateShifts = new();
+  private double totalTime;
+  private int totalDateOff;
+
+  private List<MemberModel> members = new();
+
+  private int tab;
+
+  private List<HrmFormModel.Comment> comments = new();
+
+  private int statusUpdate;
+  private HrmFormModel formUpdate;
+  public bool confirmCancel;
+  private string formIdSelect = "";
+  private List<long> dateLock = new();
+  private bool lockConfirmShow;
+  private bool lockConfirm;
+
+  private SharedStorage shareStorage = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    // list người liên quan đến đơn từ (người tạo đơn, người nhận được thông báo chuông)
+    members = shareStorage.MemberList.Where(i => form.user == i.id || form.users_comment.Contains(i.id)).ToList();
+    if (commentTab)
+      tab = 2;
+    else
+      tab = 1;
+
+    await GetData();
+  }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(false);
+  }
+
+  private async Task ChangeTab(int index)
+  {
+    tab = index;
+    if (index == 2)
+    {
+      // Bình luận
+      comments = await DbHrmFormComment.GetList(Layout.Company.id, form.id);
+      await JSRuntime.InvokeVoidAsync("setFocus", "form_comment");
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "form_comment");
+    }
+  }
+
+  private async Task GetData()
+  {
+    workDateShifts = form.work_date_shifts.Where(i => true).ToList();
+
+    totalTime = 0;
+    totalDateOff = 0;
+
+    shiftList = new();
+
+    foreach (var item in workDateShifts)
+    {
+      var shiftListTemp = await DbHrmTimeList.GetByRangeDate(Layout.Company.id, Layout.User.id, new DateTime(item.start).Date.Ticks, item.end);
+      if (shiftListTemp.Any())
+        shiftList.AddRange(shiftListTemp);
+      totalDateOff += (new DateTime(item.end).Date - new DateTime(item.start).Date).Days + 1;
+    }
+
+    var dateOff = shiftList.Where(i => !string.IsNullOrEmpty(i.dayoff_id)).ToList().Count;
+    totalDateOff = totalDateOff - dateOff;
+
+    shiftByDates = new();
+
+    shiftList = shiftList.Where(i => true).OrderBy(i => i.day).ToList();
+
+    if (shiftList.Any())
+    {
+      foreach (var item in shiftList)
+      {
+        if (!string.IsNullOrEmpty(item.dayoff_id))
+        {
+          //TH: ngày nghỉ
+          shiftByDates.Add(item.day, null);
+        }
+        else
+        {
+          var shiftsId = item.shifts_id.Where(i => true).ToList();
+          foreach (var shiftId in item.shifts_id)
+          {
+            var workShift = workShiftList.Find(i => i.id == shiftId);
+            if (workShift != null)
+            {
+              var timeInString = new DateTime(item.day).ToString("dd'/'MM'/'yyyy") + " " + workShift.checkin;
+              var timeInCheck = DateTime.ParseExact(timeInString, "dd'/'MM'/'yyyy HH:mm", CultureInfo.InvariantCulture).Ticks;
+              var timeOutString = new DateTime(item.day).ToString("dd'/'MM'/'yyyy") + " " + workShift.checkout;
+              var timeOutCheck = DateTime.ParseExact(timeOutString, "dd'/'MM'/'yyyy HH:mm", CultureInfo.InvariantCulture).Ticks;
+              if (!workDateShifts.Any(i => (i.start <= timeInCheck && timeInCheck <= i.end) || (timeInCheck <= i.start && i.start <= timeOutCheck)))
+                shiftsId.RemoveAll(i => i == workShift.id);
+            }
+          }
+          if (shiftByDates.ContainsKey(item.day))
+          {
+            shiftByDates[item.day].AddRange(shiftsId);
+            shiftByDates[item.day] = shiftByDates[item.day].Distinct().ToList();
+          }
+          else
+            shiftByDates.Add(item.day, shiftsId);
+        }
+      }
+    }
+
+    foreach (var item in shiftByDates.Values.Where(i => i != null).ToList())
+    {
+      foreach (var shiftId in item)
+      {
+        if (workShiftList.Find(i => i.id == shiftId) != null)
+        {
+          totalTime += workShiftList.Find(i => i.id == shiftId).value;
+        }
+      }
+    }
+
+    shiftByDates = shiftByDates.OrderBy(i => i.Key).ToDictionary(i => i.Key, i => i.Value);
+  }
+
+
+  private async Task ConfirmCancel(bool confirm)
+  {
+    if (confirm)
+      await OnUpdate.InvokeAsync(true);
+    else
+      formIdSelect = "";
+
+    confirmCancel = false;
+  }
+
+  /// <summary>Phê duyệt đơn từ</summary>
+  private async Task Confirm(HrmFormModel item, int status)
+  {
+    HrmFormModel formTemp = Shared.Clone(item);
+    formUpdate = Shared.Clone(item); ;
+    statusUpdate = status;
+
+    // kiểm tra đơn từ còn tồn tại không
+    var check = DbHrmForm.Get(Layout.Company.id, formTemp.id);
+    if (check != null)
+    {
+      var confirmList = formTemp.confirm_users.Where(i => true).ToList();
+      var old = confirmList.Find(i => i.user == Layout.User.id);
+      confirmList.RemoveAll(i => i.user == Layout.User.id);
+      confirmList.Add(new()
+        {
+          user = old.user,
+          pos = old.pos,
+          status = status,
+          date = DateTime.Now.Ticks
+        });
+      formTemp.confirm_users = confirmList;
+
+      // cập nhật bên bảng công
+      if (formTemp.confirm_users.All(i => i.status == 2))
+      {
+        var confirmItem = await HrmService.UpdateFormTimeSheetUser(Layout.Company.id, formTemp, timeList, workShiftList, dayOffs, false);
+        formTemp = confirmItem.Item1;
+        dateLock = confirmItem.Item2;
+      }
+
+      if (dateLock.Any())
+        lockConfirmShow = true;
+
+      if (!lockConfirmShow || lockConfirm)
+      {
+        // cập nhật bên bảng công
+        if (formTemp.confirm_users.All(i => i.status == 2))
+        {
+          var confirmItem = await HrmService.UpdateFormTimeSheetUser(Layout.Company.id, formTemp, timeList, workShiftList, dayOffs, true);
+          formTemp = confirmItem.Item1;
+        }
+
+        await DbHrmForm.Update(Layout.Company.id, formTemp);
+
+        if (status == 2)
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Phê duyệt đơn từ thành công!");
+        else if (status == 3)
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Từ chối đơn từ thành công!");
+
+        await OnUpdate.InvokeAsync(true);
+
+        if (dateLock.Any())
+        {
+          SendMail(815, formTemp.user, status, formTemp);
+          await SendNotify(815, formTemp.user, status);
+        }
+        else
+        {
+          SendMail(814, formTemp.user, status, formTemp);
+          await SendNotify(814, formTemp.user, status);
+        }
+
+        // thông báo chuông cho người tiếp theo
+        if (status == 2 && formTemp.confirm_users.Find(i => i.user == Layout.User.id).pos != formTemp.confirm_users.Max(i => i.pos))
+        {
+          var receiver = formTemp.confirm_users.Find(i => i.pos == (formTemp.confirm_users.Find(i => i.user == Layout.User.id).pos + 1));
+          if (receiver != null)
+          {
+            formTemp.users_comment.Add(receiver.user);
+
+            SendMail(813, formTemp, receiver.user);
+            await SendNotify(813, formTemp, receiver.user);
+          }
+        }
+      }
+    }
+    else
+    {
+      await OnUpdate.InvokeAsync(true);
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Đơn từ đã bị thu hồi!");
+    }
+  }
+
+  private async Task ConfirmLock(bool confirm)
+  {
+    lockConfirm = confirm;
+
+    if (confirm)
+      await Confirm(formUpdate, statusUpdate);
+
+    lockConfirmShow = false;
+  }
+
+  private async Task SendNotify(int notifyType, string userId, int status)
+  {
+    // Gủi thông báo chuông
+    await DbNotify.Create(Layout.Company.id, notifyType, DbHrmForm.GetConfirmStatusDetail(status).name.ToLower(), userId, Layout.User.id);
+  }
+
+  private async Task SendNotify(int notifyType, HrmFormModel item, string receiver)
+  {
+    // Gủi thông báo chuông
+    await DbNotify.Create(Layout.Company.id, notifyType, item.form.name, receiver, item.user);
+  }
+
+  private void SendMail(int notifyType, HrmFormModel item, string receiver)
+  {
+    var creator = shareStorage.MemberList.Find(i => i.id == item.user);
+    var receiverUser = shareStorage.MemberList.Find(i => i.id == receiver);
+
+    if (creator != null && receiverUser != null)
+    {
+      string message = string.Empty;
+      // Gửi mail
+
+      var range = item.work_date_shifts.FirstOrDefault();
+      var start = new DateTime(range.start);
+      var end = new DateTime(range.end);
+
+      var date = "";
+      if (start.Date.Ticks == end.Date.Ticks)
+        date = $"Ngày {start.ToString("dd'/'MM'/'yyyy")} (từ {start.ToString("HH'h'mm")} đến {end.ToString("HH'h'mm")})";
+      else
+        date = $"Ngày {start.ToString("dd'/'MM'/'yyyy '-' HH'h'mm")} đến Ngày {end.ToString("dd'/'MM'/'yyyy '-' HH'h'mm")}";
+
+      var title = $"{creator.name} đã đăng ký đơn từ {item.form.name} {date}";
+
+      new Task(() =>
+      {
+        EmailService.FormMail(Layout.Company, receiverUser.email, title, form, date, shareStorage.MemberList, $"{navigation.BaseUri}hrm/form/2", out message);
+      }).Start();
+    }
+  }
+
+  private void SendMail(int notifyType, string userId, int status, HrmFormModel form)
+  {
+    var creator = shareStorage.MemberList.Find(i => i.id == Layout.User.id);
+    var receiverUser = shareStorage.MemberList.Find(i => i.id == userId);
+    var formAuthor = shareStorage.MemberList.Find(i => i.id == form.user);
+    if (creator != null && receiverUser != null)
+    {
+      string message = string.Empty;
+      string title = string.Empty;
+
+      var range = form.work_date_shifts.FirstOrDefault();
+      var start = new DateTime(range.start);
+      var end = new DateTime(range.end);
+      var date = "";
+      if (start.Date.Ticks == end.Date.Ticks)
+        date = $"Ngày {start.ToString("dd'/'MM'/'yyyy")} (từ {start.ToString("HH'h'mm")} đến {end.ToString("HH'h'mm")})";
+      else
+        date = $"Ngày {start.ToString("dd'/'MM'/'yyyy '-' HH'h'mm")} đến Ngày {end.ToString("dd'/'MM'/'yyyy '-' HH'h'mm")}";
+
+      // Gửi mail
+      if (notifyType == 814)
+      {
+        title = $"{creator.name} đã {DbHrmForm.GetConfirmStatusDetail(status).name} đơn từ {form.form.name} của bạn {date}";
+      }
+      else if (notifyType == 815)
+      {
+        title = $"{creator.name} đã {DbHrmForm.GetConfirmStatusDetail(status).name} đơn từ {form.form.name} của bạn {date} nhưng có khoảng thời gian bị khoá bảng công";
+      }
+
+      new Task(() =>
+      {
+        EmailService.FormMail(Layout.Company, receiverUser.email, title, form, date, shareStorage.MemberList, $"{navigation.BaseUri}hrm/form/1", out message);
+      }).Start();
+    }
+  }
+}

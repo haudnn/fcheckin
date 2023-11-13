@@ -4,6 +4,7 @@ using System;
 
 namespace OnetezSoft.Models;
 
+[BsonIgnoreExtraElements]
 public class HrmTimeListModel
 {
 	/// <summary>ID = UserID</summary>

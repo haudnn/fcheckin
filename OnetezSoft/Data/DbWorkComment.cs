@@ -1,85 +1,82 @@
-using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using OnetezSoft.Models;
-using MongoDB.Bson;
 using MongoDB.Driver;
+using OnetezSoft.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
-  public class DbWorkComment
-  {
-    private static string _collection = "work_comments";
+   public class DbWorkComment
+   {
+      private static string _collection = "work_comments";
 
-    public static async Task<WorkPlanModel.Comment> Create(string companyId, WorkPlanModel.Comment model)
-    {
-      model.id = Mongo.RandomId();
-      model.date = DateTime.Now.Ticks;
+      public static async Task<WorkPlanModel.Comment> Create(string companyId, WorkPlanModel.Comment model)
+      {
+         model.id = Mongo.RandomId();
+         model.date = DateTime.Now.Ticks;
 
-      var _db = Mongo.DbConnect("fastdo_" + companyId);
+         var _db = Mongo.DbConnect("fastdo_" + companyId);
 
-      var collection = _db.GetCollection<WorkPlanModel.Comment>(_collection);
+         var collection = _db.GetCollection<WorkPlanModel.Comment>(_collection);
 
-      await collection.InsertOneAsync(model);
+         await collection.InsertOneAsync(model);
 
-      return model;
-    }
-
-
-    public static async Task<WorkPlanModel.Comment> Update(string companyId, WorkPlanModel.Comment model)
-    {
-      var _db = Mongo.DbConnect("fastdo_" + companyId);
-
-      var collection = _db.GetCollection<WorkPlanModel.Comment>(_collection);
-
-      var option = new ReplaceOptions { IsUpsert = false };
-
-      var result = await collection.ReplaceOneAsync(x => x.id.Equals(model.id), model, option);
-
-      return model;
-    }
+         return model;
+      }
 
 
-    public static async Task<bool> Delete(string companyId, string id)
-    {
-      var _db = Mongo.DbConnect("fastdo_" + companyId);
+      public static async Task<WorkPlanModel.Comment> Update(string companyId, WorkPlanModel.Comment model)
+      {
+         var _db = Mongo.DbConnect("fastdo_" + companyId);
 
-      var collection = _db.GetCollection<WorkPlanModel.Comment>(_collection);
+         var collection = _db.GetCollection<WorkPlanModel.Comment>(_collection);
 
-      var result = await collection.DeleteOneAsync(x => x.id == id);
+         var option = new ReplaceOptions { IsUpsert = false };
 
-      if (result.DeletedCount > 0)
-        return true;
-      else
-        return false;
-    }
+         var result = await collection.ReplaceOneAsync(x => x.id.Equals(model.id), model, option);
+
+         return model;
+      }
 
 
-    public static async Task<WorkPlanModel.Comment> Get(string companyId, string id)
-    {
-      var _db = Mongo.DbConnect("fastdo_" + companyId);
+      public static async Task<bool> Delete(string companyId, string id)
+      {
+         var _db = Mongo.DbConnect("fastdo_" + companyId);
 
-      var collection = _db.GetCollection<WorkPlanModel.Comment>(_collection);
+         var collection = _db.GetCollection<WorkPlanModel.Comment>(_collection);
 
-      var result = await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+         var result = await collection.DeleteOneAsync(x => x.id == id);
 
-      return result;
-    }
+         if (result.DeletedCount > 0)
+            return true;
+         else
+            return false;
+      }
 
-    /// <summary>
-    /// Danh sách bình luận trong công việc
-    /// </summary>
-    public static async Task<List<WorkPlanModel.Comment>> GetList(string companyId, string planId, string taskId)
-    {
-      var _db = Mongo.DbConnect("fastdo_" + companyId);
 
-      var collection = _db.GetCollection<WorkPlanModel.Comment>(_collection);
+      public static async Task<WorkPlanModel.Comment> Get(string companyId, string id)
+      {
+         var _db = Mongo.DbConnect("fastdo_" + companyId);
 
-      var results = await collection.Find(x => x.plan_id == planId && x.task_id == taskId).ToListAsync();
+         var collection = _db.GetCollection<WorkPlanModel.Comment>(_collection);
 
-      return results.OrderByDescending(x => x.date).ToList();
-    }
-  }
+         var result = await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
+
+         return result;
+      }
+
+      /// <summary>
+      /// Danh sách bình luận trong công việc
+      /// </summary>
+      public static async Task<List<WorkPlanModel.Comment>> GetList(string companyId, string planId, string taskId, bool isMobile = false)
+      {
+         var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+         var collection = _db.GetCollection<WorkPlanModel.Comment>(_collection);
+
+         var results = await collection.FindAsync(x => x.plan_id == planId && x.task_id == taskId).Result.ToListAsync();
+         return results.OrderBy(x => x.date).ToList();
+      }
+   }
 }

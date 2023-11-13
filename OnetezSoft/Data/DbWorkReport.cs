@@ -1,12 +1,9 @@
-using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using OnetezSoft.Models;
-using MongoDB.Bson;
 using MongoDB.Driver;
+using OnetezSoft.Models;
 using OnetezSoft.Services;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -19,11 +16,11 @@ namespace OnetezSoft.Data
       var tasks = await DbWorkTask.GetListInPlan(companyId, id);
       var report = WorkService.ReportTasks(tasks);
       report.id = id;
-      
+
       var _db = Mongo.DbConnect("fastdo_" + companyId);
       var collection = _db.GetCollection<WorkPlanModel.Report>(_collection);
       var check = collection.Find(x => x.id == id).FirstOrDefault();
-      if(check == null)
+      if (check == null)
       {
         await collection.InsertOneAsync(report);
       }
@@ -36,19 +33,30 @@ namespace OnetezSoft.Data
       return report;
     }
 
-    
-    public static WorkPlanModel.Report Get(string companyId, string id)
+
+    public static async Task<WorkPlanModel.Report> Get(string companyId, string id)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<WorkPlanModel.Report>(_collection);
 
-      var result = collection.Find(x => x.id == id).FirstOrDefault();
+      var result = await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
 
-      if(result != null)
+      if (result != null)
         return result;
       else
         return new WorkPlanModel.Report() { id = id };
+    }
+
+    public static async Task<List<WorkPlanModel.Report>> GetAll(string companyId)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<WorkPlanModel.Report>(_collection);
+
+      var result = await collection.FindAsync(x => true).Result.ToListAsync();
+
+      return result;
     }
   }
 }

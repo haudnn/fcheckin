@@ -1,8 +1,9 @@
-﻿using System;
+﻿using OnetezSoft.Data;
+using OnetezSoft.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using OnetezSoft.Data;
-using OnetezSoft.Models;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Services
 {
@@ -17,20 +18,27 @@ namespace OnetezSoft.Services
     public static bool CheckAccess(CompanyModel company, UserModel user, string productId, out string message)
     {
       message = string.Empty;
-
       if (company != null && company.products != null)
       {
+        if (productId == "educate")
+          productId = "train";
+        if (productId == "okr")
+          productId = "okrs";
+        if (productId == "kpi")
+          productId = "kpis";
+        if (productId == "hrm")
+          productId = "timekeeping";
         // Kiểm tra tổ chức có sản phẩm này không
-        var product = company.products.SingleOrDefault(x => x.id == productId);
+        var product = company.products.FirstOrDefault(x => x.id == productId);
         if (product != null)
         {
-          if(product.active)
+          if (product.active)
           {
-            if(product.end >= DateTime.Today.Ticks)
+            if (product.end >= DateTime.Today.Ticks)
             {
-              if(user != null && user.products != null)
+              if (user != null && user.products != null)
               {
-                if(CheckAccess(user.products, productId))
+                if (CheckAccess(user.products, productId))
                   return true;
                 else
                   message = "Bạn không được cho phép sử dụng sản phẩm này.";
@@ -60,7 +68,7 @@ namespace OnetezSoft.Services
     /// <param name="productId">ID sản phẩm cần kiểm tra</param>
     public static bool CheckAccess(List<string> products, string productId)
     {
-      if(products == null)
+      if (products == null)
         return false;
       return products.Contains(productId);
     }
@@ -98,11 +106,11 @@ namespace OnetezSoft.Services
         var product = company.products.SingleOrDefault(x => x.id == "storage");
         if (product != null)
         {
-          if(product.active)
+          if (product.active)
           {
-            if(product.end >= DateTime.Today.Ticks)
+            if (product.end >= DateTime.Today.Ticks)
             {
-              if(product.used < product.total * 1024)
+              if (product.used < product.total * 1024)
                 return true;
               else
                 message = "Tổ chức đã sử dụng hết dung lượng lưu trữ";
@@ -133,7 +141,7 @@ namespace OnetezSoft.Services
     {
       long money = 0;
 
-      if(staff > 0 && month > 0) 
+      if (staff > 0 && month > 0)
       {
         money = staff * month * price;
       }
@@ -151,12 +159,12 @@ namespace OnetezSoft.Services
     {
       long money = 0;
 
-      if(staff > 0 && end > DateTime.Today.Ticks)
+      if (staff > 0 && end > DateTime.Today.Ticks)
       {
         // Số ngày nâng cấp
         int totalDay = new DateTime(end).Subtract(DateTime.Today).Days;
         // Đơn giá theo ngày
-        double priceDay = (double)price/30;
+        double priceDay = (double)price / 30;
         // Tính chi phí
         money = Convert.ToInt64(staff * totalDay * priceDay);
       }
@@ -170,15 +178,15 @@ namespace OnetezSoft.Services
     /// </summary>
     /// <param name="type">1: thời gian | 2: người dùng</param>
     /// <param name="condition">Điều kiện</param>
-    public static int Promotion(int type, int condition)
+    public static async Task<int> Promotion(int type, int condition)
     {
       int discount = 0;
 
-      if(condition > 0)
+      if (condition > 0)
       {
-        var promotions = DbMainPromotion.GetList(type);
+        var promotions = await DbMainPromotion.GetList(type);
         var result = promotions.Where(x => x.condition <= condition).FirstOrDefault();
-        if(result != null)
+        if (result != null)
           discount = result.discount;
       }
 

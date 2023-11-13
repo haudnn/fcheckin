@@ -1,0 +1,528 @@
+@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
+
+@if (model != null && kpisRoot !=null)
+{
+  var progress = KpisService.GetProgress(database, model, kpisRoot.id);
+  var color = Shared.ProgressColor(progress);
+  var user = UserService.GetMember(userList, model.user);
+  var checkShowConfirm = checkinDrarf != null && _accessConfirm && !isTree && isShowCheckin && model.status_checkin == 1;
+  var parent = database.FirstOrDefault(i => i.id == model.parent);
+  var tooltip = "";
+@*  if (model.parent == kpisRoot.id)
+    tooltip = "Tiến độ KPIs cao nhất bằng trung bình cộng \"Tiến độ\" của các KPIs liên kết bên dưới";
+  else if (model.type == 2 && model.parent != kpisRoot.id)
+    tooltip = "Tiến độ KPIs tự động bằng trung bình cộng \"Tiến độ\" của các KPIs liên kết bên dưới";*@
+
+  progress = Math.Round(progress, 1);
+
+  <Slider Size="@ComponentModel.SizeType.Normal" Style="z-index: 10;" hasFooter="checkShowConfirm" isComment="tab == 3">
+    <Header>
+      <ul class="columns is-vcentered is-variable is-0">
+        <li class="column">
+          <a class="icon-text" @onclick="Close">
+            <span class="icon is-small has-text-link">
+              <i class="material-icons-outlined">chevron_right</i>
+            </span>
+            <span class="has-text-link is-size-7">Đóng</span>
+          </a>
+        </li>
+
+        @if (isTree && model.date_confirm > 0)
+        {
+          <li class="column has-text-right">
+            <span class="has-text-grey-light is-italic">
+              @($"Check-in gần nhất vào {new DateTime(model.date_confirm).ToString("dd'/'MM'/'yyyy")}")
+            </span>
+          </li>
+        }
+
+        @if (checkinDrarf != null && _accessConfirm && !isTree)
+        {
+          if (isShowCheckin)
+          {
+            <li class="column is-half">
+              <p class="has-text-black has-text-weight-medium is-size-6" style="margin-left: -75px;">
+                Bản check-in KPIs
+              </p>
+            </li>
+          }
+          else if (model.status_checkin == 1)
+          {
+            <li class="column is-half has-text-right">
+              <a class="button is-link" @onclick="ShowCheckin">
+                <span class="icon">
+                  <span class="material-icons-outlined is-size-6">
+                    description
+                  </span>
+                </span>
+                <span>Xem bản check-in</span>
+              </a>
+            </li>
+          }
+        }
+      </ul>
+
+      @if (!isShowCheckin)
+      {
+        <ul class="columns is-vcentered my-2 mx-0 is-clickable has-text-link tree_kpis_slidebar">
+          <li class="column is-4 has-text-centered view-tag @(tab == 1 ? "is-active" : "")" @onclick="() => ChangeTab(1)">
+            Chi tiết KPIs
+          </li>
+          <li class="column is-4 has-text-centered view-tag @(tab == 2 ? "is-active" : "")" @onclick="() => ChangeTab(2)">
+            Lịch sử check-in
+          </li>
+          <li class="column is-4 view-tag has-text-centered @(tab == 3 ? "is-active" : "")" @onclick="() => ChangeTab(3)">
+            Bình luận
+          </li>
+        </ul>
+      }
+    </Header>
+
+    <Body>
+      @if (!isShowCheckin)
+      {
+        <!--chi tiết và lịch sử-->
+        @if (tab == 1)
+        {
+          var metric = model.metrics.FirstOrDefault();
+          <div class="columns is-mobile is-vcentered mb-0">
+            <div class="column is-10">
+              <span class="has-text-weight-bold text_1_line is-size-5 is-fullwidth has-text-link">
+                @model.name
+              </span>
+              @if (metric != null)
+              {
+                <span class="font_14 text_1_line" title="@($"{metric.name}: {Shared.ConvertCurrencyDouble(Math.Round(metric.target, 3))} {metric.units}")">
+                  @($"{metric.name}: {Shared.ConvertCurrencyDouble(Math.Round(metric.target, 3))} {metric.units}")
+                </span>
+              }
+            </div>
+            <div class="column has-text-right is-2">
+              <div class="field is-grouped">
+                @if (_accessAuthor || _accessCycle || _accessManagerTree)
+                {
+                  <div class="control mr-2">
+                    <a class="icon has-text-link" title="Chỉnh sửa" @onclick="EditItem">
+                      <i class="material-icons-outlined is-size-5">
+                        edit
+                      </i>
+                    </a>
+                  </div>
+                }
+
+                @if (_accessCycle || _accessManagerTree)
+                {
+                  <div class="control">
+                    <a class="icon has-text-danger" title="Xóa" @onclick="RemoveItem">
+                      <i class="material-icons-outlined is-size-5">
+                        delete
+                      </i>
+                    </a>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <ul class="columns is-mobile is-multiline">
+            <li class="column is-half">
+              <span class="font_12 has-text-grey">Thực đạt</span>
+              <div class="field is-grouped mt-2">
+                @if (metric != null)
+                {
+                  <span class="text_1_line has-text-black has-text-weight-medium font_14">
+                    @($"{Shared.ConvertCurrencyDouble(Math.Round(metric.value, 3))} {metric.units}")
+                  </span>
+                }
+              </div>
+            </li>
+
+            <li class="column is-half">
+              <span class="icon-text">
+                <span class="has-text-grey font_12">Tiến độ</span>
+                @if (!Shared.IsEmpty(tooltip) && false)
+                {
+                  <span class="icon" title="@tooltip">
+                    <span class="material-icons-outlined">info</span>
+                  </span>
+                }
+              </span>
+              <div class="progress_has_value mt-2">
+                <progress class="progress custom progress-kpis is-small @color" value="@Convert.ToInt32(progress)" max="100"></progress>
+                <span class="@color">@Shared.FormatPercent(progress)%</span>
+              </div>
+            </li>
+
+            @if (user != null)
+            {
+              <li class="column is-half">
+                <span class="has-text-grey font_12">@(model.type == 1 ? "Người thực hiện" : "Người giám sát")</span>
+                <div class="user_item mt-2">
+                  <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG">
+                  <span class="text_1_line has-text-black font_14 has-text-weight-medium">@user.name</span>
+                </div>
+              </li>
+            }
+
+            <li class="column is-half">
+              <p class="has-text-grey mb-2 font_12">Thời hạn</p>
+              <span class="has-text-black font_14 has-text-weight-medium">
+                @($"{new DateTime(model.start_date).ToString("dd'/'MM")} - {new DateTime(model.end_date).ToString("dd'/'MM")}")
+              </span>
+              <span class="font_14 has-text-grey">
+                @($"({KpisService.CheckDate(model.end_date)})")
+              </span>
+            </li>
+
+            @if (kpisRoot != null)
+            {
+              <li class="column is-half">
+                <p class="has-text-grey font_12">Thuộc cây KPIs</p>
+                <span class="has-text-black font_14 mt-2 text_1_line has-text-weight-medium">
+                  @(kpisRoot.name)
+                </span>
+              </li>
+            }
+
+            @if (model.parent != kpisRoot.id && parent != null)
+            {
+              <li class="column is-half">
+                <p class="has-text-grey font_12">Thuộc bảng KPIs</p>
+                <span class="has-text-black font_14 mt-2 text_1_line has-text-weight-medium">
+                  @(parent.name)
+                </span>
+              </li>
+            }
+
+            <li class="column is-full">
+              <p class="has-text-grey font_14 mb-2">Kế hoạch</p>
+              @if (model.plan_list.Any())
+              {
+                <PlanLink dataPlanKpis="model.plan_list" />
+              }
+              else
+              {
+                <span class="is-italic font_14">
+                  Chưa có link kế hoạch
+                </span>
+              }
+            </li>
+
+            <li class="column is-full">
+              <p class="mb-2 has-text-grey font_12">File đính kèm</p>
+              @if (model.files.Any())
+              {
+                <FileViews Delete="false" Values="model.files" />
+              }
+              else
+              {
+                <span class="is-italic font_14">Chưa có file đính kèm</span>
+              }
+            </li>
+          </ul>
+
+          @if (model != null)
+          {
+            <p class="is-size-5 has-text-weight-bold has-text-black mb-2 mt-5">Tiến độ thực đạt KPIs</p>
+            <_ChartCheckin kpis="model" @bind-CheckReload="checkReloadChart" />
+          }
+        }
+        else if (tab == 2)
+        {
+          <_HistoryCheckin isTree="isTree" isManager="isManager" model="model" kpisRoot="kpisRoot" dataCheckin="dataCheckin" cycle="cycle" database="database" />
+        }
+        else if (tab == 3)
+        {
+          <Comments modelId="@model.id"
+                    nameModule="kpis"
+                    isOnlyInComment="true"
+                    membersSourceComment="userSourceComment"
+                    GetUserComment="(e) => userComment = e.Where(i => true).ToList()"
+                    UpdateCountComment="UpdateCountComment"
+                    NotiListTag="SendNoti" />
+        }
+      }
+      else if (checkinDrarf != null)
+      {
+        double progressConfirm = 0;
+        if (model.metrics.FirstOrDefault() != null)
+        {
+          progressConfirm = KpisService.GetProgressCheckin(checkinDrarf.value, model.metrics.FirstOrDefault().target);
+        }
+
+        var colorConfirm = Shared.ProgressColor(progressConfirm);
+
+        var metric = model.metrics.FirstOrDefault();
+        <div class="mb-0">
+          <p class="has-text-weight-bold text_1_line is-size-5 is-fullwidth has-text-link">
+            @model.name
+          </p>
+          @if (metric != null)
+          {
+            <p class="font_14 text_1_line" title="@($"{metric.name}: {Shared.ConvertCurrencyDouble(Math.Round(metric.target, 3))} {metric.units}")">
+              @($"{metric.name}: {Shared.ConvertCurrencyDouble(Math.Round(metric.target, 3))} {metric.units}")
+            </p>
+          }
+
+          <p class="mt-2 has-text-grey">Tiến độ thực đạt</p>
+          @if (metric != null)
+          {
+            <span class="text_1_line has-text-left font_12 mt-2">
+              <span class="has-text-black has-text-weight-medium">@Shared.ConvertCurrencyDouble(Math.Round(checkinDrarf.value, 3))</span>
+              <span class="has-text-black has-text-weight-medium">/</span>
+              <span class="has-text-black has-text-weight-medium mr-1">@Shared.ConvertCurrencyDouble(Math.Round(metric.target, 3))</span>
+              <span class="has-text-grey">@metric.units</span>
+            </span>
+          }
+
+          <div class="progress_has_value">
+            <progress class="progress progress-kpis is-small @colorConfirm" value="@Convert.ToInt32(progressConfirm)"
+                      style="width: calc(100% - 45px);" max="100"></progress>
+            <span>@Shared.FormatPercent(progressConfirm)%</span>
+          </div>
+
+          <p class="mt-2 has-text-grey">Cập nhật kết quả</p>
+          <div class="has_bg is_radius p-3 mt-2 is-fullwidth is-flex">
+            <span class="is-fullwidth text_1_line has-text-black font_14 has-text-weight-medium">
+              @Shared.ConvertCurrencyDouble(Math.Round(checkinDrarf.value, 3))
+            </span>
+            <span class="is-italic has-text-grey-light text_1_line has-text-right pr-2" style="width: 100px;">
+              @(model.metrics.FirstOrDefault() != null ? model.metrics.FirstOrDefault().units : "")
+            </span>
+          </div>
+
+          <p class="mt-2 has-text-grey">Nhận xét</p>
+          <div class="has_bg is_radius p-3 mt-2 is-fullwidth" style="word-break: break-word; overflow: auto;">
+            @checkinDrarf.comment
+          </div>
+
+          <p class="my-2 has-text-grey">File đính kèm</p>
+          @if (checkinDrarf.files.Any())
+          {
+            <FileViews Delete="false" Values="checkinDrarf.files" />
+          }
+          else
+          {
+            <p class="is-italic">Chưa có file đính kèm</p>
+          }
+        </div>
+      }
+    </Body>
+
+    <Footer>
+      @if (checkinDrarf != null && isShowCheckin)
+      {
+        <div class="field is-grouped is-grouped-right">
+          <span class="icon-text has-text-link is-clickable mr-4" @onclick="ReturnToHistory">
+            <span class="icon">
+              <span class="material-icons-outlined">arrow_back</span>
+            </span>
+            <span>Trở về</span>
+          </span>
+
+          <div class="control">
+            <Button Content="Xác nhận check-in" IconLeft="check"
+                    Color="@ComponentModel.ColorType.Success" Onclick="ConfirmCheckIn" />
+          </div>
+        </div>
+      }
+    </Footer>
+  </Slider>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public KpisModel model { get; set; }
+  [Parameter]
+  public List<KpisModel> database { get; set; } = new();
+  [Parameter]
+  public KpisModel kpisRoot { get; set; }
+  [Parameter]
+  public KpisCycleModel cycle { get; set; }
+  [Parameter]
+  public bool isManager { get; set; }
+  [Parameter]
+  public bool isShowCheckin { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnClose { get; set; }
+  [Parameter]
+  public EventCallback ShowEdit { get; set; }
+  [Parameter]
+  public EventCallback ShowDelete { get; set; }
+  [Parameter]
+  public bool isTree { get; set; }
+  [Parameter]
+  public bool checkReloadChart { get; set; } = true;
+  [Parameter]
+  public int tab { get; set; } = 1;
+
+  private List<string> okrsShow = new();
+  private List<KpisCheckinModel> dataCheckin = new();
+  private bool _accessAuthor = false;
+  private bool _accessCycle = false;
+  private bool _accessManagerTree = false;
+  private bool _accessConfirm;
+
+  private KpisCheckinModel checkinDrarf;
+  private List<MemberModel> userSourceComment = new();
+  private List<string> userComment = new();
+  private List<MemberModel> userList = new();
+
+  protected override async Task OnParametersSetAsync()
+  {
+    userList = await globalService.GetUserList(Layout.Company.id);
+
+    if (cycle != null)
+      _accessCycle = cycle.managers.Contains(Layout.User.id);
+    _accessConfirm = false;
+
+    if (model != null)
+    {
+      _accessAuthor = model.user == Layout.User.id;
+      _accessManagerTree = kpisRoot.managers.Contains(Layout.User.id);
+
+
+      if (model.type == 1)
+      {
+        dataCheckin = await DbKpisCheckin.GetList(Layout.Company.id, model.cycle, model.id);
+        checkinDrarf = dataCheckin.FirstOrDefault(i => i.kpis == model.id && i.status_checkin == 1);
+      }
+      else if (model.type == 2 && model.metrics.FirstOrDefault() != null)
+      {
+        var childList = KpisService.GetAllChild(database, new List<KpisModel>() { model }, model);
+        childList = childList.DistinctBy(i => i.id).ToList();
+
+        childList = childList.Where(i => i.metrics.FirstOrDefault() != null
+                                         && i.metrics.FirstOrDefault().id == model.metrics.FirstOrDefault().id).ToList();
+
+        dataCheckin = await DbKpisCheckin.GetListHistory(Layout.Company.id, model.cycle, childList.Select(i => i.id).ToList());
+        checkinDrarf = null;
+      }
+
+      dataCheckin.RemoveAll(i => Shared.IsEmpty(i.user_confirm) && i.status_checkin == 2);
+
+      var parent = database.FirstOrDefault(i => i.parent != i.cycle && i.id == model.parent);
+      if (parent != null)
+        _accessConfirm = parent.user == Layout.User.id;
+    }
+
+    if (checkinDrarf == null)
+      isShowCheckin = false;
+
+    GetMemberComment();
+  }
+
+  protected override void OnParametersSet()
+  {
+    var allowTab = new List<int> { 1, 2, 3 };
+    if (!allowTab.Contains(tab))
+      tab = 1;
+  }
+
+  private void ShowCheckin()
+  {
+    isShowCheckin = true;
+  }
+
+  private void ReturnToHistory()
+  {
+    isShowCheckin = false;
+    checkReloadChart = true;
+    StateHasChanged();
+  }
+
+  private async Task ConfirmCheckIn()
+  {
+    if (checkinDrarf != null)
+    {
+      checkinDrarf.status_checkin = 2;
+      checkinDrarf.date_confirm = DateTime.Now.Ticks;
+      checkinDrarf.user_confirm = Layout.User.id;
+      await DbKpisCheckin.Update(Layout.Company.id, checkinDrarf);
+
+      model.status_checkin = 2;
+      model.date_confirm = DateTime.Now.Ticks;
+
+      var kpisUpdate = Shared.Clone(model);
+
+      if (model != null && model.metrics.FirstOrDefault() != null)
+        kpisUpdate.metrics.FirstOrDefault().value = checkinDrarf.value;
+
+      await KpisService.SyncData(Layout.Company.id, database, Layout.CycleKpisId, kpisRoot, kpisUpdate);
+      await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã xác nhận bản check-in thành công!");
+      await KpisService.SendNotify(1017, new List<string> { checkinDrarf.user_create }, kpisUpdate, kpisRoot, Layout.Company.id, Layout.User.id, cycle);
+      await OnClose.InvokeAsync(true);
+    }
+  }
+
+  private async Task ChangeTab(int item)
+  {
+    tab = item;
+    if (tab == 3)
+    {
+      await JSRuntime.InvokeVoidAsync("setFocus", "component-comment");
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "component-comment");
+    }
+    else if (tab == 1)
+      checkReloadChart = true;
+
+    StateHasChanged();
+  }
+
+  #region bình luận
+  private void GetMemberComment()
+  {
+    userSourceComment = KpisService.GetMemberComment(userList, database, model, kpisRoot, cycle);
+  }
+
+  private async Task UpdateCountComment(int count)
+  {
+    model.comment = count;
+    await DbKpis.Update(Layout.Company.id, model);
+    StateHasChanged();
+  }
+
+  private async Task SendNoti(List<string> userMentions)
+  {
+    await KpisService.SendNotifyComment(userMentions, userComment, database, model, kpisRoot, Layout.Company.id, Layout.User.id, cycle);
+  }
+  #endregion
+
+  private void Close()
+  {
+    OnClose.InvokeAsync(false);
+  }
+
+  private async Task EditItem()
+  {
+    if (isManager)
+      await ShowEdit.InvokeAsync();
+    else
+      MessagingCenter.Send(this, "kpis_update_" + Layout.User.id, model);
+  }
+
+  private async Task RemoveItem()
+  {
+    if (isManager)
+      await ShowDelete.InvokeAsync();
+    else
+      MessagingCenter.Send(this, "kpis_remove_" + Layout.User.id, model);
+  }
+
+  // Hủy lắng nghe sự kiện
+  public void Dispose()
+  {
+    try
+    {
+      MessagingCenter.Unsubscribe<_TreeViewItem, string>(this, "kpis_update_" + Layout.User.id);
+      MessagingCenter.Unsubscribe<_TreeViewItem, string>(this, "kpis_remove_" + Layout.User.id);
+    }
+    catch (Exception ex)
+    {
+      return;
+    }
+  }
+}

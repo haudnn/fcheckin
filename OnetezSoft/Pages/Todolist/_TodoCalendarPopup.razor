@@ -1,0 +1,688 @@
+﻿@inject NavigationManager navigation
+@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
+
+<div class="modal is-active is_under" id="todo_calendar_popup" @onclick:stopPropagation=true>
+  <div class="modal-content todolist scrolly is-small is-flex is-align-items-center is-justify-content-center p-0">
+    <div>
+      @if (currentTodo == null)
+      {
+        <section class="modal-card-head todo-calendar-popup-head">
+          <a @onclick="OffViewDetail" style="margin-left: auto; border-radius: 50%" class="delete is-small"></a>
+          <div>
+            <div class="is-flex is-align-items-center is-justify-content-center">
+              <p class="todo-calendar-popup-day">@currentDate.ToString("dd")</p>
+            </div>
+            <span class="font_12 is-secondary-40 is-block has-text-centered mt-1">@(Shared.ConvertWeekdays(currentDate) + " - " + currentDate.ToString("dd/MM/yyyy"))</span>
+          </div>
+          <div class="is-flex is-align-items-center is-justify-content-space-evenly mt-2">
+            <div style="position: relative" class="is-flex is-flex-direction-column is-align-items-center">
+              <span class="is-secondary-40 font_12">Check-in</span>
+              @if (currentTodoList.date_checkin == 0)
+              {
+                <span class="icon-text">
+                  <span class="font_12 is-secondary-10 has-text-weight-medium">-</span>
+                </span>
+              }
+              else
+              {
+                var value = new DateTime(currentTodoList.date_checkin);
+                <span class="icon-text">
+                  <span class="font_12 is-secondary-10 has-text-weight-medium">@(value.ToString("dd/MM") + " - " + value.ToString("hh:mm")) </span>
+                  <span class="icon is-small is-secondary-40">
+                    <i class="material-icons-outlined is-size-6">timer</i>
+                  </span>
+                  <span class="icon is-small tick-icon">
+                    <i class="material-icons-outlined is-size-6 has-text-white">done</i>
+                  </span>
+                </span>
+              }
+            </div>
+            <div style="position: relative" class="is-flex is-flex-direction-column is-align-items-center">
+              <span class="is-secondary-40 font_12">Check-out</span>
+              @if (currentTodoList.date_checkout == 0)
+              {
+                <span class="icon-text">
+                  <span class="font_12 is-secondary-10 has-text-weight-medium">-</span>
+                </span>
+              }
+              else
+              {
+                var value = new DateTime(currentTodoList.date_checkout);
+                <span class="icon-text">
+                  <span class="font_12 is-secondary-10 has-text-weight-medium">@(value.ToString("dd/MM") + " - " + value.ToString("hh:mm")) </span>
+                  <span class="icon is-small is-secondary-40">
+                    <i class="material-icons-outlined is-size-6">timer</i>
+                  </span>
+                  <span class="icon is-small tick-icon">
+                    <i class="material-icons-outlined is-size-6 has-text-white">done</i>
+                  </span>
+                </span>
+              }
+            </div>
+          </div>
+        </section>
+
+        <section class="modal-card-body todo-calendar-popup-body">
+          <div class="scrolly todo-calendar-popup-todos">
+            @if (currentTodos.Any())
+            {
+              <div style="overflow: visible">
+                <ul style="margin: 10px 0px" class="columns is-vcentered is-multiline is-variable is-mobile">
+                  @foreach (var todo in currentTodos)
+                  {
+                    var status = DbTodolist.Status(todo.status);
+                    var level = DbTodolist.Level(todo.level);
+                    var isEven = currentTodos.IndexOf(todo) % 2 == 0;
+
+                    <li style="background-color: @(isEven ? "#fff" : "#fbfbfb")" class="column is-12 is-pointer p-2 todo-popup">
+                      <div class="is-flex is-align-items-center mb-1">
+                        <span class="is-primary-40">•</span>
+                        <div style="flex: 1;" class="ml-1" @onclick="() => currentTodo = todo">
+                          @if (string.IsNullOrEmpty(todo.assign_user))
+                          {
+                            <span style="max-width: 235px" class="has-text-weight-semibold font_14 is-primary-40 text_1_line">@todo.name</span>
+                          }
+                          else
+                          {
+                            var assignor = UserService.GetMember(shareStorage.MemberList, todo.assign_user);
+                            <span class="icon-text is-align-items-center">
+                              <span class="icon is-small has-text-danger" title="Công việc được giao bởi @assignor.name">
+                                <i class="material-icons-outlined font_14">assignment</i>
+                              </span>
+                              <span style="max-width: 235px" class="text_1_line has-text-weight-semibold font_14 is-primary-40 text_1_line">@todo.name</span>
+                            </span>
+                          }
+                        </div>
+                        <a style="margin-left: 10px;" class="tag p-3 is-radius @(status.id == 5 ? "cancel-red" : status.color) tag-calendar-todo">
+                          <span class="font_12">@status.name</span>
+                        </a>
+                      </div>
+                      <div style="margin-left: 10px">
+                        <span class="is-secondary-20 font_12">@(todo.start + " - " + todo.end)</span>
+                        <span style="color: #8990A5">•</span>
+                        <span class="@level.color font_12 has-text-weight-medium">@level.name</span>
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+            else
+            {
+              <div class="has-text-centered my-5">
+                <span class="font_12 has-text-grey">Chưa có công việc được tạo</span>
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="modal-card-foot todo-calendar-popup-foot is-justify-content-space-between">
+          @if (isEdit)
+          {
+            if (currentTodoList.status < 3)
+            {
+              <a style="flex: 1" class="is-flex icon-text has-text-link" @onclick="() => Add(currentDate, currentTodoList)">
+                <span class="icon font_12 is-small">
+                  <i class="material-icons-outlined">add</i>
+                </span>
+                <span class="has-text-link font_12">Thêm công việc</span>
+              </a>
+            }
+            if (currentTodoList.status < 2 && currentTodos.Count > 0)
+            {
+              <a style="padding: 4px 8px; max-height: 30px; min-width: 150px" class="is-flex icon-text is-link button has-text-white" @onclick="Checkin">
+                <span class="icon font_12 is-small">
+                  <i class="material-icons-outlined">done</i>
+                </span>
+                <span class="font_12">Checkin</span>
+              </a>
+            }
+            @if (currentTodoList.status == 2)
+            {
+              <a style="padding: 4px 8px; max-height: 30px; min-width: 150px" class="is-flex icon-text is-danger button has-text-white" @onclick="Checkout">
+                <span class="icon font_12 is-small">
+                  <i class="material-icons-outlined">done</i>
+                </span>
+                <span class="font_12">Checkout</span>
+              </a>
+            }
+          }
+
+        </section>
+      }
+      else
+      {
+        var status = DbTodolist.Status(currentTodo.status);
+        var level = DbTodolist.Level(currentTodo.level);
+        var isDetail = !Shared.IsEmpty(currentTodo.detail);
+        var isResult = !Shared.IsEmpty(currentTodo.result);
+
+        <div class="todo-detail is-flex is-flex-direction-column" style="cursor: default; max-height: 300px">
+          <div class="todo-detail-header">
+            <div class="is-flex is-align-items-center mb-4 is-justify-content-space-between">
+              <div>
+                <span class="icon-text has-text-link is-pointer" @onclick="() => currentTodo = null">
+                  <span class="icon font_12 is-small">
+                    <i class="material-icons-outlined">arrow_back</i>
+                  </span>
+                  <span class="font_12">Trở về</span>
+                </span>
+                <span class="icon-text has-text-link is-pointer">
+                  <span class="icon font_12 is-small" style="color: #575E72;">
+                    <i class="material-icons-outlined">calendar_today</i>
+                  </span>
+                  <span style="color: #575E72;" class="font_12">@currentDate.ToString("dd/MM/yyyy")</span>
+                </span>
+              </div>
+              <div style="gap: 0 7px;" class="is-flex is-align-items-center">
+                @if (isEdit)
+                {
+                  if (currentTodoList.status < 3)
+                  {
+                    if (!currentTodo.confirm)
+                    {
+                      if (string.IsNullOrEmpty(currentTodo.assign_user))
+                      {
+                        <a class="icon is-small has-text-danger mb-0" @onclick="() => Delete(currentTodoList, currentTodo)">
+                          <i class="material-icons-outlined is-size-6">delete</i>
+                        </a>
+                      }
+                      else
+                      {
+                        <a class="icon is-small has-text-danger mb-0" @onclick="() => Reject(currentTodo)">
+                          <i class="material-icons-outlined is-size-6">history</i>
+                        </a>
+                      }
+                    }
+                    <a class="icon is-small mb-0 has-text-link mb-0" @onclick="() => Edit(currentTodo)">
+                      <i class="material-icons-outlined is-size-6">edit</i>
+                    </a>
+                  }
+                }
+
+                <a class="delete is-small mb-0" style="border-radius: 50%" @onclick="OffViewDetail"></a>
+              </div>
+            </div>
+            @if (string.IsNullOrEmpty(currentTodo.assign_user))
+            {
+              <p style="color: #002C70; word-break: break-word" class="is-size-6 has-text-weight-semibold mb-1">@currentTodo.name</p>
+            }
+            else
+            {
+              var assignor = UserService.GetMember(shareStorage.MemberList, currentTodo.assign_user);
+              <div class="mb-1 is-flex is-align-content-flex-start">
+                <span class="icon has-text-danger mr-2" title="Công việc được giao bởi @assignor.name">
+                  <i class="material-icons-outlined is-size-6">assignment</i>
+                </span>
+                <p style="color: #002C70; word-break: break-word" class="is-size-6 has-text-weight-semibold mb-0">@currentTodo.name</p>
+              </div>
+            }
+
+            <div class="is-flex is-align-items-center" style="gap: 0 5px">
+              <span class="is-secondary-20 font_12">@(currentTodo.start + " - " + currentTodo.end)</span>
+              <span class="font_12" style="color: #8990A5">•</span>
+              <span class="has-text-weight-medium @level.color font_12">@level.name</span>
+              <span class="font_12" style="color: #8990A5">•</span>
+              @if (isEdit)
+              {
+                if (currentTodoList.status < 3)
+                {
+                  <Dropdown CloseOnClickMenu=true MenuStyle="max-height: 120px" MenuClass="scrolly">
+                    <Trigger>
+                      <a class="button @(status.id == 5 ? "cancel-red" : status.color) is-small tag-calendar-todo">
+                        <span class="font_12">@status.name</span>
+                        <span class="icon is-small">
+                          <i class="material-icons-outlined font_12">arrow_drop_down</i>
+                        </span>
+                      </a>
+                    </Trigger>
+                    <MenuContent>
+                      @foreach (var sl in DbTodolist.Status())
+                      {
+                        <a class="dropdown-item font_12" @onclick="() => ChangeStatus(currentTodo, sl.id)">
+                          @sl.name
+                        </a>
+                      }
+                    </MenuContent>
+                  </Dropdown>
+                }
+                else
+                {
+                  <span class="tag @(status.id == 5 ? "cancel-red" : status.color) tag-calendar-todo">@status.name</span>
+                }
+              }
+              else
+              {
+                <span class="tag @(status.id == 5 ? "cancel-red" : status.color) tag-calendar-todo">@status.name</span>
+              }
+
+            </div>
+          </div>
+          <div style="flex: 1" class="todo-detail-content scrolly">
+            <div>
+              <span class="icon-text">
+                <span class="icon is-small">
+                  <i class="material-icons-outlined has-text-grey">chat</i>
+                </span>
+                <span class="has-text-grey font_12">Chi tiết:</span>
+              </span>
+              @if (isDetail)
+              {
+                <p style="color: #000" class="font_12 todo-text-detail">
+                  @((MarkupString)Shared.GetLinks(currentTodo.detail))
+                </p>
+              }
+              else
+              {
+                <p style="color: #000" class="font_12 is-italic">
+                  Không có chi tiết công việc
+                </p>
+              }
+
+            </div>
+            <div>
+              <span class="icon-text">
+                <span class="icon is-small">
+                  <i class="material-icons-outlined has-text-grey">text_snippet</i>
+                </span>
+                <span class="has-text-grey font_12">Kết quả:</span>
+              </span>
+              @if (isResult)
+              {
+                <p style="color: #000" class="font_12 todo-text-detail">
+                  @((MarkupString)Shared.GetLinks(currentTodo.result))
+                </p>
+              }
+              else
+              {
+                <p style="color: #000" class="font_12 is-italic">
+                  Không có kết quả công việc
+                </p>
+              }
+            </div>
+
+            @if (currentTodo.is_loop)
+            {
+              <div>
+                <span class="icon-text">
+                  <span class="icon is-small">
+                    <i class="material-icons-outlined has-text-grey">settings_backup_restore</i>
+                  </span>
+                  <span class="has-text-grey font_12">Công việc lặp:</span>
+                </span>
+
+                <p class="font_12 todo-text-detail mb-1">
+                  Lặp lại mỗi:
+                  <span class="has-text-weight-semibold font_12 is-secondary-10">@(TodolistService.GetInfoLoop(currentTodo))</span>
+                </p>
+
+                <p class="font_12 todo-text-detail">
+                  Kết thúc vào:
+                  <span class="has-text-weight-semibold font_12 is-secondary-10">@(new DateTime(currentTodo.dateEnd_cycle).ToString("dd/MM/yyyy"))</span>
+                </p>
+              </div>
+            }
+            @if (currentTodo.files.Any())
+            {
+              <div class="files_calendar_todo">
+                <span class="icon-text">
+                  <span class="icon is-small">
+                    <i class="material-icons-outlined has-text-grey">link</i>
+                  </span>
+                  <span class="has-text-grey font_12">File đính kèm:</span>
+                </span>
+                <FileViews Values="currentTodo.files" />
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+  @if (isShowPopup)
+  {
+    <_TodoRemovePopup OnCloseDelete="CancleDeleteTodoLoop" OnConfirmDelete="DeleteTodoLoop" />
+  }
+</div>
+
+
+
+
+
+
+
+@code {
+  [CascadingParameter]
+  public _TodoCalendar Parent { get; set; }
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public TodolistModel.Todo currentTodo { get; set; }
+  [Parameter]
+  public EventCallback<TodolistModel.Todo> currentTodoChanged { get; set; }
+  [Parameter]
+  public TodolistModel currentTodoList { get; set; }
+  [Parameter]
+  public EventCallback<TodolistModel> currentTodoListChanged { get; set; }
+  [Parameter]
+  public DateTime currentDate { get; set; }
+  [Parameter]
+  public List<TodolistModel.Todo> currentTodos { get; set; }
+  [Parameter]
+  public EventCallback<List<TodolistModel.Todo>> currentTodosChanged { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+  [Parameter]
+  public EventCallback<TodolistModel.Todo> OnCreate { get; set; }
+  [Parameter]
+  public EventCallback OnOff { get; set; }
+  [Parameter]
+  public bool isEdit { get; set; }
+
+  private bool isShowPopup = false;
+
+  private DateTime? date;
+  private TodolistModel.Todo todoItemsLoop = new();
+  private TodolistModel todoListLoop = new();
+
+  private SharedStorage shareStorage = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    date = null;
+  }
+
+  protected override void OnParametersSet()
+  {
+    //Sort Todo Items
+    currentTodos = currentTodos.OrderBy(x => x.status == 1 ? 1 : x.status == 3 ? 2 : x.status == 2 ? 3 : x.status == 5 ? 4 : 5).ToList();
+  }
+
+  protected override async Task OnAfterRenderAsync(bool first)
+  {
+    if (date != currentDate)
+    {
+      await JSRuntime.InvokeVoidAsync("TodoCalendarPopup", $"todo_{currentDate.Ticks}", "todo_calendar_popup");
+      date = currentDate;
+    }
+  }
+
+  public void OffViewDetail()
+  {
+    currentTodo = null;
+    currentTodos = new();
+    currentTodoList = new();
+
+    currentTodoChanged.InvokeAsync(currentTodo);
+    currentTodosChanged.InvokeAsync(currentTodos);
+    currentTodoListChanged.InvokeAsync(currentTodoList);
+    OnUpdate.InvokeAsync(false);
+  }
+
+  private async Task<bool> ChangeStatus(TodolistModel.Todo item, int status)
+  {
+    bool _success = true;
+    try
+    {
+      item.status = status;
+      await DbTodoItem.Update(Layout.Company.id, item);
+      if (!string.IsNullOrEmpty(item.assign_user))
+      {
+        // Gửi thông báo cho người giao
+        int notiType = 210 + item.status;
+        await DbNotify.Create(Layout.Company.id, notiType, item.id, item.assign_user, Layout.User.id);
+      }
+
+      await currentTodosChanged.InvokeAsync(currentTodos);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeStatus()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private void Add(DateTime date, TodolistModel currentAdd)
+  {
+    string start = "08:30";
+    string end = "09:30";
+
+    if (date.ToString("yyyy-MM-dd") == DateTime.Now.ToString("yyyy-MM-dd"))
+    {
+      start = string.Format("{0:HH:30}", DateTime.Now);
+      end = string.Format("{0:HH:30}", DateTime.Now.AddHours(1));
+    }
+    var item = new TodolistModel.Todo()
+      {
+        id = Mongo.RandomId(),
+        type = 1,
+        level = 1,
+        status = 1,
+        date = date.Date.Ticks,
+        start = start,
+        end = end
+      };
+
+    OnCreate.InvokeAsync(item);
+  }
+
+  private async Task<bool> Checkin()
+  {
+    bool _success = true;
+    try
+    {
+      if (Parent.model != null)
+      {
+        Parent.child.Update();
+      }
+
+      if (currentTodos.Count == 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có công việc để Check-in !");
+      else
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn đã tạo xong và muốn nộp TodoList lên quản lý?"))
+          return false;
+
+        if (Shared.IsEmpty(currentTodoList.id))
+        {
+          currentTodoList = new TodolistModel();
+          currentTodoList.date = currentDate.Ticks;
+          currentTodoList.user_create = Layout.User.id;
+          currentTodoList = await DbTodolist.Create(Layout.Company.id, currentTodoList);
+        }
+
+        currentTodoList.day_off = DbDayOff.CheckOff(shareStorage.DayOffList, new DateTime(currentTodoList.date));
+        currentTodoList.date_checkin = DateTime.Now.Ticks;
+        currentTodoList.status = 2;
+
+        await DbTodolist.Update(Layout.Company.id, currentTodoList);
+
+        await currentTodosChanged.InvokeAsync(currentTodos);
+        await currentTodoListChanged.InvokeAsync(currentTodoList);
+        await OnOff.InvokeAsync();
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Checkin()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> Checkout()
+  {
+    bool _success = true;
+    try
+    {
+      if (Parent.model != null)
+      {
+        Parent.child.Update();
+      }
+
+      if (currentTodoList.date > Convert.ToDateTime(DateTime.Now.ToShortDateString()).Ticks)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Chưa đến thời điểm Check-out!");
+      else if (currentTodos.Count == 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không có công việc để Check-out!");
+      else if (currentTodos.Where(x => x.status == 1 || x.status == 3).Count() > 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể check-out khi có công việc đang ở trạng thái Todo, Doing!");
+      else
+      {
+
+        if (!await JSRuntime.InvokeAsync<bool>("confirm",
+            "Sau khi Check-out bạn không thể chỉnh sửa Todolist.\nBạn có chắc muốn check-out?"))
+          return false;
+
+        currentTodoList.day_off = DbDayOff.CheckOff(shareStorage.DayOffList, new DateTime(currentTodoList.date));
+        currentTodoList.date_checkout = DateTime.Now.Ticks;
+        currentTodoList.status = 3;
+        await DbTodolist.Update(Layout.Company.id, currentTodoList);
+
+        // Tính thành tựu
+        var achievement = await DbTodolist.Achievement(Layout.Company.id, currentTodoList.user_create, globalService);
+        if (achievement)
+          await JSRuntime.InvokeVoidAsync("location.reload");
+        await GetAchievement();
+
+        await currentTodosChanged.InvokeAsync(currentTodos);
+        await currentTodoListChanged.InvokeAsync(currentTodoList);
+        await OnOff.InvokeAsync();
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Checkout()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> GetAchievement()
+  {
+    bool _success = true;
+    try
+    {
+      // Tính thành tựu Todolist
+      Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
+      var achievement = await DbTodolist.DataAchievement(Layout.Company.id, Layout.User.id, start, end);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetAchievement()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task Delete(TodolistModel _todos, TodolistModel.Todo item)
+  {
+    try
+    {
+      if (_todos.status < 2 || !item.confirm)
+      {
+        if (item.is_loop)
+        {
+          isShowPopup = true;
+          todoItemsLoop = item;
+          todoListLoop = _todos;
+        }
+
+        else
+        {
+          if (!Shared.IsEmpty(item.name))
+          {
+            if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa: {item.name}?"))
+              return;
+          }
+          await DbTodoItem.Delete(Layout.Company.id, item.id);
+          await DbTodolist.Update(Layout.Company.id, _todos);
+
+          currentTodos.RemoveAll(x => x.id == item.id);
+
+          await currentTodosChanged.InvokeAsync(currentTodos);
+          await currentTodoListChanged.InvokeAsync(currentTodoList);
+
+          OffViewDetail();
+        }
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể xóa công việc đã xác nhận !");
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
+  }
+
+  private async Task Reject(TodolistModel.Todo item)
+  {
+    try
+    {
+      if (currentTodoList.status < 2 || !item.confirm)
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy nhận: {item.name}?"))
+          return;
+
+        item.todolist = null;
+        item.assign_status = 1;
+        await DbTodoItem.Update(Layout.Company.id, item);
+        await DbTodolist.Update(Layout.Company.id, currentTodoList);
+        await JSRuntime.InvokeVoidAsync("clickBtn", "reload_assigned");
+        currentTodos.RemoveAll(x => x.id == item.id);
+
+        OffViewDetail();
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể hủy công việc đã xác nhận !");
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "RejectItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
+  }
+
+  private void Edit(TodolistModel.Todo item)
+  {
+    OnCreate.InvokeAsync(item);
+  }
+
+
+
+  private async Task DeleteTodoLoop(int option = 1)
+  {
+    // Công việc này và các công việc cần làm sau này
+    if (option == 2)
+      await TodolistService.HandleRemoveTodoLoop(todoItemsLoop, Layout.Company.id, Layout.User.id);
+    // Chỉ công việc hiện tại
+    await DbTodoItem.Delete(Layout.Company.id, todoItemsLoop.id);
+    await DbTodolist.Update(Layout.Company.id, currentTodoList);
+    currentTodos.RemoveAll(x => x.id == todoItemsLoop.id);
+
+    await currentTodosChanged.InvokeAsync(currentTodos);
+    await currentTodoListChanged.InvokeAsync(currentTodoList);
+    CancleDeleteTodoLoop();
+  }
+
+  private void CancleDeleteTodoLoop()
+  {
+    isShowPopup = false;
+    todoItemsLoop = new();
+    todoListLoop = new();
+    OffViewDetail();
+  }
+}

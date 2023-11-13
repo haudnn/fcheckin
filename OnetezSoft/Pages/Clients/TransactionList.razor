@@ -66,7 +66,7 @@
       <div class="control has-icons-left" style="width: 180px;">
         <div class="input is-small">
           <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE" OnRangeSelect="FilterDates"
-            Opens="SideType.Left" />
+                           Opens="SideType.Left" />
         </div>
         <span class="icon is-left has-text-grey">
           <i class="material-icons-round is-size-6">calendar_today</i>
@@ -74,7 +74,7 @@
       </div>
     </li>
   </ul>
-  
+
   <div style="min-height: 250px;">
     <table class="table is-fullwidth is-vcentered is-hoverable is_head_bg is-size-7">
       <thead>
@@ -101,11 +101,11 @@
               <span>@string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))</span>
             </td>
             <td>
-              @if(item.type == 2)
+              @if (item.type == 2)
               {
                 <span>Hệ thống @(item.money > 0 ? "nạp" : "rút")</span>
               }
-              else 
+              else
               {
                 <span>@type.name</span>
               }
@@ -185,8 +185,20 @@
     GetList();
   }
 
-  private void GetList()
+  private async Task<bool> GetList()
   {
-    dataList = DbMainTransaction.GetListOfCustomer(Layout.User.id, filterType, filterStatus, filterDateS, filterDateE);
+    bool _success = true;
+    try
+    {
+      dataList = await DbMainTransaction.GetListOfCustomer(Layout.User.id, filterType, filterStatus, filterDateS, filterDateE);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

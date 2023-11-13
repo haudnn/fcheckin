@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class HrmRulesModel
   {
     [BsonId]
@@ -20,7 +21,7 @@ namespace OnetezSoft.Models
     /// <summary>thiết lập cho phép đăng ký phân ca</summary>
     public RegisterShift register_shift { get; set; } = new();
 
-		public bool is_check_device { get; set; }
+    public bool is_check_device { get; set; }
 
     public class CheckInOut
     {
@@ -60,6 +61,15 @@ namespace OnetezSoft.Models
 
       /// <summary>Màu của đơn từ</summary>
       public string color { get; set; }
+
+      /// <summary>Tấn suất cho phép nghỉ đơn từ</summary>
+      public int frequency { get; set; }
+
+      /// <summary>Đơn vị: 1: Theo ngày, 2 Theo tuần, 3: Theo tháng, 4: Theo quý, 5: Theo năm</summary>
+      public int units { get; set; } = 3;
+
+      /// <summary>Bật giới hạn đơn từ</summary>
+      public bool is_limit { get; set; }
     }
 
     public class OverTime
@@ -76,11 +86,11 @@ namespace OnetezSoft.Models
 
     public class RegisterShift
     {
-			/// <summary>thiết lập cho phép đăng ký phân ca</summary>
-			public bool has_register_shifts { get; set; }
+      /// <summary>thiết lập cho phép đăng ký phân ca</summary>
+      public bool has_register_shifts { get; set; }
 
-			/// <summary>id user áp dụng</summary>
-			public List<string> users { get; set; } = new();
-		}
+      /// <summary>id user áp dụng</summary>
+      public List<string> users { get; set; } = new();
+    }
   }
 }

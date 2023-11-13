@@ -1,16 +1,16 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<div class="card p-5">
-  <ul class="columns is-vcentered is-variable is-2 mb-3">
+<div class="mb-5">
+  <ul class="columns is-vcentered is-variable is-2 mb-2">
     <li class="column">
       <h1 class="title is-5 has-text-info">
         TIẾN ĐỘ OKRs
       </h1>
     </li>
     <li class="column is-narrow">
-      <div class="dropdown is-right is-hoverable">
-        <div class="dropdown-trigger">
+      <Dropdown DropdownClass="is-right" CloseOnClickMenu=true>
+        <Trigger>
           <a class="icon-text">
             <span class="has-text-link text_1_line" style="max-width: 200px;">
               @(okrChart != null ? okrChart.name : "Chọn OKRs")
@@ -19,21 +19,19 @@
               <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
             </span>
           </a>
-        </div>
-        <div class="dropdown-menu">
-          <div class="dropdown-content">
-            @foreach (var item in okrList)
-            {
-              <a class="dropdown-item" @onclick="() => ChangeOkrChart(item)">
-                @item.name
-              </a>
-            }
-          </div>
-        </div>
-      </div>
+        </Trigger>
+        <MenuContent>
+          @foreach (var item in okrList)
+          {
+            <a class="dropdown-item" @onclick="() => ChangeOkrChart(item)">
+              @item.name
+            </a>
+          }
+        </MenuContent>
+      </Dropdown>
     </li>
   </ul>
-  <div style="height: 210px;">
+  <div class="inner_section" style="height: 210px;">
     @if (okrChart != null)
     {
       <canvas id="chartLine" height="210"></canvas>
@@ -41,146 +39,18 @@
   </div>
 </div>
 
-<div class="card p-5">
-  <ul class="columns is-vcentered is-variable is-2">
+<div class="mb-5">
+  <ul class="columns is-vcentered is-variable is-2 mb-2">
     <li class="column">
       <h1 class="title is-5 has-text-info">
         CHI TIẾT OKRs
       </h1>
     </li>
   </ul>
-  <table class="table is-fullwidth is-noborder is-responsive mt-3">
-    <thead>
-      <tr>
-        <th>Mục tiêu</th>
-        <th width="200px">Kết Quả Then Chốt</th>
-        <th width="180px" align="center">Tiến độ</th>
-        <th width="100px" align="center">Thay đổi</th>
-        <th width="100px" align="center">Tự tin</th>
-      </tr>
-    </thead>
-    <tbody>
-      @foreach (var okr in okrList)
-      {
-        var progress = DbOkr.GetProgress(okr.key_results);
-        var okrColor = Shared.ProgressColor(progress);
-        var showKey = okrsShow.Contains(okr.id);
-        var confident = DbOkr.Confident(okr.confident);
-
-        <tr>
-          <td>
-            <div class="is-flex">
-              <a class="has-text-weight-semibold" href="/cfr/checkin/@okr.id/overview">
-                @okr.name
-              </a>
-              @if (okr.done)
-              {
-                <span class="ml-1 icon" title="OKRs đã hoàn thành">
-                  <i class="material-icons is-size-6 has-text-success">check_circle</i>
-                </span>
-              }
-            </div>
-          </td>
-          <td>
-            <label class="td-label">Kết quả</label>
-            <div class="td-value">
-              <a class="icon-text has-text-weight-semibold has-text-info" @onclick="() => ShowKeys(okr.id)">
-                <span>@okr.key_results.Count kết quả</span>
-                <span class="icon">
-                  <i class="material-icons-outlined is-size-5">
-                    @(showKey ? "arrow_drop_down" : "arrow_right")
-                  </i>
-                </span>
-              </a>
-            </div>
-          </td>
-          <td>
-            <label class="td-label">Tiến độ</label>
-            <div class="td-value">
-              <div class="progress_has_value">
-                <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100" />
-                <span>@Shared.FormatPercent(progress)%</span>
-              </div>
-            </div>
-          </td>
-          <td align="center">
-            <label class="td-label">Thay đổi</label>
-            <div class="td-value has-text-weight-semibold">
-              @Shared.FormatPercent(progress - okr.progress_prev)%
-            </div>
-          </td>
-          <td align="center">
-            <label class="td-label">Tự tin</label>
-            <div class="td-value has-text-weight-semibold">
-              <span class="@confident.color">@confident.name</span>
-            </div>
-          </td>
-        </tr>
-
-        if (showKey)
-        {
-          foreach (var kr in okr.key_results)
-          {
-            var confidentKr = DbOkr.Confident(kr.confident);
-
-            <tr>
-              <td class="pl-4">
-                @kr.name
-              </td>
-              <td class="pl-2">
-                @if (!string.IsNullOrEmpty(kr.link))
-                {
-                  <a class="icon-text ml-2 has-text-link" href="@kr.link" target="_blank">
-                    <span class="icon is-small">
-                      <i class="material-icons-outlined">attach_file</i>
-                    </span>
-                    <span>Kết quả</span>
-                  </a>
-                }
-              </td>
-              <td>
-                <label class="td-label">Đạt được</label>
-                <div class="td-value">
-                  <span class="has-text-success" title="@string.Format("{0:0,0}/{1:0,0}", kr.result, kr.target)">
-                    @Shared.ConvertNumber(kr.result)/@Shared.ConvertNumber(kr.target)
-                  </span>
-                  <span class="is-pulled-right">@kr.unit</span>
-                </div>
-              </td>
-              <td align="center">
-                <label class="td-label">Thay đổi</label>
-                <div class="td-value">
-                  @Shared.FormatPercent(Shared.Progress(kr.change, kr.target))%
-                </div>
-              </td>
-              <td align="center">
-                <label class="td-label">Tự tin</label>
-                <div class="td-value has-text-weight-semibold">
-                  <span class="@confidentKr.color">@confidentKr.name</span>
-                </div>
-              </td>
-            </tr>
-          }
-        }
-      }
-    </tbody>
-  </table>
-</div>
-
-@if (okrRelated.Count > 0)
-{
-  var relatedId = string.Empty;
-  <div class="card p-5">
-    <ul class="columns is-vcentered is-variable is-2 mb-3">
-      <li class="column is-narrow">
-        <h1 class="title is-5 has-text-info">
-          OKRs LIÊN QUAN
-        </h1>
-      </li>
-    </ul>
-    <table class="table is-fullwidth is-noborder is-responsive mt-5">
+  <div class="inner_section">
+    <table class="table is-fullwidth is-noborder is-responsive">
       <thead>
-        <tr>
+        <tr class="is-size-7" style="border-bottom: 1px solid #DEDEDE;">
           <th>Mục tiêu</th>
           <th width="200px">Kết Quả Then Chốt</th>
           <th width="180px" align="center">Tiến độ</th>
@@ -189,38 +59,31 @@
         </tr>
       </thead>
       <tbody>
-        @foreach (var dict in okrRelated)
+        @foreach (var okr in okrList)
         {
-          var key = dict.Key.Split("|");
-          var item = dict.Value;
-          var progress = DbOkr.GetProgress(item.key_results);
+          var progress = DbOkr.GetProgress(okr.key_results);
           var okrColor = Shared.ProgressColor(progress);
-          var showKey = okrsShow.Contains(item.id);
-          var confident = DbOkr.Confident(item.confident);
-          var related = okrList.SingleOrDefault(x => x.id == key[0]);
-
-          if (related != null && relatedId != related.id)
-          {
-            relatedId = related.id;
-            <tr>
-              <td colspan="5" class="has-text-info has-text-weight-semibold">
-                <hr class="mt-0 mb-3" />
-                O: @related.name
-              </td>
-            </tr>
-          }
+          var showKey = okrsShow.Contains(okr.id);
+          var confident = DbOkr.Confident(okr.confident);
           <tr>
             <td>
-              <a class="has-text-weight-semibold has-text-link" href="/cfr/checkin/@item.id/overview">
-                @item.name
-              </a>
-              <i class="has-text-grey">→ @key[2]</i>
+              <div class="is-flex">
+                <a class="has-text-weight-semibold" href="/okr/checkin/@okr.id/overview">
+                  @okr.name
+                </a>
+                @if (okr.done)
+                {
+                  <span class="ml-1 icon" title="OKRs đã hoàn thành">
+                    <i class="material-icons is-size-6 has-text-success">check_circle</i>
+                  </span>
+                }
+              </div>
             </td>
             <td>
               <label class="td-label">Kết quả</label>
               <div class="td-value">
-                <a class="icon-text has-text-weight-semibold has-text-info" @onclick="() => ShowKeys(item.id)">
-                  <span>@item.key_results.Count kết quả</span>
+                <a class="icon-text has-text-weight-semibold has-text-info" @onclick="() => ShowKeys(okr.id)">
+                  <span>@okr.key_results.Count kết quả</span>
                   <span class="icon">
                     <i class="material-icons-outlined is-size-5">
                       @(showKey ? "arrow_drop_down" : "arrow_right")
@@ -241,7 +104,7 @@
             <td align="center">
               <label class="td-label">Thay đổi</label>
               <div class="td-value has-text-weight-semibold">
-                @Shared.FormatPercent(progress - item.progress_prev)%
+                @Shared.FormatPercent(progress - okr.progress_prev)%
               </div>
             </td>
             <td align="center">
@@ -254,9 +117,10 @@
 
           if (showKey)
           {
-            foreach (var kr in item.key_results)
+            foreach (var kr in okr.key_results)
             {
               var confidentKr = DbOkr.Confident(kr.confident);
+
               <tr>
                 <td class="pl-4">
                   @kr.name
@@ -296,9 +160,152 @@
               </tr>
             }
           }
+          <tr>
+            <td colspan="5" class="has-text-info has-text-weight-semibold">
+              <hr class="my-0" />
+            </td>
+          </tr>
+
         }
       </tbody>
     </table>
+  </div>
+</div>
+
+@if (okrRelated.Count > 0)
+{
+  var relatedId = string.Empty;
+  <div class="">
+    <ul class="columns is-vcentered is-variable is-2 mb-2">
+      <li class="column is-narrow">
+        <h1 class="title is-5 has-text-info">
+          OKRs LIÊN QUAN
+        </h1>
+      </li>
+    </ul>
+    <div class="inner_section">
+      <table class="table is-fullwidth is-noborder is-responsive">
+        <thead>
+          <tr class="is-size-7" style="border-bottom: 1px solid #DEDEDE;">
+            <th>Mục tiêu</th>
+            <th width="200px">Kết Quả Then Chốt</th>
+            <th width="180px" align="center">Tiến độ</th>
+            <th width="100px" align="center">Thay đổi</th>
+            <th width="100px" align="center">Tự tin</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var dict in okrRelated)
+          {
+            var key = dict.Key.Split("|");
+            var item = dict.Value;
+            var progress = DbOkr.GetProgress(item.key_results);
+            var okrColor = Shared.ProgressColor(progress);
+            var showKey = okrsShow.Contains(item.id);
+            var confident = DbOkr.Confident(item.confident);
+            var related = okrList.SingleOrDefault(x => x.id == key[0]);
+
+            <tr>
+              <td>
+                <a class="has-text-weight-semibold has-text-link" href="/okr/checkin/@item.id/overview">
+                  @item.name
+                </a>
+                <i class="has-text-grey">→ @key[2]</i>
+              </td>
+              <td>
+                <label class="td-label">Kết quả</label>
+                <div class="td-value">
+                  <a class="icon-text has-text-weight-semibold has-text-info" @onclick="() => ShowKeys(item.id)">
+                    <span>@item.key_results.Count kết quả</span>
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-5">
+                        @(showKey ? "arrow_drop_down" : "arrow_right")
+                      </i>
+                    </span>
+                  </a>
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Tiến độ</label>
+                <div class="td-value">
+                  <div class="progress_has_value">
+                    <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100" />
+                    <span>@Shared.FormatPercent(progress)%</span>
+                  </div>
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Thay đổi</label>
+                <div class="td-value has-text-weight-semibold">
+                  @Shared.FormatPercent(progress - item.progress_prev)%
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Tự tin</label>
+                <div class="td-value has-text-weight-semibold">
+                  <span class="@confident.color">@confident.name</span>
+                </div>
+              </td>
+            </tr>
+
+            if (showKey)
+            {
+              foreach (var kr in item.key_results)
+              {
+                var confidentKr = DbOkr.Confident(kr.confident);
+                <tr>
+                  <td class="pl-4">
+                    @kr.name
+                  </td>
+                  <td class="pl-2">
+                    @if (!string.IsNullOrEmpty(kr.link))
+                    {
+                      <a class="icon-text ml-2 has-text-link" href="@kr.link" target="_blank">
+                        <span class="icon is-small">
+                          <i class="material-icons-outlined">attach_file</i>
+                        </span>
+                        <span>Kết quả</span>
+                      </a>
+                    }
+                  </td>
+                  <td>
+                    <label class="td-label">Đạt được</label>
+                    <div class="td-value">
+                      <span class="has-text-success" title="@string.Format("{0:0,0}/{1:0,0}", kr.result, kr.target)">
+                        @Shared.ConvertNumber(kr.result)/@Shared.ConvertNumber(kr.target)
+                      </span>
+                      <span class="is-pulled-right">@kr.unit</span>
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Thay đổi</label>
+                    <div class="td-value">
+                      @Shared.FormatPercent(Shared.Progress(kr.change, kr.target))%
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Tự tin</label>
+                    <div class="td-value has-text-weight-semibold">
+                      <span class="@confidentKr.color">@confidentKr.name</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+            if (related != null && relatedId != related.id)
+            {
+              relatedId = related.id;
+              <tr>
+                <td colspan="5" class="has-text-info has-text-weight-semibold">
+                  <hr class="mt-0 mb-3" />
+                  O: @related.name
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 }
 
@@ -323,69 +330,92 @@
     await OnLoad();
   }
 
-  protected override void OnAfterRender(bool firstRender)
+  protected override async Task OnAfterRenderAsync(bool firstRender)
   {
     taskOkr = null;
     taskKr = null;
-  }
-
-  private async Task OnLoad()
-  {
-    okrsShow.Clear();
-    okrChart = null;
-
-    okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, User.id);
     if (okrList.Count > 0)
     {
       await ChangeOkrChart(okrList[0]);
     }
+  }
 
-    okrRelated = new();
-    foreach (var item in okrList)
+  private async Task OnLoad()
+  {
+    try
     {
-      if (!string.IsNullOrEmpty(item.parent))
+      okrsShow.Clear();
+      okrChart = null;
+
+      okrList = await DbOkr.GetList(Layout.Company.id, Layout.CycleId, User.id);
+      if (okrList.Count > 0)
       {
-        var okr = await DbOkr.Get(Layout.Company.id, item.parent);
-        if (okr != null)
-          okrRelated.Add($"{item.id}|{DateTime.Now.Ticks}|OKR cấp trên", okr);
+        await ChangeOkrChart(okrList[0]);
       }
-      foreach (var kr in item.key_results)
+
+      okrRelated = new();
+      foreach (var item in okrList)
       {
-        foreach (var cross in kr.cross_links)
+        if (!string.IsNullOrEmpty(item.parent))
         {
-          var okr = await DbOkr.Get(Layout.Company.id, cross.okr);
+          var okr = await DbOkr.Get(Layout.Company.id, item.parent);
           if (okr != null)
-            okrRelated.Add($"{item.id}|{DateTime.Now.Ticks}|OKR liên kết", okr);
+            okrRelated.Add($"{item.id}|{DateTime.Now.Ticks}|OKR cấp trên", okr);
+        }
+        foreach (var kr in item.key_results)
+        {
+          foreach (var cross in kr.cross_links)
+          {
+            var okr = await DbOkr.Get(Layout.Company.id, cross.okr);
+            if (okr != null)
+              okrRelated.Add($"{item.id}|{DateTime.Now.Ticks}|OKR liên kết", okr);
+          }
         }
       }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnLoad()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
     }
   }
 
   private async Task ChangeOkrChart(OkrModel item)
   {
-    okrChart = item;
-    if (okrChart == null)
-      return;
-
-    var dataList = DbOkrCheckin.GetList(Layout.Company.id, Layout.CycleId, okrChart.id, true)
-      .OrderBy(x => x.date_create).ToList();
-
-    int chartCount = dataList.Count + 1;
-
-    var chartLabel = new string[chartCount];
-    var chartDatas = new int[chartCount];
-
-    chartLabel[0] = string.Format("{0:dd/MM}", new DateTime(okrChart.date_create));
-    chartDatas[0] = 0;
-
-    for (int i = 0; i < dataList.Count; i++)
+    try
     {
-      var checkin = dataList[i];
-      chartLabel[i + 1] = string.Format("{0:dd/MM}", new DateTime(checkin.date_create));
-      chartDatas[i + 1] = (int)DbOkrCheckin.GetProgress(checkin.key_results, okrChart.key_results);
-    }
+      okrChart = item;
+      if (okrChart == null)
+        return;
 
-    await JSRuntime.InvokeAsync<string>("runChartLine", "Tiến độ (%)", chartLabel, chartDatas);
+      var dataList = await DbOkrCheckin.GetList(Layout.Company.id, Layout.CycleId, okrChart.id, true);
+
+      dataList = dataList.OrderBy(x => x.date_create).ToList();
+
+      int chartCount = dataList.Count + 1;
+
+      var chartLabel = new string[chartCount];
+      var chartDatas = new int[chartCount];
+
+      chartLabel[0] = string.Format("{0:dd/MM}", new DateTime(okrChart.date_create));
+      chartDatas[0] = 0;
+
+      for (int i = 0; i < dataList.Count; i++)
+      {
+        var checkin = dataList[i];
+        chartLabel[i + 1] = string.Format("{0:dd/MM}", new DateTime(checkin.date_create));
+        chartDatas[i + 1] = (int)DbOkrCheckin.GetProgress(checkin.key_results, okrChart.key_results);
+      }
+
+      await JSRuntime.InvokeAsync<string>("runChartLine", "Tiến độ (%)", chartLabel, chartDatas);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeOkrChart()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 
   private void ShowKeys(string id)

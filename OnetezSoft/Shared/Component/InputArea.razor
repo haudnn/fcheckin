@@ -1,15 +1,17 @@
 @inject IJSRuntime JSRuntime
 
-<textarea id="text_@inputId" @bind="content" @bind:event="onchange" class="@Class" rows="1" placeholder="@Title" />
+<textarea id="text_@inputId" @bind="content" @bind:event="onchange" class="@Class" rows="1" placeholder="@Title" style="@Style"/>
 
 @code {
-  [Parameter]
-  public string Value { get; set; }
-  [Parameter]
-  public string Title { get; set; } = "Nhập nội dung...";
-  [Parameter]
-  public string Class { get; set; } = "textarea";
-  [Parameter]
+   [Parameter]
+   public string Value { get; set; }
+   [Parameter]
+   public string Title { get; set; } = "Nhập nội dung...";
+   [Parameter]
+   public string Class { get; set; } = "textarea";
+   [Parameter]
+   public string Style { get; set; }
+   [Parameter]
   public EventCallback<string> OnInput { get; set; }
   private string inputId = string.Empty;
 

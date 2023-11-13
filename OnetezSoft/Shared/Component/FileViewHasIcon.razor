@@ -1,0 +1,96 @@
+﻿@inject IJSRuntime JSRuntime
+
+<ul style="@(isOneLine ? "overflow-x: scroll" : "")" class="columns is-multiline is-vcentered is-variable is-1 is-mobile @(isOneLine ? "is-flex-wrap-nowrap scrolly" : "")">
+  @foreach (var link in Values)
+  {
+    <li class="column is-narrow">
+      <div class="icon-text storage_item mr-2">
+        @if (Delete)
+        {
+          <a class="icon is-small has-text-danger item_delete" title="Xóa" @onclick="() => DeleteFile(link)">
+            <i class="material-icons is-size-6">close</i>
+          </a>
+        }
+        <span class="icon is-small item_format @Color(link)">
+          <i class="material-icons is-size-6">insert_drive_file</i>
+        </span>
+        @if (!link.Contains(".mp4"))
+        {
+          <a class="has-text-link font_14 mb-0" href="@link" target="_blank">@Files.FileName(link, 20)</a>
+        }
+        else
+        {
+          <a class="has-text-link font_14 mb-0" @onclick="() => ShowVideo(link)">@Files.FileName(link, 20)</a>
+        }
+        @if (Layout.IsMobile && Delete)
+        {
+          <a class="icon has-text-danger" @onclick="() => DeleteFile(link)">
+            <i class="material-icons is-size-6">close</i>
+          </a>
+        }
+      </div>
+    </li>
+  }
+</ul>
+@if (isViewVideo)
+{
+  <Video link="@source" OnClose="CloseVideo" />
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<string> Values { get; set; }
+  [Parameter]
+  public bool Delete { get; set; }
+  [Parameter]
+  public EventCallback<List<string>> OnDelete { get; set; }
+  [Parameter]
+  public bool isOneLine { get; set; }
+
+  private string[] typePic = new string[] { ".png", ".jpg", ".jpeg", ".gif" };
+
+  private string[] typeDoc = new string[] { ".doc", ".docx", ".pdf", ".xls", ".xlsx", ".ppt", ".ppx" };
+
+  private bool isViewVideo = false;
+  private string source = "";
+
+
+  private async Task DeleteFile(string link)
+  {
+    var fileName = Files.FileName(link);
+
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa file [{fileName}]?"))
+      return;
+
+    Values.Remove(link);
+    await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã xóa file [{fileName}]");
+    await OnDelete.InvokeAsync(Values);
+    StorageService.DeleteFile(link);
+  }
+
+  private string Color(string link)
+  {
+    foreach (var item in typePic)
+      if (link.EndsWith(item))
+        return "has-text-danger";
+
+    foreach (var item in typeDoc)
+      if (link.EndsWith(item))
+        return "has-text-link";
+
+    return "has-text-black";
+  }
+
+  private void CloseVideo()
+  {
+    isViewVideo = false;
+    source = "";
+  }
+  private void ShowVideo(string link)
+  {
+    isViewVideo = true;
+    source = link;
+  }
+}

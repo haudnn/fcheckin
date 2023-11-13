@@ -1,3 +1,4 @@
+@inject GlobalService globalService
 
 @if(model != null)
 {
@@ -27,10 +28,10 @@
 
       @foreach (var memberId in model.members_id)
       {
-        var member = Layout.UserList.FirstOrDefault(x => x.id == memberId);
+        var member = shareStorage.MemberList.FirstOrDefault(x => x.id == memberId);
         if(member != null)
         {
-          var okrList = DbOkr.GetList(Layout.Company.id, Layout.CycleId, member.id);
+          var okrList = allOkrs.Where(x => x.user_create == member.id).ToList();
           var progress = GetProgress(okrList);
           var color = Shared.ProgressColor(progress);
 
@@ -38,7 +39,7 @@
             <div class="column is-8">
               <div class="user_item has-text-info">
                 <img class="image is-36x36 mr-2" src="@member.avatar" alt="IMG">
-                <span class="text_1_line">@member.FullName</span>
+                <span class="text_1_line">@member.name</span>
               </div>
             </div>
             <div class="column is-4">
@@ -129,17 +130,27 @@
   public EventCallback OnClose { get; set; }
 
   private List<string> okrsShow = new();
-    
+
+  private SharedStorage shareStorage = new();
+
+  private List<OkrModel> allOkrs = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    allOkrs = await DbOkr.GetAll(Layout.Company.id, Layout.CycleId);
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+  }
+
   private void Close()
   {
     OnClose.InvokeAsync();
   }
 
-  private UserModel GetManager()
+  private MemberModel GetManager()
   {
     var manager = model.members_list.Where(x => x.role < 3).OrderBy(x => x.role).FirstOrDefault();
     if(manager != null)
-      return Layout.UserList.FirstOrDefault(x => x.id == manager.id);
+      return shareStorage.MemberList.FirstOrDefault(x => x.id == manager.id);
     return null;
   }
 

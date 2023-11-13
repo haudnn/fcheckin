@@ -1,11 +1,9 @@
-﻿using System;
+﻿using MongoDB.Driver;
+using OnetezSoft.Models;
+using OnetezSoft.Services;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
 
 namespace OnetezSoft.Data
 {
@@ -58,7 +56,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<DepartmentModel>(_collection);
 
-      var result = await collection.Find(x => x.id == id && !x.delete).FirstOrDefaultAsync();
+      var result = await collection.FindAsync(x => x.id == id && !x.delete).Result.FirstOrDefaultAsync();
 
       if (result != null)
       {
@@ -87,25 +85,25 @@ namespace OnetezSoft.Data
     }
 
 
-    public static List<DepartmentModel> GetAll(string companyId)
+    public static async Task<List<DepartmentModel>> GetAll(string companyId)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<DepartmentModel>(_collection);
 
-      var results = collection.Find(x => x.delete == false).ToList();
+      var results = await collection.FindAsync(x => x.delete == false).Result.ToListAsync();
 
       return (from x in results orderby x.parent, x.pos, x.name select x).ToList();
     }
 
 
-    public static List<DepartmentModel> GetList(string companyId, string parent)
+    public static async Task<List<DepartmentModel>> GetList(string companyId, string parent)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<DepartmentModel>(_collection);
 
-      var results = collection.Find(x => x.delete == false && x.parent == parent).ToList();
+      var results = await collection.FindAsync(x => x.delete == false && x.parent == parent).Result.ToListAsync();
 
       return (from x in results orderby x.parent, x.pos, x.name select x).ToList();
     }
@@ -114,11 +112,11 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Danh sách phòng ban dùng cho Select
     /// </summary>
-    public static List<DepartmentModel.SelectList> GetSelectList(string companyId, string parent, int level,
+    public static async Task<List<DepartmentModel.SelectList>> GetSelectList(string companyId, string parent, int level,
       List<DepartmentModel> listAll)
     {
       if (listAll == null)
-        listAll = GetAll(companyId);
+        listAll = await GetAll(companyId);
 
       var list = new List<DepartmentModel>();
       if (string.IsNullOrEmpty(parent))
@@ -144,7 +142,9 @@ namespace OnetezSoft.Data
           level = level
         });
 
-        results.AddRange(GetSelectList(companyId, item.id, level + 1, listAll));
+        var range = await GetSelectList(companyId, item.id, level + 1, listAll);
+
+        results.AddRange(range);
       }
 
       return results;
@@ -154,27 +154,27 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Danh sách phòng ban của một người
     /// </summary>
-    public static List<DepartmentModel.SelectList> GetSelectListOfUser(string companyId, List<string> departments_id,
+    public static async Task<List<DepartmentModel.SelectList>> GetSelectListOfUser(string companyId, List<string> departments_id,
       List<DepartmentModel> listAll)
     {
       if (listAll == null)
-        listAll = GetAll(companyId);
+        listAll = await GetAll(companyId);
 
       // Lấy data phòng ban của một người
       var departmentsUser = listAll.Where(x => departments_id.Contains(x.id)).ToList();
 
-      return GetSelectList(companyId, null, 0, departmentsUser);
+      return await GetSelectList(companyId, null, 0, departmentsUser);
     }
 
 
     /// <summary>
     /// Danh sách tên phòng ban của một người
     /// </summary>
-    public static List<string> GetNameListOfUser(string companyId, List<string> departments_id,
+    public static async Task<List<string>> GetNameListOfUser(string companyId, List<string> departments_id,
       List<DepartmentModel> departments)
     {
       var results = new List<string>();
-      var department = DbDepartment.GetSelectListOfUser(companyId, departments_id, departments);
+      var department = await DbDepartment.GetSelectListOfUser(companyId, departments_id, departments);
       foreach (var item in department)
       {
         results.Add(item.name.Replace("'", "").Replace("└─", "").Trim());
@@ -190,7 +190,7 @@ namespace OnetezSoft.Data
       List<DepartmentModel> departments)
     {
       if (departments == null)
-        departments = GetAll(companyId);
+        departments = await GetAll(companyId);
 
       var results = new List<DepartmentModel>();
 
@@ -231,7 +231,7 @@ namespace OnetezSoft.Data
     /// </summary>
     /// <returns></returns>
     public static async Task<DepartmentModel> AddMember(string companyId, DepartmentModel department,
-      string memberId, int memberRole)
+      string memberId, int memberRole, GlobalService globalService)
     {
       if (department.members_id == null)
         department.members_id = new();
@@ -245,12 +245,12 @@ namespace OnetezSoft.Data
         if (manager != null)
         {
           manager.role = 3;
-          var mangerUser = await DbUser.Get(companyId, manager.id);
+          var mangerUser = await DbUser.Get(companyId, manager.id, globalService);
           if (mangerUser != null)
           {
             mangerUser.title = 3;
             mangerUser.title_name = string.Empty;
-            await DbUser.Update(companyId, mangerUser);
+            await DbUser.Update(companyId, mangerUser, globalService);
           }
         }
       }
@@ -276,7 +276,7 @@ namespace OnetezSoft.Data
       department = await Update(companyId, department);
 
       // Update data user
-      var user = await DbUser.Get(companyId, memberId);
+      var user = await DbUser.Get(companyId, memberId, globalService);
       if (user != null)
       {
         if (user.departments_id == null)
@@ -299,13 +299,13 @@ namespace OnetezSoft.Data
           user.title_name = department.deputy;
         else
           user.title_name = string.Empty;
-        await DbUser.Update(companyId, user);
+        await DbUser.Update(companyId, user, globalService);
       }
 
       // Thêm vào phòng ban cấp trên
       var parents = await GetAllParents(companyId, department.parent);
       foreach (var item in parents)
-        await AddMember(companyId, item, memberId, 0);
+        await AddMember(companyId, item, memberId, 0, globalService);
 
       return department;
     }
@@ -341,14 +341,14 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Danh sách quản lý cấp trên của một người
     /// </summary>
-    public static List<UserModel> GetManagerList(string companyId, UserModel user)
+    public static async Task<List<UserModel>> GetManagerList(string companyId, UserModel user)
     {
       var results = new List<UserModel>();
 
       if (user.departments_id != null)
       {
         // Lấy data phòng ban của một người
-        var departmentAll = GetAll(companyId);
+        var departmentAll = await GetAll(companyId);
         var departments = departmentAll.Where(x => user.departments_id.Contains(x.id)).ToList();
         var managerList = new List<string>();
         foreach (var item in departments)
@@ -364,7 +364,7 @@ namespace OnetezSoft.Data
         // Lấy thông tin quản lý
         if (managerList.Count > 0)
         {
-          var userList = DbUser.GetAll(companyId);
+          var userList = await DbUser.GetAll(companyId, null);
           results = userList.Where(x => managerList.Contains(x.id)).ToList();
         }
       }
@@ -376,14 +376,14 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Danh sách nhân viên cấp dưới của một người
     /// </summary>
-    public static List<UserModel> GetStaffListOfManager(string companyId, UserModel user)
+    public static async Task<List<UserModel>> GetStaffListOfManager(string companyId, UserModel user)
     {
       var results = new List<UserModel>();
 
       if (user.departments_id != null)
       {
         // Tất cả dữ liệu phòng ban
-        var departmentAll = GetAll(companyId);
+        var departmentAll = await GetAll(companyId);
         // Lấy data phòng ban của một người
         var departmentOfUser = departmentAll.Where(x => user.departments_id.Contains(x.id)).ToList();
         // Lấy danh sách phòng ban mà User làm quản lý
@@ -401,7 +401,7 @@ namespace OnetezSoft.Data
         // Lấy thông tin nhân viên
         if (managerDeartments.Count > 0)
         {
-          var userList = DbUser.GetAll(companyId);
+          var userList = await DbUser.GetAll(companyId, null);
           foreach (var item in userList)
           {
             foreach (var departmentId in managerDeartments)
@@ -420,14 +420,43 @@ namespace OnetezSoft.Data
     /// <summary>
     /// Kiểm tra manager có phải quản lý/phó quản lý của user
     /// </summary>
-    public static bool CheckManagerRole(string companyId, UserModel user, string manager,
+    public static async Task<bool> CheckManagerRole(string companyId, UserModel user, string manager,
       List<DepartmentModel> departmentAll)
     {
       if (user.departments_id != null)
       {
         // Lấy data phòng ban của một người
         if (departmentAll == null)
-          departmentAll = GetAll(companyId);
+          departmentAll = await GetAll(companyId);
+        var departments = departmentAll.Where(x => user.departments_id.Contains(x.id)).ToList();
+        foreach (var item in departments)
+        {
+          if (item.members_list != null)
+          {
+            // Lấy quản lý và phó quản lý
+            var managerList = item.members_list.Where(x => x.role == 1 || x.role == 2).ToList();
+            // user không phải là quản lý thì mới xét tiếp
+            if (managerList.Where(x => x.id == user.id && x.role == 1).Count() == 0)
+            {
+              // Kiểm tra manager có phải là quản lý/phó quản lý
+              if (managerList.Where(x => x.id == manager).Count() > 0)
+                return true;
+            }
+          }
+        }
+      }
+
+      return false;
+    }
+
+    public static async Task<bool> CheckManagerRole(string companyId, MemberModel user, string manager,
+  List<DepartmentModel> departmentAll)
+    {
+      if (user.departments_id != null)
+      {
+        // Lấy data phòng ban của một người
+        if (departmentAll == null)
+          departmentAll = await GetAll(companyId);
         var departments = departmentAll.Where(x => user.departments_id.Contains(x.id)).ToList();
         foreach (var item in departments)
         {
@@ -450,16 +479,17 @@ namespace OnetezSoft.Data
     }
 
 
+
     /// <summary>
     /// Danh sách phòng ban theo user cấp dưới của mình
     /// </summary>
-    public static List<DepartmentModel> GetListByUser(string companyId, string userId)
+    public static async Task<List<DepartmentModel>> GetListByUser(string companyId, string userId)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<DepartmentModel>(_collection);
 
-      var results = collection.Find(x => x.delete == false && x.members_list.Any(i => i.id == userId && (i.role == 1 || i.role == 2))).ToList();
+      var results = await collection.FindAsync(x => x.delete == false && x.members_list.Any(i => i.id == userId && (i.role == 1 || i.role == 2))).Result.ToListAsync();
 
       return results;
     }

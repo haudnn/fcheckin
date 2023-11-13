@@ -5,6 +5,7 @@ using OnetezSoft.Data;
 
 namespace OnetezSoft.Models;
 
+[BsonIgnoreExtraElements]
 public class HrmTimeListRegisterModel : HrmTimeListModel
 {
 	/// <summary>Ca làm được áp dụng </summary>

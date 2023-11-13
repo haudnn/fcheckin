@@ -1,0 +1,493 @@
+﻿@page "/kpis/manager/list"
+@inject GlobalService globalService
+
+<section class="main_content">
+  <div class="flex_column is-fullwidth" style="height: calc(100vh - 110px);">
+    <ul class="columns is-vcentered is-variable is-2 is-mobile is-multiline">
+      <li class="column @(confirmCount > 0 ? "is-narrow" : "") is-full-mobile">
+        <h1 class="title is-5 has-text-info">
+          KPIS QUẢN LÝ
+        </h1>
+      </li>
+
+      @if (confirmCount > 0)
+      {
+        <li class="column">
+          <span class="has-text-black has-text-weight-semibold mr-1">
+            @confirmCount
+          </span>
+          <span class="has-text-grey mr-1">
+            bản check-in chờ bạn xác nhận.
+          </span>
+          <a class="has-text-link" href="/kpis/manager/confirm">
+            Xem ngay!
+          </a>
+        </li>
+      }
+
+      <li class="column is-narrow">
+        <div class="dropdown is-hoverable">
+          <div class="dropdown-trigger">
+            <span class="icon-text has-text-grey-dark">
+              <span class="icon">
+                <span class="material-icons-outlined">info</span>
+              </span>
+              <span>Chú thích</span>
+            </span>
+          </div>
+          <div class="dropdown-menu">
+            <div class="dropdown-content">
+              <span class="dropdown-item">
+                <span class="icon-text is-size-6">
+                  <span class="icon has-text-grey mr-2">
+                    <span class="material-icons-outlined">corporate_fare</span>
+                  </span>
+                  <span class="has-text-grey">KPIs cao nhất</span>
+                </span>
+              </span>
+
+              <span class="dropdown-item">
+                <span class="icon-text is-size-6">
+                  <span class="icon has-text-grey mr-2">
+                    <span class="material-icons-outlined">account_tree</span>
+                  </span>
+                  <span class="has-text-grey">
+                    KPIs tự động
+                  </span>
+                </span>
+              </span>
+
+              <span class="dropdown-item">
+                <span class="icon-text is-size-6">
+                  <span class="icon has-text-grey mr-2">
+                    <span class="material-icons">account_circle</span>
+                  </span>
+                  <span class="has-text-grey">
+                    KPIs nhập liệu
+                  </span>
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </li>
+
+      <li class="column is-narrow">
+        <Dropdown CloseOnClickMenu=true MenuClass="scrolly">
+          <Trigger>
+            <div class="field is-grouped is-fullwidth is-clickable has-text-link font_14">
+              <div class="control has-text-link">
+                @if (Shared.IsEmpty(filterDepartment))
+                {
+                  <span>Phòng ban</span>
+                }
+                else
+                {
+                  var department = departmentAll.FirstOrDefault(i => i.id == filterDepartment);
+                  if (department != null)
+                  {
+                    <span>@department.name</span>
+                  }
+                }
+              </div>
+
+              <div class="control is-expanded has-text-right">
+                <span class="icon">
+                  <i class="material-icons-outlined">arrow_drop_down</i>
+                </span>
+              </div>
+            </div>
+          </Trigger>
+          <MenuContent>
+            <a class="dropdown-item" @onclick="() => ChangeDepartment()">Phòng ban</a>
+            @foreach (var item in departmentAll)
+            {
+              <a class="dropdown-item" @onclick="() => ChangeDepartment(item.id)" selected="@(filterDepartment == item.id)">@item.name</a>
+            }
+          </MenuContent>
+        </Dropdown>
+      </li>
+
+      <li class="column is-one-fifth">
+        <form @onsubmit="Filter" class="control has-icons-right">
+          <input @bind="filterName" type="text" class="input is-rounded" placeholder="Nhập tên nhân viên" />
+          <span class="icon is-right">
+            <i class="material-icons-outlined is-size-6">search</i>
+          </span>
+        </form>
+      </li>
+    </ul>
+
+    <div class="inner_section scrolly mt-5" style="flex: 1;">
+      @if (dataList.Any())
+      {
+        <table class="table is-fullwidth is-vcentered is-responsive">
+          <thead class="is-hidden-mobile">
+            <tr class="has-text-grey">
+              <th width="40%">Thành viên</th>
+              <th width="10%"></th>
+              <th width="20%" align="center">Mục tiêu</th>
+              <th width="20%" align="center">Tiến độ</th>
+              <th width="10%" align="center">Thời hạn</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (filterList.Any())
+            {
+              @foreach (var item in filterList)
+              {
+                <tr>
+                  <td colspan="5" style="border: none;">
+                    <div class="user_item">
+                      <img class="image is-24x24 mr-2" src="@item.Key.avatar" alt="IMG">
+                      <span class="text_1_line">@item.Key.FullName</span>
+                    </div>
+                  </td>
+                </tr>
+
+                @foreach (var kpis in item.Value)
+                {
+                  var parent = database.FirstOrDefault(i => i.id == kpis.parent);
+                  var progress = KpisService.GetProgress(database, kpis, kpis.root);
+                  var color = Shared.ProgressColor(progress);
+                  var metric = kpis.metrics.FirstOrDefault();
+                  var noborder = kpis.id != item.Value.LastOrDefault().id ? "border: none;" : "";
+
+                  progress = Math.Round(progress, 1);
+
+                  <tr>
+                    <td style="@noborder">
+                      @if (parent != null && parent.parent != parent.cycle)
+                      {
+                        <p class="icon-text is-fullwidth pl-3">
+                          <span class="is-size-6 mr-2"></span>
+                          <span class="icon-text font_12 has-text-grey">
+                            <img src="./images/line.png" alt="" class="image mr-2" width="12" height="12" />
+                            <span>@parent.name</span>
+                          </span>
+                        </p>
+                      }
+                      <p class="icon-text is-fullwidth pl-3">
+                        <span class="icon is-size-6 has-text-grey mr-2">
+                          @if (parent != null && parent.cycle != parent.parent)
+                          {
+                            <span class="material-icons@(kpis.type == 1 ? "" : "-outlined")">
+                              @(kpis.type == 1 ? "account_circle" : "account_tree")
+                            </span>
+                          }
+                          else
+                          {
+                            <span class="material-icons-outlined">corporate_fare</span>
+                          }
+                        </span>
+                        <a class="text_1_line font_14 has-text-link has-text-weight-medium is-clickable mr-2" style="line-height: 24px;" @onclick="() => ShowDetail(kpis)">
+                          @kpis.name
+                        </a>
+
+                        @if (kpis.status_checkin == 1)
+                        {
+                          <span style="background-color: #B6EBF5; overflow:unset;" class="tag m-0">
+                            <span class="icon-text" style="overflow:unset;">
+                              <span class="icon">
+                                <span class="material-icons-outlined">description</span>
+                              </span>
+                              <span class="has-text-grey-dark has-text-weight-medium">Bản check-in</span>
+                            </span>
+                          </span>
+                        }
+                      </p>
+                    </td>
+
+                    <td style="@noborder">
+                      @if (kpis.type == 2)
+                      {
+                        <a class="icon-text is-size-7 has-text-link is-clickable" href="/kpis/manager/list/@(kpis.id)">
+                          <span class="icon">
+                            <span class="material-icons-outlined">remove_red_eye</span>
+                          </span>
+                          <span>Tổng quan</span>
+                        </a>
+                      }
+                    </td>
+
+                    <td style="@noborder">
+                      @if (metric != null)
+                      {
+                        <span class="text_1_line font_14" title="@($"{metric.name}: {Shared.ConvertCurrencyDouble(Math.Round(metric.target, 3))} {metric.units}")">
+                          <span class="has-text-black has-text-weight-medium">
+                            @(metric.name):
+                          </span>
+                          <span class="has-text-grey">
+                            @($"{Shared.ConvertCurrencyDouble(Math.Round(metric.target, 3))} {metric.units}")
+                          </span>
+                        </span>
+                      }
+                    </td>
+
+                    <td style="@noborder">
+                      @if (metric != null)
+                      {
+                        <span class="text_1_line has-text-left font_12">
+                          <span class="has-text-black has-text-weight-medium">@Shared.ConvertCurrencyDouble(Math.Round(metric.value, 3))</span>
+                          <span class="has-text-black has-text-weight-medium">/</span>
+                          <span class="has-text-black has-text-weight-medium mr-1">@Shared.ConvertCurrencyDouble(Math.Round(metric.target, 3))</span>
+                          <span class="has-text-grey">@metric.units</span>
+                        </span>
+                      }
+
+                      <div class="progress_has_value">
+                        <progress class="progress progress-kpis is-small @color" value="@Convert.ToInt32(progress)"
+                                  style="width: calc(100% - 45px);" max="100"></progress>
+                        <span>@Shared.FormatPercent(progress)%</span>
+                      </div>
+                    </td>
+
+                    <td align="center" style="@noborder">
+                      <p class="has-text-black font_14 has-text-weight-medium">
+                        @($"{new DateTime(kpis.start_date).ToString("dd'/'MM")} - {new DateTime(kpis.end_date).ToString("dd'/'MM")}")
+                      </p>
+                      <span class="font_14 has-text-grey">
+                        @($"({KpisService.CheckDate(kpis.end_date)})")
+                      </span>
+                    </td>
+                  </tr>
+                }
+              }
+            }
+            else
+            {
+              <tr>
+                <td align="center" colspan="5">
+                  <p class="mt-6">Không tìm thấy dữ liệu phù hợp!</p>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+      else
+      {
+        <div class="mt-5 has-text-centered">
+          <span>Không có dữ liệu KPIs quản lý!</span>
+        </div>
+      }
+    </div>
+  </div>
+</section>
+
+@if (stickSideBar != null)
+{
+  <_Slider model="stickSideBar"
+           cycle="cycle"
+           database="database"
+           kpisRoot="kpisRoot"
+           checkReloadChart="checkReloadChart"
+           isShowCheckin="isShowCheckin"
+           isManager="true"
+           ShowEdit="ShowEdit"
+           ShowDelete="ShowDelete"
+           OnClose="CloseSideBar"
+           tab="tab" />
+}
+
+@if (model != null && kpisRoot != null && !isDelete)
+{
+  <_KpisPopup model=model kpisRoot="kpisRoot" cycle="cycle" dataMetric="dataMetric" OnUpdate="OnUpdate" />
+}
+
+@if (model != null && isDelete && cycle != null)
+{
+  <_DeleteKpisPopup model="model" kpisRoot="kpisRoot" cycle="cycle" database="database" OnRemove="OnRemove" />
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  [SupplyParameterFromQuery(Name = "id")]
+  public string idDetail { get; set; } = "";
+  [Parameter]
+  [SupplyParameterFromQuery(Name = "tab")]
+  public int tab { get; set; } = 1;
+
+  private string filterName = string.Empty;
+  private string filterDepartment = string.Empty;
+
+  private List<DepartmentModel> departmentAll = new();
+  private List<KpisModel> database = new();
+  private List<KpisModel> dataList = new();
+
+  private List<UserModel> dataUser = new();
+  private List<UserModel> userList = new();
+  private List<UserModel> dataUserFilter = new();
+
+  private List<KpisMetricModel> dataMetric = new();
+  private KpisModel stickSideBar = null;
+  private KpisModel model;
+  private KpisCycleModel cycle;
+  private KpisModel kpisRoot;
+  private bool isDelete;
+  private bool isShowCheckin;
+  private bool checkReloadChart = true;
+  private int confirmCount;
+
+  private Dictionary<UserModel, List<KpisModel>> filterList = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+
+    dataUser = await DbUser.GetAll(Layout.Company.id, globalService);
+
+    dataMetric = await DbKpisMetric.GetList(Layout.Company.id);
+
+    if (!Shared.IsEmpty(Layout.CycleKpisId))
+      cycle = shareStorage.KpisCycles.Find(i => i.id == Layout.CycleKpisId);
+
+    departmentAll = await DbDepartment.GetAll(Layout.Company.id);
+
+    await GetData();
+  }
+
+  protected override void OnParametersSet()
+  {
+    if (!Shared.IsEmpty(idDetail) && dataList.Any())
+    {
+      stickSideBar = dataList.Find(i => i.id == idDetail);
+      GetRootKpis(stickSideBar);
+    }
+  }
+
+  private async Task GetData()
+  {
+    database = await DbKpis.GetList(Layout.Company.id, Layout.CycleKpisId);
+
+    dataList.Clear();
+    var managerList = database.Where(i => i.user == Layout.User.id && i.type == 2).ToList();
+    foreach (var item in managerList)
+    {
+      dataList.AddRange(KpisService.GetAllChild(database, new List<KpisModel>() { item }, item));
+      dataList.Add(item);
+    }
+    dataList = dataList.DistinctBy(i => i.id).ToList();
+
+    // danh sách kpis nhập liệu
+    var checkList = dataList.Where(i => i.type == 1 && i.user != Layout.User.id).ToList();
+    var resultList = new List<KpisModel>();
+    foreach (var item in checkList)
+    {
+      var parent = database.FirstOrDefault(i => i.id == item.parent);
+      if (parent != null && parent.user == Layout.User.id)
+        resultList.Add(item);
+    }
+    resultList = resultList.Where(i => i.status_checkin == 1).ToList();
+    confirmCount = resultList.Count;
+
+    GetFilterUser();
+
+    Filter();
+  }
+
+  private void ChangeDepartment(string idDepartment = "")
+  {
+    filterDepartment = idDepartment;
+    Filter();
+  }
+
+  private void GetFilterUser()
+  {
+    // Danh sach user
+    userList.Clear();
+    foreach (var item in dataList)
+    {
+      var member = dataUser.FirstOrDefault(i => i.id == item.user);
+      if (member != null)
+        userList.Add(member);
+    }
+    userList = userList.DistinctBy(i => i.id).ToList();
+  }
+
+  private void Filter()
+  {
+    dataUserFilter = userList.Where(x =>
+    {
+      return (Shared.IsEmpty(filterDepartment) || x.departments_id.Count == 0 ? true : x.departments_id.Contains(filterDepartment))
+              && (string.IsNullOrEmpty(filterName) ? true : Shared.SearchKeyword(filterName, x.FullName));
+    }).OrderBy(i => i.first_name).ToList();
+
+    // lấy danh sách tổng
+    // lọc theo user
+    filterList.Clear();
+    foreach (var user in dataUserFilter)
+    {
+      if (user != null)
+      {
+        var kpisList = dataList.Where(i => i.user == user.id).ToList();
+        if (kpisList.Any())
+          filterList.Add(user, kpisList);
+      }
+    }
+  }
+
+  private void ShowEdit()
+  {
+    model = Shared.Clone(stickSideBar);
+    GetRootKpis(model);
+    isDelete = false;
+  }
+
+  private void ShowDelete()
+  {
+    model = Shared.Clone(stickSideBar);
+    GetRootKpis(model);
+    isDelete = true;
+  }
+
+  private void ShowDetail(KpisModel kpis)
+  {
+    stickSideBar = kpis;
+    GetRootKpis(stickSideBar);
+    isShowCheckin = false;
+    checkReloadChart = true;
+    StateHasChanged();
+  }
+
+  private async Task CloseSideBar(bool e)
+  {
+    if (e)
+      await GetData();
+    stickSideBar = null;
+  }
+
+  private async Task OnUpdate(KpisModel e)
+  {
+    if (e != null)
+    {
+      stickSideBar = e;
+      await GetData();
+      GetRootKpis(stickSideBar);
+      await InvokeAsync(StateHasChanged);
+    }
+
+    model = null;
+  }
+
+  private void GetRootKpis(KpisModel child)
+  {
+    if (child != null)
+      kpisRoot = database.FirstOrDefault(i => child.root == i.id);
+  }
+
+  private async Task OnRemove(bool e)
+  {
+    if (e)
+    {
+      stickSideBar = null;
+      await GetData();
+      await InvokeAsync(StateHasChanged);
+    }
+
+    isDelete = false;
+    model = null;
+  }
+}

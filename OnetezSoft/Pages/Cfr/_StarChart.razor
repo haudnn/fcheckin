@@ -1,8 +1,8 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<div class="card p-5">
-  <ul class="columns is-vcentered is-variable is-2">
+<div class="">
+  <ul class="columns is-vcentered is-variable is-2 mb-2">
     <li class="column">
       <h1 class="title is-5 has-text-info">
         HÀNH TRÌNH CỦA BẠN
@@ -30,70 +30,85 @@
       </div>
     </li>
   </ul>
-  <div class="pt-3" style="height: 450px;">
+  <div class="inner_section" style="height: 450px;">
     <canvas id="chartBarMulti" height="450"></canvas>
   </div>
 </div>
 
 @code {
-  [CascadingParameter]
-  public LayoutMain Layout { get; set; }
+   [CascadingParameter]
+   public LayoutMain Layout { get; set; }
 
-  protected override async Task OnInitializedAsync()
+   protected override async Task OnAfterRenderAsync(bool first)
+   {
+      if(first)
+      {
+         await Start();
+      }
+   }
+
+  private async Task<bool> Start()
   {
-    await Start();
-  }
-
-  private async Task Start()
-  {
-    Shared.GetTimeSpan(2, out DateTime chartStart, out DateTime chartEnd);
-    chartStart = chartStart.AddMonths(-5);
-
-    var dataList = await DbOkrCfr.GetList(Layout.Company.id, chartStart, chartEnd);
-
-    int chartCount = chartStart.Year == chartEnd.Year ?
-        chartEnd.Month - chartStart.Month + 1 : chartEnd.Month - chartStart.Month + 13;
-
-    var chartLabels = new string[chartCount];
-    var chartDataLabel = new string[2];
-    var chartDataValue = new string[2];
-
-    for (int i = 0; i < chartCount; i++)
+    bool _success = true;
+    try
     {
-      var start = Convert.ToDateTime(string.Format("{0:yyyy-MM-01}", chartStart)).AddMonths(i);
-      chartLabels[i] = string.Format("Th {0:MM/yyyy}", start);
-    }
+      Shared.GetTimeSpan(2, out DateTime chartStart, out DateTime chartEnd);
+      chartStart = chartStart.AddMonths(-5);
 
-    for (int t = 0; t < 2; t++)
-    {
-      var value = new string[chartCount];
+      var dataList = await DbOkrCfr.GetList(Layout.Company.id, chartStart, chartEnd);
+
+      int chartCount = chartStart.Year == chartEnd.Year ?
+          chartEnd.Month - chartStart.Month + 1 : chartEnd.Month - chartStart.Month + 13;
+
+      var chartLabels = new string[chartCount];
+      var chartDataLabel = new string[2];
+      var chartDataValue = new string[2];
 
       for (int i = 0; i < chartCount; i++)
       {
         var start = Convert.ToDateTime(string.Format("{0:yyyy-MM-01}", chartStart)).AddMonths(i);
-        var end = start.AddMonths(1);
-        var total = 0;
-        if (t == 0)
-        {
-          total = (from x in dataList
-                   where x.user_receive == Layout.User.id
-                   && x.date_create >= start.Ticks && x.date_create < end.Ticks
-                   select x.star).Sum();
-        }
-        else
-        {
-          total = (from x in dataList
-                   where x.user_create == Layout.User.id
-                   && x.date_create >= start.Ticks && x.date_create < end.Ticks
-                   select x.star).Sum();
-        }
-
-        value[i] = total.ToString();
+        chartLabels[i] = string.Format("Th {0:MM/yyyy}", start);
       }
 
-      chartDataLabel[t] = t == 0 ? "Sao nhận được" : "Sao cho đi";
-      chartDataValue[t] = String.Join(", ", value);
+      for (int t = 0; t < 2; t++)
+      {
+        var value = new string[chartCount];
+
+        for (int i = 0; i < chartCount; i++)
+        {
+          var start = Convert.ToDateTime(string.Format("{0:yyyy-MM-01}", chartStart)).AddMonths(i);
+          var end = start.AddMonths(1);
+          var total = 0;
+          if (t == 0)
+          {
+            total = (from x in dataList
+                     where x.user_receive == Layout.User.id
+                     && x.date_create >= start.Ticks && x.date_create < end.Ticks
+                     select x.star).Sum();
+          }
+          else
+          {
+            total = (from x in dataList
+                     where x.user_create == Layout.User.id
+                     && x.date_create >= start.Ticks && x.date_create < end.Ticks
+                     select x.star).Sum();
+          }
+
+          value[i] = total.ToString();
+        }
+
+        chartDataLabel[t] = t == 0 ? "Sao nhận được" : "Sao cho đi";
+        chartDataValue[t] = String.Join(", ", value);
+      }
+      await JSRuntime.InvokeAsync<string>("runChartBarMulti", chartLabels, chartDataLabel, chartDataValue);
     }
-    await JSRuntime.InvokeAsync<string>("runChartBarMulti", chartLabels, chartDataLabel, chartDataValue);
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Start()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

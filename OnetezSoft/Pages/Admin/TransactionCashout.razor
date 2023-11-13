@@ -88,8 +88,8 @@
     </li>
     <li class="column is-narrow">
       <div class="control is-expanded has-icons-left" style="width: 230px;">
-        <input @bind="filterKeyword" @onkeyup="ChangeKeyword" type="text" class="input is-small" 
-          placeholder="Email, họ và tên KH, mã giao dịch..." />
+        <input @bind="filterKeyword" @onkeyup="ChangeKeyword" type="text" class="input is-small"
+               placeholder="Email, họ và tên KH, mã giao dịch..." />
         <span class="icon is-left has-text-dark">
           <i class="material-icons-round is-size-6">search</i>
         </span>
@@ -211,15 +211,39 @@
     }
   }
 
-  private void GetList()
+  private async Task<bool> GetList()
   {
-    dataList = DbMainTransaction.GetListCashout(filterKeyword, filterDateS, filterDateE);
-    totalMoney = dataList.Select(x => x.money).Sum();
+    bool _success = true;
+    try
+    {
+      dataList = await DbMainTransaction.GetListCashout(filterKeyword, filterDateS, filterDateE);
+      totalMoney = dataList.Select(x => x.money).Sum();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private void AddItem()
+  private async Task<bool> AddItem()
   {
-    members = DbMainUser.GetListCustomer();
+    bool _success = true;
+    try
+    {
+      members = await DbMainUser.GetListCustomer();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "AddItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task OnUpdate(int count)

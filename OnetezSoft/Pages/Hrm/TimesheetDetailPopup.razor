@@ -103,28 +103,111 @@
             }
           </div>
         </div>
+
+        @if (inData != null)
+        {
+          if (inData.is_hybrid)
+          {
+            <div class="mb-1 is-flex is-align-content-center" style="line-height:24px">
+              <span class="has-text-weight-medium" style="width: @(selectShift != null && selectShift.is_byhour ? "160px" : "120px"); flex-shrink: 0;">
+                Địa điểm:
+              </span>
+              <span class="text_1_line has-text-link" style="max-width: 500px;">Chế độ linh động</span>
+            </div>
+          }
+
+          if (inData.location != null)
+          {
+            <div class="mb-1 is-flex is-align-content-center" style="line-height:24px">
+              <span class="has-text-weight-medium" style="width: @(selectShift != null && selectShift.is_byhour ? "160px" : "120px"); flex-shrink: 0;">
+                Địa điểm:
+              </span>
+              <span class="text_1_line" style="max-width: 500px;">@inData.location.name</span>
+            </div>
+          }
+        }
+
+
+        if (selectShift != null && selectShift.is_byhour)
+        {
+          <div class="mb-1 is-flex is-align-content-center" style="line-height:24px">
+            <span class="has-text-weight-medium" style="width: @(selectShift != null && selectShift.is_byhour ? "160px" : "120px"); flex-shrink: 0;">
+              Thời gian nghỉ:
+            </span>
+            <div class="is-flex is-align-items-center is-flex-wrap-wrap" style="gap: 10px;">
+              @if (selectShift.break_times.Any())
+              {
+                @foreach (var item in selectShift.break_times)
+                {
+                  <div class="tag">
+                    <span class="has-text-weight-medium has-text-black">@(item.start + " - " + item.end)</span>
+                  </div>
+                }
+              }
+              else
+              {
+                <span class="has-text-weight-medium has-text-black">Ca làm này không có thời gian nghỉ</span>
+              }
+            </div>
+          </div>
+        }
+
         <div class="mb-1 is-flex is-align-content-center" style="line-height:24px">
-          <span class="has-text-weight-medium" style="width: 120px;">
+          <span class="has-text-weight-medium" style="width: @(selectShift != null && selectShift.is_byhour ? "160px" : "120px"); flex-shrink: 0;">
             Giờ check-in:
           </span>
           @if (inData != null && !Shared.IsEmpty(inData.time_active))
           {
-            <span class="@(inData.time_difference > 0 && !inData.is_ot ? "has-text-danger" : "")">
-              @inData.time_active @(inData.time_difference > 0 && !inData.is_ot ? $" - Đi trễ {inData.time_difference} phút" : "")
-            </span>
-            @if (!inData.in_company)
-            {
-              <span class="icon-text has-text-danger">
-                <span class="icon">
-                  <span class="material-icons-outlined">place</span>
-                </span>
-                <span class="">Ngoài vị trí</span>
+            <div class="is-flex is-align-items-center is-flex-wrap-wrap">
+              <span class="mr-2 @(inData.time_difference > 0 && !inData.is_ot ? "has-text-danger" : "")">
+                @inData.time_active @(inData.time_difference > 0 && !inData.is_ot ? $" - Đi trễ {inData.time_difference} phút" : "")
               </span>
-            }
+
+              @if (!inData.is_valid_device && checkRuleDevice)
+              {
+                <span class="icon-text mr-2">
+                  <span class="mx-1">•</span>
+                  <span class="icon m-0 has-text-danger">
+                    <span class="material-icons-outlined">app_blocking</span>
+                  </span>
+                  <span class="has-text-danger">Thiết bị không hợp lệ</span>
+                </span>
+              }
+
+              @if (!inData.in_company || inData.is_hybrid)
+              {
+                <span class="icon-text mr-2">
+                  <span class="mx-1">•</span>
+
+                  @if (!inData.is_hybrid)
+                  {
+                    <span class="icon m-0">
+                      <span class="material-icons-outlined has-text-danger">place</span>
+                    </span>
+                    <span class="has-text-danger mr-1">
+                      Ngoài vị trí
+                    </span>
+                  }
+
+                  @if (inData.coordinates != null)
+                  {
+                    <a target="_blank" href="https://www.google.com/maps/place/@inData.coordinates.latitude+@inData.coordinates.longitude/@inData.coordinates.latitude,@inData.coordinates.longitude">
+                      (Mở bản đồ)
+                    </a>
+                  }
+                  else
+                  {
+                    <span>
+                      (Lỗi khi lấy vị trí)
+                    </span>
+                  }
+                </span>
+              }
+            </div>
           }
           else
           {
-            <span class="">
+            <span>
               Không có dữ liệu
             </span>
           }
@@ -157,23 +240,56 @@
         }
 
         <div class="mb-1 is-flex is-align-content-center" style="line-height:24px;">
-          <span class="has-text-weight-medium" style="width: 120px;">
+          <span class="has-text-weight-medium" style="width: @(selectShift != null && selectShift.is_byhour ? "160px" : "120px"); flex-shrink: 0;">
             Giờ check-out:
           </span>
           @if (outData != null && !Shared.IsEmpty(outData.time_active))
           {
-            <span class="@(outData.time_difference > 0 && !outData.is_ot ? "has-text-danger" : "")">
-              @outData.time_active @(outData.time_difference > 0 && !outData.is_ot ? $" - Về sớm {outData.time_difference} phút" : "")
-            </span>
-            @if (!outData.in_company)
-            {
-              <span class="icon-text has-text-danger">
-                <span class="icon">
-                  <span class="material-icons-outlined">place</span>
-                </span>
-                <span class="">Ngoài vị trí</span>
+            <div class="is-flex is-align-items-center is-flex-wrap-wrap">
+              <span class="mr-2 @(outData.time_difference > 0 && !outData.is_ot ? "has-text-danger" : "")">
+                @outData.time_active @(outData.time_difference > 0 && !outData.is_ot ? $" - Về sớm {outData.time_difference} phút" : "")
               </span>
-            }
+
+              @if (!outData.is_valid_device && checkRuleDevice)
+              {
+                <span class="icon-text mr-2">
+                  <span class="mx-1">•</span>
+                  <span class="icon m-0 has-text-danger ">
+                    <span class="material-icons-outlined">app_blocking</span>
+                  </span>
+                  <span class="has-text-danger">Thiết bị không hợp lệ</span>
+                </span>
+              }
+
+              @if (!outData.in_company || outData.is_hybrid)
+              {
+                <span class="icon-text mr-2">
+                  <span class="mx-1">•</span>
+                  @if (!outData.is_hybrid)
+                  {
+                    <span class="icon m-0">
+                      <span class="material-icons-outlined has-text-danger">place</span>
+                    </span>
+                    <span class="has-text-danger mr-1">
+                      Ngoài vị trí
+                    </span>
+                  }
+                  @if (outData.coordinates != null)
+                  {
+                    <a target="_blank" href="https://www.google.com/maps/place/@outData.coordinates.latitude+@outData.coordinates.longitude/@outData.coordinates.latitude,@outData.coordinates.longitude">
+                      (Mở bản đồ)
+                    </a>
+                  }
+                  else
+                  {
+                    <span>
+                      (Lỗi khi lấy vị trí)
+                    </span>
+                  }
+                </span>
+              }
+
+            </div>
           }
           else
           {
@@ -210,11 +326,32 @@
           </div>
         }
 
-        @if (!checkDayOff && (inData != null && !inData.is_ot))
+        @if (outData != null && selectShift != null && selectShift.is_byhour)
+        {
+          <div class="mb-1 is-flex is-align-content-center" style="line-height:24px">
+            <span class="has-text-weight-medium" style="width: @(selectShift != null && selectShift.is_byhour ? "160px" : "120px"); flex-shrink: 0;">
+              Thời gian làm thực tế:
+            </span>
+            <span class="has-text-weight-medium has-text-black">
+              @(Shared.MinutesToHours(GetTimeWorkByHour(outData)))
+            </span>
+            <span class="ml-1">(Đã trừ thời gian nghỉ, thời gian vào sớm, ra trễ)</span>
+          </div>
+        }
+
+        @if (!checkDayOff && inData != null && !inData.is_ot)
         {
           <div class="mb-2 is-flex is-align-items-center">
-            <span style="width: 120px;">Công ghi nhận:</span>
-            <span>@((inData == null && outData == null) || (!inData.is_valid || !outData.is_valid) ? 0 : Math.Round(inData.time_work, 2))</span>
+            <span style="width: @(selectShift != null && selectShift.is_byhour ? "160px" : "120px");">Công ghi nhận:</span>
+            <span>
+              @((inData == null && outData == null)
+                  || ((!inData.is_valid || !outData.is_valid) && selectShift != null && !selectShift.is_byhour)
+                  ? 0 : Math.Round(outData.time_work, 2))
+              @if (selectShift != null && selectShift.is_byhour)
+              {
+                <span class="ml-2 has-text-weight-medium has-text-black">@("(1 giờ = " + CaculatorWorkPerHour(selectShift) + " công)")</span>
+              }
+            </span>
           </div>
         }
 
@@ -222,7 +359,7 @@
         @if (inData != null && outData != null && !string.IsNullOrEmpty(inData.time_active) && !string.IsNullOrEmpty(outData.time_active) && inData.is_ot)
         {
           <div class="mb-1 is-flex is-align-content-center" style="line-height:24px;">
-            <span class="has-text-weight-medium" style="width: 120px;">
+            <span class="has-text-weight-medium" style="width: @(selectShift != null && selectShift.is_byhour ? "160px" : "120px");">
               Tổng giờ làm:
             </span>
             <span>
@@ -239,24 +376,24 @@
             Dữ liệu đơn từ:
           </div>
           <div class="mb-2 is-flex is-align-items-center">
-            <span class="has-text-weight-medium" style="width:120px">
+            <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
               Ngày phê duyệt:
             </span>
             <span>@(new DateTime(formSelect.confirm_date).ToString("dd/MM/yyyy"))</span>
           </div>
 
           <div class="mb-2 is-flex is-align-items-center">
-            <span class="has-text-weight-medium" style="width:120px">
+            <span class="has-text-weight-medium" style="width:@( selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
               Đơn từ áp dụng:
             </span>
-            <span>@formSelect.form.name</span>
+            <span>@($"{formSelect.form.sign} - {formSelect.form.name}")</span>
           </div>
 
           <div class="mb-2 is-flex is-align-items-center">
-            <span class="has-text-weight-medium" style="width:120px">
+            <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
               Công đơn từ:
             </span>
-            <span>@(formSelect.form.has_shift_work ? selectShift.value : "0")</span>
+            <span>@(formSelect.form.has_shift_work && selectShift != null ? selectShift.value : "0")</span>
           </div>
         }
       }
@@ -271,7 +408,7 @@
           @if (workShift.Count == 0 || !string.IsNullOrEmpty(timeSheetEdit.work_name))
           {
             <div class="mb-2 is-flex is-align-items-center">
-              <span class="has-text-weight-medium" style="width:120px">
+              <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
                 Tên ca làm:
               </span>
               <input class="input" @bind="workName"
@@ -283,7 +420,7 @@
           @if (((inData != null || outData != null) && (!inData.is_ot)) || (inData == null && outData == null))
           {
             <div class="mb-2 is-flex is-align-items-center">
-              <span class="has-text-weight-medium" style="width:120px">
+              <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
                 Thiết lập công:
               </span>
               <div class="select is-fullwidth" style="flex: 1 1 0%;">
@@ -303,7 +440,7 @@
           }
 
           <div class="mb-2 is-flex is-align-items-center">
-            <span class="has-text-weight-medium" style="width:120px">
+            <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
               Công chỉnh sửa:
             </span>
             @if (currentForm.has_shift_work || string.IsNullOrEmpty(currentForm.id))
@@ -318,7 +455,7 @@
             }
           </div>
           <div class="mb-2 is-flex">
-            <p class="has-text-weight-medium" style="width:120px;height:35px;line-height:35px">
+            <p class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px");height:35px;line-height:35px">
               Lý do chỉnh sửa
             </p>
             <textarea class="textarea has-fixed-size"
@@ -340,14 +477,14 @@
             @if (workShift.Count == 0)
             {
               <div class="mb-2 is-flex is-align-items-center">
-                <span class="has-text-weight-medium" style="width:120px">
+                <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
                   Tên ca làm:
                 </span>
                 <span>@workName</span>
               </div>
             }
             <div class="mb-2 is-flex is-align-items-center">
-              <span class="has-text-weight-medium" style="width:120px">
+              <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
                 Ngày chỉnh sửa:
               </span>
               <span>@(new DateTime(timeSheetEdit.updated).ToString("dd/MM/yyyy"))</span>
@@ -355,7 +492,7 @@
             @if (((inData != null || outData != null) && (!inData.is_ot)) || (inData == null && outData == null))
             {
               <div class="mb-2 is-flex is-align-items-center">
-                <span class="has-text-weight-medium" style="width:120px">
+                <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
                   Thiết lập công:
                 </span>
                 <span>
@@ -365,13 +502,13 @@
               </div>
             }
             <div class="mb-2 is-flex is-align-items-center">
-              <span class="has-text-weight-medium" style="width:120px">
+              <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
                 Công chỉnh sửa:
               </span>
               <span>@Math.Round(timeSheetEdit.time_edit, 2)</span>
             </div>
             <div class="mb-2 is-flex">
-              <span class="has-text-weight-medium" style="width:120px">
+              <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
                 Lý do chỉnh sửa:
               </span>
               <span>@timeSheetEdit.reason</span>
@@ -406,9 +543,9 @@
       else
       {
         if (((inData != null || outData != null)
-               && (((!string.IsNullOrEmpty(inData.time_id) && timeSheetDate.shifts_edit.ContainsKey(inData.time_id)) || (inData.is_ot && timeSheetDate.shifts_edit.ContainsKey(inData.checkin_id))) && timeSheetEdit.updated > 0))
-            || !string.IsNullOrEmpty(timeSheetEdit.work_name)
-            || ((inData == null || outData == null) && selectShift != null && !string.IsNullOrEmpty(selectShift.id) && timeSheetDate.shifts_edit.ContainsKey(selectShift.id)))
+        && (((!string.IsNullOrEmpty(inData.time_id) && timeSheetDate.shifts_edit.ContainsKey(inData.time_id)) || (inData.is_ot && timeSheetDate.shifts_edit.ContainsKey(inData.checkin_id))) && timeSheetEdit.updated > 0))
+        || !string.IsNullOrEmpty(timeSheetEdit.work_name)
+        || ((inData == null || outData == null) && selectShift != null && !string.IsNullOrEmpty(selectShift.id) && timeSheetDate.shifts_edit.ContainsKey(selectShift.id)))
         {
           <hr class="my-2" />
           <div class="mb-2 has-text-weight-bold">
@@ -417,14 +554,14 @@
           @if (workShift.Count == 0)
           {
             <div class="mb-2 is-flex is-align-items-center">
-              <span class="has-text-weight-medium" style="width:120px">
+              <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
                 Tên ca làm:
               </span>
               <span>@workName</span>
             </div>
           }
           <div class="mb-2 is-flex is-align-items-center">
-            <span class="has-text-weight-medium" style="width:120px">
+            <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
               Ngày chỉnh sửa:
             </span>
             <span>@(new DateTime(timeSheetEdit.updated).ToString("dd/MM/yyyy"))</span>
@@ -432,7 +569,7 @@
           @if (((inData != null || outData != null) && (!inData.is_ot)) || (inData == null && outData == null))
           {
             <div class="mb-2 is-flex is-align-items-center">
-              <span class="has-text-weight-medium" style="width:120px">
+              <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
                 Thiết lập công:
               </span>
               <span>
@@ -442,13 +579,13 @@
             </div>
           }
           <div class="mb-2 is-flex is-align-items-center">
-            <span class="has-text-weight-medium" style="width:120px">
+            <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
               Công chỉnh sửa:
             </span>
             <span>@Math.Round(timeSheetEdit.time_edit, 2)</span>
           </div>
           <div class="mb-2 is-flex">
-            <span class="has-text-weight-medium" style="width:120px">
+            <span class="has-text-weight-medium" style="width:@(selectShift != null && selectShift.is_byhour ? "160px" : "120px")">
               Lý do chỉnh sửa:
             </span>
             <span>@timeSheetEdit.reason</span>
@@ -483,7 +620,7 @@
   [Parameter]
   public List<HrmTimesheetUserModel> timeSheetUsers { get; set; } = new();
   [Parameter]
-  public List<HrmTimesheetLogModel> editLogs { get; set; }
+  public List<HrmTimesheetLogModel> editLogs { get; set; } = new();
   [Parameter]
   public HrmWorkShiftModel selectShiftDetail { get; set; }
   [Parameter]
@@ -498,6 +635,8 @@
   public List<HrmFormModel> dataFormsList { get; set; } = new();
   [Parameter]
   public List<string> worksIdDelete { get; set; } = new();
+  [Parameter]
+  public bool checkRuleDevice { get; set; }
 
   private HrmWorkShiftModel selectShift;
 
@@ -523,7 +662,7 @@
     timeSheetUser = Shared.Clone(timeSheetUsers.Find(i => i.user == user.id));
     timeSheetDate = Shared.Clone(timeSheetUser.timesheet_dates.Find(i => i.date == date.Ticks));
 
-    formsList = dataFormsList.OrderBy(i => i.is_confirm).ToList();
+    formsList = dataFormsList.OrderBy(i => i.confirm_date).ToList();
 
     #region Thêm tất cả ca làm đã chấm công, ca làm tự tạo, ca làm OT vào 1 danh sách
     workShift.AddRange(workShiftSelected);
@@ -540,11 +679,11 @@
           var _in = timekeeping.time_tracking.Find(i => i.checkin_id == item.Key && i.time_type == "Check-in");
           var _out = timekeeping.time_tracking.Find(i => i.checkin_id == item.Key && i.time_type == "Check-out");
           workShift.Add(new()
-          {
-            id = _in.checkin_id,
-            name = _in.time_name,
-            value = 0
-          });
+            {
+              id = _in.checkin_id,
+              name = _in.time_name,
+              value = 0
+            });
         }
       }
     }
@@ -558,10 +697,10 @@
         foreach (var item in anotherShift)
         {
           workShift.Add(new()
-          {
-            name = item.work_name,
-            value = Math.Round(item.time_edit, 2)
-          });
+            {
+              name = item.work_name,
+              value = Math.Round(item.time_edit, 2)
+            });
         }
       }
     }
@@ -694,19 +833,19 @@
     {
       if (value == "1")
         currentForm = new()
-        {
-          id = "1",
-          name = "Công tính lương",
-          has_shift_work = true
-        };
+          {
+            id = "1",
+            name = "Công tính lương",
+            has_shift_work = true
+          };
 
       if (value == "0")
         currentForm = new()
-        {
-          id = "0",
-          name = "Công không tính lương",
-          has_shift_work = false
-        };
+          {
+            id = "0",
+            name = "Công không tính lương",
+            has_shift_work = false
+          };
     }
 
     if ((inData != null && ((timeSheetDate.shifts_edit.ContainsKey(inData.checkin_id) && inData.is_ot) || (!Shared.IsEmpty(inData.time_id) && timeSheetDate.shifts_edit.ContainsKey(inData.time_id))))
@@ -722,7 +861,11 @@
         timeSheetEdit.is_ot = inData.is_ot;
 
       if (inData != null && currentForm.has_shift_work)
-        timeSheetEdit.time_edit = Math.Round(inData.time_work, 2);
+      {
+        var workShift = workShiftSelected.Find(i => i.id == inData.time_id);
+        if (workShift != null)
+          timeSheetEdit.time_edit = Math.Round(workShift.value, 2);
+      }
       else
         timeSheetEdit.time_edit = 0;
     }
@@ -730,14 +873,18 @@
     {
       // tạo đơn từ mới
       timeSheetEdit = new()
-      {
-        form_id = value,
-        form_name = currentForm.name,
-        form_sign = currentForm.sign,
-      };
+        {
+          form_id = value,
+          form_name = currentForm.name,
+          form_sign = currentForm.sign,
+        };
 
       if (inData != null && currentForm.has_shift_work)
-        timeSheetEdit.time_edit = Math.Round(inData.time_work, 2);
+      {
+        var workShift = workShiftSelected.Find(i => i.id == inData.time_id);
+        if (workShift != null)
+          timeSheetEdit.time_edit = Math.Round(workShift.value, 2);
+      }
       else
         timeSheetEdit.time_edit = 0;
     }
@@ -833,11 +980,11 @@
       {
         // chưa có dữ liệu chỉnh sửa
         currentForm = new()
-        {
-          id = "1",
-          name = "Công tính lương",
-          has_shift_work = true
-        };
+          {
+            id = "1",
+            name = "Công tính lương",
+            has_shift_work = true
+          };
       }
     }
     else
@@ -927,13 +1074,13 @@
 
         // Lịch sử chỉnh sửa
         var log = new HrmTimesheetLogModel()
-        {
-          day = date.Ticks,
-          editor = Layout.User.id,
-          user = user.id,
-          edit_date = DateTime.Now.Ticks,
-          old_content = oldContentLog
-        };
+          {
+            day = date.Ticks,
+            editor = Layout.User.id,
+            user = user.id,
+            edit_date = DateTime.Now.Ticks,
+            old_content = oldContentLog
+          };
 
         // Th ca OT thì không có áp dụng đơn từ hay công có lương
         if (!timeSheetEdit.is_ot)
@@ -982,7 +1129,7 @@
       else
       {
         if (inData.is_valid && outData.is_valid)
-          oldContentLog = Math.Round(inData.time_work, 2).ToString();
+          oldContentLog = Math.Round(outData.time_work, 2).ToString();
         else
           oldContentLog = "0";
       }
@@ -1011,11 +1158,11 @@
   private void UpdateFormEdit()
   {
     currentForm = new()
-    {
-      id = timeSheetEdit.form_id,
-      name = timeSheetEdit.form_name,
-      sign = timeSheetEdit.form_sign
-    };
+      {
+        id = timeSheetEdit.form_id,
+        name = timeSheetEdit.form_name,
+        sign = timeSheetEdit.form_sign
+      };
 
     foreach (var form in forms)
     {
@@ -1102,5 +1249,22 @@
       nameTime = "Công chỉnh sửa";
       timeByShift = timeSheetDate.shifts_edit.Values.FirstOrDefault().time_edit;
     }
+  }
+
+  private double CaculatorWorkPerHour(HrmWorkShiftModel shift)
+  {
+    return Math.Round((60 * shift.value) / shift.minutes, 2);
+  }
+
+  private double GetTimeWorkByHour(HrmTimekeepingModel.TimeData checkin)
+  {
+    double result = 0;
+    if (timekeeping != null)
+    {
+      var checkout = timekeeping.time_tracking.FirstOrDefault(x => x.time_type == "Check-out" && x.checkin_id == checkin.checkin_id && x.time_active != null);
+      if (checkout != null)
+        result = checkout.time_work_real;
+    }
+    return result;
   }
 }

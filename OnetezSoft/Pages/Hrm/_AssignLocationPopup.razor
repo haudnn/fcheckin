@@ -1,88 +1,88 @@
 @inject IJSRuntime JSRuntime
 
 <section class="modal is-active">
- <section class="modal-background"></section>
- <section class="modal-card" style="padding: 0 10px;">
- 	<div class="modal-card-head">
-   <div class="modal-card-title">
-    Phân địa điểm làm việc
-   </div>
-   <a class="delete is-medium" @onclick="Cancel"></a>
- 	</div>
-  <div class="modal-card-body">
-			<div class="mb-3">
-    <p class="mb-2 has-text-weight-medium is-secondary-20">
-    	Nhân viên áp dụng: @users.Count()
-    </p>
-    <div class="avatar_list">
-    @foreach (var item in users.Take(15))
-    {
-    <span class="image is-rounded is-24x24 has-background-grey" title="@item.FullName">
-     <img src="@item.avatar" alt="AVT">
-    </span>
-    }
-    @if (users.Count() > 15)
-    {
-    <span class="image is-rounded is-24x24" style="background-color: #C0C6DC;">
-     @(users.Count() - 15)
-    </span>
-    }
-    </div>
-   </div>
-			<div class="is-full has-text-weight-semibold my-2">
-     Vị trí áp dụng
-   </div>
-  	<ul class="columns is-multiline is-variable is-2">
-    @foreach (var location in locations)
-    {
-     <li class="column is-full">
-      <div class="is-flex is-align-items-center" style="gap: 10px;">
-       <div>
-        <input id="@location.id" type="checkbox" @onchange="() => CheckLocationItem(location.id)" checked="@locationEditList.Contains(location.id)" />
-      	</div>
-       <div class="has-text-weight-semibold pl-0">
-        <label for="@location.id" class="has-text-weight-semibold has-text-link is-clickable text_1_line" style="max-width: 400px;">
-         @location.name
-        </label>
-      	</div>
-       <div>
-        <a href="@($"https://www.google.com/maps/place/{location.latitude}+{location.longitude}/{location.latitude},{location.longitude}")" target="_blank" class="has-text-weight-semibold">
-        	<span class="icon is-clickable">
-          <span class="material-icons has-text-link">
-           link
-          </span>
-         </span>
-        </a>
-       </div>
+  <section class="modal-background"></section>
+  <section class="modal-card" style="padding: 0 10px;">
+    <div class="modal-card-head">
+      <div class="modal-card-title">
+        Phân địa điểm làm việc
       </div>
-     </li>
-    }
-   </ul>
-  </div>
-  <div class="modal-card-foot is-right">
-        <div style="flex-grow: 1;display:flex;align-items:center;">
-          <label class="is-flex is-clickable has-text-link" for="hybrid" title="Chế độ linh động">
-            <input id="hybrid" class="mr-2" type="checkbox" @onchange="() => isHybrid = !isHybrid"
-                   checked="@isHybrid" />
-            <span class="has-text-weight-semibold">
-              Chế độ linh động
+      <a class="delete is-medium" @onclick="Cancel"></a>
+    </div>
+    <div class="modal-card-body">
+      <div class="mb-3">
+        <p class="mb-2 has-text-weight-medium is-secondary-20">
+          Nhân viên áp dụng: @users.Count()
+        </p>
+        <div class="avatar_list">
+          @foreach (var item in users.Take(15))
+          {
+            <span class="image is-rounded is-24x24 has-background-grey" title="@item.FullName">
+              <img src="@item.avatar" alt="AVT">
             </span>
-          </label>
+          }
+          @if (users.Count() > 15)
+          {
+            <span class="image is-rounded is-24x24" style="background-color: #C0C6DC;">
+              @(users.Count() - 15)
+            </span>
+          }
         </div>
-        <a class="button" @onclick="Cancel">
-          <span class="icon">
-            <i class="material-icons-round is-size-6">close</i>
+      </div>
+      <div class="is-full has-text-weight-semibold my-2">
+        Vị trí áp dụng
+      </div>
+      <ul class="columns is-multiline is-variable is-2">
+        @foreach (var location in locations)
+        {
+          <li class="column is-full">
+            <div class="is-flex is-align-items-center" style="gap: 10px;">
+              <div>
+                <input id="@location.id" type="checkbox" @onchange="() => CheckLocationItem(location.id)" checked="@locationEditList.Contains(location.id)" />
+              </div>
+              <div class="has-text-weight-semibold pl-0">
+                <label for="@location.id" class="has-text-weight-semibold has-text-link is-clickable text_1_line" style="max-width: 400px;">
+                  @location.name
+                </label>
+              </div>
+              <div>
+                <a href="@($"https://www.google.com/maps/place/{location.latitude}+{location.longitude}/{location.latitude},{location.longitude}")" target="_blank" class="has-text-weight-semibold">
+                  <span class="icon is-clickable">
+                    <span class="material-icons has-text-link">
+                      link
+                    </span>
+                  </span>
+                </a>
+              </div>
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
+    <div class="modal-card-foot is-right">
+      <div style="flex-grow: 1;display:flex;align-items:center;">
+        <label class="is-flex is-clickable has-text-link" for="hybrid" title="Chế độ linh động">
+          <input id="hybrid" class="mr-2" type="checkbox" @onchange="() => isHybrid = !isHybrid"
+                 checked="@isHybrid" />
+          <span class="has-text-weight-semibold">
+            Chế độ linh động
           </span>
-          <span>Hủy</span>
-        </a>
-        <a class="button is-link" @onclick="Update">
-          <span class="icon">
-            <i class="material-icons-round is-size-6">done</i>
-          </span>
-          <span>Cập nhật</span>
-        </a>
-  </div>
- </section>
+        </label>
+      </div>
+      <a class="button" @onclick="Cancel">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">close</i>
+        </span>
+        <span>Hủy</span>
+      </a>
+      <a class="button is-link" @onclick="Update">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">done</i>
+        </span>
+        <span>Cập nhật</span>
+      </a>
+    </div>
+  </section>
 </section>
 
 @code {
@@ -92,7 +92,7 @@
   public List<string> locationEditList { get; set; }
   [Parameter]
   public EventCallback<bool> OnUpdate { get; set; }
-		[Parameter]
+  [Parameter]
   public bool isHybrid { get; set; }
   [Parameter]
   public List<UserModel> users { get; set; }
@@ -100,22 +100,22 @@
 
   private async Task Cancel()
   {
-   await OnUpdate.InvokeAsync(false);
+    await OnUpdate.InvokeAsync(false);
   }
 
   private async Task Update()
   {
-			if(isHybrid)
-				locationEditList.Add("1");
-   await OnUpdate.InvokeAsync(true);
+    if (isHybrid)
+      locationEditList.Add("1");
+    await OnUpdate.InvokeAsync(true);
   }
 
 
   private void CheckLocationItem(string id)
   {
-   if (locationEditList.Contains(id))
-   	locationEditList.Remove(id);
-   else
-   	locationEditList.Add(id);
+    if (locationEditList.Contains(id))
+      locationEditList.Remove(id);
+    else
+      locationEditList.Add(id);
   }
 }

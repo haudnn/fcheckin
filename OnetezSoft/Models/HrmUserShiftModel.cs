@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models;
 
+[BsonIgnoreExtraElements]
 public class HrmUserShiftModel
 {
 	/// <summary>ID = UserID</summary>

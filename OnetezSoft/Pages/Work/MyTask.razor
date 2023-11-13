@@ -1,544 +1,592 @@
 @page "/work"
 @page "/work/my-task"
 @page "/work/my-task/{TypeView}"
+@using Microsoft.AspNetCore.SignalR.Client;
 @inject IJSRuntime JSRuntime
+@inject HubService hubService
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>Công việc của tôi</PageTitle>
 
-<section id="page_fwork" class="columns is-gapless has_menu_left @(url == "/work" ? "is_nav" : "is_data")">
-  <div class="column is-narrow is_nav">
-    <_PlanSidebar />
-  </div>
-  <div class="column is_data">
-    @if(Layout.IsMobile)
-    {
-      <div class="header-sticky">
-        <div class="header-title icon-text">
-          <a class="icon has-text-link" href="/work">
-            <i class="material-icons-outlined is-size-5">arrow_back</i>
-          </a>
-          <h1 class="is-size-6 has-text-dark has-text-weight-semibold">Công việc của tôi</h1>
-        </div>
-      </div>
-    }
-    <div class="@(Layout.IsMobile ? "" : "card pt-5 pb-2 px-5")">
-      @if(!Layout.IsMobile)
+<section id="page_fwork" class="main_content plan  @(url == "/work" ? "is_nav" : "is_data") @(Layout.IsMobile ? "" : Layout.User.custom.sidebar_fwork ? "" : "is-less")">
+  @if (!Layout.IsMobile || (url == "/work"))
+  {
+    <div class="card is_nav @(Layout.IsMobile ? "" : Layout.User.custom.sidebar_fwork ? "" : "is-less")" style="height:100%; position: relative; border-radius: unset">
+      <_PlanSidebar navLess="Layout.User.custom.sidebar_fwork" />
+      @if (!Layout.IsMobile)
       {
-        <ul class="columns is-vcentered is-variable is-2 mb-3">
-          <li class="column">
-            <h1 class="title is-5 has-text-info is-uppercase">Công việc của tôi</h1>
-          </li>
-          <li class="column is-narrow">
-            <a class="icon-text has-text-@(TypeView == "list" ? "link has-text-weight-semibold" : "dark")"
-              @onclick='() => ChangeView("list")'>
-              <span class="icon">
-                <i class="material-icons-outlined is-size-5">list</i>
-              </span>
-              <span>Chế độ List</span>
-            </a>
-          </li>
-          <li class="column is-narrow">
-            <a class="icon-text has-text-@(TypeView == "board" ? "link has-text-weight-semibold" : "dark")"
-              @onclick='() => ChangeView("board")'>
-              <span class="icon">
-                <i class="material-icons-outlined is-size-6">dashboard</i>
-              </span>
-              <span>Chế độ Board</span>
-            </a>
-          </li>
-          <li class="column is-narrow">
-            <a class="icon-text has-text-@(TypeView == "gantt" ? "link has-text-weight-semibold" : "dark")"
-              @onclick='() => ChangeView("gantt")'>
-              <span class="icon">
-                <i class="material-icons-outlined is-size-5">clear_all</i>
-              </span>
-              <span>Chế độ Gantt</span>
-            </a>
-          </li>
-        </ul>
-      }
-
-      @if(Layout.IsMobile)
-      {
-        <div class="control has-icons-right mb-3">
-          <input class="input is-small is-rounded is_bg" type="text" 
-              placeholder="Tiêu đề công việc..." @onchange="FilterKeyword">
-          <span class="icon is-right is-small">
-            <i class="material-icons-outlined is-size-5">search</i>
-          </span>
-        </div>
-        <ul class="columns is-vcentered is-variable is-1 mb-3 is-mobile scrollx-mobile">
-          <li class="column is-narrow" style="width: 126px;">
-            <div class="select is-small is-fullwidth">
-              <select @onchange="(e) => FilterDeadline(Convert.ToInt32(e.Value))">
-                <option value="0">Thời hạn</option>
-                <option value="1">Sắp hết hạn</option>
-                <option value="2">Trễ hạn</option>
-              </select>
-            </div>
-          </li>
-          <li class="column is-narrow" style="width: 126px;">
-            <div class="select is-small is-fullwidth">
-              <select @onchange="(e) => FilterPlan(e.Value.ToString())">
-                <option value="">Kế hoạch</option>
-                @foreach (var item in planList)
-                {
-                  <option value="@item.id">@item.name</option>
-                }
-              </select>
-            </div>
-          </li>
-          <li class="column is-narrow" style="width: 126px;">
-            <div class="select is-small is-fullwidth">
-              <select @onchange="(e) => FilterPriority(Convert.ToInt32(e.Value))">
-                <option value="0">Độ ưu tiên</option>
-                @foreach (var item in WorkService.Priority())
-                {
-                  <option value="@item.id">@item.name</option>
-                }
-              </select>
-            </div>
-          </li>
-          <li class="column is-narrow" style="width: 126px;">
-            <div class="select is-small is-fullwidth">
-              <select @onchange="(e) => FilterEnd(Convert.ToInt32(e.Value))">
-                <option value="0">Ngày kết thúc</option>
-                <option value="1">Tuần này</option>
-                <option value="2">Tháng này</option>
-                <option value="3">Quý này</option>
-              </select>
-            </div>
-          </li>
-        </ul>
-      }
-      else
-      {
-        <ul class="columns is-vcentered is-variable is-2 mb-3">
-          <li class="column is-narrow">
-            <div class="dropdown is-hoverable is-size-7">
-              <div class="dropdown-trigger">
-                <a class="icon-text">
-                  <span>Thời hạn</span>
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                  </span>
-                </a>
-              </div>
-              <div class="dropdown-menu">
-                <div class="dropdown-content">
-                  <a class="dropdown-item @(filterDeadline == 0 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(0)">
-                    Tất cả
-                  </a>
-                  <a class="dropdown-item @(filterDeadline == 1 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(1)">
-                    Sắp hết hạn
-                  </a>
-                  <a class="dropdown-item @(filterDeadline == 2 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(2)">
-                    Trễ hạn 
-                  </a>
-                </div>
-              </div>
-            </div>
-          </li>
-          <li class="column is-narrow">
-            <div class="dropdown is-hoverable is-size-7">
-              <div class="dropdown-trigger">
-                <a class="icon-text">
-                  <span>Kế hoạch</span>
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                  </span>
-                </a>
-              </div>
-              <div class="dropdown-menu">
-                <div class="dropdown-content">
-                  <a class="dropdown-item @(filterPlan == null ? "has-text-weight-semibold" : "")"
-                    @onclick="() => FilterPlan(null)">Tất cả</a>
-                  @foreach (var item in planList)
-                  {
-                    <a class="dropdown-item @(filterPlan == item.id ? "has-text-weight-semibold" : "")"
-                      @onclick="() => FilterPlan(item.id)">@item.name</a>
-                  }
-                </div>
-              </div>
-            </div>
-          </li>
-          <li class="column is-narrow" style="width: 110px;">
-            <div class="dropdown is-hoverable is-size-7">
-              <div class="dropdown-trigger">
-                <a class="icon-text">
-                  <span>
-                    @(filterPriority != 0 ? WorkService.Priority(filterPriority).name : "Độ ưu tiên")      
-                  </span>
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                  </span>
-                </a>
-              </div>
-              <div class="dropdown-menu">
-                <div class="dropdown-content">
-                  <a class="dropdown-item @(filterPriority == 0 ? "has-text-weight-semibold" : "")"
-                    @onclick="() => FilterPriority(0)">Tất cả</a>
-                  @foreach (var item in WorkService.Priority())
-                  {
-                    <a class="dropdown-item @(filterPriority == item.id ? "has-text-weight-semibold" : "")" style="color: @item.color;" 
-                      @onclick="() => FilterPriority(item.id)">@item.name</a>
-                  }
-                </div>
-              </div>
-            </div>
-          </li>
-          <li class="column is-narrow">
-            <div class="dropdown is-hoverable is-size-7">
-              <div class="dropdown-trigger">
-                <a class="icon-text">
-                  <span>Ngày kết thúc</span>
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-                  </span>
-                </a>
-              </div>
-              <div class="dropdown-menu">
-                <div class="dropdown-content">
-                  <a class="dropdown-item @(filterEnd == 0 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(0)">
-                    Tất cả
-                  </a>
-                  <a class="dropdown-item @(filterEnd == 1 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(1)">
-                    Tuần này
-                  </a>
-                  <a class="dropdown-item @(filterEnd == 2 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(2)">
-                    Tháng này
-                  </a>
-                  <a class="dropdown-item @(filterEnd == 3 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(3)">
-                    Quý này
-                  </a>
-                </div>
-              </div>
-            </div>
-          </li>
-          <li class="column is-narrow" style="width: 110px;">
-            <DateRangePicker @bind-StartDate="filterDateS" @bind-EndDate="filterDateE" OnRangeSelect="FilterDate"
-              Opens="SideType.Right">
-              <PickerTemplate>
-                <a id="@context.Id" @onclick="context.Toggle" class="icon-text is-size-7">
-                  <span class="icon is-small mr-1">
-                    <i class="material-icons-outlined">calendar_today</i>
-                  </span>
-                  @if (context.TStartDate != null && context.TEndDate != null)
-                  {
-                    <span>@context.TStartDate.Value.ToString("dd/MM")</span>
-                    <span class="px-1">-</span>
-                    <span>@context.TEndDate.Value.ToString("dd/MM")</span>
-                  }
-                  else
-                  {
-                    <span>Thời gian</span>
-                  }
-                </a>
-              </PickerTemplate>
-            </DateRangePicker>
-          </li>
-          <li class="column">
-            <div class="control has-icons-right">
-              <input class="input is-small is-rounded" type="text" 
-                  placeholder="Tiêu đề công việc..." @onchange="FilterKeyword">
-              <span class="icon is-right is-small">
-                <i class="material-icons-outlined is-size-5">search</i>
-              </span>
-            </div>
-          </li>
-        </ul>
-      }
-      
-      @if(Layout.IsMobile)
-      {
-        foreach (var status in statusList)
+        if (Layout.User.custom.sidebar_fwork)
         {
-          var show = toggleStatus.Contains(status.id);
-          var tasks = taskGroups.ContainsKey(status.id) ? taskGroups[status.id] : new();
-          var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
-
-          <div class="icon-text py-1">
-            <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
-              <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
-            </a>
-            <span class="has-text-weight-semibold font_14">
-              @status.name @(count > 0 ? $"({count})" : "")
-            </span>
+          <div class="sidebar-plan-icon">
+            <div title="Đóng lại '['" class="sidebar-plan-icon-container" @onclick="ToogleSidebar">
+              <span class="icon is-size-5 has-text-white">
+                <i class="material-icons-outlined">navigate_before</i>
+              </span>
+            </div>
           </div>
-          @if(show)
-          {
-            foreach (var context in tasks)
-            {
-              if(context.id == null)
-              {
-                if(context.plan_id == null)
-                {
-                  <div class="has-text-centered p-3">
-                    <span class="is-size-7">@context.name</span>
-                  </div>
-                }
-                else
-                {
-                  <div class="py-1">
-                    <a class="icon-text has-text-link" href="/work/@context.plan_id/task">
-                      <span class="icon is-small mr-2">
-                        <i class="material-icons-outlined is-size-6">link</i>
-                      </span>
-                      <span>@context.name</span>
-                    </a>
-                  </div>
-                }
-              }
-              else
-              {
-                var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
-                <_TaskMobileItem model="context" plan="plan" showPlan="true" editRole="true"
-                  members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle"
-                  OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
-              }
-            }
-          }
+        }
+        else
+        {
+          <div class="sidebar-plan-icon">
+            <div title="Mở ra ']'" class="sidebar-plan-icon-container is-white" @onclick="ToogleSidebar">
+              <span class="icon is-size-5 has-text-grey">
+                <i class="material-icons-outlined">navigate_next</i>
+              </span>
+            </div>
+          </div>
         }
       }
-      else if(TypeView == "list")
-      {
-        <div class="scrolly" style="height: calc(100vh - 215px); padding-bottom: 300px;">
-          <ul class="task_list columns is-gapless is-size-7 has-text-grey"
-              style="position: sticky;top: 0px;background: #fff;z-index: 3;">
-            <li class="column" style="width: calc(100% - 630px);">Công việc</li>
-            <li class="column is-narrow" style="width: 130px;">Thời hạn</li>
-            <li class="column is-narrow" style="width: 130px;">Mức độ ưu tiên</li>
-            <li class="column is-narrow" style="width: 110px;">Thành viên</li>
-            <li class="column is-narrow" style="width: 80px;">Trạng thái</li>
-            <li class="column is-narrow" style="width: 30px;"></li>
-          </ul>
-          @foreach (var status in statusList)
+    </div>
+  }
+  @if (!Layout.IsMobile || url != "/work")
+  {
+    <div class="is_expanded is_data">
+      <div>
+        @if (Layout.IsMobile)
+        {
+          if (url != "/work")
           {
-            var show = toggleStatus.Contains(status.id);
-            var tasks = taskGroups.ContainsKey(status.id) ? taskGroups[status.id] : new();
-            var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
+            <div class="header-sticky mb-0">
+              <div class="header-title icon-text">
+                <a class="icon has-text-link" href="/work">
+                  <i class="material-icons-outlined is-size-5">arrow_back</i>
+                </a>
+                <h1 class="is-size-6 has-text-dark has-text-weight-semibold">Công việc của tôi</h1>
+              </div>
+            </div>
+          }
+          <div>
+            <div class="field is-grouped is-fullwidth mb-3">
+              <div class="control is-expanded has-icons-right">
+                <input class="input is-small is-rounded is_bg" type="text"
+                       placeholder="Tiêu đề công việc..." @onchange="FilterKeyword">
+                <span class="icon is-right is-small">
+                  <i class="material-icons-outlined is-size-5">search</i>
+                </span>
+              </div>
+              <div class="control">
+                <_InputDate @bind-Start="filterDateS"
+                @bind-End="filterDateE"
+                            OnRangeSelect="FilterDate"
+                                              Minimal
+                             Format="dd/MM"
+                                              IsRange
+                             DefaultString="Thời gian" />
+               </div>
+             </div>
+             <ul class="columns is-vcentered is-variable is-1 mb-3 is-mobile scrollx-mobile">
+               <li class="column is-narrow" style="width: 126px;">
+                 <div class="select is-small is-fullwidth">
+                   <select @onchange="(e) => FilterDeadline(Convert.ToInt32(e.Value))">
+                     <option value="0">Thời hạn</option>
+                     <option value="1">Sắp hết hạn</option>
+                     <option value="2">Trễ hạn</option>
+                   </select>
+                 </div>
+               </li>
+               <li class="column is-narrow" style="width: 126px;">
+                 <div class="select is-small is-fullwidth">
+                   <select @onchange="(e) => FilterPlan(e.Value.ToString())">
+                     <option value="">Kế hoạch</option>
+                     @foreach (var item in planList)
+                    {
+                      <option value="@item.id">@item.name</option>
+                    }
+                  </select>
+                </div>
+              </li>
+              <li class="column is-narrow" style="width: 126px;">
+                <div class="select is-small is-fullwidth">
+                  <select @onchange="(e) => FilterPriority(Convert.ToInt32(e.Value))">
+                    <option value="0">Độ ưu tiên</option>
+                    @foreach (var item in WorkService.Priority())
+                    {
+                      <option value="@item.id">@item.name</option>
+                    }
+                  </select>
+                </div>
+              </li>
+              <li class="column is-narrow" style="width: 126px;">
+                <div class="select is-small is-fullwidth">
+                  <select @onchange="(e) => FilterEnd(Convert.ToInt32(e.Value))">
+                    <option value="0">Ngày kết thúc</option>
+                    <option value="1">Tuần này</option>
+                    <option value="2">Tháng này</option>
+                    <option value="3">Quý này</option>
 
-            <ul class="task_list columns is-gapless is-size-7">
-              <li class="column is-full">
-                <div class="icon-text">
-                  <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
-                    <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
-                  </a>
-                  <span class="has-text-weight-semibold font_14">
-                    @status.name @(count > 0 ? $"({count})" : "")
-                  </span>
+                  </select>
                 </div>
               </li>
             </ul>
-            @if(show)
-            {
-              <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_list" 
-                AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
-                @if(context.id == null)
-                {
-                  if(context.plan_id == null)
-                  {
-                    <div class="pl-4 py-1 is-size-7">
-                      @context.name
-                    </div>
-                  }
-                  else
-                  {
-                    <div class="is-size-7 pb-1">
-                      <a class="icon-text has-text-link" href="/work/@context.plan_id/task">
-                        <span class="icon is-small mr-2">
-                          <i class="material-icons-outlined is-size-6">link</i>
-                        </span>
-                        <span class="has-text-weight-semibold">@context.name</span>
-                      </a>
-                    </div>
-                  }
-                }
-                else
-                {
-                  var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
-                  <_TaskListItem model="context" plan="plan" showPlan="true" editRole="true"
-                    members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle" 
-                    OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
-                }
-              </Dropzone>
-            }
-          }
-        </div>
-      }
-      else if(TypeView == "board")
-      {
-        <div class="scrollx">
-          <ul class="columns is-gapless">
             @foreach (var status in statusList)
             {
+              var show = toggleStatus.Contains(status.id);
               var tasks = taskGroups.ContainsKey(status.id) ? taskGroups[status.id] : new();
               var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
 
-              <li class="column is-narrow mr-3" style="width: 350px;">
-                <div class="icon-text py-2 pl-2">
-                  <span class="has-text-weight-semibold font_14">
-                    @status.name @(count > 0 ? $"({count})" : "")
-                  </span>
-                </div>
-                <div class="scrolly p-2" style="height: calc(100vh - 270px); background: #fbfbfb; border-radius: 5px;">
-                  <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_board"
-                    AllowsDrag="x => x.id != null" OnItemDrop="x => OnItemDragdrop(x)">
-                    @if(context.id == null)
+              <div class="icon-text py-1">
+                <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
+                  <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
+                </a>
+                <span class="has-text-weight-semibold font_14">
+                  @status.name @(count > 0 ? $"({count})" : "")
+                </span>
+              </div>
+              @if (show)
+              {
+                foreach (var context in tasks)
+                {
+                  if (context.id == null)
+                  {
+                    if (context.plan_id == null)
                     {
-                      if(context.plan_id == null)
-                      {
-                        <div class="has-text-centered p-3">
-                          <span class="is-size-7">@context.name</span>
-                        </div>
-                      }
-                      else
-                      {
-                        <div class="is-size-7 p-1">
-                          <a class="icon-text has-text-link" href="/work/@context.plan_id/task">
-                            <span class="icon is-small mr-2">
-                              <i class="material-icons-outlined is-size-6">link</i>
-                            </span>
-                            <span class="has-text-weight-semibold">@context.name</span>
-                          </a>
-                        </div>
-                      }
+                      <div class="has-text-centered p-3">
+                        <span class="is-size-7">@context.name</span>
+                      </div>
                     }
                     else
                     {
-                      var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
-                      <_TaskCardItem model="context" plan="plan" showPlan="true" editRole="true"
-                        members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle"
-                        OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
+                      <div class="py-1">
+                        <a class="icon-text has-text-link" href="/work/@context.plan_id/task">
+                          <span class="icon is-small mr-2">
+                            <i class="material-icons-outlined is-size-6">link</i>
+                          </span>
+                          <span>@context.name</span>
+                        </a>
+                      </div>
                     }
-                  </Dropzone>
-                </div>
-              </li> 
-            }
-          </ul>
-        </div>
-      }
-      else
-      {
-        var dayHtml = string.Empty;
-        <div id="scrollbox" class="list_task_gantt is-size-7" style="height: calc(100vh - 215px);">
-          <ul class="task_gantt is_month columns is-gapless is-vcentered">
-            <li class="column is-narrow"></li>
-            @for (int d = 0; d < dayTotal; d++)
-            {
-              var day = dayStart.AddDays(d);
-              var month = Shared.DateToMonth(day);
-              var column = month.AddMonths(1).Subtract(day).Days;
-              if(month.AddMonths(1) > dayEnd)
-                column = dayEnd.Subtract(day).Days;
-              @if(day <= month.AddMonths(1) && day <= dayEnd)
-              {
-                d += column - 1;
-                <li class="column is-narrow" style="width: @(column * 40)px">
-                  <div class="has-text-weight-medium has-text-info pl-1 font_14">
-                    @month.ToString("MM/yyyy")
-                  </div>
-                </li>
+                  }
+                  else
+                  {
+                    var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
+                    <_TaskMobileItem model="context" plan="plan" showPlan="true" editRole="@(context.members.Find(x => x.id == Layout.User.id) != null)"
+                                     members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle"
+                                     OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
+                  }
+                }
               }
             }
-          </ul>
-          <ul class="task_gantt is_header columns is-gapless is-vcentered">
-            <li class="column is-narrow">
-              Công việc
-            </li>
-            @for (int d = 0; d < dayTotal; d++)
-            {
-              var day = dayStart.AddDays(d);
-              var today = day == DateTime.Today ? "is_today" : "";
-              var sunday = day.DayOfWeek == DayOfWeek.Sunday ? "is_sun" : "";
-              dayHtml += $"<li class=\"column is-narrow {today} {sunday}\"></li>";
-
-              <li class="column is-narrow @today @sunday">
-                <span class="pl-1" style="color: #C0C6DC;">@day.ToString("ddd").Substring(0, 1)</span>
-                <span class="pr-1">@day.ToString("dd")</span>
+          </div>
+        }
+        else
+        {
+          <div class="card flex_column" style="flex:1; overflow:hidden">
+            <ul class="columns is-vcentered is-variable is-2 mb-3">
+              <li class="column">
+                <h1 class="title is-5 has-text-info is-uppercase">Công việc của tôi</h1>
               </li>
-            }
-          </ul>
-
-          @foreach (var status in statusList)
-          {
-            var show = toggleStatus.Contains(status.id);
-            var tasks = taskGroups.ContainsKey(status.id) ? taskGroups[status.id] : new();
-            var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
-            
-            <ul class="task_gantt columns is-gapless is-size-7">
               <li class="column is-narrow">
-                <div class="icon-text">
-                  <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
-                    <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
-                  </a>
-                  <span class="has-text-weight-semibold font_14">
-                    @status.name @(count > 0 ? $"({count})" : "")
+                <a class="icon-text has-text-@(TypeView == "list" ? "link has-text-weight-semibold" : "dark")"
+                @onclick='() => ChangeView("list")'>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">list</i>
                   </span>
-                </div>
+                  <span>Chế độ List</span>
+                </a>
               </li>
-              @for (int d = 0; d < dayTotal; d++)
-              {
-                var day = dayStart.AddDays(d);
-                var today = day == DateTime.Today ? "is_today" : "";
-                var sunday = day.DayOfWeek == DayOfWeek.Sunday ? "is_sun" : "";
-
-                <li class="column is-narrow @today @sunday"></li>
-              }
+              <li class="column is-narrow">
+                <a class="icon-text has-text-@(TypeView == "board" ? "link has-text-weight-semibold" : "dark")"
+                @onclick='() => ChangeView("board")'>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6">dashboard</i>
+                  </span>
+                  <span>Chế độ Board</span>
+                </a>
+              </li>
+              <li class="column is-narrow">
+                <a class="icon-text has-text-@(TypeView == "gantt" ? "link has-text-weight-semibold" : "dark")"
+                @onclick='() => ChangeView("gantt")'>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-5">clear_all</i>
+                  </span>
+                  <span>Chế độ Gantt</span>
+                </a>
+              </li>
             </ul>
-
-            @if(show)
+            <ul class="columns is-vcentered is-variable is-2 mb-3">
+              <li class="column is-narrow">
+                <Dropdown DropdownClass="is-size-7" CloseOnClickMenu=true>
+                  <Trigger>
+                    <a class="icon-text">
+                      <span>Thời hạn</span>
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                      </span>
+                    </a>
+                  </Trigger>
+                  <MenuContent>
+                    <a class="dropdown-item @(filterDeadline == 0 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(0)">
+                      Tất cả
+                    </a>
+                    <a class="dropdown-item @(filterDeadline == 1 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(1)">
+                      Sắp hết hạn
+                    </a>
+                    <a class="dropdown-item @(filterDeadline == 2 ? "has-text-weight-semibold" : "")" @onclick="() => FilterDeadline(2)">
+                      Trễ hạn
+                    </a>
+                  </MenuContent>
+                </Dropdown>
+              </li>
+              <li class="column is-narrow">
+                <Dropdown DropdownClass="is-size-7" CloseOnClickMenu=true>
+                  <Trigger>
+                    <a class="icon-text">
+                      <span>Kế hoạch</span>
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                      </span>
+                    </a>
+                  </Trigger>
+                  <MenuContent>
+                    <a class="dropdown-item @(filterPlan == null ? "has-text-weight-semibold" : "")"
+                    @onclick="() => FilterPlan(null)">Tất cả</a>
+                    @foreach (var item in planList)
+                    {
+                      <a class="dropdown-item @(filterPlan == item.id ? "has-text-weight-semibold" : "")"
+                      @onclick="() => FilterPlan(item.id)">@item.name</a>
+                    }
+                  </MenuContent>
+                </Dropdown>
+              </li>
+              <li class="column is-narrow" style="width: 110px;">
+                <Dropdown DropdownClass="is-size-7" CloseOnClickMenu=true>
+                  <Trigger>
+                    <a class="icon-text">
+                      <span>
+                        @(filterPriority != 0 ? WorkService.Priority(filterPriority).name : "Độ ưu tiên")
+                      </span>
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                      </span>
+                    </a>
+                  </Trigger>
+                  <MenuContent>
+                    <a class="dropdown-item @(filterPriority == 0 ? "has-text-weight-semibold" : "")"
+                    @onclick="() => FilterPriority(0)">Tất cả</a>
+                    @foreach (var item in WorkService.Priority())
+                    {
+                      <a class="dropdown-item @(filterPriority == item.id ? "has-text-weight-semibold" : "")" style="color: @item.color;"
+                      @onclick="() => FilterPriority(item.id)">@item.name</a>
+                    }
+                  </MenuContent>
+                </Dropdown>
+              </li>
+              <li class="column is-narrow">
+                <Dropdown DropdownClass="is-size-7" CloseOnClickMenu=true>
+                  <Trigger>
+                    <a class="icon-text">
+                      <span>Ngày kết thúc</span>
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                      </span>
+                    </a>
+                  </Trigger>
+                  <MenuContent>
+                    <a class="dropdown-item @(filterEnd == 0 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(0)">
+                      Tất cả
+                    </a>
+                    <a class="dropdown-item @(filterEnd == 1 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(1)">
+                      Tuần này
+                    </a>
+                    <a class="dropdown-item @(filterEnd == 2 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(2)">
+                      Tháng này
+                    </a>
+                    <a class="dropdown-item @(filterEnd == 3 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(3)">
+                      Quý này
+                    </a>
+                    <a class="dropdown-item @(filterEnd == 7 ? "has-text-weight-semibold" : "")" @onclick="() => FilterEnd(7)">
+                      Quý trước
+                    </a>
+                  </MenuContent>
+                </Dropdown>
+              </li>
+              <li class="column is-narrow" style="width: 115px;">
+                <_InputDate @bind-Start="filterDateS"
+                @bind-End="filterDateE"
+                            OnRangeSelect="FilterDate"
+                                              Minimal
+                             Format="dd/MM"
+                                              IsRange
+                             DefaultString="Thời gian" />
+               </li>
+               <li class="column">
+                 <div class="control has-icons-right">
+                   <input class="input is-small is-rounded" type="text"
+                          placeholder="Tiêu đề công việc..." @onchange="FilterKeyword">
+                   <span class="icon is-right is-small">
+                     <i class="material-icons-outlined is-size-5">search</i>
+                   </span>
+                 </div>
+               </li>
+             </ul>
+             @if (TypeView == "list")
             {
-              <Dropzone Items="tasks" TItem="WorkPlanModel.Task" Class="drop_task_list" 
-                AllowsDrag="x => x.status < 0" OnItemDrop="x => OnItemDragdrop(x)">
-                @if(context.id == null)
+              <div class="scrolly inner_section pt-0" style="height: calc(100vh - 240px); padding-bottom: 40px;">
+                <ul class="task_list columns is-gapless is-size-7 has-text-grey"
+                    style="position: sticky;top: 0px;background: #FAFAFA; z-index: 3; border-bottom: 1px solid #DEDEDE;">
+                  <li class="column" style="width: calc(100% - 630px);">Công việc</li>
+                  <li class="column is-narrow" style="width: 110px;">Thời hạn</li>
+                  <li class="column is-narrow" style="width: 130px;">Mức độ ưu tiên</li>
+                  <li class="column is-narrow" style="width: 110px;">Thành viên</li>
+                  <li class="column is-narrow" style="width: 80px;">Trạng thái</li>
+                  <li class="column is-narrow" style="width: 30px;"></li>
+                </ul>
+                @foreach (var status in statusList)
                 {
+                  var show = toggleStatus.Contains(status.id);
+                  var tasks = taskGroups.ContainsKey(status.id) ? taskGroups[status.id] : new();
+                  var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
+
+                  <ul class="task_list columns is-gapless is-size-7">
+                    <li class="column is-full">
+                      <div class="icon-text">
+                        <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
+                          <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
+                        </a>
+                        <span class="has-text-weight-semibold font_14">
+                          @status.name @(count > 0 ? $"({count})" : "")
+                        </span>
+                      </div>
+                    </li>
+                  </ul>
+                  @if (show)
+                  {
+                    <Dropzone Items="tasks"
+                              TItem="WorkPlanModel.Task"
+                              Class="drop_task_list"
+                              AllowsDrag="x => x.id != null"
+                              OnItemDrop="x => OnItemDragdrop(x)"
+                              InstantReplace="true"
+                              WrapperClass="task_list is_item columns is-multiline is-gapless is-size-7"
+                              HandlerClass="column is-narrow">
+                      <Handler>
+                        @if (context.id != null)
+                        {
+                          <span class="icon is_drag ml-2">
+                            <i class="material-icons-outlined is-size-6">
+                              drag_indicator
+                            </i>
+                          </span>
+                        }
+                      </Handler>
+                      <ChildContent>
+                        @if (context.id == null)
+                        {
+                          if (context.plan_id == null)
+                          {
+                            <div class="pl-4 py-1 is-size-7">
+                              @context.name
+                            </div>
+                          }
+                          else
+                          {
+                            <div class="is-size-7 pb-1">
+                              <a class="icon-text has-text-link" href="/work/@context.plan_id/task">
+                                <span class="icon is-small mr-2">
+                                  <i class="material-icons-outlined is-size-6">link</i>
+                                </span>
+                                <span class="has-text-weight-semibold  text_1_line" style="height:unset">@context.name</span>
+                              </a>
+                            </div>
+                          }
+                        }
+                        else
+                        {
+                          var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
+                          <_TaskListItem model="context" plan="plan" showPlan="true" editRole="@(context.members.Find(x => x.id == Layout.User.id) != null)"
+                                         members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle"
+                                         OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
+                        }
+                      </ChildContent>
+                    </Dropzone>
+                  }
+                }
+              </div>
+            }
+            else if (TypeView == "board")
+            {
+              <div class="scrollx scrolly" style="flex:1;overflow-x:auto;">
+                <ul class="columns is-gapless">
+                  @foreach (var status in statusList)
+                  {
+                    var tasks = taskGroups.ContainsKey(status.id) ? taskGroups[status.id] : new();
+                    var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
+
+                    <li class="column is-narrow mr-3" style="width: 350px;">
+                      <div class="icon-text py-2 pl-2">
+                        <span class="has-text-weight-semibold font_14">
+                          @status.name @(count > 0 ? $"({count})" : "")
+                        </span>
+                      </div>
+                      <div class="scrolly p-2" style="height: calc(100vh - 270px); background: #fbfbfb; border-radius: 5px;">
+                        <Dropzone Items="tasks"
+                                  TItem="WorkPlanModel.Task"
+                                  Class="drop_task_board"
+                                  AllowsDrag="x => x.id != null"
+                                  OnItemDrop="x => OnItemDragdrop(x)"
+                                  InstantReplace="true"
+                                  WrapperClass="drop_task_board_item">
+                          @if (context.id == null)
+                          {
+                            if (context.plan_id == null)
+                            {
+                              <div class="has-text-centered p-3">
+                                <span class="is-size-7">@context.name</span>
+                              </div>
+                            }
+                            else
+                            {
+                              <div class="is-size-7 p-1">
+                                <a class="icon-text has-text-link" href="/work/@context.plan_id/task">
+                                  <span class="icon is-small mr-2">
+                                    <i class="material-icons-outlined is-size-6">link</i>
+                                  </span>
+                                  <span class="has-text-weight-semibold">@context.name</span>
+                                </a>
+                              </div>
+                            }
+                          }
+                          else
+                          {
+                            var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
+                            <_TaskCardItem model="context" plan="plan" showPlan="true" editRole="@(context.members.Find(x => x.id == Layout.User.id) != null)"
+                                           members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle"
+                                           OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
+                          }
+                        </Dropzone>
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+            else
+            {
+              var dayHtml = string.Empty;
+              <div id="scrollbox" class="list_task_gantt is-size-7" style="flex:1">
+                <ul class="task_gantt is_month columns is-gapless is-vcentered">
+                  <li class="column is-narrow"></li>
+                  @for (int d = 0; d < dayTotal; d++)
+                  {
+                    var day = dayStart.AddDays(d);
+                    var month = Shared.DateToMonth(day);
+                    var column = month.AddMonths(1).Subtract(day).Days;
+                    if (month.AddMonths(1) > dayEnd)
+                      column = dayEnd.Subtract(day).Days;
+                    @if (day <= month.AddMonths(1) && day <= dayEnd)
+                    {
+                      d += column - 1;
+                      <li class="column is-narrow" style="width: @(column * 40)px">
+                        <div class="has-text-weight-medium has-text-info pl-1 font_14">
+                          @month.ToString("MM/yyyy")
+                        </div>
+                      </li>
+                    }
+                  }
+                </ul>
+                <ul class="task_gantt is_header columns is-gapless is-vcentered">
+                  <li class="column is-narrow">
+                    Công việc
+                  </li>
+                  @for (int d = 0; d < dayTotal; d++)
+                  {
+                    var day = dayStart.AddDays(d);
+                    var today = day == DateTime.Today ? "is_today" : "";
+                    var sunday = day.DayOfWeek == DayOfWeek.Sunday ? "is_sun" : "";
+                    dayHtml += $"<li class=\"column is-narrow {today} {sunday}\"></li>";
+
+                    <li class="column is-narrow @today @sunday">
+                      <span class="pl-1" style="color: #C0C6DC;">@day.ToString("ddd").Substring(0, 1)</span>
+                      <span class="pr-1">@day.ToString("dd")</span>
+                    </li>
+                  }
+                </ul>
+
+                @foreach (var status in statusList)
+                {
+                  var show = toggleStatus.Contains(status.id);
+                  var tasks = taskGroups.ContainsKey(status.id) ? taskGroups[status.id] : new();
+                  var count = tasks.Where(x => !string.IsNullOrEmpty(x.id)).Count();
+
                   <ul class="task_gantt columns is-gapless is-size-7">
                     <li class="column is-narrow">
-                      @if(context.plan_id == null)
+                      <div class="icon-text">
+                        <a class="icon is-small has-text-dark mr-2" @onclick="() => ToggleStatus(status.id)">
+                          <i class="material-icons-outlined is-size-5">@(show ? "arrow_drop_down" : "arrow_right")</i>
+                        </a>
+                        <span class="has-text-weight-semibold font_14">
+                          @status.name @(count > 0 ? $"({count})" : "")
+                        </span>
+                      </div>
+                    </li>
+                    @for (int d = 0; d < dayTotal; d++)
+                    {
+                      var day = dayStart.AddDays(d);
+                      var today = day == DateTime.Today ? "is_today" : "";
+                      var sunday = day.DayOfWeek == DayOfWeek.Sunday ? "is_sun" : "";
+
+                      <li class="column is-narrow @today @sunday"></li>
+                    }
+                  </ul>
+
+                  @if (show)
+                  {
+                    <Dropzone Items="tasks"
+                              TItem="WorkPlanModel.Task" Class="drop_task_list"
+                              AllowsDrag="x => x.status < 0" OnItemDrop="x => OnItemDragdrop(x)">
+                      @if (context.id == null)
                       {
-                        <div class="pl-4 py-1 is-size-7">@context.name</div>
+                        <ul class="task_gantt columns is-gapless is-size-7">
+                          <li class="column is-narrow">
+                            @if (context.plan_id == null)
+                            {
+                              <div class="pl-4 py-1 is-size-7">@context.name</div>
+                            }
+                            else
+                            {
+                              <div class="py-1 is-size-7">
+                                <a class="icon-text has-text-link" href="/work/@context.plan_id/task">
+                                  <span class="icon is-small mr-2">
+                                    <i class="material-icons-outlined is-size-6">link</i>
+                                  </span>
+                                  <span class="has-text-weight-semibold text_1_line" style="height:unset; max-width: 320px">@context.name</span>
+                                </a>
+                              </div>
+                            }
+                          </li>
+                          @((MarkupString)dayHtml)
+                        </ul>
                       }
                       else
                       {
-                        <div class="py-1 is-size-7">
-                          <a class="icon-text has-text-link" href="/work/@context.plan_id/task">
-                            <span class="icon is-small mr-2">
-                              <i class="material-icons-outlined is-size-6">link</i>
-                            </span>
-                            <span class="has-text-weight-semibold">@context.name</span>
-                          </a>
-                        </div>
+                        var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
+                        <_TaskGanttItem model="context" plan="plan" showPlan="true" editRole="@(context.members.Find(x => x.id == Layout.User.id) != null)"
+                                        members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle"
+                                        dayStart="dayStart" dayTotal="dayTotal" dayHtml="@dayHtml"
+                                        OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
                       }
-                    </li>
-                    @((MarkupString)dayHtml)
-                  </ul>
+                    </Dropzone>
+                  }
                 }
-                else
-                {
-                  var plan = planList.SingleOrDefault(x => x.id == context.plan_id);
-                  <_TaskGanttItem model="context" plan="plan" showPlan="true" editRole="true"
-                    members="memberList[plan.id]" toggleList="toggleList" OnToggle="OnToggle"
-                    dayStart="dayStart" dayTotal="dayTotal" dayHtml="@dayHtml"
-                    OnEdit="OnEditList" OnUpdate="OnUpdateList" OnAddSub="OnAddSub" OnTodolist="OnTodolist" />
-                }
-              </Dropzone>
-            }
-          }
 
-          <ul class="task_gantt is_footer columns is-gapless is-vcentered">
-            <li class="column is-narrow"></li>
-            @((MarkupString)dayHtml)
-          </ul>
-        </div>
-      }
+                <ul class="task_gantt is_footer columns is-gapless is-vcentered">
+                  <li class="column is-narrow"></li>
+                  @((MarkupString)dayHtml)
+                </ul>
+              </div>
+            }
+          </div>
+        }
+      </div>
     </div>
-  </div>
+  }
 </section>
 
-<_TaskPopup plan="editPlan" task="editTask" members="Layout.UserList" tab="editTab" 
-  subTasks="subTasks" todoItems="todoItems" comments="comments" OnUpdate="OnUpdateTask" />
+@{
+  <_TaskPopup plan="editPlan" task="editTask" members="editMembers" tab="editTab"
+            subTasks="subTasks" todoItems="todoItems" OnUpdate="OnUpdateTask" isEditSection="false"/>
+}
 
 @code {
   [CascadingParameter]
@@ -549,7 +597,7 @@
   private string url = string.Empty;
   private List<StaticModel> statusList = new();
   private List<WorkPlanModel> planList = new();
-  private Dictionary<string, List<UserModel>> memberList = new();
+  private Dictionary<string, List<MemberModel>> memberList = new();
   private Dictionary<int, List<WorkPlanModel.Task>> taskGroups = new();
   private List<int> toggleStatus = new() { 1, 2, 3 };
   private List<string> toggleList = new();
@@ -557,8 +605,22 @@
   private DateTime dayStart = DateTime.Today;
   private DateTime dayEnd = DateTime.Today;
 
+  private SharedStorage shareStorage = new();
+
   protected override async Task OnInitializedAsync()
   {
+    var hubConnection = hubService.GetHubConnection();
+
+    hubConnection.On<string, string, string>("TaskUpdate", async (planId, userId, message) =>
+    {
+      if (Layout.User.id != userId)
+      {
+        await GetTaskList();
+        await InvokeAsync(StateHasChanged);
+      }
+    });
+
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
     // Lấy danh sách kế hoạch tham gia và đang diễn ra
     planList = await DbWorkPlan.GetListJoin(Layout.Company.id, Layout.User.id, 1);
     // Lấy thành viên trong từng kế hoạch
@@ -566,39 +628,76 @@
     foreach (var plan in planList)
     {
       var listId = plan.members.Select(x => x.id).ToList();
-      var members = Layout.UserList.Where(x => listId.Contains(x.id)).ToList();
+      var members = shareStorage.MemberList.Where(x => listId.Contains(x.id)).ToList();
       memberList.Add(plan.id, members);
     }
+
+    filterDateS = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).Ticks;
+    filterDateE = new DateTime(filterDateS).AddMonths(3).AddDays(-1).Ticks;
   }
 
   protected override async Task OnParametersSetAsync()
   {
-    url = navigation.Uri.Replace(navigation.BaseUri, "/");
-
-    if(string.IsNullOrEmpty(TypeView))
-      TypeView = "list";
-    statusList = WorkService.Status();
-    await GetTaskList();
-    // Đóng tất cả công việc
-    toggleList.Clear();
+    try
+    {
+      url = navigation.Uri.Replace(navigation.BaseUri, "/");
+      if (string.IsNullOrEmpty(TypeView))
+        TypeView = "list";
+      statusList = WorkService.Status();
+      await GetTaskList();
+      // Đóng tất cả công việc
+      toggleList.Clear();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "WorkMyTask()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
+    if (TypeView == "gantt")
+      await JSRuntime.InvokeVoidAsync("dragScrollX");
+
     if (firstRender && Layout.IsMobile)
     {
-      await JSRuntime.InvokeVoidAsync("stickyHeaderMobile");
-
-      if(TypeView == "gantt")
-        await JSRuntime.InvokeVoidAsync("dragScrollX");
+      try
+      {
+        await JSRuntime.InvokeVoidAsync("stickyHeaderMobile");
+      }
+      catch (Exception ex)
+      {
+        var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+        StorageService.CatchLog(formatLink, "OnAfterRenderAsync()", ex.ToString(), Layout.User.id, Layout.Company.name);
+        await Layout.Tagline();
+      }
     }
+
+    if (editTask == null)
+      await JSRuntime.InvokeVoidAsync("ToggleOverflowHtml", false);
+    else
+      await JSRuntime.InvokeVoidAsync("ToggleOverflowHtml", true);
   }
 
-  private async Task ChangeView(string value)
+  private async Task<bool> ChangeView(string value)
   {
-    navigation.NavigateTo($"/work/my-task/{value}");
-    if(value == "gantt")
-      await JSRuntime.InvokeVoidAsync("dragScrollX");
+    bool _success = true;
+    try
+    {
+      navigation.NavigateTo($"/work/my-task/{value}");
+      if (value == "gantt")
+        await JSRuntime.InvokeVoidAsync("dragScrollX");
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeView()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   #region Bộ lọc và lấy dữ liệu
@@ -608,78 +707,90 @@
   private int filterDeadline = 0;
   private int filterPriority = 0;
   private int filterEnd = 0;
-  private DateTimeOffset? filterDateS = null;
-  private DateTimeOffset? filterDateE = null;
+  private long filterDateS;
+  private long filterDateE;
 
-  private async Task GetTaskList()
+  private async Task<bool> GetTaskList()
   {
-    // Lấy danh sách công việc đang tham gia
-    var taskList = new List<WorkPlanModel.Task>();
-    foreach (var plan in planList)
+    bool _success = true;
+    try
     {
-      // Lọc theo kế hoạch
-      if(filterPlan != null && filterPlan != plan.id)
-        continue;
-      var tasks = await DbWorkTask.GetListJoin(Layout.Company.id, plan.id, Layout.User.id);
-      taskList.AddRange(tasks);
-    }
-
-    // Bộ lọc tìm kiếm
-    taskList = FilterTaskList(taskList);
-    
-    // Chia nhóm công việc
-    SplitTaskList(taskList);
-
-    // Lấy ngày thấp nhỏ nhất
-    if(taskList.Count > 0 && TypeView == "gantt")
-    {
-      long minDay = taskList.OrderBy(x => x.date_start).Select(x => x.date_start).FirstOrDefault();
-      long maxDay = taskList.OrderByDescending(x => x.date_end).Select(x => x.date_end).FirstOrDefault();
-      dayStart = Shared.DateToDay(new DateTime(minDay)).AddDays(-4);
-      dayEnd = Shared.DateToDay(new DateTime(maxDay)).AddDays(9);
-      dayTotal = dayEnd.Subtract(dayStart).Days;
-      // Tự scroll đến ngày hôm nay
-      if(dayStart <= DateTime.Today && DateTime.Today <= dayEnd)
+      // Lấy danh sách công việc đang tham gia
+      var taskList = new List<WorkPlanModel.Task>();
+      foreach (var plan in planList)
       {
-        int today = DateTime.Today.Subtract(dayStart).Days;
-        await JSRuntime.InvokeVoidAsync("scrollGantt", today * 40 - 160);
+        // Lọc theo kế hoạch
+        if (filterPlan != null && filterPlan != plan.id)
+          continue;
+        var tasks = await DbWorkTask.GetListJoin(Layout.Company.id, plan.id, Layout.User.id);
+        taskList.AddRange(tasks);
+      }
+
+      // Bộ lọc tìm kiếm
+      taskList = FilterTaskList(taskList);
+
+      // Chia nhóm công việc
+      SplitTaskList(taskList);
+
+      // Lấy ngày thấp nhỏ nhất
+      if (taskList.Count > 0 && TypeView == "gantt")
+      {
+        long minDay = taskList.OrderBy(x => x.date_start).Select(x => x.date_start).FirstOrDefault();
+        long maxDay = taskList.OrderByDescending(x => x.date_end).Select(x => x.date_end).FirstOrDefault();
+        dayStart = Shared.DateToDay(new DateTime(minDay)).AddDays(-4);
+        dayEnd = Shared.DateToDay(new DateTime(maxDay)).AddDays(9);
+        dayTotal = dayEnd.Subtract(dayStart).Days;
+        // Tự scroll đến ngày hôm nay
+        if (dayStart <= DateTime.Today && DateTime.Today <= dayEnd)
+        {
+          int today = DateTime.Today.Subtract(dayStart).Days;
+          await JSRuntime.InvokeVoidAsync("scrollGantt", today * 40 - 160);
+        }
       }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetTaskList()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
-  
+
   private List<WorkPlanModel.Task> FilterTaskList(List<WorkPlanModel.Task> taskList)
   {
     // Lọc theo thời hạn
-    if(filterDeadline == 1) // Sắp hết hạn
+    if (filterDeadline == 1) // Sắp hết hạn
       taskList = taskList.Where(x => WorkService.CheckDeadline(x) == 1).ToList();
-    else if(filterDeadline == 2) // Trễ hạn
+    else if (filterDeadline == 2) // Trễ hạn
       taskList = taskList.Where(x => WorkService.CheckDeadline(x) == 2).ToList();
 
     // Lọc theo thời gian thực hiện công việc
-    if(filterDateS != null && filterDateE != null)
+    if (filterDateS > 0 && filterDateE > 0)
     {
-      var start = filterDateS.Value.Ticks;
-      var end = filterDateE.Value.Ticks;
+      var start = filterDateS;
+      var end = filterDateE;
       taskList = (from x in taskList
                   where (x.date_start >= start && x.date_end <= end)
                   || (x.date_start <= start && x.date_end >= start)
                   || (x.date_end >= end && x.date_start <= end)
                   select x).ToList();
     }
-    
+
     // Lọc theo ngày kết thúc công việc
-    if(filterEnd != 0)
+    if (filterEnd != 0)
     {
       Shared.GetTimeSpan(filterEnd, out DateTime start, out DateTime end);
       taskList = taskList.Where(x => start.Ticks <= x.date_end && x.date_end < end.AddDays(1).Ticks).ToList();
     }
 
     // Lọc theo độ ưu tiên công việc
-    if(filterPriority != 0)
+    if (filterPriority != 0)
       taskList = taskList.Where(x => x.priority == filterPriority).ToList();
-    
+
     // Lọc theo tiêu đề công việc
-    if(!string.IsNullOrEmpty(filterKey))
+    if (!string.IsNullOrEmpty(filterKey))
       taskList = taskList.Where(x => Shared.SearchKeyword(filterKey, x.name)).ToList();
 
     return taskList;
@@ -690,19 +801,22 @@
     taskGroups.Clear();
     foreach (var status in statusList)
     {
-      List<WorkPlanModel.Task> tasks= new();
+      List<WorkPlanModel.Task> tasks = new();
       foreach (var plan in planList)
       {
-        var planTasks = (from x in taskList where x.status == status.id && x.plan_id == plan.id
-                        orderby x.pos, x.date_end select x).ToList();
-        if(planTasks.Count > 0)
+        var planTasks = (from x in taskList
+                         where x.status == status.id && x.plan_id == plan.id
+                         orderby x.pos, x.date_end
+                         select x).ToList();
+        if (planTasks.Count > 0)
         {
           planTasks.Insert(0, new() { name = "Kế hoạch: " + plan.name, plan_id = plan.id, status = status.id });
           tasks.AddRange(planTasks);
         }
       }
-      if(tasks.Count == 0)
-        tasks = new() { new() { name = "Chưa có công việc", status = status.id }};
+      if (tasks.Count == 0)
+        tasks = new() { new() { name = "Chưa có công việc", status = status.id } };
+
       taskGroups.Add(status.id, tasks);
     }
   }
@@ -715,7 +829,7 @@
 
   private async Task FilterDeadline(int value)
   {
-    filterDeadline= value;
+    filterDeadline = value;
     await GetTaskList();
   }
 
@@ -744,12 +858,11 @@
 
   private void ToggleStatus(int id)
   {
-    if(toggleStatus.Contains(id))
+    if (toggleStatus.Contains(id))
       toggleStatus.Remove(id);
     else
       toggleStatus.Add(id);
   }
-  
   #endregion
 
 
@@ -758,26 +871,41 @@
   private int editTab = 1;
   private WorkPlanModel editPlan = null;
   private WorkPlanModel.Task editTask = null;
+  private List<MemberModel> editMembers = new();
   private List<WorkPlanModel.Task> subTasks = new();
   private List<TodolistModel.Todo> todoItems = new();
   private List<WorkPlanModel.Comment> comments = new();
 
-  private async Task EditTask(WorkPlanModel.Task item, int status)
+  private async Task<bool> EditTask(WorkPlanModel.Task item, int status)
   {
-    if(editTab == 1)
-      await JSRuntime.InvokeVoidAsync("textAutoSize", "task_name");
-    else if(editTab == 2)
-      subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, item.plan_id, item.id);
-    else if(editTab == 3)
-      todoItems = DbTodoItem.GetList(Layout.Company.id, item.id, Layout.User.id);
-    else if(editTab == 4)
+    bool _success = true;
+    try
     {
-      comments = await DbWorkComment.GetList(Layout.Company.id, item.plan_id, item.id);
-      await JSRuntime.InvokeVoidAsync("setFocus", "task_comment");
-      await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
+      if (editTab == 1)
+        await JSRuntime.InvokeVoidAsync("textAutoSize", "task_name");
+      else if (editTab == 2)
+        subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, item.plan_id, item.id);
+      else if (editTab == 3)
+        todoItems = await DbTodoItem.GetList(Layout.Company.id, item.id, Layout.User.id);
+      else if (editTab == 4)
+      {
+        await JSRuntime.InvokeVoidAsync("setFocus", "task_comment");
+        await JSRuntime.InvokeVoidAsync("textAutoSize", "task_comment");
+      }
+      editPlan = planList.SingleOrDefault(x => x.id == item.plan_id);
+      editTask = await DbWorkTask.Get(Layout.Company.id, item.id);
+      var memberIds = editPlan.members.Select(x => x.id);
+      editMembers = shareStorage.MemberList.Where(x => memberIds.Contains(x.id)).ToList();
+      StateHasChanged();
     }
-    editPlan = planList.SingleOrDefault(x => x.id == item.plan_id);
-    editTask = await DbWorkTask.Get(Layout.Company.id, item.id);
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "EditTask()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task OnEditList(WorkPlanModel.Task item)
@@ -808,6 +936,11 @@
   private async Task OnUpdateList(WorkPlanModel.Task item)
   {
     await GetTaskList();
+
+    var hubConnection = hubService.GetHubConnection();
+
+    if (hubConnection is not null)
+      await hubConnection.SendAsync("TaskUpdate", item.plan_id, Layout.User.id, Layout.Company.id, "Plan Updated");
   }
 
   private void OnToggle(string id)
@@ -823,21 +956,47 @@
 
   #region Chức năng kéo thả công việc
 
-  private async Task OnItemDragdrop(WorkPlanModel.Task item)
+  private async Task<bool> OnItemDragdrop(WorkPlanModel.Task item)
   {
-    toggleList.Clear();
-    foreach (var group in taskGroups)
+    bool _success = true;
+    try
     {
-      if(group.Value.Contains(item))
+      var hubConnection = hubService.GetHubConnection();
+      toggleList.Clear();
+      foreach (var group in taskGroups)
       {
-        var statusId = group.Key;
-        var message = await WorkService.ChangeTaskStatus(Layout.Company.id, Layout.User, item, statusId);
-        await JSRuntime.InvokeVoidAsync("tagline", true, message);
-        break;
+        if (group.Value.Contains(item))
+        {
+          var statusId = group.Key;
+          var message = await WorkService.ChangeTaskStatus(Layout.Company.id, Layout.User, item, statusId);
+          await JSRuntime.InvokeVoidAsync("tagline", true, message);
+          break;
+        }
       }
+      await GetTaskList();
+      if (hubConnection is not null)
+        await hubConnection.SendAsync("TaskUpdate", item.plan_id, Layout.User.id, Layout.Company.id, "Plan Updated");
     }
-    await GetTaskList();
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnItemDragdrop()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   #endregion
+
+  private async Task ToogleSidebar()
+  {
+    Layout.User.custom.sidebar_fwork = !Layout.User.custom.sidebar_fwork;
+
+    await DbUser.Update(Layout.Company.id, Layout.User, globalService);
+  }
+
+
+
+
 }

@@ -1,0 +1,274 @@
+﻿@using System.Timers;
+@using System.Reflection;
+@using System.Text.Json;
+@inject IJSRuntime JSRuntime
+@typeparam TItem;
+@implements IDisposable
+
+<div 
+  class="control search_bar @(IsCollapse ? "is_collapse" : "") @(IsFull ? "is-expanded" : "") has-icons-left has-icons-right has_suggest"
+  title="@($"Nhấn Ctrl + \"/\" để tìm kiếm")">
+  <input 
+    id="@id"
+    class="input @(IsRound ? "is-rounded" : "") @(IsSmall ? "is-small" : "")"
+    @bind="@Search"
+    @bind:event="oninput"
+    @onfocusin="async () => {if(ShowSuggestionOnEmty) await ShowKeywordSuggest();}"
+    @onfocusout="() => ClearOnBlur()"
+    type="text"
+    placeholder="@PlaceHolder" autocomplete="off">
+  <span class="icon is-left"><i class="material-icons-outlined is-size-5">search</i></span>
+  <a class="icon is-right has-text-danger" @onclick="ClearText">
+    <i class="material-icons-outlined">
+      close
+    </i>
+  </a>
+  @if (suggestions.Count > 0)
+  {
+    <ul class="suggest" @onmouseover="() => hovering = true" @onmouseout="() => hovering = false" @ref="container">
+      @foreach (var item in suggestions)
+      {
+        var image = ImageType.IsEmpty() ? string.Empty : item.GetType().GetProperty(ImageType).GetValue(item, null).ToString();
+        var name = NameType.IsEmpty() ? string.Empty : item.GetType().GetProperty(NameType).GetValue(item, null).ToString();
+        var id = item.GetType().GetProperty(SearchType.FirstOrDefault())?.GetValue(item, null).ToString();
+        <li class="rsitem @(id == active ? "seleted" : "")" data-value="@id">
+          <div class="user_item" @onclick="() => SelectItem(item)">
+            @if (!image.IsEmpty())
+            {
+              <img class="image is-24x24 mr-2" src="@image" alt="IMG">
+            }
+            @if (!name.IsEmpty())
+            {
+              <span>@name</span>
+            }
+          </div>
+        </li>
+
+      }
+    </ul>
+  }
+</div>
+
+@code {
+  [Parameter]
+  public bool IsFull { get; set; }
+  [Parameter]
+  public string PlaceHolder { get; set; } = "Nhập tên nhân viên...";
+  [Parameter]
+  public bool IsRound { get; set; }
+  [Parameter]
+  public List<TItem> Lists { get; set; } = new();
+  [Parameter]
+  public List<string> SearchType { get; set; } = new();
+  [Parameter]
+  public string ImageType { get; set; }
+  [Parameter]
+  public string NameType { get; set; }
+  [Parameter]
+  public EventCallback<TItem> OnChange { get; set; }
+  [Parameter]
+  public bool IsInstant { get; set; }
+  [Parameter]
+  public bool IsSmall { get; set; }
+  [Parameter]
+  public bool ResetOnSelect { get; set; }
+  [Parameter]
+  public bool IsCollapse { get; set; }
+  [Parameter]
+  public bool ShowSuggestionOnEmty { get; set; }
+
+  private string id;
+  private string active;
+  private bool hovering;
+  private ElementReference container;
+
+  private Timer timer = null;
+
+  private string searchKeyword;
+  private string Search
+  {
+    get => searchKeyword;
+    set
+    {
+      if(IsInstant)
+      {
+        searchKeyword = value;
+        ShowKeywordSuggest();
+      }
+      else
+      {
+        if (value != searchKeyword)
+        {
+          searchKeyword = value;
+          DisposeTimer();
+          timer = new Timer(200);
+          timer.Elapsed += TimerElapsed_TickAsync;
+          timer.Enabled = true;
+          timer.Start();
+        }
+      }
+    }
+  }
+
+  private List<TItem> suggestions { get; set; } = new();
+
+  private DotNetObjectReference<_Search<TItem>> obj;
+
+  protected override async Task OnInitializedAsync()
+  {
+    obj = DotNetObjectReference.Create(this);
+    id = "search_" + Mongo.RandomId().Substring(0,5);
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if(suggestions.Count > 0)
+    {
+      var list = new List<string>();
+
+      foreach (var item in suggestions)
+      {
+        list.Add(item.GetType().GetProperty(SearchType.FirstOrDefault())?.GetValue(item, null).ToString());
+      }
+
+      active = list.FirstOrDefault();
+
+      await JSRuntime.InvokeVoidAsync("NavigateSuggestion", list, active, container, obj);
+    }
+  }
+
+  private async Task ClearText()
+  {
+    searchKeyword = string.Empty;
+    await ShowKeywordSuggest();
+  }
+
+  private async Task ShowKeywordSuggest()
+  {
+    if (searchKeyword.IsEmpty() && !ShowSuggestionOnEmty)
+    {
+      suggestions = new();
+      return;
+    }
+
+    suggestions = Lists.Where(x =>
+    {
+      if (SearchType.Count == 0 || (searchKeyword.IsEmpty() && !ShowSuggestionOnEmty))
+      {
+        return false;
+      }
+
+      if(searchKeyword.IsEmpty() && ShowSuggestionOnEmty)
+      {
+        return true;
+      }
+
+      var info = x.GetType();
+      var result = false;
+      foreach(var type in SearchType)
+      {
+        var property = info.GetProperty(type);
+        if (property != null)
+        {
+          var stringToSearch = property.GetValue(x, null)?.ToString();
+          if (stringToSearch.IsEmpty())
+            result = false;
+          else
+            result = Shared.SearchKeyword(searchKeyword, stringToSearch);
+        }
+        else
+        {
+          result = false;
+        }
+
+        if (result)
+        {
+          break;
+        }
+      }
+
+      return result;
+    }).ToList();
+  }
+
+  private async void TimerElapsed_TickAsync(object sender, EventArgs e)
+  {
+    DisposeTimer();
+    await ShowKeywordSuggest();
+  }
+
+  private void DisposeTimer()
+  {
+    if (timer != null)
+    {
+      timer.Enabled = false;
+      timer.Elapsed -= TimerElapsed_TickAsync;
+      timer.Dispose();
+      timer = null;
+    }
+  }
+
+  private async Task SelectItem(TItem item)
+  {
+    await OnChange.InvokeAsync(item);
+    hovering = false;
+    if (ResetOnSelect)
+    {
+      await ClearOnBlur(true);
+    }
+  }
+
+  [JSInvokable]
+  public async Task JsCallback(JsonElement value)
+  {
+    if (suggestions.Count == 0)
+      return;
+
+    active = value.Deserialize<string>();
+
+    if (string.IsNullOrEmpty(active))
+      return;
+    else
+    {
+      foreach (var item in suggestions)
+      {
+        if (item.GetType().GetProperty(SearchType.FirstOrDefault())?.GetValue(item, null).ToString() == active)
+        {
+          await OnChange.InvokeAsync(item);
+          if (ResetOnSelect)
+          {
+            await ClearText();
+          }
+          break;
+        }
+      }
+      await JSRuntime.InvokeVoidAsync("window.SetOutFocusToElement", id);
+    }
+  }
+
+  private async Task ClearOnBlur(bool force = false)
+  {
+    if ((IsCollapse && !hovering) || force)
+    {
+      await ClearText();
+      hovering = false;
+    }
+
+    if(!hovering || force)
+    {
+      suggestions = new();
+    }
+  }
+
+  public void Dispose()
+  {
+    try
+    {
+      obj?.Dispose();
+    }
+    catch (Exception ex)
+    {
+      return;
+    }
+  }
+}

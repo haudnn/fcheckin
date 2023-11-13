@@ -1,0 +1,564 @@
+﻿@page "/kpis/root/{IdRoot}"
+@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
+@inject NavigationManager navigation
+
+<section class="main_content h-full is-flex-direction-column">
+  <div class="flex_column is-fullwidth h-full">
+    @if (cycle != null && kpisRoot != null)
+    {
+      if (_accessCycle || _accessTree || _accessManagerTree)
+      {
+        <ul class="columns is-vcentered is-variable is-2 is-mobile is-multiline tree_kpis_slidebar mx-0" style="height: 51px;">
+          <li class="column is-4">
+            <div class="field is-grouped font_14">
+              <a class="icon control" href="/kpis/root">
+                <span class="material-icons-outlined">arrow_back</span>
+              </a>
+              <Dropdown CloseOnClickMenu=true MenuClass="scrolly">
+                <Trigger>
+                  <div class="field is-grouped is-fullwidth is-clickable font_14">
+                    <span class="text_1_line title has-text-info is-uppercase is-size-5 m-0" style="max-width: 300px; height: unset; line-height: unset;">
+                      @nameKpisRoot
+                    </span>
+
+                    <div class="control is-expanded has-text-right has-text-info">
+                      <span class="icon is-size-6">
+                        <i class="material-icons-outlined">arrow_drop_down</i>
+                      </span>
+                    </div>
+                  </div>
+                </Trigger>
+                <MenuContent>
+                  @foreach (var item in dataRootList)
+                  {
+                    <a class="dropdown-item" @onclick="() => ChangeKpis(item.id)">
+                      @item.name
+                    </a>
+                  }
+                </MenuContent>
+              </Dropdown>
+            </div>
+          </li>
+
+          @if (tabOverview == 2)
+          {
+            <li class="column has-text-right">
+              <div class="dropdown is-hoverable">
+                <div class="dropdown-trigger">
+                  <span class="icon-text has-text-grey-dark">
+                    <span class="icon">
+                      <span class="material-icons-outlined">info</span>
+                    </span>
+                    <span>Chú thích</span>
+                  </span>
+                </div>
+                <div class="dropdown-menu">
+                  <div class="dropdown-content has-text-left">
+                    <span class="dropdown-item">
+                      <span class="icon-text is-size-6">
+                        <span class="icon has-text-grey mr-2">
+                          <span class="material-icons-outlined">corporate_fare</span>
+                        </span>
+                        <span class="has-text-grey">KPIs cao nhất</span>
+                      </span>
+                    </span>
+
+                    <span class="dropdown-item">
+                      <span class="icon-text is-size-6">
+                        <span class="icon has-text-grey mr-2">
+                          <span class="material-icons-outlined">account_tree</span>
+                        </span>
+                        <span class="has-text-grey">
+                          KPIs tự động
+                        </span>
+                      </span>
+                    </span>
+
+                    <span class="dropdown-item">
+                      <span class="icon-text is-size-6">
+                        <span class="icon has-text-grey mr-2">
+                          <span class="material-icons">account_circle</span>
+                        </span>
+                        <span class="has-text-grey">
+                          KPIs nhập liệu
+                        </span>
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </li>
+
+            <li class="column is-narrow">
+              <Dropdown CloseOnClickMenu=true>
+                <Trigger>
+                  <div class="field is-grouped is-fullwidth is-clickable font_14">
+                    <div class="control">
+                      <span class="icon-text">
+                        <span class="icon mr-2">
+                          <span class="material-icons-outlined">remove_red_eye</span>
+                        </span>
+                        @if (view == 1)
+                        {
+                          <span>Chế độ xem gần</span>
+                        }
+                        else if (view == 2)
+                        {
+                          <span>Chế độ xem trung bình</span>
+                        }
+                        else if (view == 3)
+                        {
+                          <span>Chế độ xem xa</span>
+                        }
+                      </span>
+                    </div>
+
+                    <div class="control is-expanded has-text-right">
+                      <span class="icon">
+                        <i class="material-icons-outlined">arrow_drop_down</i>
+                      </span>
+                    </div>
+                  </div>
+                </Trigger>
+                <MenuContent>
+                  <a class="dropdown-item" @onclick="() => ChangeView(1)">
+                    Chế độ xem gần
+                  </a>
+                  <a class="dropdown-item" @onclick="() => ChangeView(2)">
+                    Chế độ xem trung bình
+                  </a>
+                  <a class="dropdown-item" @onclick="() => ChangeView(3)">
+                    Chế độ xem xa
+                  </a>
+                </MenuContent>
+              </Dropdown>
+            </li>
+
+            @if (_accessCycle || _accessManagerTree)
+            {
+              <li class="column is-narrow mr-2">
+                <a class="button is-link" @onclick="() => EditItem(null)">
+                  <span class="icon">
+                    <span class="material-icons-outlined is-size-6">add</span>
+                  </span>
+                  <span>Tạo KPIs</span>
+                </a>
+              </li>
+            }
+          }
+          else if (tabOverview == 3)
+          {
+            <li class="column"></li>
+            <li class="column is-narrow">
+              <_InputDate @bind-Start="filterStart"
+              @bind-End="filterEnd"
+                                        IsRange
+                                        HasDropdown
+                          ListOptions="new() {1,11,2,22,3,7}"
+                          OnRangeSelect="ChangeFilterDate" />
+            </li>
+          }
+          else
+          {
+            <li class="column"></li>
+          }
+
+          <li class="column is-narrow view-tag @(tabOverview == 1 ? "is-active" : "") @(tabOverview == 1 ? "has-text-right" : "is-narrow has-text-centered") is-clickable" @onclick="() => ChangeOverviewTab(1)">
+            <span>Tổng quan KPIs</span>
+          </li>
+          <li class="column is-narrow view-tag @(tabOverview == 2 ? "is-active" : "") has-text-centered is-clickable" @onclick="() => ChangeOverviewTab(2)">
+            <span>Cây KPIs</span>
+          </li>
+          <li class="column is-narrow view-tag @(tabOverview == 3 ? "is-active" : "") has-text-centered is-clickable" @onclick="() => ChangeOverviewTab(3)">
+            <span>Báo cáo</span>
+          </li>
+        </ul>
+      }
+    }
+
+    @if (cycle != null && kpisRoot != null)
+    {
+      if (tabOverview == 1)
+      {
+        @if (CheckRoleView(1))
+        {
+          <_ReportKpis database="database" kpisRoot="kpisRoot" @bind-checkReload="checkLoadReport" />
+        }
+        else
+        {
+          <div class="is-flex is-align-items-center is-justify-content-center" style="height: calc(100vh - 90px);">
+            <span>Bạn không có quyền truy cập vào trang này!</span>
+          </div>
+        }
+      }
+      else if (tabOverview == 2)
+      {
+        @if (CheckRoleView(2))
+        {
+          <div class="inner_section h-full px-0 py-1 mt-5" style="flex: 1;">
+            <div id="kpis_treeview" class="tree_okr tree_kpis scrollx scrolly">
+              @foreach (var item in treeview)
+              {
+                var childs = KpisService.GetChilds(database, item.id);
+                <_TreeViewItem model="item" childs="childs" database="database" view="view" kpisRoot="kpisRoot"
+                               cycle="cycle" level="0" isFirst="true" isLast="true" isRootKpis="true" dataMetric="dataMetric" />
+              }
+            </div>
+          </div>
+        }
+        else
+        {
+          <div class="is-flex is-align-items-center is-justify-content-center" style="height: calc(100vh - 90px);">
+            <span>Bạn không có quyền truy cập vào trang này!</span>
+          </div>
+        }
+      }
+      else if (tabOverview == 3)
+      {
+        @if (CheckRoleView(3))
+        {
+          <_ReportDate database="database"
+                       kpisRoot="kpisRoot"
+          @bind-checkReload="checkLoadReportDate"
+          @bind-checkSearchDate="checkSearchDate"
+                       filterStart="filterStart"
+                       filterEnd="filterEnd" />
+        }
+        else
+        {
+          <div class="is-flex is-align-items-center is-justify-content-center" style="height: calc(100vh - 90px);">
+            <span>Bạn không có quyền truy cập vào trang này!</span>
+          </div>
+        }
+      }
+    }
+    else
+    {
+      <div class="is-flex is-align-items-center is-justify-content-center" style="height: calc(100vh - 90px);">
+        <span>
+          Bạn chưa chọn chu kỳ KPIs hoặc không tồn tại cây KPIs này!
+        </span>
+      </div>
+    }
+  </div>
+</section>
+@if (stickSideBar != null && CheckRoleView(2))
+{
+  <_Slider model="stickSideBar"
+           checkReloadChart="checkReloadChart"
+           cycle="cycle" database="database"
+           kpisRoot="kpisRoot"
+           OnClose="CloseSideBar"
+           isTree="true"
+           tab="tab" />
+}
+
+@if (model != null && kpisRoot != null && !isDelete && CheckRoleView(2))
+{
+  <_KpisPopup model=model cycle="cycle" kpisRoot="kpisRoot" dataMetric="dataMetric" OnUpdate="OnUpdate" />
+}
+
+@if (model != null && isDelete && cycle != null && CheckRoleView(2))
+{
+  <_DeleteKpisPopup model="model" kpisRoot="kpisRoot" cycle="cycle" database="database" OnRemove="OnRemove" />
+}
+
+@code {
+  [CascadingParameter]
+  private LayoutMain Layout { get; set; }
+  [Parameter]
+  public string IdRoot { get; set; }
+  [Parameter]
+  [SupplyParameterFromQuery(Name = "id")]
+  public string idDetail { get; set; } = "";
+  [Parameter]
+  [SupplyParameterFromQuery(Name = "tab")]
+  public int tab { get; set; } = 1;
+  [Parameter]
+  [SupplyParameterFromQuery(Name = "tab_overview")]
+  public int tabOverview { get; set; }
+
+  private List<KpisMetricModel> dataMetric = new();
+  private List<KpisModel> database = new();
+  private List<KpisModel> dataRootList = new();
+  private List<KpisModel> treeview = new();
+  private KpisCycleModel cycle;
+  private KpisModel kpisRoot;
+  private KpisModel model;
+  private KpisModel stickSideBar = null;
+  private int view = 2;
+  private bool isDelete;
+  private bool _accessCycle = false;
+  private bool _accessTree = false;
+  private bool _accessManagerTree = false;
+  private bool checkReloadChart = true;
+  private string nameKpisRoot = string.Empty;
+  private bool checkLoadReport = true;
+  private bool checkLoadReportDate = true;
+  private bool checkSearchDate = true;
+  private long filterStart = DateTime.Today.Ticks;
+  private long filterEnd = DateTime.Today.Ticks;
+
+  protected override async Task OnInitializedAsync()
+  {
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+
+    if (!Shared.IsEmpty(IdRoot))
+    {
+      dataMetric = await DbKpisMetric.GetList(Layout.Company.id);
+      if (!Shared.IsEmpty(Layout.CycleKpisId))
+      {
+        cycle = shareStorage.KpisCycles.Find(i => i.id == Layout.CycleKpisId);
+        if (cycle != null)
+          _accessCycle = cycle.managers.Contains(Layout.User.id);
+      }
+
+      await GetData();
+      var allowTab = new List<int> { 1, 2, 3 };
+      if (!allowTab.Contains(tabOverview))
+        GetDefaultTabOverview();
+
+      ResetDate();
+      Subscribe();
+    }
+  }
+
+  protected override void OnParametersSet()
+  {
+    if (!Shared.IsEmpty(idDetail))
+    {
+      stickSideBar = database.Find(i => i.id == idDetail);
+      if (stickSideBar != null)
+        GetRootKpis(stickSideBar);
+    }
+
+    var allowTab = new List<int> { 1, 2, 3 };
+    if (!allowTab.Contains(tabOverview))
+      tabOverview = 2;
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (tabOverview == 2)
+    {
+      await JSRuntime.InvokeVoidAsync("dragScroll", "kpis_treeview");
+    }
+  }
+
+  private async Task GetData()
+  {
+    database = await DbKpis.GetList(Layout.Company.id, Layout.CycleKpisId);
+    dataRootList = KpisService.GetListRootKpis(database, cycle, Layout.User.id, _accessCycle);
+
+    GetKpisList();
+  }
+
+  private void GetKpisList()
+  {
+    treeview = dataRootList.Where(i => i.id == IdRoot).ToList();
+    if (treeview.Any())
+    {
+      kpisRoot = treeview.FirstOrDefault();
+      nameKpisRoot = kpisRoot.name;
+      CheckRoleTree();
+    }
+    else
+    {
+      kpisRoot = null;
+      nameKpisRoot = string.Empty;
+    }
+  }
+
+  private void CheckRoleTree()
+  {
+    // Quyền truy cập trang
+    if (!Shared.IsEmpty(Layout.CycleKpisId))
+    {
+      if (kpisRoot != null)
+      {
+        _accessManagerTree = kpisRoot.managers.Contains(Layout.User.id);
+        _accessTree = kpisRoot.managers.Contains(Layout.User.id) || new List<string>(kpisRoot.viewerList.Keys).Contains(Layout.User.id);
+      }
+    }
+  }
+
+  private void GetDefaultTabOverview()
+  {
+    if ((cycle != null && cycle.managers.Contains(Layout.User.id)) || kpisRoot.managers.Contains(Layout.User.id) || (kpisRoot.viewerList.ContainsKey(Layout.User.id) && kpisRoot.viewerList[Layout.User.id].Contains(2)))
+      tabOverview = 2;
+    else if (kpisRoot.viewerList.ContainsKey(Layout.User.id) && kpisRoot.viewerList[Layout.User.id].Contains(1))
+      tabOverview = 1;
+    else if (kpisRoot.viewerList.ContainsKey(Layout.User.id) && kpisRoot.viewerList[Layout.User.id].Contains(3))
+      tabOverview = 3;
+  }
+
+  private bool CheckRoleView(int view)
+  {
+    if ((cycle != null && cycle.managers.Contains(Layout.User.id)) || kpisRoot.managers.Contains(Layout.User.id))
+      return true;
+    else if (kpisRoot.viewerList.ContainsKey(Layout.User.id) && kpisRoot.viewerList[Layout.User.id].Contains(view))
+      return true;
+    else
+      return false;
+  }
+
+  private void ChangeKpis(string id)
+  {
+    IdRoot = id;
+    GetKpisList();
+    navigation.NavigateTo($"/kpis/root/{IdRoot}", false);
+    checkLoadReport = true;
+    checkLoadReportDate = true;
+    ResetDate();
+    StateHasChanged();
+  }
+
+  private void ChangeView(int item)
+  {
+    view = item;
+  }
+
+  private void ChangeOverviewTab(int item)
+  {
+    tabOverview = item;
+    ResetDate();
+    if (tabOverview == 1)
+      checkLoadReport = true;
+    else if (tabOverview == 3)
+      checkLoadReportDate = true;
+  }
+
+  private void EditItem(KpisModel item)
+  {
+    if (item == null)
+      model = new();
+  }
+
+  private void ChangeFilterDate(DateRange e)
+  {
+    checkSearchDate = true;
+    filterStart = e.Start.Ticks;
+    filterEnd = new DateTime(e.End.Ticks).Date.AddDays(1).Ticks - new TimeSpan(1).Ticks;
+  }
+
+  private async Task OnUpdate(KpisModel e)
+  {
+    if (e != null)
+    {
+      await GetData();
+    }
+
+    model = null;
+  }
+
+  private async Task OnRemove(bool e)
+  {
+    if (e)
+    {
+      stickSideBar = null;
+      await GetData();
+      await InvokeAsync(StateHasChanged);
+    }
+
+    isDelete = false;
+    model = null;
+  }
+
+  private void GetRootKpis(KpisModel child)
+  {
+    kpisRoot = database.FirstOrDefault(i => child.root == i.id);
+  }
+
+  private void CloseSideBar()
+  {
+    stickSideBar = null;
+  }
+
+  private void ResetDate()
+  {
+    Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
+    filterStart = start.Ticks;
+    filterEnd = new DateTime(end.Ticks).Date.AddDays(1).Ticks - new TimeSpan(1).Ticks;
+  }
+
+  public void Subscribe()
+  {
+    // thêm nhanh KPIs
+    MessagingCenter.Subscribe<_TreeViewItem, KpisModel>(this, "kpis_tree_" + Layout.User.id, (sender, value) =>
+    {
+      InvokeAsync(StateHasChanged);
+    });
+
+    // thêm nhanh KPIs
+    MessagingCenter.Subscribe<_TreeViewItem, KpisModel>(this, "kpis_reload_data_" + Layout.User.id, async (sender, value) =>
+    {
+      await GetData();
+      await InvokeAsync(StateHasChanged);
+    });
+
+    // Update card
+    MessagingCenter.Subscribe<_TreeViewItem, KpisModel>(this, "kpis_update_" + Layout.User.id, (sender, value) =>
+    {
+      model = value;
+      GetRootKpis(model);
+      isDelete = false;
+      InvokeAsync(StateHasChanged);
+    });
+
+    // Remove card
+    MessagingCenter.Subscribe<_TreeViewItem, KpisModel>(this, "kpis_remove_" + Layout.User.id, (sender, value) =>
+   {
+     model = value;
+     GetRootKpis(model);
+     isDelete = true;
+     InvokeAsync(StateHasChanged);
+   });
+
+    // Update card
+    MessagingCenter.Subscribe<_Slider, KpisModel>(this, "kpis_update_" + Layout.User.id, (sender, value) =>
+    {
+      model = value;
+      GetRootKpis(model);
+      isDelete = false;
+      InvokeAsync(StateHasChanged);
+    });
+
+    // Remove card
+    MessagingCenter.Subscribe<_Slider, KpisModel>(this, "kpis_remove_" + Layout.User.id, (sender, value) =>
+   {
+     model = value;
+     GetRootKpis(model);
+     isDelete = true;
+     InvokeAsync(StateHasChanged);
+   });
+
+    // Show sidebar
+    MessagingCenter.Subscribe<_TreeViewItem, KpisModel>(this, "kpis_sidebar_" + Layout.User.id, (sender, value) =>
+   {
+     stickSideBar = value;
+     GetRootKpis(stickSideBar);
+     checkReloadChart = true;
+     InvokeAsync(StateHasChanged);
+   });
+  }
+
+  // Hủy lắng nghe sự kiện
+  public void Dispose()
+  {
+    try
+    {
+      MessagingCenter.Unsubscribe<_TreeViewItem, string>(this, "kpis_tree_" + Layout.User.id);
+      MessagingCenter.Unsubscribe<_TreeViewItem, string>(this, "kpis_reload_data_" + Layout.User.id);
+      MessagingCenter.Unsubscribe<_TreeViewItem, string>(this, "kpis_update_" + Layout.User.id);
+      MessagingCenter.Unsubscribe<_TreeViewItem, string>(this, "kpis_remove_" + Layout.User.id);
+      MessagingCenter.Unsubscribe<_TreeViewItem, string>(this, "kpis_sidebar_" + Layout.User.id);
+      MessagingCenter.Unsubscribe<_Slider, string>(this, "kpis_update_" + Layout.User.id);
+      MessagingCenter.Unsubscribe<_Slider, string>(this, "kpis_remove_" + Layout.User.id);
+    }
+    catch (Exception ex)
+    {
+      return;
+    }
+  }
+}

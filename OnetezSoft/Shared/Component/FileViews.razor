@@ -1,30 +1,49 @@
+@using System.IO
 @inject IJSRuntime JSRuntime
 
-<ul class="columns is-multiline is-vcentered is-variable is-1 is-mobile">
+<ul style="@(isOneLine ? "overflow-x: scroll" : "")" class="columns is-multiline is-vcentered is-variable is-1 is-mobile @(isOneLine ? "is-flex-wrap-nowrap scrolly" : "")">
   @foreach (var link in Values)
   {
+    var extension = Path.GetExtension(link);
     <li class="column is-narrow">
-      <div class="icon-text storage_item mr-2">
+      <div class="icon-text storage_item mr-2 has_preview">
         @if(Delete)
         {
           <a class="icon is-small has-text-danger item_delete" title="Xóa" @onclick="() => DeleteFile(link)">
             <i class="material-icons is-size-6">close</i>
           </a>
         }
-        <span class="icon is-small item_format @Color(link)">
-          <i class="material-icons is-size-6">insert_drive_file</i>
+        <span class="icon is-small item_format image">
+          <img src="/images/icon/extension/@StorageService.GetIconFromExtension(extension)" alt="" />
         </span>
-        <a class="has-text-link" href="@link" target="_blank">@Files.FileName(link, 20)</a>
+        @if(!link.Contains(".mp4"))
+        {
+          <a class="has-text-link font_14 mb-0" href="@link" target="_blank">@Files.FileName(link, 20)</a>
+        }
+        else
+        {
+          <a class="has-text-link font_14 mb-0" @onclick="() => ShowVideo(link)">@Files.FileName(link, 20)</a>
+        }
         @if(Layout.IsMobile && Delete)
         {
           <a class="icon has-text-danger" @onclick="() => DeleteFile(link)">
             <i class="material-icons is-size-6">close</i>
           </a> 
         }
+        @if(typePic.Any(link.EndsWith) && !Layout.IsMobile)
+        {
+          <div class="file_preview" onclick="this.classList.toggle(`is_zoom`)">
+            <img src="@link" alt="preview image"/>
+          </div>
+        }
       </div>
     </li>
   }
 </ul>
+@if (isViewVideo)
+{
+  <Video link="@source" OnClose="CloseVideo" />
+}
 
 @code {
   [CascadingParameter]
@@ -35,10 +54,15 @@
   public bool Delete { get; set; }
   [Parameter]
   public EventCallback<List<string>> OnDelete { get; set; }
-  
+  [Parameter]
+  public bool isOneLine { get; set; }
+
   private string[] typePic = new string[] { ".png", ".jpg", ".jpeg", ".gif" };
-  
+
   private string[] typeDoc = new string[] { ".doc", ".docx", ".pdf", ".xls", ".xlsx", ".ppt", ".ppx" };
+
+  private bool isViewVideo = false;
+  private string source = "";
 
 
   private async Task DeleteFile(string link)
@@ -63,7 +87,18 @@
     foreach (var item in typeDoc)
       if(link.EndsWith(item))
         return "has-text-link";
-        
+
     return "has-text-black";
+  }
+
+  private void CloseVideo()
+  {
+    isViewVideo = false;
+    source = "";
+  }
+  private void ShowVideo(string link)
+  {
+    isViewVideo = true;
+    source = link;
   }
 }

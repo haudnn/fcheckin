@@ -1,12 +1,10 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+﻿using MongoDB.Driver;
 using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
-using OnetezSoft.Pages;
+using OnetezSoft.Services;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -65,19 +63,19 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<KaizenModel>(_collection);
 
-      var result = await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      var result = await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
 
       return result;
     }
 
 
-    public static KaizenModel GetById(string companyId, string id)
+    public static async Task<KaizenModel> GetById(string companyId, string id)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<KaizenModel>(_collection);
 
-      return collection.Find(x => x.id == id).FirstOrDefault();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
@@ -91,18 +89,18 @@ namespace OnetezSoft.Data
 
       var filtered = builder.Gt("date_create", 0);
 
-      if(!string.IsNullOrEmpty(type))
+      if (!string.IsNullOrEmpty(type))
         filtered = filtered & builder.Eq("type", type);
-      if(!string.IsNullOrEmpty(status))
+      if (!string.IsNullOrEmpty(status))
         filtered = filtered & builder.Eq("status", Convert.ToInt32(status));
       if (start != null)
         filtered = filtered & builder.Gte("date_create", start.Value.Ticks);
       if (end != null)
         filtered = filtered & builder.Lt("date_create", end.Value.AddDays(1).Ticks);
 
-      var sorted = Builders<KaizenModel>.Sort.Descending("date_create");
+      var result = await collection.FindAsync(filtered).Result.ToListAsync();
 
-      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+      return (from x in result orderby x.date_create descending select x).ToList();
     }
 
     /// <summary>
@@ -121,30 +119,31 @@ namespace OnetezSoft.Data
         & builder.Gte("date_create", start.Ticks)
         & builder.Lt("date_create", end.AddDays(1).Ticks);
 
-      return await collection.Find(filtered).ToListAsync();
+      return await collection.FindAsync(filtered).Result.ToListAsync();
     }
 
     /// <summary>
     /// Tính thành tựu Kaizen
     /// </summary>
-    public static async Task Achievement(string companyId, string user)
+    public static async Task Achievement(string companyId, string user, GlobalService globalService)
     {
       Handled.Shared.GetTimeSpan(2, out DateTime start, out DateTime end);
 
       var list = await DataAchievement(companyId, user, start, end);
 
-      var achievement = DbAchievement.Kaizen(list.Count);
-      if(achievement != null)
+      var achievement = await DbAchievement.GetOption(companyId, "kaizen", list.Count);
+      if (achievement != null)
       {
         var model = new AchievementModel()
         {
           user = user,
           name = achievement.name,
-          desc = achievement.color,
-          star = Convert.ToInt32(achievement.icon),
-          type = "kaizen"
+          desc = achievement.des,
+          star = achievement.star,
+          type = "kaizen",
+          type_id = achievement.id
         };
-        await DbAchievement.Create(companyId, model);
+        await DbAchievement.Create(companyId, model, globalService);
       }
     }
 
@@ -157,9 +156,9 @@ namespace OnetezSoft.Data
     /// <param name="content"></param>
     /// <returns></returns>
     public static async Task<KaizenModel> Comment(string companyId, string kaizenId, string userId, string content)
-{
+    {
       var kaizen = await Get(companyId, kaizenId);
-      if(kaizen != null)
+      if (kaizen != null)
       {
         kaizen.comments.Add(new()
         {
@@ -197,7 +196,7 @@ namespace OnetezSoft.Data
         color = "has-text-warning",
         icon = "sms"
       });
-      
+
       list.Add(new StaticModel
       {
         id = 1,

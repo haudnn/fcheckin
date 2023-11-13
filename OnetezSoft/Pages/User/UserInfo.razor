@@ -1,6 +1,7 @@
 ﻿@page "/user/info"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
@@ -23,7 +24,7 @@
             <img src="@user.avatar" alt="IMG">
           </div>
           <div class="is-hidden">
-            <FileUpload Accept="image/*" Size="200" FileId="file_avatar" OnUpload="x => user.avatar = x[0]" />
+            <FileUpload Path="avatar" Accept="image/*" Size="200" FileId="file_avatar" OnUpload="x => user.avatar = x[0]" />
           </div>
         </div>
         <div class="field">
@@ -34,14 +35,26 @@
         </div>
         <div class="field">
           <label class="label">Nhập mật khẩu cũ</label>
-          <div class="control">
-            <input @bind="passwordOld" type="text" class="input" placeholder="Nhập mật khẩu cũ nếu cần thay đổi" />
+          <div class="control has-icons-right">
+            <input @bind="passwordOld" type="@(showPassOld ? "text" : "password")" class="input" placeholder="Nhập mật khẩu cũ nếu cần thay đổi" />
+            @if (passwordOld.Length > 0)
+            {
+              <a class="icon is-right has-text-black" @onclick="() => showPassOld = !showPassOld">
+                <i class="material-icons-round is-size-6">visibility</i>
+              </a>
+            }
           </div>
         </div>
         <div class="field">
           <label class="label">Nhập mật khẩu mới</label>
-          <div class="control">
-            <input @bind="passwordNew" type="text" class="input" placeholder="Nhập mật khẩu mới nếu cần thay đổi" />
+          <div class="control has-icons-right">
+            <input @bind="passwordNew" type="@(showPassNew ? "text" : "password")" class="input" placeholder="Nhập mật khẩu mới nếu cần thay đổi" />
+            @if (passwordNew.Length > 0)
+            {
+              <a class="icon is-right has-text-black" @onclick="() => showPassNew = !showPassNew">
+                <i class="material-icons-round is-size-6">visibility</i>
+              </a>
+            }
           </div>
         </div>
         <div class="field">
@@ -114,45 +127,62 @@
   private Dictionary<string, string> pageList = new();
   private string passwordOld = string.Empty;
   private string passwordNew = string.Empty;
+  private bool showPassOld = false;
+  private bool showPassNew = false;
 
   protected override async Task OnInitializedAsync()
   {
     pageList = PageList();
-    user = await DbUser.Get(Layout.Company.id, Layout.User.id);
+    user = await DbUser.Get(Layout.Company.id, Layout.User.id, globalService);
     if (user != null)
-      departments = DbDepartment.GetSelectListOfUser(Layout.Company.id, user.departments_id, null);
+      departments = await DbDepartment.GetSelectListOfUser(Layout.Company.id, user.departments_id, null);
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (string.IsNullOrEmpty(user.id))
+    bool _success = true;
+    try
     {
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Dữ liệu không tồn tại hoặc đã bị xóa !");
-    }
-    else
-    {
-      // Cật nhật database công ty
-      await DbUser.Update(Layout.Company.id, user);
-
-      if (!string.IsNullOrEmpty(passwordNew))
+      if (string.IsNullOrEmpty(user.id))
       {
-        if (user.password == Handled.Shared.CreateMD5(passwordOld))
-        {
-          // Cập nhật cho tất cả database
-          user.password = Handled.Shared.CreateMD5(passwordNew);
-          await DbMainUser.Update(user);
-          await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin thành công!");
-        }
-        else
-          await JSRuntime.InvokeVoidAsync("tagline", false, "Mật khẩu cũ không chính xác!");
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Dữ liệu không tồn tại hoặc đã bị xóa !");
       }
       else
       {
-        // Cập nhật cho tất cả database
-        await DbMainUser.Update(user);
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin thành công!");
+        // Cật nhật database công ty
+        await DbUser.Update(Layout.Company.id, user, globalService);
+
+        if (!string.IsNullOrEmpty(passwordNew))
+        {
+          if (user.password == Handled.Shared.CreateMD5(passwordOld))
+          {
+            // Cập nhật cho tất cả database
+            user.password = Handled.Shared.CreateMD5(passwordNew);
+            await DbMainUser.Update(user, globalService);
+            await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin thành công!");
+          }
+          else
+            await JSRuntime.InvokeVoidAsync("tagline", false, "Mật khẩu cũ không chính xác!");
+        }
+        else
+        {
+          // Cập nhật cho tất cả database
+          await DbMainUser.Update(user, globalService);
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin thành công!");
+
+        }
+        passwordOld = string.Empty;
+        passwordNew = string.Empty;
       }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
 
@@ -178,7 +208,7 @@
       results.Add("/hrm/timekeeping", "Chấm công");
     return results;
   }
-  
+
   private bool CheckAccess(string productId)
   {
     return ProductService.CheckAccess(Layout.Company, Layout.User, productId, out string message);

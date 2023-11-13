@@ -1,111 +1,111 @@
 @inject IJSRuntime JSRuntime
 
 <section class="modal is-active">
- <div class="modal-background"></div>
-	<div class="modal-card " style="overflow: visible;">
-		<div class="modal-card-head">
-   <div class="modal-card-title">Dữ liệu ngày lễ năm @year</div>
-    <a @onclick="Cancel" class="delete is-medium"></a>
+  <div class="modal-background"></div>
+  <div class="modal-card " style="overflow: visible;">
+    <div class="modal-card-head">
+      <div class="modal-card-title">Dữ liệu ngày lễ năm @year</div>
+      <a @onclick="Cancel" class="delete is-medium"></a>
+    </div>
+    <div class="modal-card-body scrolly" style="max-height: 500px;">
+      @foreach (var holiday in holidaysList)
+      {
+        DateTimeOffset? startDate = new DateTime(holiday.start);
+        DateTimeOffset? endDate = new DateTime(holiday.end);
+        <div class="mb-3">
+          <div class="field">
+            <div class="is-align-items-center is-flex" style="gap: 0 10px">
+              @if (checkList.Contains(holiday.id))
+              {
+                <input type="checkbox" @onchange="() => CheckItem(holiday.id)" checked />
+              }
+              else
+              {
+                <input type="checkbox" @onchange="() => CheckItem(holiday.id)" />
+              }
+              <label class="label mb-0">@holiday.name</label>
+            </div>
+          </div>
+          <div style="margin-left: 24px;" class="field is-grouped">
+            <div class="control">
+              <label class="label">Bắt đầu nghỉ</label>
+              <div class="control has-icons-left">
+                <div class="input">
+                  <DateRangePicker readonly aria-readonly="true" SingleDatePicker="true" @bind-StartDate="startDate" />
+                </div>
+                <span class="icon is-left">
+                  <i class="material-icons-outlined">
+                    calendar_today
+                  </i>
+                </span>
+              </div>
+            </div>
+            <div class="control">
+              <label class="label">Kết thúc nghỉ</label>
+              <div class="control has-icons-left">
+                <div class="input">
+                  <DateRangePicker readonly aria-readonly="true" SingleDatePicker="true" @bind-StartDate="endDate" />
+                </div>
+                <span class="icon is-left">
+                  <i class="material-icons-outlined">
+                    calendar_today
+                  </i>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+    <div style="background-color: #fff;" class="modal-card-foot is-right is-justify-content-space-between">
+      <span style="font-size: 12px;" class="has-text-grey is-italic">(*) Chỉ những ngày lễ chưa diễn ra trong năm mới được hiển thị ở đây.</span>
+      <div>
+        <a class="button" @onclick="Cancel">
+          <span>Hủy</span>
+        </a>
+        <a class="button is-link" @onclick="Apply">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">done</i>
+          </span>
+          <span>Áp dụng</span>
+        </a>
+      </div>
+    </div>
   </div>
-		<div class="modal-card-body scrolly" style="max-height: 500px;">
-				@foreach (var holiday in holidaysList)
-				{
-			  	DateTimeOffset? startDate = new DateTime(holiday.start);
-			  	DateTimeOffset? endDate = new DateTime(holiday.end);
-						<div class="mb-3">
-							<div class="field">
-								<div class="is-align-items-center is-flex" style="gap: 0 10px">
-									@if (checkList.Contains(holiday.id))
-									{
-										<input type="checkbox" @onchange="() => CheckItem(holiday.id)" checked/>
-									}
-									else
-									{
-										<input type="checkbox" @onchange="() => CheckItem(holiday.id)"/>
-									}
-									<label class="label mb-0">@holiday.name</label>
-								</div>
-							</div>
-       <div style="margin-left: 24px;" class="field is-grouped">
-        <div class="control">
-         <label class="label">Bắt đầu nghỉ</label>
-         <div class="control has-icons-left">
-           <div class="input">
-            <DateRangePicker readonly aria-readonly="true" SingleDatePicker="true" @bind-StartDate="startDate"/>
-           </div>
-           <span class="icon is-left">
-            <i class="material-icons-outlined">
-             calendar_today
-            </i>
-           </span>
-         </div>
-        </div>
-        <div class="control">
-         <label class="label">Kết thúc nghỉ</label>
-          <div class="control has-icons-left">
-           <div class="input">
-            <DateRangePicker readonly aria-readonly="true" SingleDatePicker="true" @bind-StartDate="endDate" />
-           </div>
-          	<span class="icon is-left">
-            <i class="material-icons-outlined">
-             calendar_today
-            </i>
-           </span>
-        		</div>
-        </div>
-       </div>
-						</div>
-				}
-		</div>
-		<div style="background-color: #fff;"  class="modal-card-foot is-right is-justify-content-space-between">
-				<span style="font-size: 12px;" class="has-text-grey is-italic">(*) Chỉ những ngày lễ chưa diễn ra trong năm mới được hiển thị ở đây.</span>
-				<div>
-					<a class="button" @onclick="Cancel">
-						<span>Hủy</span>
-					</a>
-					<a class="button is-link" @onclick="Apply">
-						<span class="icon">
-							<i class="material-icons-round is-size-6">done</i>
-						</span>
-						<span>Áp dụng</span>
-					</a>
-				</div>
-		</div>	
-	</div>
 </section>
 
-@code{
-	[Parameter] 
-	public int year { get; set; }
-	[Parameter]
-	public List<HrmDayOffModel> holidaysList { get; set; }
- [Parameter]
- public EventCallback<List<HrmDayOffModel>> OnUpdate { get; set; }
-	[Parameter]
- public EventCallback OnCancel { get; set; }
+@code {
+  [Parameter]
+  public int year { get; set; }
+  [Parameter]
+  public List<HrmDayOffModel> holidaysList { get; set; } = new();
+  [Parameter]
+  public EventCallback<List<HrmDayOffModel>> OnUpdate { get; set; }
+  [Parameter]
+  public EventCallback OnCancel { get; set; }
 
-	public List<string> checkList = new();
+  public List<string> checkList = new();
 
-	public void CheckItem(string id) 
-	{
-		if(checkList.Contains(id))
-			checkList.Remove(id);
-		else
-			checkList.Add(id);
-	}
+  public void CheckItem(string id)
+  {
+    if (checkList.Contains(id))
+      checkList.Remove(id);
+    else
+      checkList.Add(id);
+  }
 
-	private async Task Cancel()
-	{
-		await OnCancel.InvokeAsync();
-	}
+  private async Task Cancel()
+  {
+    await OnCancel.InvokeAsync();
+  }
 
-	private async Task Apply()
-	{
-		if(checkList.Count == 0)
-		{
-			await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang chưa áp dụng ngày nghỉ nào!");
-			return;
-		}
-	 await OnUpdate.InvokeAsync(holidaysList.Where(x => checkList.Contains(x.id)).ToList());
-	}
+  private async Task Apply()
+  {
+    if (checkList.Count == 0)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn đang chưa áp dụng ngày nghỉ nào!");
+      return;
+    }
+    await OnUpdate.InvokeAsync(holidaysList.Where(x => checkList.Contains(x.id)).ToList());
+  }
 }

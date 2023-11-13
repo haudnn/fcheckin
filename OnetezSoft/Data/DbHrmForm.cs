@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using MongoDB.Bson;
-using System.Linq;
-using System.Text;
+﻿using MongoDB.Bson;
 using MongoDB.Driver;
 using OnetezSoft.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data;
 public class DbHrmForm
@@ -27,7 +26,6 @@ public class DbHrmForm
 
     return model;
   }
-
 
   public static async Task<HrmFormModel> Update(string companyId, HrmFormModel model)
   {
@@ -69,9 +67,8 @@ public class DbHrmForm
 
     var collection = _db.GetCollection<HrmFormModel>(_collection);
 
-    return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+    return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
   }
-
 
   public static async Task<List<HrmFormModel>> GetList(string companyId)
   {
@@ -79,7 +76,7 @@ public class DbHrmForm
 
     var collection = _db.GetCollection<HrmFormModel>(_collection);
 
-    var results = await collection.Find(new BsonDocument()).ToListAsync();
+    var results = await collection.FindAsync(new BsonDocument()).Result.ToListAsync();
 
     return results.OrderByDescending(x => x.created).ToList();
   }
@@ -97,23 +94,23 @@ public class DbHrmForm
   }
 
   /// <summary>Danh sách đơn từ cấp dưới của mình</summary>
-  public static async Task<List<HrmFormModel>> GetListByUsers(string companyId, List<string> users)
+  public static async Task<List<HrmFormModel>> GetListByUsers(string companyId, List<string> users, string userId)
   {
     var _db = Mongo.DbConnect("fastdo_" + companyId);
 
     var collection = _db.GetCollection<HrmFormModel>(_collection);
-    var result = await collection.FindAsync(x => users.Contains(x.user))
+    var result = await collection.FindAsync(x => users.Contains(x.user) || x.user == userId || x.users.Contains(userId))
                                  .Result.ToListAsync();
     return result.OrderByDescending(x => x.created).ToList();
   }
 
   /// <summary>Danh sách đơn từ hệ thống trừ mình</summary>
-  public static async Task<List<HrmFormModel>> GetListAdmin(string companyId, string user)
+  public static async Task<List<HrmFormModel>> GetListAdmin(string companyId)
   {
     var _db = Mongo.DbConnect("fastdo_" + companyId);
 
     var collection = _db.GetCollection<HrmFormModel>(_collection);
-    var result = await collection.FindAsync(x => x.user != user)
+    var result = await collection.FindAsync(x => true)
                                  .Result.ToListAsync();
     return result.OrderByDescending(x => x.created).ToList();
   }
@@ -128,7 +125,6 @@ public class DbHrmForm
                                  .Result.ToListAsync();
     return result.OrderByDescending(x => x.created).ToList();
   }
-
 
   /// <summary>Danh sách đơn từ chưa được nạp</summary>
   public static async Task<List<HrmFormModel>> GetListByNotLoad(string companyId, List<string> userList, long start, long end)
@@ -151,7 +147,7 @@ public class DbHrmForm
     list.Add(new StaticModel
     {
       id = 1,
-      name= "Chờ duyệt",
+      name = "Chờ duyệt",
       icon = "more_horiz",
       color = "has-text-dark"
     });

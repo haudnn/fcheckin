@@ -1,5 +1,6 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 @if (company != null)
 {
@@ -21,42 +22,6 @@
         <a class="title is-5 mb-0" href="/admin/company/@company.id/products">
           @company.name
         </a>
-        @if(members != null)
-        {
-          <div class="has-text-weight-bold">
-            @members.Count người dùng
-          </div>
-          <div class="avatar_list my-3">
-            @for (int i = 0; i < 8; i++)
-            {
-              if (i < members.Count)
-              {
-                var user = members[i];
-                <span class="image is-rounded is-32x32">
-                  <img src="@user.avatar" alt="IMG">
-                </span>
-              }
-            }
-            @if (members.Count > 8)
-            {
-              <span class="image is-rounded is-32x32 has-text-weight-semibold"
-                style="justify-content: center; align-items: center;">
-                +@(members.Count - 8)
-              </span>
-            }
-          </div>
-        }
-        else
-        {
-          var online = DbUser.GetOnline(company.id);
-          <div class="has-text-weight-bold mb-5">
-            @company.members người dùng
-            @if (online > 0)
-            {
-              <span>● Online @Handled.Shared.ConvertDate(new DateTime(online))</span>
-            }
-          </div>
-        }
         <div class="has-text-weight-bold mb-2">
           Sản phẩm sở hữu
         </div>
@@ -78,7 +43,7 @@
           <div class="level-left">
             <div class="has-text-weight-bold">
               Thông tin tổ chức
-              @if(!company.status)
+              @if (!company.status)
               {
                 <span class="has-text-danger">(Chưa kích hoạt)</span>
               }
@@ -111,7 +76,7 @@
           </span>
           <span>@company.address</span>
         </div>
-        @if(!string.IsNullOrEmpty(company.website))
+        @if (!string.IsNullOrEmpty(company.website))
         {
           <div class="icon-text mb-1">
             <span class="icon is-small mr-3">
@@ -120,7 +85,7 @@
             <span>@company.website</span>
           </div>
         }
-        @if(!string.IsNullOrEmpty(company.note))
+        @if (!string.IsNullOrEmpty(company.note))
         {
           <div class="has-text-weight-bold">
             Mô tả thêm
@@ -145,9 +110,8 @@
               <a class="dropdown-item" @onclick="EditManager">
                 Thay đổi quản lý tổ chức
               </a>
-              <hr class="dropdown-divider">
-              <a class="dropdown-item has-text-danger" @onclick="DeleteCompany">
-                Xóa tổ chức
+              <a class="dropdown-item" @onclick="ToggleActive">
+                @(company.status ? "Hủy kích hoạt tổ chức" : "Kích hoạt tổ chức")
               </a>
             </div>
           </div>
@@ -161,40 +125,92 @@
 }
 
 @code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
   [Parameter]
   public CompanyModel company { get; set; }
   [Parameter]
+  public List<ProductModel> products { get; set; }
+  [Parameter]
   public List<UserModel> members { get; set; }
   [Parameter]
-  public List<ProductModel> products { get; set; }
+  public long online { get; set; }
 
   private CompanyModel model = null;
   private UserModel manager = null;
 
-  private async Task DeleteCompany()
-  {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tổ chức này?"))
-      return;
 
-    company.delete = true;
-    await DbMainCompany.Update(company);
-    navigation.NavigateTo("/admin/customers/" + company.admin_id, true);
-  }
 
-  private async Task EditCompany()
+  private async Task<bool> ToggleActive()
   {
-    model = await DbMainCompany.Get(company.id);
-    await JSRuntime.InvokeVoidAsync("textAutoSize", "note");
-  }
-
-  private async Task OnUpdateCompany(bool isUpdate)
-  {
-    if (isUpdate)
+    bool _success = true;
+    try
     {
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin tổ chức!");
-      company = await DbMainCompany.Get(company.id);
+      if (company.status)
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn hủy kích hoạt tổ chức này?"))
+          return false;
+      }
+      else
+      {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn kích hoạt tổ chức này?"))
+          return false;
+      }
+      company.status = !company.status;
+      await DbMainCompany.Update(company);
+      if(!company.status)
+      {
+        await globalService.RemoveShareStorage(company.id);
+      }
     }
-    model = null;
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ToggleActive()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> EditCompany()
+  {
+    bool _success = true;
+    try
+    {
+      model = await DbMainCompany.Get(company.id);
+      await JSRuntime.InvokeVoidAsync("textAutoSize", "note");
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "EditCompany()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> OnUpdateCompany(bool isUpdate)
+  {
+    bool _success = true;
+    try
+    {
+      if (isUpdate)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin tổ chức!");
+        company = await DbMainCompany.Get(company.id);
+      }
+      model = null;
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnUpdateCompany()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void EditManager()

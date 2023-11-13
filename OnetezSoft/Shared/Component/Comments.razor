@@ -1,0 +1,326 @@
+﻿@using System.Text.Json
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
+@implements IDisposable
+
+<div class="scrolly py-1 is-mobile @(database.Any() ? "" : "is-flex is-align-items-center is-justify-content-center")"
+     style="flex: 1 1 0%;" id="comment_scroll">
+  @if (database.Any())
+  {
+    <ul>
+      @foreach (var item in database)
+      {
+        var user = UserService.GetMember(shareStorage.MemberList, item.user_id);
+        <li class="mt-3">
+          <div class="is-flex @(item.user_id == Layout.User.id ? "is-justify-content-flex-end pr-5" : "")" style="gap: 0 5px">
+            <div style="width: 24px; height: 24px">
+              <span class="image is-24x24 is-rounded mr-2 mt-2">
+                <img src="@user.avatar" alt="AVT">
+              </span>
+            </div>
+            <div class="comment" style="position: relative; max-width: 600px">
+              <div class="is-flex is-flex-direction-column"
+                   style="border-radius:8px; background: @(item.user_id == Layout.User.id ? "#e7f2fb" : "#f5f5f5"); padding: 10px; gap: 10px 0;">
+                <span class="font_12 has-text-weight-semibold">@user.name</span>
+                @if (!Shared.IsEmpty(item.detail))
+                {
+                  <div>
+                    <span class="font_13 has-text-black text_many_line">@((MarkupString)Shared.TextToHtml(item.detail))</span>
+                  </div>
+                }
+                <FileViews Values="item.files" />
+                <span class="font_12 has-text-grey">@Shared.ConvertDate(new DateTime(item.date))</span>
+              </div>
+              @if (Layout.User.id == item.user_id)
+              {
+                <div class="is-hover" style="position: absolute; right: -25px; top: 0;">
+                  <a style="padding: 10px" class="icon has-text-danger" @onclick="() => DeleteComment(item)">
+                    <i class="material-icons-outlined is-size-6">delete</i>
+                  </a>
+                </div>
+              }
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+  else
+  {
+    <div class="is-flex is-align-items-center is-justify-content-center is-flex-direction-column" style="height: calc(100% - 96px);">
+      <img class="image" src="/images/no-comment.png" alt="IMG" />
+      <p class="has-text-grey mt-2">Chưa có bất kỳ bình luận nào!</p>
+    </div>
+  }
+</div>
+<div class="is-flex" style="min-height: 82px; align-items: flex-end; width: 100%;">
+  <div style="width: 100%">
+    <div class="mb-2">
+      @if (files.Any())
+      {
+        if (ProductService.CheckStorage(Layout.Company))
+        {
+          <FileViews Delete="true" Values="files" isOneLine="true" />
+        }
+      }
+
+    </div>
+    <div class="is-flex" style="width: 100%">
+      @if (ProductService.CheckStorage(Layout.Company))
+      {
+        <div class="mr-4" style="position: relative;">
+          <FileUpload Path="form/comment" Multiple="true" Small="false" Cloud="true" OnUpload="x => files.AddRange(x)" />
+        </div>
+      }
+      <form @onsubmit="Comment" class="control has-icons-right" style="width: 100%;">
+        <textarea rows="1"
+                  style="max-height: 60px"
+                  id="component-comment"
+                  class="input scrolly pr-10 over-y"
+                  placeholder="Nhập nội dung..." autocomplete="off"></textarea>
+        <a class="icon has-text-link is-right " @onclick="Comment">
+          <i class="material-icons-outlined is-size-5">send</i>
+        </a>
+      </form>
+    </div>
+  </div>
+</div>
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string modelId { get; set; }
+  [Parameter]
+  public string nameModule { get; set; }
+  [Parameter]
+  public bool isOnlyInComment { get; set; }
+  [Parameter]
+  public List<MemberModel> membersSourceComment { get; set; } = new();
+  [Parameter]
+  public EventCallback<int> UpdateCountComment { get; set; }
+  [Parameter]
+  public EventCallback<List<string>> GetUserComment { get; set; } = new();
+  [Parameter]
+  public EventCallback<List<string>> NotiListTag { get; set; }
+
+  private string comment = string.Empty;
+  private List<string> files = new();
+  public List<StaticModel> sources = new();
+  private List<StaticModel> userMentions = new();
+  private List<CommentModel> database = new();
+  private List<MemberModel> membersComment = new();
+
+  private DotNetObjectReference<Comments> obj;
+
+  private SharedStorage shareStorage;
+
+  protected override async Task OnInitializedAsync()
+  {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    obj = DotNetObjectReference.Create(this);
+
+    if (!isOnlyInComment)
+      membersComment = membersSourceComment.Where(i => true).ToList();
+
+    // Bình luận
+    if (!Shared.IsEmpty(modelId) && !Shared.IsEmpty(nameModule))
+    {
+      database = await DbComment.GetList(Layout.Company.id, nameModule, modelId);
+    }
+
+    // thêm người trong bình luận
+    foreach (var comment in database)
+    {
+      if (!membersComment.Select(i => i.id).Contains(comment.user_id))
+      {
+        var user = shareStorage.MemberList.Find(i => i.id == comment.user_id);
+        if (user != null)
+        {
+          if (isOnlyInComment)
+          {
+            if (membersSourceComment.Select(i => i.id).Contains(comment.user_id))
+              membersComment.Add(user);
+          }
+          else
+            membersComment.Add(user);
+        }
+      }
+    }
+
+    GetSources();
+
+    await GetUserComment.InvokeAsync(membersComment.Select(i => i.id).ToList());
+
+    MessagingCenter.Subscribe<Comments, string>(this, "comments_" + modelId, async (sender, value) =>
+    {
+      if (modelId == value)
+      {
+        database = await DbComment.GetList(Layout.Company.id, nameModule, modelId);
+        GetSources();
+        await InvokeAsync(StateHasChanged);
+      }
+    });
+  }
+
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+    {
+      await JSRuntime.InvokeVoidAsync("scrollToBottom", "comment_scroll");
+      await JSRuntime.InvokeVoidAsync("InitialMention", obj, sources, "component-comment");
+    }
+  }
+
+  private void GetSources()
+  {
+    var list = new List<MemberModel>();
+    if (!isOnlyInComment)
+      list = membersComment != null ? membersComment.ToList() : new();
+    else
+      list = membersSourceComment.Where(i => true).ToList();
+
+    list.RemoveAll(x => x.id == Layout.User.id);
+
+    sources = list.Select(x => new StaticModel() { name = x.name, id_string = x.id, icon = x.avatar }).ToList();
+  }
+
+  private async Task<bool> DeleteComment(CommentModel item)
+  {
+    bool _success = true;
+    try
+    {
+      if (item.files.Any())
+      {
+        foreach (var file in item.files)
+        {
+          var fileName = Files.FileName(file);
+          StorageService.DeleteFile(file);
+        }
+      }
+      await DbComment.Delete(Layout.Company.id, nameModule, item.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa bình luận");
+      database.Remove(item);
+      await UpdateCountComments();
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine(ex.ToString());
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteComment()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task Comment()
+  {
+    if (Shared.IsEmpty(comment) && files.Count == 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập nội dung bình luận!");
+    else
+    {
+      var item = new CommentModel();
+      item.detail = FormatComment(comment);
+      item.model_id = modelId;
+      item.user_id = Layout.User.id;
+      item.files = files;
+
+      await DbComment.Create(Layout.Company.id, nameModule, item);
+
+      // noti người được tag
+      await NotiListTag.InvokeAsync(userMentions.Select(i => i.id_string).ToList());
+
+      await GetComments();
+      userMentions = new();
+      comment = string.Empty;
+      await JSRuntime.InvokeVoidAsync("scrollToBottom", "comment_scroll");
+      files = new();
+      OnChanged();
+    }
+  }
+
+  private string FormatComment(string comment)
+  {
+    string result = comment;
+    if (userMentions.Count > 0)
+    {
+      foreach (var item in userMentions)
+      {
+        var user = membersSourceComment.FirstOrDefault(x => x.id == item.id_string);
+        var mention = "@" + user.name;
+        while (!string.IsNullOrEmpty(mention))
+        {
+          var exist = Shared.SearchKeyword(mention, comment);
+          if (exist)
+          {
+            result = result.Replace(mention, $"<a class='has-text-link has-text-weight-bold'>{mention.Replace("@", "")}</a>");
+            break;
+          }
+          else
+          {
+            if (!string.IsNullOrEmpty(mention))
+            {
+              mention = mention.Substring(0, mention.LastIndexOf(" "));
+            }
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  private async Task<bool> GetComments()
+  {
+    bool _success = true;
+    try
+    {
+      database = await DbComment.GetList(Layout.Company.id, nameModule, modelId);
+      await UpdateCountComments();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetComments()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> UpdateCountComments()
+  {
+    bool _success = true;
+    try
+    {
+      await UpdateCountComment.InvokeAsync(database.Count);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateCountComments()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private void OnChanged()
+  {
+    MessagingCenter.Send(this, "comments_" + modelId, modelId);
+  }
+
+  [JSInvokable]
+  public void SetMentions(JsonElement list, JsonElement content)
+  {
+    userMentions = list.Deserialize<List<StaticModel>>();
+    comment = content.Deserialize<string>();
+  }
+
+  public void Dispose()
+  {
+    MessagingCenter.Unsubscribe<Comments, string>(this, "comments_" + modelId);
+    obj?.Dispose();
+  }
+}

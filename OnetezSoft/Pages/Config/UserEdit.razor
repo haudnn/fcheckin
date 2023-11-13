@@ -1,6 +1,6 @@
-﻿@page "/config/system/user/edit/{Id}"
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>Thông tin nhân viên</PageTitle>
 
@@ -14,299 +14,405 @@ else if (Layout.User.role == 2 && user.role == 1)
 }
 else
 {
-  <section class="columns is-gapless has_menu_left">
-    <div class="column is-narrow">
-      <div class="card p-3 menu_left">
-        <a href="/config/system/department/list">
-          Phòng ban
-        </a>
-        <a class="is-active" href="/config/system/user/list">
-          Nhân sự
-        </a>
-        <a href="/config/system/dayoff">
-          Thiết lập ngày nghỉ
-        </a>
-      </div>
-    </div>
-    <div class="column">
-      <div class="card p-5">
-        <ul class="columns is-vcentered">
-          <li class="column is-narrow">
-            <h1 class="title is-5 has-text-info is-uppercase">
-              Thông tin tài khoản
-            </h1>
-          </li>
-        </ul>
-        <form @onsubmit="Update">
-          <ul class="columns is-multiline">
-            <li class="column is-half">
-              <div class="field">
-                <label class="label">Địa chỉ email *</label>
-                <div class="control">
+  <ul class="columns is-vcentered is-variable is-2 mb-2">
+      <li class="column is-narrow">
+        <h1 class="title is-5 has-text-info is-uppercase">
+        @(isCreate ? "Tạo tài khoản mới" : "Thông tin tài khoản")
+        </h1>
+      </li>
+    </ul>
+  <div class="inner_section flex_column" style="flex:1; @(Layout.IsMobile ? "" : "overflow:hidden")">
+    <form class="flex_column" style="height:100%">
+      <div class="scrolly" style="flex: 1">
+        <ul class="columns is-multiline">
+          <li class="column is-half">
+            <div class="field">
+              <label class="label">Địa chỉ email *</label>
+              <div class="control">
+                @if (isCreate && Enable)
+                {
+                  <input @bind="@user.email" type="email" class="input" @onfocusout="ChangeEmail" />
+                }
+                else
+                {
                   <input value="@user.email" type="email" class="input" readonly />
+                }
+              </div>
+            </div>
+          </li>
+          <li class="column is-half">
+            <div class="field">
+              <label class="label">Hình đại diện</label>
+              <div class="field is-grouped">
+                <div class="control">
+                  <a class="image is-square is-radius">
+                    <img src="@user.avatar" alt="IMG">
+                  </a>
+                </div>
+                <FileUpload Path="avatar" Cloud ImageCompressSize="1000" UploadToMain Accept="image/*" Size="200" OnUpload="x => user.avatar = x[0]" />
+              </div>
+            </div>
+          </li>
+          <li class="column is-half">
+            <div class="field">
+              <label class="label">Họ *</label>
+              <div class="control">
+                <input @bind="user.last_name" type="text" class="input" />
+              </div>
+            </div>
+          </li>
+          <li class="column is-half">
+            <div class="field">
+              <label class="label">Tên *</label>
+              <div class="control">
+                <input @bind="user.first_name" type="text" class="input" />
+              </div>
+            </div>
+          </li>
+          <li class="column is-half">
+            <div class="field">
+              <label class="label">Thuộc công ty</label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select @bind="user.company_id">
+                    <option value="">- chọn công ty -</option>
+                    @foreach (var sl in companyOptions)
+                    {
+                      <option value="@sl.id">@sl.name</option>
+                    }
+                  </select>
                 </div>
               </div>
-            </li>
-            <li class="column is-half">
+            </div>
+          </li>
+          <li class="column is-half">
+            <div class="field">
+              <label class="label">Thuộc phòng ban</label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select @bind="user.department_id">
+                    <option value="">- chọn phòng ban -</option>
+                    @foreach (var sl in departmentOptions)
+                    {
+                      <option value="@sl.id">@sl.name</option>
+                    }
+                  </select>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-half">
+            <div class="field">
+              <label class="label">Quyền hạn *</label>
+              <div class="control">
+                <div class="select is-fullwidth">
+                  <select @onchange="ChangeRole">
+                    @foreach (var sl in DbUser.Role())
+                    {
+                      if (user.role == sl.id)
+                      {
+                        <option value="@sl.id" selected>@sl.name</option>
+                      }
+                      else
+                      {
+                        <option value="@sl.id">@sl.name</option>
+                      }
+                    }
+                  </select>
+                </div>
+              </div>
+            </div>
+          </li>
+          <li class="column is-full">
+            @if (user.role == 1)
+            {
+              <hr class="mt-0" />
               <div class="field">
-                <label class="label">Hình đại diện</label>
-                <div class="field is-grouped">
+                <div class="control">
+                  <label class="checkbox">
+                    <input type="checkbox" @bind="user.noti_store" />
+                    <span class="has-text-weight-bold has-text-link">THÔNG BÁO ĐỔI QUÀ</span>
+                  </label>
+                </div>
+                <div class="control has-text-grey mt-2">
+                  Nhận thông báo khi có người yêu cầu <b>Đổi quà</b>
+                </div>
+              </div>
+              <div class="field">
+                <div class="control">
+                  <label class="checkbox">
+                    <input type="checkbox" @bind="user.okr_checkin" />
+                    <span class="has-text-weight-bold has-text-link">TỰ CHECKIN OKRs</span>
+                  </label>
+                </div>
+                <div class="control has-text-grey mt-2">
+                  Cho phép người dùng tự checkin OKRs mà không cần người khác xác nhận <b>OKRs</b>
+                </div>
+              </div>
+            }
+            else if (user.role == 2)
+            {
+              <hr class="mt-0" />
+              <div class="field">
+                <div class="control">
+                  <label class="checkbox">
+                    <input type="checkbox" @bind="user.role_manage.system" />
+                    <span class="has-text-weight-bold has-text-link">CƠ CẤU</span>
+                  </label>
+                </div>
+                <div class="control has-text-grey mt-2">
+                  Truy cập tất cả chức năng trong trang <b>Cấu hình / Cơ cấu</b> bao gồm:
+                  <b>Phòng ban, Nhân sự, Thiết lập ngày nghỉ</b>
+                </div>
+              </div>
+              if (CheckAccess("okrs"))
+              {
+                <div class="field">
                   <div class="control">
-                    <a class="image is-square is-radius">
-                      <img src="@user.avatar" alt="IMG">
-                    </a>
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.role_manage.okrs" />
+                      <span class="has-text-weight-bold has-text-link">OKRs</span>
+                    </label>
                   </div>
-                  <FileUpload Accept="image/*" Size="200" OnUpload="x => user.avatar = x[0]" />
-                </div>
-              </div>
-            </li>
-            <li class="column is-half">
-              <div class="field">
-                <label class="label">Họ *</label>
-                <div class="control">
-                  <input @bind="user.last_name" type="text" class="input" />
-                </div>
-              </div>
-            </li>
-            <li class="column is-half">
-              <div class="field">
-                <label class="label">Tên *</label>
-                <div class="control">
-                  <input @bind="user.first_name" type="text" class="input" />
-                </div>
-              </div>
-            </li>
-            <li class="column is-half">
-              <div class="field">
-                <label class="label">Thuộc công ty</label>
-                <div class="control">
-                  <div class="select is-fullwidth">
-                    <select @bind="user.company_id">
-                      <option value="">- chọn công ty -</option>
-                      @foreach (var sl in companyOptions)
-                      {
-                        <option value="@sl.id">@sl.name</option>
-                      }
-                    </select>
+                  <div class="control has-text-grey mt-2">
+                    Truy cập tất cả chức năng trong trang <b>Cấu hình / OKRs</b> bao gồm:
+                    <b>Chu kỳ OKRs, Phiếu góp ý</b>
                   </div>
                 </div>
-              </div>
-            </li>
-            <li class="column is-half">
-              <div class="field">
-                <label class="label">Thuộc phòng ban</label>
-                <div class="control">
-                  <div class="select is-fullwidth">
-                    <select @bind="user.department_id">
-                      <option value="">- chọn phòng ban -</option>
-                      @foreach (var sl in departmentOptions)
-                      {
-                        <option value="@sl.id">@sl.name</option>
-                      }
-                    </select>
+              }
+
+              if (CheckAccess("cfr"))
+              {
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.role_manage.cfr" />
+                      <span class="has-text-weight-bold has-text-link">GHI NHẬN</span>
+                    </label>
+                  </div>
+                  <div class="control has-text-grey mt-2">
+                    Truy cập tất cả chức năng trong trang <b>Cấu hình / Ghi nhận</b> bao gồm:
+                    <b>Tiêu chí ghi nhận, Cấp sao, Trừ sao</b>
                   </div>
                 </div>
-              </div>
-            </li>
-            <li class="column is-half">
-              <div class="field">
-                <label class="label">Quyền hạn *</label>
-                <div class="control">
-                  <div class="select is-fullwidth">
-                    <select @onchange="ChangeRole">
-                      @foreach (var sl in DbUser.Role())
-                      {
-                        if (user.role == sl.id)
-                        {
-                          <option value="@sl.id" selected>@sl.name</option>
-                        }
-                        else
-                        {
-                          <option value="@sl.id">@sl.name</option>
-                        }
-                      }
-                    </select>
+              }
+              if (CheckAccess("kaizen"))
+              {
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.role_manage.kaizen" />
+                      <span class="has-text-weight-bold has-text-link">KAIZEN</span>
+                    </label>
                   </div>
+                  <div class="control has-text-grey mt-2">
+                    Truy cập tất cả chức năng trong trang <b>Cấu hình / Kaizen</b>
+                    <br />
+                    Truy cập tất cả chức năng nâng cao tại trang <b>Kaizen</b> bao gồm:
+                    <b>Xóa góp ý Kaizen, Đánh giá quản lý cho góp ý Kaizen, Ghim, Xóa phản hồi Kaizen</b>
+                  </div>
+                </div>
+              }
+              if (CheckAccess("train"))
+              {
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.role_manage.educate" />
+                      <span class="has-text-weight-bold has-text-link">ĐÀO TẠO</span>
+                    </label>
+                  </div>
+                  <div class="control has-text-grey mt-2">
+                    Truy cập tất cả chức năng trong trang <b>Cấu hình / Đào tạo</b> bao gồm:
+                    <b>Danh mục, Mẫu chứng chỉ</b>
+                    <br />
+                    Truy cập, chỉnh sửa tất cả các khóa học tại trang <b>Đào tạo / Quản lý khóa học</b>
+                  </div>
+                </div>
+              }
+              if (CheckAccess("timekeeping"))
+              {
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.role_manage.timekeeping" />
+                      <span class="has-text-weight-bold has-text-link">CHẤM CÔNG</span>
+                    </label>
+                  </div>
+                  <div class="control has-text-grey mt-2">
+                    Truy cập tất cả chức năng trong trang <b>Chấm công</b>
+                  </div>
+                </div>
+              }
+              if (CheckAccess("todolist"))
+              {
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.role_manage.todolist" />
+                      <span class="has-text-weight-bold has-text-link">TODOLIST</span>
+                    </label>
+                  </div>
+                  <div class="control has-text-grey mt-2">
+                    Truy cập tất cả chức năng trong trang <b>Cấu hình / Todolist </b>
+                  </div>
+                </div>
+              }
+              <div class="field">
+                <div class="control">
+                  <label class="checkbox">
+                    <input type="checkbox" @bind="user.role_manage.store" />
+                    <span class="has-text-weight-bold has-text-link">ĐỔI QUÀ</span>
+                  </label>
+                </div>
+                <div class="control has-text-grey mt-2">
+                  Truy cập tất cả chức năng trong trang <b>Cấu hình / Đổi quà</b> bao gồm:
+                  <b>Cửa hàng, Đơn hàng, Ưu đãi</b>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="control">
+                  <label class="checkbox">
+                    <input type="checkbox" @bind="user.role_manage.other" />
+                    <span class="has-text-weight-bold has-text-link">TIỆN ÍCH</span>
+                  </label>
+                </div>
+                <div class="control has-text-grey mt-2">
+                  Truy cập tất cả chức năng trong trang <b>Cấu hình / Tiện ích</b> bao gồm:
+                  <b>Banner, Điểm tin, Châm ngôn, Thành tựu</b>
+                </div>
+              </div>
+
+              @if (Layout.Company.products.Any(x => x.id == "storage" && x.active))
+              {
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.role_manage.storage" />
+                      <span class="has-text-weight-bold has-text-link">QUẢN LÝ LƯU TRỮ</span>
+                    </label>
+                  </div>
+                  <div class="control has-text-grey mt-2">
+                    Truy cập tất cả chức năng trong trang Cấu hình - <b>Quản lý lưu trữ</b> bao gồm:
+                    <b>Quản lý lưu trữ, Lịch sử xóa file</b>
+                  </div>
+                </div>
+              }
+              @if (Layout.Company.products.Any(x => x.id == "kpis" && x.active))
+              {
+                <div class="field">
+                  <div class="control">
+                    <label class="checkbox">
+                      <input type="checkbox" @bind="user.role_manage.kpis" />
+                      <span class="has-text-weight-bold has-text-link">QUẢN LÝ KPIs</span>
+                    </label>
+                  </div>
+                  <div class="control has-text-grey mt-2">
+                    Truy cập tất cả chức năng trong trang <b>Cấu hình / KPIs</b> bao gồm:
+                    <b>Chu kỳ và Chỉ số KPIs</b>
+                  </div>
+                </div>
+              }
+              <hr class="mb-0" />
+            }
+          </li>
+          @if (!user.id.IsEmpty() && Enable)
+          {
+            <li class="column is-full">
+              <hr class="mt-0" />
+              <div class="field">
+                <div class="control">
+                  <span class="has-text-weight-bold has-text-link">QUYỀN SỬ DỤNG SẢN PHẨM</span>
                 </div>
               </div>
             </li>
             <li class="column is-full">
-              @if (user.role == 1)
-              {
-                <hr class="mt-0" />
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.noti_store" />
-                      <span class="has-text-weight-bold has-text-link">THÔNG BÁO ĐỔI QUÀ</span>
-                    </label>
-                  </div>
-                  <div class="control has-text-grey mt-2">
-                    Nhận thông báo khi có người yêu cầu <b>Đổi quà</b>
-                  </div>
-                </div>
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.okr_checkin" />
-                      <span class="has-text-weight-bold has-text-link">TỰ CHECKIN OKRs</span>
-                    </label>
-                  </div>
-                  <div class="control has-text-grey mt-2">
-                    Cho phép người dùng tự checkin OKRs mà không cần người khác xác nhận <b>OKRs</b>
-                  </div>
-                </div>
-              }
-              else if (user.role == 2)
-              {
-                <hr class="mt-0" />
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.role_manage.system" />
-                      <span class="has-text-weight-bold has-text-link">CƠ CẤU</span>
-                    </label>
-                  </div>
-                  <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Cấu hình / Cơ cấu</b> bao gồm:
-                    <b>Phòng ban, Nhân sự, Thiết lập ngày nghỉ</b>
-                  </div>
-                </div>
-                if (CheckAccess("okrs"))
-                {
-                  <div class="field">
-                    <div class="control">
-                      <label class="checkbox">
-                        <input type="checkbox" @bind="user.role_manage.okrs" />
-                        <span class="has-text-weight-bold has-text-link">OKRs - Ghi nhận</span>
-                      </label>
-                    </div>
-                    <div class="control has-text-grey mt-2">
-                      Truy cập tất cả chức năng trong trang <b>Cấu hình / OKRs - Ghi nhận</b> bao gồm:
-                      <b>Đơn vị tính, Chu kỳ OKRs, Phiếu góp ý, Tiêu chí đánh giá, Cấp sao, Trừ sao</b>
-                    </div>
-                  </div>
-                }
-                if (CheckAccess("kaizen"))
-                {      
-                  <div class="field">
-                    <div class="control">
-                      <label class="checkbox">
-                        <input type="checkbox" @bind="user.role_manage.kaizen" />
-                        <span class="has-text-weight-bold has-text-link">KAIZEN</span>
-                      </label>
-                    </div>
-                    <div class="control has-text-grey mt-2">
-                      Truy cập tất cả chức năng trong trang <b>Cấu hình / Kaizen</b>
-                      <br />
-                      Truy cập tất cả chức năng nâng cao tại trang <b>Kaizen</b> bao gồm:
-                      <b>Xóa góp ý Kaizen, Đánh giá quản lý cho góp ý Kaizen, Ghim, Xóa phản hồi Kaizen</b>
-                    </div>
-                  </div>
-                }
-                if (CheckAccess("train"))
-                {  
-                  <div class="field">
-                    <div class="control">
-                      <label class="checkbox">
-                        <input type="checkbox" @bind="user.role_manage.educate" />
-                        <span class="has-text-weight-bold has-text-link">ĐÀO TẠO</span>
-                      </label>
-                    </div>
-                    <div class="control has-text-grey mt-2">
-                      Truy cập tất cả chức năng trong trang <b>Cấu hình / Đào tạo</b> bao gồm:
-                      <b>Danh mục, Mẫu chứng chỉ</b>
-                      <br />
-                      Truy cập, chỉnh sửa tất cả các khóa học tại trang <b>Đào tạo / Quản lý khóa học</b>
-                    </div>
-                  </div>
-                }
-                if (CheckAccess("timekeeping"))
-                {
-                  <div class="field">
-                    <div class="control">
-                      <label class="checkbox">
-                        <input type="checkbox" @bind="user.role_manage.timekeeping" />
-                        <span class="has-text-weight-bold has-text-link">CHẤM CÔNG</span>
-                      </label>
-                    </div>
-                    <div class="control has-text-grey mt-2">
-                      Truy cập tất cả chức năng trong trang <b>Chấm công</b>
-                    </div>
-                  </div>
-                }
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.role_manage.store" />
-                      <span class="has-text-weight-bold has-text-link">ĐỔI QUÀ</span>
-                    </label>
-                  </div>
-                  <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Cấu hình / Đổi quà</b> bao gồm:
-                    <b>Cửa hàng, Đơn hàng, Ưu đãi</b>
-                  </div>
-                </div>
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.role_manage.other" />
-                      <span class="has-text-weight-bold has-text-link">TIỆN ÍCH</span>
-                    </label>
-                  </div>
-                  <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Cấu hình / Tiện ích</b> bao gồm:
-                    <b>Banner, Điểm tin, Châm ngôn, Thành tựu</b>
-                  </div>
-                </div>
-                @if(Layout.Company.products.Any(x => x.id == "storage" && x.active))
-                {
-                  <div class="field">
-                    <div class="control">
-                      <label class="checkbox">
-                        <input type="checkbox" @bind="user.role_manage.storage" />
-                        <span class="has-text-weight-bold has-text-link">QUẢN LÝ LƯU TRỮ</span>
-                      </label>
-                    </div>
-                    <div class="control has-text-grey mt-2">
-                      Truy cập tất cả chức năng trong trang Cấu hình - <b>Quản lý lưu trữ</b> bao gồm:
-                      <b>Quản lý lưu trữ, Lịch sử xóa file</b>
-                    </div>
-                  </div>
-                }
-                <hr class="mb-0" />
-              }
+              <table class="table is-fullwidth is-vcentered is-responsive is-hoverable is_head_bg is-size-7">
+                <thead>
+                  <tr>
+                    <th>Tài khoản</th>
+                    @foreach (var product in Productions)
+                    {
+                      <th width="100px" align="center">
+                        @product.used/@product.total - @product.title
+                      </th>
+                    }
+                    <th width="85px" align="center">Truy cập</th>
+                    <th width="85px" align="center">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody class="has-text-weight-medium">
+                  <tr>
+                    <td>
+                      <a class="user_item has-text-dark">
+                        <img class="image is-32x32 mr-2" src="@user.avatar" alt="IMG" />
+                        <div>
+                          <p>@user.email</p>
+                          <p>@user.FullName</p>
+                        </div>
+                      </a>
+                    </td>
+                    @foreach (var product in Productions)
+                    {
+                      var access = ProductService.CheckAccess(user.products, product.id);
+                      <td align="center">
+                        <a class="icon" @onclick="() => AccessProduct(user, product)">
+                          <i class="material-icons-round is-size-5 has-text-@(access ? "success" : "grey")">
+                            toggle_@(access ? "on" : "off")
+                          </i>
+                        </a>
+                      </td>
+                    }
+                    <td align="center">
+                      @if (user.online > 0)
+                      {
+                        <span class="text_inline">
+                          @Handled.Shared.ConvertDate(new DateTime(user.online)).Replace(" trước", "")
+                        </span>
+                      }
+                    </td>
+                    <td align="center">
+                      <a class="icon" @onclick="() => ActiveItem(user)">
+                        <i class="material-icons-round is-size-5 has-text-@(user.active ? "success" : "grey")">
+                          toggle_@(user.active ? "on" : "off")
+                        </i>
+                      </a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </li>
-          </ul>
-          <div class="field mt-5">
-            <div class="buttons is-right">
-              <a class="button" onclick="goBack()">
-                <span>Quay lại</span>
-              </a>
-              @if (string.IsNullOrEmpty(user.id))
-              {
-                <a class="button is-link" @onclick="Update">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">add</i>
-                  </span>
-                  <span>Thêm mới</span>
-                </a>
-              }
-              else
-              {
-                <a class="button is-link" @onclick="Update">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">done</i>
-                  </span>
-                  <span>Cập nhật</span>
-                </a>
-              }
-            </div>
-          </div>
-        </form>
+          }
+        </ul>
       </div>
-    </div>
-  </section>
+      <div class="field mt-5">
+        <div class="buttons is-right">
+          <a class="button" @onclick="() => OnCallback.InvokeAsync(false)">
+            <span>Quay lại</span>
+          </a>
+          @if (string.IsNullOrEmpty(user.id))
+          {
+            <a class="button is-link" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">add</i>
+              </span>
+              <span>Thêm mới</span>
+            </a>
+          }
+          else
+          {
+            <a class="button is-link" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">done</i>
+              </span>
+              <span>Cập nhật</span>
+            </a>
+          }
+        </div>
+      </div>
+    </form>
+  </div>
 }
 
 @code {
@@ -315,33 +421,98 @@ else
 
   [Parameter]
   public string Id { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnCallback { get; set; }
+  [Parameter]
+  public List<UserModel> UserList { get; set; } = new();
+
+  private List<CompanyModel.Product> Productions { get; set; } = new();
 
   private UserModel user = new();
   private List<HrmOptionModel> companyOptions = new();
   private List<HrmOptionModel> departmentOptions = new();
-  
+  private bool isCreate;
+
+  private bool Enable;
+
   protected override async Task OnParametersSetAsync()
   {
     companyOptions = await DbHrmOption.GetList(Layout.Company.id, "company");
     departmentOptions = await DbHrmOption.GetList(Layout.Company.id, "department");
-    user = await DbUser.Get(Layout.Company.id, Id);
-  }
+    Productions = Layout.Company.products.Where(x => x.active && x.id != "storage").ToList();
 
-  private async Task Update()
-  {
-    if (string.IsNullOrEmpty(user.email) || !user.email.Contains("@"))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập địa chỉ email, hoặc email không đúng định dạng!");
-    else if (string.IsNullOrEmpty(user.first_name) || string.IsNullOrEmpty(user.last_name))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập họ và tên cho tài khoản!");
+    if(Id.IsEmpty())
+    {
+      user = new();
+      isCreate = true;
+    }
     else
     {
-      // Cập nhật database tổ chức
-      await DbUser.Update(Layout.Company.id, user);
-      // Cập nhật cho tất cả database
-      await DbMainUser.Update(user);
-      // Thông báo tagline
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin thành công!");
+      user = await DbUser.Get(Layout.Company.id, Id, globalService);
+      isCreate = false;
     }
+  }
+
+  private async Task<bool> Update()
+  {
+    bool _success = true;
+    try
+    {
+      if (string.IsNullOrEmpty(user.email) || !user.email.Contains("@"))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập địa chỉ email, hoặc email không đúng định dạng!");
+      else if (string.IsNullOrEmpty(user.first_name) || string.IsNullOrEmpty(user.last_name))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập họ và tên cho tài khoản!");
+      else
+      {
+        if(isCreate)
+        {
+          // Kiểm tra tài khoản
+          var checkUser = await DbMainUser.GetbyEmail(user.email, globalService);
+          if (checkUser == null)
+          {
+            user.password = "fastdo@123";
+            await DbMainUser.Create(user);
+            // Gửi email cấp tài khoản
+            await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo tài khoản thành công. Vui lòng kiểm tra email.");
+
+            new Task(() =>
+            {
+              EmailService.UserInfo(user.email, "fastdo@123", user.FullName, Layout.Company.name, out string message);
+            }).Start();
+          }
+          else
+            user = checkUser;
+
+          if(user.products == null) user.products = new();
+
+          user.products = user.active ? user.products : new List<string>();
+          user.page_default = null;
+          // Thêm tài khoản vào tổ chức
+          await CompanyService.AddStaff(Layout.Company, user, globalService);
+          await globalService.Update(Layout.Company.id);
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm tài khoản người dùng sản phẩm!");
+          isCreate = false;
+        }
+        else
+        {
+          // Cập nhật database tổ chức
+          await DbUser.Update(Layout.Company.id, user, globalService);
+          // Cập nhật cho tất cả database
+          await DbMainUser.Update(user, globalService);
+          // Thông báo tagline
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật thông tin thành công!");
+          await OnCallback.InvokeAsync(true);
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void ChangeRole(ChangeEventArgs e)
@@ -360,6 +531,8 @@ else
       user.role_manage.timekeeping = true;
       user.role_manage.hrrecords = true;
       user.role_manage.storage = true;
+      user.role_manage.kpis = true;
+      user.role_manage.todolist = true;
     }
     else if (user.role == 3)
     {
@@ -371,12 +544,128 @@ else
       user.role_manage.other = false;
       user.role_manage.timekeeping = false;
       user.role_manage.hrrecords = false;
-      user.role_manage.storage = false;;
+      user.role_manage.storage = false; 
+      user.role_manage.kpis = false;
+      user.role_manage.todolist = false;
     }
   }
 
   private bool CheckAccess(string productId)
   {
     return ProductService.CheckAccess(Layout.Company, user, productId, out string message);
+  }
+
+  // Add User
+  private async Task<bool> ChangeEmail()
+  {
+    bool _success = true;
+    try
+    {
+      user.id = string.Empty;
+      // Kiểm tra tài khoản
+      var checkUser = await DbMainUser.GetbyEmail(user.email, globalService);
+      if (checkUser != null)
+      {
+        user.first_name = checkUser.first_name;
+        user.last_name = checkUser.last_name;
+        user.avatar = checkUser.avatar;
+        var companyUser = UserList.FirstOrDefault(x => x.email == checkUser.email);
+        if (companyUser != null)
+        {
+          user = companyUser;
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Tài khoản đã tồn tại trong tổ chức của bạn!");
+          isCreate = false;
+        }
+        else
+        {
+          user = checkUser;
+          isCreate = true;
+        }
+      }
+      else
+      {
+        user.first_name = string.Empty;
+        user.last_name = string.Empty;
+        user.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
+        isCreate = true;
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeEmail()", ex.Message, Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> AccessProduct(UserModel item, CompanyModel.Product product)
+  {
+    bool _success = true;
+    try
+    {
+      if (item.active)
+      {
+        if (item.products == null)
+          item.products = new();
+        var access = ProductService.CheckAccess(item.products, product.id);
+        if (access)
+        {
+          // Có quyền rồi → Thì xóa
+          item.products.Remove(product.id);
+          await DbUser.Update(Layout.Company.id, item, globalService);
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Đã thu hồi quyền sử dụng sản phẩm!");
+        }
+        else if (product.used < product.total)
+        {
+          // Chưa có → Thì thêm quyền sử dụng
+          item.products.Add(product.id);
+          await DbUser.Update(Layout.Company.id, item, globalService);
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cấp quyền sử dụng sản phẩm!");
+        }
+        else
+        {
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Đã hết số lượng người dùng sản phẩm " + product.title);
+        }
+        Layout.Company = await CompanyService.UpdateProductAccess(Layout.Company.id, globalService);
+        Productions = Layout.Company.products.Where(x => x.active && x.id != "storage").ToList();
+        await globalService.Update(Layout.Company.id);
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Người dùng này đã bị vô hiệu hóa.");
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "AccessProduct()", ex.Message, Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> ActiveItem(UserModel item)
+  {
+    bool _success = true;
+    try
+    {
+      // Xóa quyền dùng sản phẩm khi hủy kích hoạt
+      if (item.active)
+        item.products = new();
+      item.active = !item.active;
+      await DbUser.Update(Layout.Company.id, item, globalService);
+      Layout.Company = await CompanyService.UpdateProductAccess(Layout.Company.id, globalService);
+      Productions = Layout.Company.products.Where(x => x.active && x.id != "storage").ToList();
+      await globalService.Update(Layout.Company.id);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ActiveItem()", ex.Message, Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using DocumentFormat.OpenXml.Office2016.Presentation.Command;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class KaizenModel
   {
     [BsonId]
@@ -30,6 +32,8 @@ namespace OnetezSoft.Models
     public List<string> hates { get; set; }
     // Bình luận
     public List<Comment> comments { get; set; }
+    // Chủ đề
+    public string topic_id { get; set; }
 
     public class Comment
     {

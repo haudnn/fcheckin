@@ -1,6 +1,4 @@
-﻿@page "/config/other"
-@page "/config/other/banner"
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
 <PageTitle>@_title</PageTitle>
@@ -11,116 +9,107 @@
 }
 else
 {
-  <section class="columns is-gapless has_menu_left">
-    <div class="column is-narrow">
-      <div class="card p-3 menu_left">
-        <a class="is-active" href="/config/other/banner">
-          Banner
-        </a>
-        <a href="/config/other/blogs">
-          Tin tức
-        </a>
-        <a href="/config/other/quotes">
-          Châm ngôn
-        </a>
-      </div>
-    </div>
-    <div class="column">
-      <div class="card p-5">
-        <ul class="columns is-vcentered is-multiline is-variable is-2 mb-5">
-          <li class="column">
-            <h1 class="title is-5 has-text-info">
-              THIẾT LẬP BANNER
-            </h1>
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-2">
+    <li class="column">
+      <h1 class="title is-5 has-text-info">
+        THIẾT LẬP BANNER
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <a class="button is-link" @onclick="() => EditItem(null)">
+        <span class="icon">
+          <span class="material-icons-outlined is-size-6">add</span>
+        </span>
+        <span>Thêm mới</span>
+      </a>
+    </li>
+  </ul>
+  <div class="inner_section flex_column" style="flex:1; @(Layout.IsMobile ? "" : "overflow:hidden")">
+    <ul class="columns is-vcentered is-variable is-1 has-text-grey is-table">
+      <li class="column is-narrow" style="width: 4%;"></li>
+      <li class="column is-narrow" style="width: 10%;">Hình ảnh</li>
+      <li class="column is-narrow" style="width: 20%;">Tiêu đề</li>
+      <li class="column" style="width:24%;">Liên kết</li>
+      <li class="column is-narrow" style="width: 15%;">Phòng ban</li>
+      <li class="column is-narrow" style="width: 15%;">Trang hiển thị</li>
+      <li class="column is-narrow has-text-centered" style="width: 6%;">Ghim</li>
+      <li class="column is-narrow has-text-centered" style="width: 8%;">Xử lý</li>
+    </ul>
+    <div class="scrolly" style="flex:1">
+      <Dropzone 
+        Class="drop_banner_list"
+        Items="dataList"
+        TItem="BannerModel"
+        InstantReplace="true"
+        OnItemDrop="x => OnItemDragdrop(x)"
+        WrapperClass="drop_banner_item">
+        @{
+          var department = departmentAll.SingleOrDefault(x => x.id == context.department);
+        }
+        <ul class="columns is-vcentered is-variable is-1 is-table">
+          <li class="column is-narrow" style="width: 4%;">
+            <span class="icon has-text-grey">
+              <i class="material-icons-outlined is-size-5">swap_vert</i>
+            </span>
           </li>
-          <li class="column is-narrow">
-            <a class="button is-link" @onclick="() => EditItem(null)">
-              <span class="icon">
-                <span class="material-icons-outlined is-size-6">add</span>
-              </span>
-              <span>Thêm mới</span>
+          <li class="column is-narrow" style="width: 10%;">
+            <a class="image" href="@context.image" target="_blank">
+              <img src="@context.image" alt="IMG" />
+            </a>
+          </li>
+          <li class="column is-narrow" style="width: 20%;">
+            <a class="has-text-weight-semibold" @onclick="() => EditItem(context)">
+              @context.name
+            </a>
+          </li>
+          <li class="column" style="width:20%;">
+            <a class="text_1_line" href="@context.link" target="_blank">
+              @context.link
+            </a>
+          </li>
+          <li class="column is-narrow" style="width: 15%;">
+            <span class="has-text-weight-semibold">@(department != null ? department.name : "")</span>
+          </li>
+          <li class="column is-narrow" style="width: 15%;">
+            <div class="text_3_line" onclick="toggleText(this)">
+              @foreach (var p in context.pages)
+              {
+                <p>@p.Value</p>
+              }
+            </div>
+          </li>
+          <li class="column is-narrow has-text-centered" style="width: 6%;">
+            <a class="icon" @onclick="() => ToggleItem(context)">
+              @if (context.pin)
+              {
+                <span class="material-icons-outlined is-size-4 has-text-success">
+                  toggle_on
+                </span>
+              }
+              else
+              {
+                <span class="material-icons-outlined is-size-4 has-text-black">
+                  toggle_off
+                </span>
+              }
+            </a>
+          </li>
+          <li class="column is-narrow has-text-centered" style="width: 8%;">
+            <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(context)">
+              <i class="material-icons-outlined is-size-5">
+                edit
+              </i>
+            </a>
+            <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(context)">
+              <i class="material-icons-outlined is-size-5">
+                delete
+              </i>
             </a>
           </li>
         </ul>
-        <ul class="columns is-vcentered is-variable is-1 has-text-grey is-table">
-          <li class="column is-narrow" style="width: 4%;"></li>
-          <li class="column is-narrow" style="width: 10%;">Hình ảnh</li>
-          <li class="column is-narrow" style="width: 20%;">Tiêu đề</li>
-          <li class="column" style="width:24%;">Liên kết</li>
-          <li class="column is-narrow" style="width: 15%;">Phòng ban</li>
-          <li class="column is-narrow" style="width: 15%;">Trang hiển thị</li>
-          <li class="column is-narrow has-text-centered" style="width: 6%;">Ghim</li>
-          <li class="column is-narrow has-text-centered" style="width: 8%;">Xử lý</li>
-        </ul>
-        <Dropzone Items="dataList" TItem="BannerModel" InstantReplace="true" OnItemDrop="x => OnItemDragdrop(x)">
-          @{
-            var department = departmentAll.SingleOrDefault(x => x.id == context.department);
-          }
-          <ul class="columns is-vcentered is-variable is-1 is-table">
-            <li class="column is-narrow" style="width: 4%;">
-              <span class="icon has-text-grey">
-                <i class="material-icons-outlined is-size-5">swap_vert</i>
-              </span>
-            </li>
-            <li class="column is-narrow" style="width: 10%;">
-              <a class="image" href="@context.image" target="_blank">
-                <img src="@context.image" alt="IMG" />
-              </a>
-            </li>
-            <li class="column is-narrow" style="width: 20%;">
-              <a class="has-text-weight-semibold" @onclick="() => EditItem(context)">
-                @context.name
-              </a>
-            </li>
-            <li class="column" style="width:20%;">
-              <a class="text_1_line" href="@context.link" target="_blank">
-                @context.link
-              </a>
-            </li>
-            <li class="column is-narrow" style="width: 15%;">
-              <span class="has-text-weight-semibold">@(department != null ? department.name : "")</span>
-            </li>
-            <li class="column is-narrow" style="width: 15%;">
-              <div class="text_3_line" onclick="toggleText(this)">
-                @foreach (var p in context.pages)
-                {
-                  <p>@p.Value</p>
-                }
-              </div>
-            </li>
-            <li class="column is-narrow has-text-centered" style="width: 6%;">
-              <a class="icon" @onclick="() => ToggleItem(context)">
-                @if (context.pin)
-                {
-                  <span class="material-icons-outlined is-size-4 has-text-success">
-                    toggle_on
-                  </span>
-                }
-                else
-                {
-                  <span class="material-icons-outlined is-size-4 has-text-black">
-                    toggle_off
-                  </span>
-                }
-              </a>
-            </li>
-            <li class="column is-narrow has-text-centered" style="width: 8%;">
-              <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(context)">
-                <i class="material-icons-outlined is-size-5">
-                  edit
-                </i>
-              </a>
-              <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(context)">
-                <i class="material-icons-outlined is-size-5">
-                  delete
-                </i>
-              </a>
-            </li>
-          </ul>
-        </Dropzone>
-      </div>
+      </Dropzone>
     </div>
-  </section>
+  </div>
 }
 
 
@@ -135,7 +124,7 @@ else
         </div>
         <a class="delete" @onclick="() => model = null"></a>
       </div>
-      <form @onsubmit="Update" class="modal-card-body">
+      <form @onsubmit="Update" class="modal-card-body scrolly">
         <ul class="columns is-multiline is-variable is-2">
           <li class="column is-full">
             <div class="field">
@@ -157,26 +146,26 @@ else
                 <div class="control is-expanded">
                   <input @bind="model.image" class="input" type="text" placeholder="Nhập link hình..." />
                 </div>
-                <FileUpload Accept="image/*" Size="1500" OnUpload="x => model.image = x[0]" />
+                <FileUpload Path="banner" IsLeft="true" Accept="image/*" Size="1500" Cloud OnUpload="x => model.image = x[0]" />
               </div>
             </div>
-          </li>
-          <li class="column is-full">
-            <div class="field">
-              <label class="label">Liên kết</label>
-              <div class="control">
-                <input @bind="model.link" type="text" class="input" />
-              </div>
-            </div>
-          </li>
-          <li class="column is-two-thirds">
-            <div class="field">
-              <label class="label">Phòng ban</label>
-              <div class="control">
-                <div class="select is-fullwidth">
-                  <select @bind="model.department">
-                    <option value="">Chọn phòng ban</option>
-                    @foreach (var item in departments)
+           </li>
+           <li class="column is-full">
+             <div class="field">
+               <label class="label">Liên kết</label>
+               <div class="control">
+                 <input @bind="model.link" type="text" class="input" />
+               </div>
+             </div>
+           </li>
+           <li class="column is-two-thirds">
+             <div class="field">
+               <label class="label">Phòng ban</label>
+               <div class="control">
+                 <div class="select is-fullwidth">
+                   <select @bind="model.department">
+                     <option value="">Chọn phòng ban</option>
+                     @foreach (var item in departments)
                     {
                       <option value="@item.id">@item.name</option>
                     }
@@ -193,48 +182,6 @@ else
                   <input @bind="model.pin" type="checkbox" />
                   Ghim banner
                 </label>
-              </div>
-            </div>
-          </li>
-          <li class="column is-full">
-            <div class="field">
-              <label class="label">Trang hiển thị</label>
-              <div class="control">
-                <ul class="columns is-multiline is-mobile is-variable is-2">
-                  @foreach (var p in model.pages)
-                  {
-                    <li class="column is-half">
-                      <div class="field has-addons">
-                        <div class="control is-expanded">
-                          <input type="text" value="@p.Value" class="input is_bg" readonly />
-                        </div>
-                        <div class="control">
-                          <a class="button is_bg has-text-danger" @onclick="() => model.pages.Remove(p.Key)">
-                            <span class="icon">
-                              <i class="material-icons is-size-6">close</i>
-                            </span>
-                          </a>
-                        </div>
-                      </div>
-                    </li>
-                  }
-                </ul>
-              </div>
-            </div>
-            <div class="field has-addons">
-              <div class="control">
-                <label class="button is-static">Chọn trang</label>
-              </div>
-              <div class="control is-expanded">
-                <div class="select is-fullwidth">
-                  <select @onchange="SelectPage">
-                    <option value="">Chọn trang</option>
-                    @foreach (var sl in pageList)
-                    {
-                      <option value="@sl.Key">@sl.Value</option>
-                    }
-                  </select>
-                </div>
               </div>
             </div>
           </li>
@@ -270,39 +217,93 @@ else
   private string filterDepartment = string.Empty;
   private string filterPage = string.Empty;
 
-  protected override void OnInitialized()
+  protected override async void OnInitialized()
   {
-    departmentAll = DbDepartment.GetAll(Layout.Company.id);
-    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+    departmentAll = await DbDepartment.GetAll(Layout.Company.id);
+    var departs = await DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+    departments.AddRange(departs);
     pageList = PageList();
 
     GetList();
   }
 
-  private void GetList()
+  private async Task<bool> GetList()
   {
-    dataList = DbBanner.GetList(Layout.Company.id);
-    if (!string.IsNullOrEmpty(filterDepartment))
-      dataList = dataList.Where(x => x.department == filterDepartment).ToList();
-    if (!string.IsNullOrEmpty(filterPage))
-      dataList = dataList.Where(x => x.pages.Keys.Contains(filterPage)).ToList();
-    dataList = (from x in dataList orderby x.pin descending, x.pos select x).ToList();
+    bool _success = true;
+    try
+    {
+      dataList = await DbBanner.GetList(Layout.Company.id);
+
+      await UpdateData();
+
+      if (!string.IsNullOrEmpty(filterDepartment))
+        dataList = dataList.Where(x => x.department == filterDepartment).ToList();
+      if (!string.IsNullOrEmpty(filterPage))
+        dataList = dataList.Where(x => x.pages.Keys.Contains(filterPage)).ToList();
+      dataList = (from x in dataList orderby x.pin descending, x.pos select x).ToList();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task DeleteItem(BannerModel item)
+  private async Task UpdateData()
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
-      return;
-
-    dataList.Remove(item);
-    await DbBanner.Delete(Layout.Company.id, item.id);
-    Files.DeleteFile(item.image);
+    foreach (var item in dataList)
+    {
+      if (item.pages.Count != 2 || !item.pages.ContainsKey("/blogs") || !item.pages.ContainsKey("/homepage"))
+      {
+        item.pages = new();
+        item.pages.Add("/blogs", "Tin tức");
+        item.pages.Add("/homepage", "Trang chủ");
+        await DbBanner.Update(Layout.Company.id, item);
+      }
+    }
   }
 
-  private async Task ToggleItem(BannerModel item)
+  private async Task<bool> DeleteItem(BannerModel item)
   {
-    item.pin = !item.pin;
-    await DbBanner.Update(Layout.Company.id, item);
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+        return false;
+
+      dataList.Remove(item);
+      await DbBanner.Delete(Layout.Company.id, item.id);
+      Files.DeleteFile(item.image);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> ToggleItem(BannerModel item)
+  {
+    bool _success = true;
+    try
+    {
+      item.pin = !item.pin;
+      await DbBanner.Update(Layout.Company.id, item);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ToggleItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void EditItem(BannerModel item)
@@ -317,15 +318,28 @@ else
     }
   }
 
-  private async Task OnItemDragdrop(BannerModel item)
+  private async Task<bool> OnItemDragdrop(BannerModel item)
   {
-    for (int pos = 0; pos < dataList.Count; pos++)
+    bool _success = true;
+    try
     {
-      var banner = dataList[pos];
-      banner.pos = pos;
-      await DbBanner.Update(Layout.Company.id, banner);
+      for (int pos = 0; pos < dataList.Count; pos++)
+      {
+        var banner = dataList[pos];
+        banner.pos = pos;
+        await DbBanner.Update(Layout.Company.id, banner);
+      }
+      GetList();
+
     }
-    GetList();
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnItemDragdrop()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void SelectPage(ChangeEventArgs e)
@@ -342,22 +356,35 @@ else
     }
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (string.IsNullOrEmpty(model.name) || string.IsNullOrEmpty(model.image))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần nhập nội dung và hình ảnh !");
-    else
+    bool _success = true;
+    try
     {
-      if (string.IsNullOrEmpty(model.id))
-        await DbBanner.Create(Layout.Company.id, model);
+      if (string.IsNullOrEmpty(model.name) || string.IsNullOrEmpty(model.image))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn cần nhập nội dung và hình ảnh !");
       else
-        await DbBanner.Update(Layout.Company.id, model);
-      model = null;
-      GetList();
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật banner thành công!");
+      {
+        if (string.IsNullOrEmpty(model.id))
+          await DbBanner.Create(Layout.Company.id, model);
+        else
+          await DbBanner.Update(Layout.Company.id, model);
+        model = null;
+        GetList();
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật banner thành công!");
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
+  // Chọn trang. 22/09/2023 => Bỏ
   private Dictionary<string, string> PageList()
   {
     var results = new Dictionary<string, string>();

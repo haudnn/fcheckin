@@ -3,6 +3,7 @@
 @layout LayoutAdmin
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
@@ -89,24 +90,36 @@ else
 
   protected override async Task OnParametersSetAsync()
   {
-    customer = await DbMainUser.Get(Id);
+    customer = await DbMainUser.Get(Id, null);
     productList = await DbMainProduct.GetList();
     if (customer != null)
       await GetList();
   }
 
-  private async Task GetList()
+  private async Task<bool> GetList()
   {
-    // Danh sách công ty
-    dataList = await DbMainCompany.GetListOfCustomer(customer.id);
-
-    // Dữ liệu thành viên
-    memberList = new();
-    foreach (var item in dataList)
+    bool _success = true;
+    try
     {
-      var members = DbUser.GetAll(item.id);
-      memberList.Add(item.id, members);
+      // Danh sách công ty
+      dataList = await DbMainCompany.GetListOfCustomer(customer.id);
+
+      // Dữ liệu thành viên
+      memberList = new();
+      foreach (var item in dataList)
+      {
+        var members = await DbUser.GetAll(item.id, globalService);
+        memberList.Add(item.id, members);
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void CreateItem()

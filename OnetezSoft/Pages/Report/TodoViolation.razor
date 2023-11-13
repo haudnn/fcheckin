@@ -1,90 +1,21 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
-<div class="card p-5 @(_loaded ? "" : "is-loading")">
-  <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3 is-mobile">
-    <li class="column is-four-fifths is-full-mobile">
+<div class="card flex_column is_fullheight @(_loaded ? "" : "is-loading")">
+  <ul class="columns is-multiline is-vcentered is-variable is-2 mb-2">
+    <li class="column">
       <h1 class="title is-5 has-text-info">
         DANH SÁCH VI PHẠM
       </h1>
     </li>
-    @if(!Layout.IsMobile)
-    {
-      <li class="column is-one-fifth has-text-right">
-        <a class="button" @onclick="Export">
-          <span class="icon">
-            <i class="material-icons-outlined is-size-5">file_download</i>
-          </span>
-          <span>Xuất Excel</span>
-        </a>
-      </li>
-    }
-    <li class="column is-full-mobile">
-      <div class="field has-addons">
-        <div class="control">
-          <span class="button is-link">
-            <i class="material-icons-outlined">calendar_today</i>
-          </span>
-        </div>
-        <div class="control" style="width: 190px;">
-          <div class="input">
-            <DateRangePicker @bind-StartDate="filterStart" @bind-EndDate="filterEnd" OnRangeSelect="ChangePicker" />
-          </div>
-        </div>
-        <div class="control">
-          <div class="select is-fullwidth">
-            <select @onchange="ChangeDate">
-              <option value="1">Tuần này</option>
-              <option value="11">Tuần trước</option>
-              <option value="2">Tháng này</option>
-              <option value="22">Tháng trước</option>
-              <option value="3">Quý này</option>
-            </select>
-          </div>
-        </div>
-      </div>
+
+    <li class="column is-narrow">
+      <DepartmentDropdown department="@filterDepartment.name" OnUpdate="ChangeDepartment" />
     </li>
-    <li class="column is-narrow-tablet is-half-mobile">
-      <div class="dropdown is-right @(departmentShow ? "is-active" : "")">
-        <div class="dropdown-trigger">
-          <a class="icon-text" @onclick="() => departmentShow = !departmentShow">
-            <span class="has-text-link">
-              @filterDepartment.name.Replace("└─", "").Replace("'", "")
-            </span>
-            <span class="icon">
-              <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
-            </span>
-          </a>
-        </div>
-        <div class="dropdown-menu">
-          <div class="dropdown-content">
-            <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(null)">
-              Tất cả phòng ban
-            </a>
-            @foreach (var sl in departments)
-            {
-              <a class="dropdown-item is-family-code" @onclick="() => ChangeDepartment(sl)">
-                @((MarkupString)sl.name.Replace("'", "&nbsp;"))
-              </a>
-            }
-          </div>
-        </div>
-      </div>
-    </li>
-    @if(Layout.IsMobile)
-    {
-      <li class="column is-half has-text-right">
-        <a class="button" @onclick="Export">
-          <span class="icon">
-            <i class="material-icons-outlined is-size-5">file_download</i>
-          </span>
-          <span>Xuất Excel</span>
-        </a>
-      </li>
-    } 
     <li class="column is-one-quarter-tablet is-full-mobile">
       <div class="control has-icons-left has-icons-right has_suggest">
-        <input class="input is-rounded" type="text" placeholder="Nhập tên nhân viên..."
+        <input class="input is-rounded is-small" type="text" placeholder="Nhập tên nhân viên..."
                autocomplete="off" @bind="UserSearch" @bind:event="oninput" />
         <ul class="suggest">
           @foreach (var item in userSuggests)
@@ -92,7 +23,7 @@
             <li class="rsitem" @onclick="() => UserSelected(item)">
               <div class="user_item">
                 <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
-                <span>@item.FullName</span>
+                <span>@item.name</span>
               </div>
             </li>
           }
@@ -105,20 +36,35 @@
         </a>
       </div>
     </li>
-  </ul>
+    <li class="column is-narrow">
+      <_InputDate @bind-Start="filterStart"
+      @bind-End="filterEnd"
+                              IsRange
+                   OnRangeSelect="ChangePicker"
+                              HasDropdown
+                   ListOptions="new() {1,11,2,22,3,7}" />
+     </li>
+    <li class="column is-narrow">
+      <a class="button is-warning" @onclick="Export">
+        <span class="icon">
+          <i class="material-icons-outlined is-size-5">file_download</i>
+        </span>
+      </a>
+    </li>
+   </ul>
 
-  <div class="scrolly">
-    <table class="table is-noborder is-fullwidth is-vcentered is-responsive mt-3">
-      <thead>
-        <tr class="has-text-weight-semibold">
-          <th>Thành viên</th>
-          <th width="150px" align="center">Check-in trễ hạn</th>
-          <th width="150px" align="center">Check-out trễ hạn</th>
-          <th width="150px" align="center">Không làm Todolist</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach (var item in reports)
+   <div class="scrolly inner_section" style="flex:1">
+     <table class="table is-noborder is-fullwidth is-vcentered is-responsive sticky only_desktop">
+       <thead>
+         <tr class="is-size-7" style="border-bottom: 1px solid #DEDEDE;">
+           <th>Thành viên</th>
+           <th width="150px" align="center">Check-in trễ hạn</th>
+           <th width="150px" align="center">Check-out trễ hạn</th>
+           <th width="150px" align="center">Không làm Todolist</th>
+         </tr>
+       </thead>
+       <tbody>
+         @foreach (var item in reports)
         {
           <tr>
             <td>
@@ -163,62 +109,64 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   [Parameter]
-  public List<DepartmentModel> departmentAll { get; set; }
+  public List<DepartmentModel> departmentAll { get; set; } = new();
   [Parameter]
-  public List<DepartmentModel.SelectList> departments { get; set; }
+  public List<DepartmentModel.SelectList> departments { get; set; } = new();
   private bool _loaded = false;
   private List<ReportModel> reports = new();
-  private List<UserModel> userList = new();
-  private List<UserModel> userSuggests = new();
+  private List<MemberModel> userList = new();
+  private List<UserModel> allUser = new();
+  private List<MemberModel> userSuggests = new();
   private string filterUserSearch = string.Empty;
-  private DateTimeOffset? filterStart { get; set; }
-  private DateTimeOffset? filterEnd { get; set; }
+  private long filterStart { get; set; }
+  private long filterEnd { get; set; }
   private DepartmentModel.SelectList filterDepartment = new() { name = "Tất cả phòng ban" };
-  private bool departmentShow = false;
 
   protected override async Task OnInitializedAsync()
   {
     Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
-    filterStart = start;
-    filterEnd = end;
+    filterStart = start.Ticks;
+    filterEnd = end.Ticks;
+    allUser = await DbUser.GetAll(Layout.Company.id, globalService);
 
     DepartmentModel.SelectList department = null;
     if (!string.IsNullOrEmpty(Layout.User.department_default))
       department = departments.SingleOrDefault(x => x.id == Layout.User.department_default);
 
-    await ChangeDepartment(department);
+    await ChangeDepartment(department == null ? string.Empty : department.id);
   }
 
   public async Task ChangePicker(DateRange range)
   {
-    filterStart = Convert.ToDateTime(range.Start.DateTime.ToString("yyyy-MM-dd"));
-    filterEnd = Convert.ToDateTime(range.End.DateTime.ToString("yyyy-MM-dd"));
     await GetData();
   }
 
-  private async Task ChangeDate(ChangeEventArgs e)
+  private async Task ChangeDepartment(string id)
   {
-    var type = Convert.ToInt32(e.Value);
-    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
-    filterStart = start;
-    filterEnd = end;
-    await GetData();
-  }
+    var item = departments.FirstOrDefault(x => x.id == id);
 
-  private async Task ChangeDepartment(DepartmentModel.SelectList item)
-  {
-    departmentShow = false;
     userSuggests = new();
     filterUserSearch = string.Empty;
     filterDepartment = item != null ? item : new() { name = "Tất cả phòng ban" };
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
 
-    if (item == null)
-      userList = (from x in Layout.UserList select x).ToList();
+    if (string.IsNullOrEmpty(id))
+      userList = (from x in shareStorage.MemberList select x).ToList();
     else
-      userList = (from x in Layout.UserList
+      userList = (from x in shareStorage.MemberList
                   where x.departments_id.Contains(filterDepartment.id)
                   select x).ToList();
-    userList = userList.Where(x => !x.no_report_todolist).ToList();
+
+    userList = userList.Where(x =>
+    {
+      var user = allUser.FirstOrDefault(y => y.id == x.id);
+      if(user ==  null)
+        return false;
+      else
+      {
+        return !user.no_report_todolist;
+      }
+    }).ToList();
 
     await GetData();
   }
@@ -232,13 +180,13 @@
       userSuggests = new();
       if (!string.IsNullOrEmpty(value))
       {
-        foreach (var item in Layout.UserList)
+        foreach (var item in userList)
         {
           bool check = true;
           if (!string.IsNullOrEmpty(filterDepartment.id))
             if (item.departments_id == null || !item.departments_id.Contains(filterDepartment.id))
               check = false;
-          if (!Shared.SearchKeyword(filterUserSearch, item.FullName))
+          if (!Shared.SearchKeyword(filterUserSearch, item.name))
             check = false;
 
           if (check)
@@ -248,61 +196,73 @@
     }
   }
 
-  private async Task UserSelected(UserModel item)
+  private async Task UserSelected(MemberModel item)
   {
     userSuggests = new();
-    filterUserSearch = item.FullName;
+    filterUserSearch = item.name;
     userList = new() { item };
     await GetData();
   }
 
-  private async Task GetData()
+  private async Task<bool> GetData()
   {
     _loaded = false;
-    var dateS = filterStart.Value.DateTime;
-    var dateE = filterEnd.Value.DateTime;
-
-    var database = await DbTodolist.GetList(Layout.Company.id, dateS, dateE);
-
-    reports = new();
-    foreach (var user in userList)
+    bool _success = true;
+    try
     {
-      var todolist = database.Where(x => x.user_create == user.id).ToList();
-      var report = new ReportModel()
-      {
-        id = user.id,
-        name = user.FullName,
-        avatar = user.avatar,
-        departments = user.departments_name
-      };
+      var dateS = new DateTime(filterStart);
+      var dateE = new DateTime(filterEnd);
+      var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+      var database = await DbTodolist.GetList(Layout.Company.id, dateS, dateE);
 
-      for (DateTime day = dateE; day >= dateS; day = day.AddDays(-1))
+      reports = new();
+      foreach (var user in userList)
       {
-        if(day < DateTime.Today)
-        {
-          var item = todolist.SingleOrDefault(x => x.date == day.Ticks);
-          if(item != null)
+        var todolist = database.Where(x => x.user_create == user.id).ToList();
+        var report = new ReportModel()
           {
-            if(!item.day_off)
+            id = user.id,
+            name = user.name,
+            avatar = user.avatar,
+            departments = user.departments_name
+          };
+
+        for (DateTime day = dateE; day >= dateS; day = day.AddDays(-1))
+        {
+          if (day < DateTime.Today)
+          {
+            var item = todolist.SingleOrDefault(x => x.date == day.Ticks);
+            if (item != null)
             {
-              if(!item.ontime_checkin)
-                report.checkin++;
-              if(!item.ontime_checkout)
-                report.checkout++;
+              if (!item.day_off)
+              {
+                if (!item.ontime_checkin)
+                  report.checkin++;
+                if (!item.ontime_checkout)
+                  report.checkout++;
+              }
+            }
+            else
+            {
+              var dayOff = DbDayOff.CheckOff(shareStorage.DayOffList, day);
+              if (!dayOff)
+                report.nodata++;
             }
           }
-          else
-          {
-            var dayOff = DbDayOff.CheckOff(Layout.DaysOff, day);
-            if(!dayOff)
-              report.nodata++;
-          }
         }
-      }
 
-      reports.Add(report);
+        reports.Add(report);
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetData()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
     }
     _loaded = true;
+    return _success;
   }
 
   private async Task Export()

@@ -1,19 +1,8 @@
-﻿@page "/config/system/department/add"
-@page "/config/system/department/edit/{Id}"
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
 @inject NavigationManager navigation
 
 <PageTitle>@_title</PageTitle>
-
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
 
 @if (Layout.User.role != 1 && !Layout.User.role_manage.system)
 {
@@ -21,103 +10,84 @@
 }
 else
 {
-  <section class="columns is-gapless has_menu_left  @(_loaded ? "" : "is-loading")">
-    <div class="column is-narrow">
-      <div class="card p-3 menu_left">
-        <a class="is-active" href="/config/system/department/list">
-          Phòng ban
+  <ul class="columns is-vcentered is-gapless">
+    <li class="column is-narrow">
+      <h1 class="title is-5 has-text-info is-uppercase">
+        @(string.IsNullOrEmpty(current.id) ? "Tạo phòng ban mới" : "Thông tin phòng ban")
+      </h1>
+    </li>
+  </ul>
+  <form @onsubmit="Update" class="inner_section">
+    <div class="field">
+      <label class="label">Tên phòng ban</label>
+      <div class="control">
+        <input @bind="current.name" type="text" class="input" />
+      </div>
+    </div>
+    <div class="field is-grouped">
+      <div class="control is-expanded">
+        <label class="label">Thuộc phòng ban</label>
+        <div class="control">
+          <div class="select is-fullwidth">
+            <select @bind="current.parent" class="is-family-code">
+              <option value="">- Không chọn -</option>
+              @foreach (var item in parents)
+              {
+                <option value="@item.id">@item.name</option>
+              }
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="control">
+        <label class="label">Thứ tự</label>
+        <div class="control">
+          <input @bind="current.pos" type="number" class="input" />
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label class="label">Chức danh quản lý</label>
+      <div class="control">
+        <input @bind="current.manager" type="text" class="input" maxlength="20"
+               list="managers" placeholder="Nhập chức danh quản lý, không quá 20 ký tự" />
+        <datalist id="managers">
+          <option>Giám đốc</option>
+          <option>Trưởng phòng</option>
+          <option>Trường nhóm</option>
+          <option>Tổ trưởng</option>
+        </datalist>
+      </div>
+    </div>
+    <div class="field">
+      <label class="label">Chức danh phó quản lý</label>
+      <div class="control">
+        <input @bind="current.deputy" type="text" class="input" maxlength="20"
+               list="deputys" placeholder="Nhập chức phó danh quản lý, không quá 20 ký tự" />
+        <datalist id="deputys">
+          <option>Phó giám đốc</option>
+          <option>Phó phòng</option>
+          <option>Phó nhóm</option>
+          <option>Tổ phó</option>
+        </datalist>
+      </div>
+    </div>
+    <div class="field mt-5">
+      <div class="buttons is-right">
+        <a class="button" @onclick="async () => await OnUpdate.InvokeAsync(false)">
+          <span>Quay lại</span>
         </a>
-        <a href="/config/system/user/list">
-          Nhân sự
-        </a>
-        <a href="/config/system/dayoff">
-          Thiết lập ngày nghỉ
+        <a class="button is-link" @onclick="Update">
+          <span class="icon">
+            <span class="material-icons-outlined is-size-6">
+              done
+            </span>
+          </span>
+          <span>Cập nhật</span>
         </a>
       </div>
     </div>
-    <div class="column">
-      <div class="card p-5">
-        <ul class="columns is-vcentered">
-          <li class="column is-narrow">
-            <h1 class="title is-5 has-text-info is-uppercase">
-              @(string.IsNullOrEmpty(current.id) ? "Tạo phòng ban mới" : "Thông tin phòng ban")
-            </h1>
-          </li>
-        </ul>
-        <form @onsubmit="Update">
-          <div class="field">
-            <label class="label">Tên phòng ban</label>
-            <div class="control">
-              <input @bind="current.name" type="text" class="input" />
-            </div>
-          </div>
-          <div class="field is-grouped">
-            <div class="control is-expanded">
-              <label class="label">Thuộc phòng ban</label>
-              <div class="control">
-                <div class="select is-fullwidth">
-                  <select @bind="current.parent" class="is-family-code">
-                    <option value="">- Không chọn -</option>
-                    @foreach (var item in parents)
-                    {
-                      <option value="@item.id">@item.name</option>
-                    }
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div class="control">
-              <label class="label">Thứ tự</label>
-              <div class="control">
-                <input @bind="current.pos" type="number" class="input" />
-              </div>
-            </div>
-          </div>
-          <div class="field">
-            <label class="label">Chức danh quản lý</label>
-            <div class="control">
-              <input @bind="current.manager" type="text" class="input" maxlength="20"
-                     list="managers" placeholder="Nhập chức danh quản lý, không quá 20 ký tự" />
-              <datalist id="managers">
-                <option>Giám đốc</option>
-                <option>Trưởng phòng</option>
-                <option>Trường nhóm</option>
-                <option>Tổ trưởng</option>
-              </datalist>
-            </div>
-          </div>
-          <div class="field">
-            <label class="label">Chức danh phó quản lý</label>
-            <div class="control">
-              <input @bind="current.deputy" type="text" class="input" maxlength="20"
-                     list="deputys" placeholder="Nhập chức phó danh quản lý, không quá 20 ký tự" />
-              <datalist id="deputys">
-                <option>Phó giám đốc</option>
-                <option>Phó phòng</option>
-                <option>Phó nhóm</option>
-                <option>Tổ phó</option>
-              </datalist>
-            </div>
-          </div>
-          <div class="field mt-5">
-            <div class="buttons is-right">
-              <a class="button" onclick="goBack()">
-                <span>Quay lại</span>
-              </a>
-              <a class="button is-link" @onclick="Update">
-                <span class="icon">
-                  <span class="material-icons-outlined is-size-6">
-                    done
-                  </span>
-                </span>
-                <span>Cập nhật</span>
-              </a>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-  </section>
+  </form>
 }
 
 
@@ -127,78 +97,110 @@ else
 
   [Parameter]
   public string Id { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
 
   private bool _loaded = false;
-  private bool _success = false;
+  private bool success = false;
   private string _message = string.Empty;
   private string _title = "Thông tin phòng ban";
 
   private DepartmentModel current = new();
   private List<DepartmentModel.SelectList> parents = new();
 
-  protected override async Task OnInitializedAsync()
+  protected override async Task OnParametersSetAsync()
   {
     await OnLoad();
     _loaded = true;
   }
 
-  private async Task OnLoad()
+  private async Task<bool> OnLoad()
   {
-    parents.Clear();
-    parents.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
-    current = await DbDepartment.Get(Layout.Company.id, Id);
-    if (current == null)
+    bool _success = true;
+    try
     {
-      _title = "Tạo phòng ban mới";
-      current = new();
-    }
-    else
-    {
-      _title = "Thông tin phòng ban";
-    }
-  }
-
-  private async Task Update()
-  {
-    _success = false;
-    _message = string.Empty;
-
-    if (string.IsNullOrEmpty(current.name) || string.IsNullOrEmpty(current.manager) || string.IsNullOrEmpty(current.deputy))
-    {
-      _message = "Bạn cần nhập đầy đủ thông tin !";
-    }
-    else
-    {
-      var notifyType = string.IsNullOrEmpty(current.id) ? 21 : 22;
-      var notifyName = current.name;
-
-      if (string.IsNullOrEmpty(current.id))
+      parents.Clear();
+      var departs = await DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+      parents.AddRange(departs);
+      current = await DbDepartment.Get(Layout.Company.id, Id);
+      if (current == null)
       {
-        current = await DbDepartment.Create(Layout.Company.id, current);
-
-        _message = "Đã tạo phòng ban " + current.name;
-        _success = true;
-
-        await OnLoad();
+        _title = "Tạo phòng ban mới";
+        current = new();
       }
       else
       {
-        if (current.parent == current.id)
-          current.parent = null;
-
-        current = await DbDepartment.Update(Layout.Company.id, current);
-
-        _message = "Đã cập nhật thông tin thành công !";
-        _success = true;
-      }
-
-      if(Layout.User.role == 2)
-      {
-        // Gửi thông báo chuông
-        var adminList = await DbUser.GetManager(Layout.Company.id, true);
-        foreach (var user in adminList)
-          await DbNotify.Create(Layout.Company.id, notifyType, notifyName, user.id, Layout.User.id);
+        _title = "Thông tin phòng ban";
       }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "OnLoad()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> Update()
+  {
+    bool _success = true;
+    try
+    {
+      success = false;
+      _message = string.Empty;
+
+      if (string.IsNullOrEmpty(current.name) || string.IsNullOrEmpty(current.manager) || string.IsNullOrEmpty(current.deputy))
+      {
+        _message = "Bạn cần nhập đầy đủ thông tin !";
+        await JSRuntime.InvokeVoidAsync("tagline", false, _message);
+      }
+      else
+      {
+        var notifyType = string.IsNullOrEmpty(current.id) ? 21 : 22;
+        var notifyName = current.name;
+
+        if (string.IsNullOrEmpty(current.id))
+        {
+          current = await DbDepartment.Create(Layout.Company.id, current);
+
+          _message = "Đã tạo phòng ban " + current.name;
+          await JSRuntime.InvokeVoidAsync("tagline", true, _message);
+          success = true;
+
+          await OnLoad();
+        }
+        else
+        {
+          if (current.parent == current.id)
+            current.parent = null;
+
+          current = await DbDepartment.Update(Layout.Company.id, current);
+
+          _message = "Đã cập nhật thông tin thành công !";
+          await JSRuntime.InvokeVoidAsync("tagline", true, _message);
+          success = true;
+        }
+
+        if (Layout.User.role == 2)
+        {
+          // Gửi thông báo chuông
+          var adminList = await DbUser.GetManager(Layout.Company.id, true, globalService);
+          foreach (var user in adminList)
+            await DbNotify.Create(Layout.Company.id, notifyType, notifyName, user.id, Layout.User.id);
+        }
+
+        await OnUpdate.InvokeAsync(true);
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

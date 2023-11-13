@@ -1,6 +1,7 @@
 ﻿@page "/admin/customers"
 @layout LayoutAdmin
 @inject IJSRuntime JSRuntime
+@inject GlobalService globalService
 @inject NavigationManager navigation
 
 <PageTitle>@_title</PageTitle>
@@ -29,7 +30,7 @@
     <li class="column is-narrow">
       <div class="control has-icons-left" style="width: 200px;" title="Nhấn Enter để tìm">
         <input @bind="filterKeyword" @onkeyup="ChangeKeyword" type="text" class="input is-small"
-          placeholder="Email, họ và tên khách hàng" />
+               placeholder="Email, họ và tên khách hàng" />
         <span class="icon is-left has-text-dark">
           <i class="material-icons-round is-size-6">search</i>
         </span>
@@ -186,9 +187,21 @@
     GetList();
   }
 
-  private void GetList()
+  private async Task<bool> GetList()
   {
-    dataList = DbMainUser.GetListCustomer(filterKeyword, filterStatus, paging, size, out total, sortDesc, sortBy);
+    bool _success = true;
+    try
+    {
+      dataList = DbMainUser.GetListCustomer(filterKeyword, filterStatus, paging, size, out total, sortDesc, sortBy);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void ChangeSort(string sort_by)
@@ -219,33 +232,70 @@
     GetList();
   }
 
-  private async Task ActiveItem(UserModel item)
+  private async Task<bool> ActiveItem(UserModel item)
   {
-    item.active = !item.active;
-    await DbMainUser.Update(item);
-  }
-
-  private async Task DeleteItem(UserModel item)
-  {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?"))
-      return;
-
-    item.delete = true;
-    await DbMainUser.Update(item);
-    dataList.Remove(item);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa tài khoản " + item.email);
-  }
-
-  private async Task EditItem(UserModel item)
-  {
-    if (item == null)
+    bool _success = true;
+    try
     {
-      model = new UserModel();
-      model = new() { companys = new(), role_manage = new(), is_customer = true, active = true };
-      model.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
+      item.active = !item.active;
+      await DbMainUser.Update(item, globalService);
     }
-    else
-      model = await DbMainUser.Get(item.id);
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ActiveItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> DeleteItem(UserModel item)
+  {
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa tài khoản {item.email} ?"))
+        return false;
+
+      item.delete = true;
+      await DbMainUser.Update(item, globalService);
+      dataList.Remove(item);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa tài khoản " + item.email);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> EditItem(UserModel item)
+  {
+    bool _success = true;
+    try
+    {
+      if (item == null)
+      {
+        model = new UserModel();
+        model = new() { companys = new(), role_manage = new(), is_customer = true, active = true };
+        model.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
+      }
+      else
+        model = await DbMainUser.Get(item.id, null);
+
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "EditItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task OnUpdate(bool isUpdate)

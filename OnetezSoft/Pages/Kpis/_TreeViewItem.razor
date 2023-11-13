@@ -1,0 +1,681 @@
+@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
+
+@if (model != null && kpisRoot != null && cycle != null)
+{
+  var classView = "";
+  var widthName = "";
+  if (!Shared.IsEmpty(model.name))
+  {
+    if (model.type == 1)
+    {
+      if (view == 1)
+        classView = "large";
+      else if (view == 2)
+        classView = "medium";
+      else if (view == 3)
+        classView = "small";
+    }
+    else if (model.type == 2)
+    {
+      if (view == 1)
+        classView = "large-auto";
+      else if (view == 2)
+        classView = "medium-auto";
+      else if (view == 3)
+        classView = "small-auto";
+    }
+  }
+  else
+  {
+    if (model.parent != kpisRoot.id)
+      classView = "edit_view";
+    else
+      classView = "edit_view_parent";
+  }
+
+  if (view == 1)
+    widthName = "235px";
+  else if (view == 2)
+    widthName = "184px";
+  else if (view == 3)
+    widthName = "160px";
+
+
+  var icon = "";
+  var title = "";
+  if (model.type == 2 && model.parent == kpisRoot.id)
+  {
+    icon = "corporate_fare";
+    title = "KPIs cao nhất";
+  }
+  else if (model.type == 2)
+  {
+    icon = "account_tree";
+    title = "KPIs tự động";
+  }
+  else if (model.type == 1)
+  {
+    icon = "account_circle";
+    title = "KPIs nhập liệu";
+  }
+
+  var progress = KpisService.GetProgress(database, model, kpisRoot.id);
+  var color = Shared.ProgressColor(progress);
+  var user = UserService.GetMember(userList, model.user);
+  var metric = model.metrics.FirstOrDefault();
+
+  var parent = database.FirstOrDefault(i => i.id == model.parent);
+  var metricParent = new KpisMetricModel();
+  if (parent != null && parent.metrics.FirstOrDefault() != null)
+    metricParent = parent.metrics.FirstOrDefault();
+  else
+    metricParent = null;
+
+  progress = Math.Round(progress, 1);
+
+  <div class="tree @classView @(isRootKpis ? "cycle" : "") @(isRootKpis && childs.Count == 0 ? "not_item" : "")">
+    <div class="tree_card tree_card_kpis @classView @(isRootKpis ? "cycle" : "")
+      @(isFirst ? " is_first" : "" )
+      @(model.type == 2 && !isManagerPage ? " has-add" : "" )
+      @(isLast ? "is_last" : "" )
+      @(isLast && childs.Any() ? "mb-0" : "" )
+      @(childs.Count == 0 ? "" : "has_child" )
+      @(level == 0 ? "" : "has_parent" )"
+         style="background:none;">
+      <div class="dash_line parent">
+        <span class="icon">
+          <span class="material-icons">arrow_downward</span>
+        </span>
+      </div>
+      <div class="px-4 @(Shared.IsEmpty(model.name) ? "pt-3" :"py-3")">
+        @if (isRootKpis)
+        {
+          <span class="has-text-weight-bold text_1_line has-text-centered has-text-white is-size-6" title="@model.name">
+            @model.name
+          </span>
+
+          <span class="text_1_line has-text-centered has-text-white">
+            @($"{new DateTime(model.start_date).ToString("dd'/'MM'/'yyyy")} - {new DateTime(model.end_date).ToString("dd'/'MM'/'yyyy")}")
+          </span>
+        }
+        else
+        {
+          if (!Shared.IsEmpty(model.name))
+          {
+            <div class="field is-grouped m-0">
+              <div class="control is-expanded">
+                <span class="icon-text is-clickable" @onclick="ShowSideBar">
+                  <span class="icon is-size-6" title="@title">
+                    <span class="material-icons@(model.type == 2 ? "-outlined" : "") has-text-grey">
+                      @icon
+                    </span>
+                  </span>
+                  <span class="has-text-weight-bold has-text-link-dark text_1_line @(view == 1 ? "is-size-6" : "font_14")"
+                        style="line-height: 20px; max-width: @widthName;" title="@model.name">
+                    @model.name
+                  </span>
+                </span>
+              </div>
+              @if (model.status_checkin == 1)
+              {
+                @if (view == 2 || view == 3)
+                {
+                  <div class="control">
+                    <span class="icon is-rounded" style="background-color: #B6EBF5" title="Bản check-in">
+                      <span class="material-icons-outlined">description</span>
+                    </span>
+                  </div>
+                }
+              }
+            </div>
+            @if (view == 1)
+            {
+              <div class="field is-grouped m-0">
+                <div class="control">
+                  <span class="has-text-grey">
+                    @($"{new DateTime(model.start_date).ToString("dd'/'MM")} - {new DateTime(model.end_date).ToString("dd'/'MM")}")
+                  </span>
+                </div>
+
+                @if (view == 1 && model.status_checkin == 1)
+                {
+                  <div class="control">
+                    <span class="has-text-grey">•</span>
+                  </div>
+
+                  <div class="control">
+                    <span style="background-color: #B6EBF5" class="tag m-0">
+                      <span class="icon-text">
+                        <span class="icon">
+                          <span class="material-icons-outlined">description</span>
+                        </span>
+                        <span class="has-text-grey-dark has-text-weight-medium">Bản check-in</span>
+                      </span>
+                    </span>
+                  </div>
+                }
+              </div>
+            }
+          }
+          else
+          {
+            <div class="control has-icons-left mb-1">
+              <input type="text" class="input is-medium is_bg" @bind="name" placeholder="Nhập tiêu đề KPIs" />
+              <span class="icon is-left has-text-link">
+                <i class="material-icons-outlined is-size-6 mr-2 has-text-link">
+                  edit
+                </i>
+              </span>
+            </div>
+
+            <_InputDate Minimal IsRange DefaultString="Thời gian (*)" IsBottom=true
+            @bind-Start="model.start_date"
+            @bind-End="model.end_date"
+                        Format="dd/MM" />
+          }
+        }
+      </div>
+
+      @if (isRootKpis)
+      {
+        <div class="px-4 py-3">
+          <div class="progress_has_value">
+            <progress class="progress custom progress-kpis is-small mr-2 @color" value="@Convert.ToInt32(progress)" max="100"></progress>
+            <span class="has-text-white">@Shared.FormatPercent(progress)%</span>
+            <div class="dropdown is-hoverable is-right">
+              <div class="dropdown-trigger">
+                <span class="icon has-text-white">
+                  <i class="material-icons-outlined">info</i>
+                </span>
+              </div>
+              <div class="dropdown-menu" style="width: 200px;">
+                <div class="dropdown-content">
+                  <div class="dropdown-item">
+                    Tiến độ của cây KPIs là trung bình cộng tiến độ của các KPIs cao nhất
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+      else
+      {
+        <hr class="m-0" style="@(Shared.IsEmpty(model.name) ? "height: 5px;" : "")" />
+
+        @if (!Shared.IsEmpty(model.name))
+        {
+          if ((view == 1 || view == 2))
+          {
+            <div class="px-4 @(model.type == 2 ? "py-3" : "pt-3")">
+              @if (view == 1 && metric != null)
+              {
+                <span class="text_1_line font_14">
+                  @metric.name:
+                </span>
+              }
+
+              @if (metric != null)
+              {
+                <div class="mt-2 text_1_line @(view == 1 ? "font_14" : "font_12")">
+                  <span class="has-text-grey has-text-weight-medium">@Shared.ConvertCurrencyDouble(Math.Round(metric.value, 3))</span>
+                  <span class="has-text-black has-text-weight-medium">/</span>
+                  <span class="has-text-black has-text-weight-medium mr-1">@Shared.ConvertCurrencyDouble(Math.Round(metric.target, 3))</span>
+                  <span>@metric.units</span>
+                </div>
+              }
+
+              @if (model.type == 1)
+              {
+                <div class="progress_has_value">
+                  <progress class="progress custom progress-kpis is-small @color" value="@Convert.ToInt32(progress)" max="100"></progress>
+                  <span>@Shared.FormatPercent(progress)%</span>
+                </div>
+              }
+              else if (model.type == 2)
+              {
+                <div class="user_item has-text-info mt-2">
+                  <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG">
+                  <span class="text_1_line">@user.name</span>
+                </div>
+              }
+            </div>
+
+            @if (model.type == 2)
+            {
+              <hr class="m-0" />
+            }
+          }
+        }
+        else
+        {
+          <div class="columns is-mobile is-variable is-1 is-multiline px-4 py-3">
+            <div class="column is-4">
+              <span>
+                Chỉ số (*)
+              </span>
+            </div>
+            <div class="column is-8">
+              <div class="select is-fullwidth is_bg">
+                <select @onchange="ChangeMetric">
+                  @if (metric == null)
+                  {
+                    <option value="">Chọn chỉ số</option>
+                  }
+                  @foreach (var item in metrics)
+                  {
+                    @if (metric != null)
+                    {
+                      <option value="@item.id" selected="@(item.id == metric.id)">
+                        @item.name
+                      </option>
+                    }
+                    else
+                    {
+                      <option value="@item.id">
+                        @item.name
+                      </option>
+                    }
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="column is-4">
+              <span>Mục tiêu (*)</span>
+            </div>
+            <div class="column is-8">
+              <_InputUpDown metric="metric"
+                            IsDownParameter="metricParent != null && metricParent.target < 0"
+                            IsTarget="true"
+                            target="target"
+                            model="model"
+                            IsSmall="true"
+                            OnUpdateTarget="(e) => target=e" />
+
+              <p class="is-italic has-text-grey font_12">Đối với những KPIs mang tính chất chi phí thì chọn dấu "-"</p>
+            </div>
+
+            @if (model.parent != kpisRoot.id)
+            {
+              <div class="column is-4">
+                <span>Loại KPIs (*)</span>
+              </div>
+              <div class="column is-8">
+                <Dropdown CloseOnClickMenu=true DropdownClass="is-fullwidth" MenuClass="p-2 is-fullwidth" isFullwidth=true>
+                  <Trigger>
+                    <div class="field has_bg is-grouped is-fullwidth py-1 px-2 is-clickable" style="border-radius: 4px; border: 1px solid #dbdbdb;">
+                      <div class="control">
+                        @if (model.type == 1)
+                        {
+                          <span>KPIs nhập liệu</span>
+                        }
+                        else if (model.type == 2)
+                        {
+                          <span>KPIs tự động</span>
+                        }
+                      </div>
+                      <div class="control is-expanded has-text-right">
+                        <span class="icon">
+                          <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+                        </span>
+                      </div>
+                    </div>
+                  </Trigger>
+                  <MenuContent>
+                    <a class="dropdown-item px-4 py-2 is-clickable is-fullwidth" @onclick="() => ChangeType(1)">
+                      <span class="text_1_line has-text-info">KPIs nhập liệu</span>
+                    </a>
+                    <a class="dropdown-item px-4 py-2 is-clickable is-fullwidth" @onclick="() => ChangeType(2)">
+                      <span class="text_1_line has-text-info">KPIs tự động</span>
+                    </a>
+                  </MenuContent>
+                </Dropdown>
+              </div>
+            }
+
+            <div class="column is-4">
+              @if (model.type == 2)
+              {
+                <span>Giám sát (*)</span>
+              }
+              else if (model.type == 1)
+              {
+                <span>Thực hiện (*)</span>
+              }
+            </div>
+            <div class="column is-8">
+              <div class="control has-icons-right has_suggest">
+                <input class="input has_bg" type="text" placeholder="@(model.type == 1 ? "Chọn người thực hiện" : "Chọn người giám sát")"
+                       autocomplete="off" @bind="UserPerform" @bind:event="oninput" />
+                <ul class="suggest">
+                  @foreach (var item in userPerformSuggests)
+                  {
+                    <li class="rsitem" @onclick="() => UserSelected(item)">
+                      <div class="user_item">
+                        <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
+                        <span>@item.name</span>
+                      </div>
+                    </li>
+                  }
+                </ul>
+                <span class="icon is-right">
+                  <i class="material-icons-outlined">search</i>
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+          <hr class="m-0" />
+        }
+
+        <div class="px-4 @(view == 3 && !Shared.IsEmpty(model.name) ? "pb-1" : "py-3")">
+          <div class="columns is-mobile is-vcentered is-variable is-1 is-multiline">
+            @if (!Shared.IsEmpty(model.name))
+            {
+              <div class="column is-9">
+                @if (model.type == 1 && view != 3)
+                {
+                  <div class="user_item has-text-info">
+                    <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG">
+                    <span class="text_1_line">@user.name</span>
+                  </div>
+                }
+                else if (model.type == 2 || (model.type == 1 && view == 3))
+                {
+                  <div class="progress_has_value">
+                    <progress class="progress custom progress-kpis is-small @color" value="@Convert.ToInt32(progress)" max="100"></progress>
+                    <span>@Shared.FormatPercent(progress)%</span>
+                  </div>
+                }
+              </div>
+              <div class="column is-3 has-text-right">
+                @if (_accessAuthor || _accessCycle || _accessManagerTree)
+                {
+                  <a class="icon has-text-link" title="Chỉnh sửa" @onclick="EditItem">
+                    <i class="material-icons-outlined is-size-6">
+                      edit
+                    </i>
+                  </a>
+                }
+
+                @if (_accessCycle || _accessManagerTree)
+                {
+                  <a class="icon has-text-danger" title="Xóa" @onclick="RemoveItem">
+                    <i class="material-icons-outlined is-size-6">
+                      delete
+                    </i>
+                  </a>
+                }
+              </div>
+            }
+            else
+            {
+              <div class="column is-full has-text-right">
+                <a class="button" @onclick="Cancel">
+                  <span class="icon">
+                    <span class="material-icons-outlined is-size-6">
+                      cancel
+                    </span>
+                  </span>
+                  <span>Huỷ</span>
+                </a>
+                <a class="button is-link" @onclick="Update">
+                  <span class="icon">
+                    <span class="material-icons-outlined is-size-6">
+                      done
+                    </span>
+                  </span>
+                  <span>Cập nhật</span>
+                </a>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      @if ((_accessCycle || _accessManagerTree) && (isRootKpis || (model.type == 2 && !Shared.IsEmpty(model.name))) && !isManagerPage)
+      {
+        <div class="dash_line child">
+          <a class="icon-add icon has-background-link has-text-white is-rounded" @onclick="() => AddItem()">
+            <i class="material-icons-outlined is-size-6">add</i>
+          </a>
+        </div>
+      }
+      else if (childs.Count > 0)
+      {
+        <div class="dash_line child"></div>
+      }
+
+      <div class="tree_background"></div>
+    </div>
+
+    @if (childs.Count > 0)
+    {
+      <div class="is-flex tree_card_list @(childs.Count == 1 ? "px-0": "")">
+        @for (int i = 0; i < childs.Count(); i++)
+        {
+          var item = childs[i];
+          var childList = database.Where(x => x.parent == item.id).ToList();
+          var childFist = i == 0;
+          var childLast = i + 1 == childs.Count;
+          <_TreeViewItem model="item" childs="childList" database="database" view="view" kpisRoot="kpisRoot"
+                         level="@(level + 1)" isFirst="childFist" isLast="childLast" isRootKpis="false" dataMetric="dataMetric"
+                         cycle="cycle" isManagerPage="isManagerPage" />
+        }
+      </div>
+    }
+    @if (childs.Count > 1)
+    {
+      <div class="horizontal_dash @classView @(isRootKpis ? "cycle" : "")"></div>
+    }
+  </div>
+}
+
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public KpisModel model { get; set; }
+  [Parameter]
+  public KpisModel kpisRoot { get; set; }
+  [Parameter]
+  public List<KpisModel> childs { get; set; }
+  [Parameter]
+  public List<KpisModel> database { get; set; } = new();
+  [Parameter]
+  public bool isFirst { get; set; }
+  [Parameter]
+  public bool isLast { get; set; }
+  [Parameter]
+  public int level { get; set; }
+  [Parameter]
+  public int view { get; set; }
+  [Parameter]
+  public bool isRootKpis { get; set; }
+  [Parameter]
+  public KpisCycleModel cycle { get; set; }
+  [Parameter]
+  public List<KpisMetricModel> dataMetric { get; set; } = new();
+  [Parameter]
+  public bool isManagerPage { get; set; }
+
+  private bool _accessAuthor = false;
+  private bool _accessCycle = false;
+  private bool _accessManagerTree = false;
+  private List<string> okrsShow = new();
+  private List<KpisMetricModel> metrics = new();
+  private List<MemberModel> userPerformSuggests = new();
+  private double target = 0;
+  private string filterUserName = string.Empty;
+  private string name = "";
+  private List<MemberModel> userList = new();
+
+  private string UserPerform
+  {
+    get => filterUserName;
+    set
+    {
+      filterUserName = value;
+      userPerformSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in userList)
+        {
+          bool check = true;
+          if (!Handled.Shared.SearchKeyword(filterUserName, item.name))
+            check = false;
+
+          if (check)
+            userPerformSuggests.Add(item);
+        }
+      }
+    }
+  }
+
+  protected override async Task OnInitializedAsync()
+  {
+    userList = await globalService.GetUserList(Layout.Company.id);
+
+    if (Shared.IsEmpty(model.name))
+      GetDataMetrics();
+
+    CheckRole();
+  }
+
+  protected override void OnParametersSet()
+  {
+    CheckRole();
+  }
+
+  private void CheckRole()
+  {
+    if (cycle != null && model != null)
+    {
+      _accessAuthor = model.user == Layout.User.id;
+      _accessCycle = cycle.managers.Contains(Layout.User.id);
+      _accessManagerTree = kpisRoot.managers.Contains(Layout.User.id);
+    }
+  }
+
+  private void ChangeMetric(ChangeEventArgs e)
+  {
+    model.metrics = KpisService.ChangeMetric(metrics, e.Value.ToString());
+  }
+
+  private void GetDataMetrics()
+  {
+    var dataKpis = database.Where(i => i.root == kpisRoot.id).ToList();
+    metrics = KpisService.GetAllMetricByKpis(dataKpis, dataMetric);
+    KpisService.ChangeMetricKpis(model, metrics, dataKpis);
+  }
+
+  private void ChangeType(int type)
+  {
+    model.type = type;
+  }
+
+  private void UserSelected(MemberModel item)
+  {
+    model.user = item.id;
+    filterUserName = item.name;
+    userPerformSuggests = new();
+  }
+
+  private void AddItem()
+  {
+    if(kpisRoot != null)
+    {
+      database.Add(new()
+      {
+        id = Mongo.RandomId(),
+        parent = model.id,
+        root = kpisRoot.id,
+        cycle = Layout.CycleKpisId,
+        metrics = new(),
+        start_date = kpisRoot.start_date,
+        end_date = kpisRoot.end_date
+      });
+      Send();
+    }
+  }
+
+  private void EditItem()
+  {
+    MessagingCenter.Send(this, "kpis_update_" + Layout.User.id, model);
+  }
+
+  private void RemoveItem()
+  {
+    MessagingCenter.Send(this, "kpis_remove_" + Layout.User.id, model);
+  }
+
+  private void Cancel()
+  {
+    database.RemoveAll(i => i.id == model.id);
+    Send();
+  }
+
+  private async Task Update()
+  {
+    var databaseCheck = await DbKpis.GetList(Layout.Company.id, Layout.CycleKpisId);
+    var result = await KpisService.UpdateKpis(model, kpisRoot, databaseCheck, Layout.Company.id, Layout.User.id, cycle, target, name, filterUserName);
+    if (result.Item1)
+    {
+      if (result.Item3)
+        MessagingCenter.Send(this, "kpis_reload_data_" + Layout.User.id, model);
+      else
+      {
+        var index = database.FindIndex(i => i.id == model.id);
+        database.RemoveAll(i => i.id == model.id);
+
+        var metric = model.metrics.FirstOrDefault();
+        if (Handled.Shared.IsEmpty(name))
+          name = $"{metric.name} {Handled.Shared.ConvertCurrencyDouble(target)} {metric.units}";
+
+        model.name = name;
+        model.metrics.FirstOrDefault().value = 0;
+        model.metrics.FirstOrDefault().target = target;
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"{result.Item2}");
+        if (index != -1)
+          database.Insert(index, model);
+        else
+          database.Add(model);
+        Send();
+      }
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"{result.Item2}");
+  }
+
+  private void ShowSideBar()
+  {
+    MessagingCenter.Send(this, "kpis_sidebar_" + Layout.User.id, model);
+  }
+
+
+  public void Send()
+  {
+    MessagingCenter.Send(this, "kpis_tree_" + Layout.User.id, model);
+  }
+
+  // Hủy lắng nghe sự kiện
+  public void Dispose()
+  {
+    try
+    {
+      MessagingCenter.Unsubscribe<_TreeViewItem, string>(this, "kpis_tree_" + Layout.User.id);
+      MessagingCenter.Unsubscribe<_TreeViewItem, string>(this, "kpis_update_" + Layout.User.id);
+      MessagingCenter.Unsubscribe<_TreeViewItem, string>(this, "kpis_remove_" + Layout.User.id);
+      MessagingCenter.Unsubscribe<_TreeViewItem, string>(this, "kpis_reload_data_" + Layout.User.id);
+      MessagingCenter.Unsubscribe<_TreeViewItem, string>(this, "kpis_sidebar_" + Layout.User.id);
+    }
+    catch (Exception ex)
+    {
+      return;
+    }
+  }
+}

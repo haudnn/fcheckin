@@ -1,0 +1,114 @@
+﻿@if(Disabled)
+{
+   <button class="@css" disabled title="Vô hiệu hóa">
+      @if (!IconLeft.IsEmpty())
+      {
+         <span class="icon">
+            <span class="material-icons-outlined">
+               @IconLeft
+            </span>
+         </span>
+      }
+      @if(!Content.IsEmpty())
+      {
+         <span>
+            @Content
+         </span>
+      }
+      @if (!IconRight.IsEmpty())
+      {
+         <span class="icon">
+            <span class="material-icons-outlined">
+               @IconRight
+            </span>
+         </span>
+      }
+   </button>
+}
+else
+{
+   <button class="@css" @onclick="Onclick">
+      @if (!IconLeft.IsEmpty())
+      {
+         <span class="icon">
+            <span class="material-icons-outlined">
+               @IconLeft
+            </span>
+         </span>
+      }
+      @if (!Content.IsEmpty())
+      {
+         <span>
+            @Content
+         </span>
+      }
+      @if (!IconRight.IsEmpty())
+      {
+         <span class="icon">
+            <span class="material-icons-outlined">
+               @IconRight
+            </span>
+         </span>
+      }
+   </button>
+}
+
+@code {
+   [Parameter]
+   public string IconLeft { get; set; }
+   [Parameter]
+   public string IconRight { get; set; }
+   [Parameter]
+   public string Content { get; set; }
+   [Parameter]
+   public string Color { get; set; } = ComponentModel.ColorType.Default;
+
+   [Parameter]
+   public bool IsLight { get; set; }
+   [Parameter]
+   public string Size { get; set; } = ComponentModel.SizeType.Default;
+
+   [Parameter]
+   public bool IsFull { get; set; }
+   [Parameter]
+   public bool IsInverted { get; set; }
+   [Parameter]
+   public bool IsOutlined { get; set; }
+   [Parameter]
+   public bool IsRounded { get; set; }
+   [Parameter]
+   public bool IsLoading { get; set; }
+   [Parameter]
+   public bool Static { get; set; }
+   [Parameter]
+   public bool Disabled { get; set; }
+   [Parameter]
+   public EventCallback Onclick { get; set; }
+
+   private string css;
+
+   protected override void OnInitialized()
+   {
+      css = "button"
+            + " "
+            + Color 
+            + " "
+            + Size 
+            + " "
+            + (IsLight ? "is-light" : "") 
+            + " "
+            + (IsFull ? "is-fullwidth" : "") 
+            + " "
+            + (IsInverted ? "is-inverted" : "")
+            + " "
+            + (IsOutlined ? "is-outlined" : "")
+            + " "
+            + (IsRounded ? "is-rounded" : "")
+            + " "
+            + (IsLoading ? "is-loading" : "")
+            + " "
+            + (Static ? "is-static" : "");
+
+      css = css.Trim();
+   }
+}

@@ -1,14 +1,10 @@
-﻿using System;
+﻿using MongoDB.Bson.Serialization.Attributes;
 using System.Collections.Generic;
 using System.Linq;
-using DocumentFormat.OpenXml.Spreadsheet;
-using Irony.Parsing;
-using MongoDB.Bson.Serialization.Attributes;
-using OnetezSoft.Pages.Hrm;
-using OnetezSoft.Services;
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class HrmTimesheetUserModel
   {
     [BsonId]

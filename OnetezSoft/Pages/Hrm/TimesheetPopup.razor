@@ -1,175 +1,148 @@
 ﻿@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
 
-<section class="modal is-active">
-  <div class="modal-background"></div>
-  <section class="modal-card" style="height:calc(100vh - 40px)">
-    <section class="modal-card-head">
-      <div class="modal-card-title">
-        @(string.IsNullOrEmpty(sheet.id) ? "Tạo bảng công" : "Chỉnh sửa bảng công")
-      </div>
-      <a class="delete is-medium" @onclick="Cancel"></a>
-    </section>
-    <section class="modal-card-body">
-      <div class="field">
-        <label class="label">Tiêu đề</label>
-        <div class="control">
-          <input @bind="sheetName" class="input" type="text" placeholder="Nhập tiêu đề bảng công">
+<Slider Size="@ComponentModel.SizeType.Large">
+  <Header>
+    <div class="columns is-variable is-2 is-mobile is-vcentered">
+      <div class="column">
+        <div class="has-text-weight-bold is-size-5">
+          @(string.IsNullOrEmpty(sheet.id) ? "Tạo bảng công" : "Chỉnh sửa bảng công")
         </div>
       </div>
-      <div class="columns is-variable is-1 mb-2">
-        <div class="column">
-          <div class="field">
-            <label class="label">Ngày bắt đầu</label>
-            <div class="field has-addons">
-              <div class="control">
-                <span class="button is-link">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">event</i>
-                  </span>
-                </span>
-              </div>
-              <div class="control">
-                <DateRangePicker SingleDatePicker="true" @bind-StartDate="start">
-                  <PickerTemplate>
-                    <div class="input is-link is-family-code" id="@context.Id" @onclick="context.Toggle" title="Chọn ngày">
-                      @if (context.TStartDate != null)
-                      {
-                        <span>@start.Value.ToString("dd/MM/yyyy")</span>
-                      }
-                    </div>
-                  </PickerTemplate>
-                </DateRangePicker>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="column">
-          <div class="field">
-            <label class="label">Ngày kết thúc</label>
-            <div class="field has-addons">
-              <div class="control">
-                <span class="button is-link">
-                  <span class="icon">
-                    <i class="material-icons-outlined is-size-6">event</i>
-                  </span>
-                </span>
-              </div>
-              <div class="control">
-                <DateRangePicker SingleDatePicker="true" @bind-StartDate="end">
-                  <PickerTemplate>
-                    <div class="input is-link is-family-code" id="@context.Id" @onclick="context.Toggle" title="Chọn ngày">
-                      @if (context.TStartDate != null)
-                      {
-                        <span>@end.Value.ToString("dd/MM/yyyy")</span>
-                      }
-                    </div>
-                  </PickerTemplate>
-                </DateRangePicker>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="column">
-          <div class="field">
-            <label class="label">Công chuẩn</label>
-            <div class="control">
-              <input @bind="timeTotal" class="input" type="number" min="0" step="0.5">
-            </div>
+      <div class="column is-narrow">
+        <Button Content="Hủy tạo" IconLeft="close" Onclick="Cancel" />
+      </div>
+    </div>
+  </Header>
+  <Body>
+    <div class="field">
+      <label class="label">Tiêu đề</label>
+      <div class="control">
+        <input @bind="sheetName" class="input" type="text" placeholder="Nhập tiêu đề bảng công">
+      </div>
+    </div>
+    <div class="columns is-variable is-1 mb-2">
+      <div class="column">
+        <div class="field">
+          <label class="label">Ngày bắt đầu</label>
+          <div class="field has-addons">
+            <_InputDate 
+              IsFull
+              @bind-Start="start"/>
           </div>
         </div>
       </div>
-      <div class="field">
-        <label class="label">Nhân viên áp dụng</label>
-        <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
-          <li class="column is-narrow">
-            <div class="select is-fullwidth">
-              <select @onchange="ChangeDepartment">
-                <option value="">Phòng ban</option>
-                @foreach (var item in departments)
-                {
-                  <option value="@item.id" selected="@(selectDepart == item.id)">@item.name</option>
-                }
-              </select>
-            </div>
-          </li>
+      <div class="column">
+        <div class="field">
+          <label class="label">Ngày kết thúc</label>
+          <div class="field has-addons">
+            <_InputDate IsFull
+            @bind-Start="end" />
+          </div>
+        </div>
+      </div>
+      <div class="column">
+        <div class="field">
+          <label class="label">Công chuẩn</label>
+          <div class="control">
+            <input @bind="timeTotal" class="input" type="number" min="0" step="0.5">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label class="label">Nhân viên áp dụng</label>
+      <ul class="columns is-vcentered is-multiline is-variable is-1 mb-3">
+        <li class="column is-one-third">
+          <div class="select is-fullwidth">
+            <select @onchange="ChangeDepartment">
+              <option value="">Phòng ban</option>
+              @foreach (var item in departments)
+              {
+                <option value="@item.id" selected="@(selectDepart == item.id)">@item.name</option>
+              }
+            </select>
+          </div>
+        </li>
 
-          <li class="column">
-            <form class="control is-expanded has-icons-right" @onsubmit="Search">
-              <input @bind="filterKeyword" class="input is-rounded" type="text" placeholder="Tìm tên nhân viên...">
-              <span class="icon is-right">
-                <i class="material-icons-outlined is-size-5">search</i>
-              </span>
-            </form>
-          </li>
-        </ul>
-        <div class="control is-expanded">
+        <li class="column is-two-thirds">
+          <form class="control is-expanded has-icons-right" @onsubmit="Search">
+            <input @bind="filterKeyword" class="input" type="text" placeholder="Tìm tên nhân viên...">
+            <span class="icon is-right">
+              <i class="material-icons-outlined is-size-5">search</i>
+            </span>
+          </form>
+        </li>
+      </ul>
+      <div class="control is-expanded">
+        <div class="mb-3">
+          <a class="icon-text" @onclick="() => AddMember()">
+            <span class="icon">
+              @if (userList.Any() && usersId.Count == userList.Count)
+              {
+                <span class="material-icons has-text-link is-clickable">
+                  check_box
+                </span>
+              }
+              else
+              {
+                <span class="material-icons is-clickable">
+                  check_box_outline_blank
+                </span>
+              }
+            </span>
+            <span>
+              Chọn tất cả
+            </span>
+          </a>
+        </div>
+        @foreach (var user in selectUsers)
+        {
           <div class="mb-3">
-            <a class="icon-text" @onclick="() => AddMember()">
+            <span class="icon-text" @onclick="() => AddMember(user.id)">
               <span class="icon">
-                @if (usersId.Count == Layout.UserList.Count)
+                @if (usersId.Contains(user.id))
                 {
-                  <span class="material-icons has-text-link">
+                  <span class="material-icons has-text-link is-clickable">
                     check_box
                   </span>
                 }
                 else
                 {
-                  <span class="material-icons">
+                  <span class="material-icons is-clickable">
                     check_box_outline_blank
                   </span>
                 }
               </span>
               <span>
-                Chọn tất cả
+                <a class="user_item has-text-grey-dark">
+                  <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                  <span class="text_1_line">@user.name</span>
+                </a>
               </span>
-            </a>
+            </span>
           </div>
-          @foreach (var user in selectUsers)
-          {
-            <div class="mb-3">
-              <span class="icon-text" @onclick="() => AddMember(user.id)">
-                <span class="icon">
-                  @if (usersId.Contains(user.id))
-                  {
-                    <span class="material-icons has-text-link">
-                      check_box
-                    </span>
-                  }
-                  else
-                  {
-                    <span class="material-icons">
-                      check_box_outline_blank
-                    </span>
-                  }
-                </span>
-                <span>
-                  <a class="user_item">
-                    <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
-                    <span class="text_1_line">@user.FullName</span>
-                  </a>
-                </span>
-              </span>
-            </div>
-          }
-        </div>
+        }
       </div>
-    </section>
-    <section class="modal-card-foot is-right">
-      <a class="button" @onclick="Cancel">
-        <span class="icon">
-          <i class="material-icons-round is-size-6">close</i>
-        </span>
-        <span>Hủy</span>
-      </a>
-      <a class="button is-link" @onclick="Update">
-        <span class="icon">
-          <i class="material-icons-round is-size-6">done</i>
-        </span>
-        <span>Cập nhật</span>
-      </a>
-    </section>
-  </section>
-</section>
+    </div>
+  </Body>
+  <Footer>
+    <div class="field is-grouped is-grouped-right">
+      <div class="control">
+        <Button Content="Hủy"
+                IconLeft="cancel"
+                Color="@ComponentModel.ColorType.Info"
+                Onclick="Cancel" />
+      </div>
+      <div class="control">
+        <Button Content="Cập nhật"
+                IconLeft="done"
+                Color="@ComponentModel.ColorType.Link"
+                Onclick="Update" />
+      </div>
+    </div>
+  </Footer>
+</Slider>
 
 @code {
   [CascadingParameter]
@@ -191,46 +164,51 @@
 
 
   private string filterKeyword = "";
-  private DateTimeOffset? start;
-  private DateTimeOffset? end;
+  private long start;
+  private long end;
   private double timeTotal = 0;
   private List<string> usersId = new();
   private string selectDepart = "";
-  private List<UserModel> selectUsers = new();
-  private List<UserModel> users = new();
+  private List<MemberModel> selectUsers = new();
+  private List<MemberModel> users = new();
   private string sheetName;
+
+  private List<MemberModel> userList = new();
 
   protected override async Task OnInitializedAsync()
   {
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    userList = shareStorage.MemberList;
+
     if (string.IsNullOrEmpty(sheet.id))
-      usersId = Layout.UserList.Select(x => x.id).ToList();
+      usersId = userList.Select(x => x.id).ToList();
     else
     {
       timeTotal = Math.Round(sheet.time_total, 2);
       var timesheetUsers = await DbHrmTimesheetUser.GetAllShowByTimesheetId(Layout.Company.id, sheet.id);
       usersId = timesheetUsers.Select(i => i.user).ToList();
     }
-    users = Layout.UserList.Where(i => true).ToList();
-    selectUsers = Layout.UserList.Where(i => true).ToList();
+    users = userList.Where(i => true).ToList();
+    selectUsers = userList.Where(i => true).ToList();
 
     if (sheet.from == 0)
     {
       sheet.from = DateTime.Today.Ticks;
-      start = DateTime.Today;
+      start = DateTime.Today.Ticks;
     }
     else
     {
-      start = new DateTime(sheet.from);
+      start = sheet.from;
     }
 
     if (sheet.to == 0)
     {
       sheet.to = DateTime.Today.AddMonths(1).Ticks;
-      end = DateTime.Today.AddMonths(1);
+      end = sheet.to;
     }
     else
     {
-      end = new DateTime(sheet.to);
+      end = sheet.to;
     }
 
     sheetName = sheet.name;
@@ -276,7 +254,7 @@
     selectUsers = users.Where(x =>
     {
       return (string.IsNullOrEmpty(selectDepart) ? true : x.departments_id.Contains(selectDepart)) &&
-             (string.IsNullOrEmpty(filterKeyword) ? true : Shared.SearchKeyword(filterKeyword, x.FullName));
+             (string.IsNullOrEmpty(filterKeyword) ? true : Shared.SearchKeyword(filterKeyword, x.name));
     }).ToList();
 
     StateHasChanged();
@@ -288,10 +266,10 @@
     // tên bảng công để trống, tự động tạo tên theo cú pháp “Bảng công [Thời gian bắt đầu]- [Thời gian kết thúc]”
     if (string.IsNullOrEmpty(sheetName))
     {
-      sheetName = $"{start.Value.ToString("dd'/'MM'/'yyyy")} - {end.Value.ToString("dd'/'MM'/'yyyy")}";
+      sheetName = $"{new DateTime(start).ToString("dd'/'MM'/'yyyy")} - {new DateTime(end).ToString("dd'/'MM'/'yyyy")}";
     }
 
-    if (start.Value.Ticks > end.Value.Ticks)
+    if (start > end)
     {
       await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc phải lớn hơn ngày bắt đầu!");
       return;
@@ -308,8 +286,8 @@
     {
       sheet.updated = DateTime.Now.Ticks;
       sheet.is_show = true;
-      sheet.from = start.Value.Ticks;
-      sheet.to = end.Value.Ticks;
+      sheet.from = start;
+      sheet.to = end;
       sheet.time_total = Math.Round(timeTotal, 2);
 
       // render name theo version
@@ -331,8 +309,8 @@
       }
 
       sheet.updated = DateTime.Now.Ticks;
-      sheet.from = start.Value.Ticks;
-      sheet.to = end.Value.Ticks;
+      sheet.from = start;
+      sheet.to = end;
       sheet.time_total = Math.Round(timeTotal, 2);
 
       // render name theo version
@@ -371,7 +349,7 @@
   private async Task SendNotify(HrmTimesheetModel item, int type)
   {
     // Gủi thông báo chuông
-    var targetList = Layout.UserList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
+    var targetList = userList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
     foreach (var user in targetList)
       await DbNotify.Create(Layout.Company.id, type, item.name, user.id, Layout.User.id);
   }

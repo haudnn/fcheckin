@@ -1,0 +1,61 @@
+﻿@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<div class="slider @Size @(_load ? "is-active" :"")" style="@Style">
+  <div class="slider-header">
+    @Header
+  </div>
+  <div class="slider-body">
+    <div class="scrolly is-mobile @(isComment ? "is-flex is-flex-direction-column" : "")">
+      @Body
+    </div>
+  </div>
+  @if (hasFooter)
+  {
+    <div class="slider-footer">
+      @Footer
+    </div>
+  }
+</div>
+
+@code {
+  [Parameter]
+  public RenderFragment? Header { get; set; }
+  [Parameter]
+  public RenderFragment? Body { get; set; }
+  [Parameter]
+  public RenderFragment? Footer { get; set; }
+  [Parameter]
+  public string Size { get; set; } = ComponentModel.SizeType.Default;
+  [Parameter]
+  public string Style { get; set; } = string.Empty;
+  [Parameter]
+  public bool hasFooter { get; set; } = true;
+  [Parameter]
+  public bool isComment { get; set; } = true;
+
+  private bool _load = false;
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+    {
+      _load = true;
+      await JSRuntime.InvokeVoidAsync("ToggleOverflowHtml", _load);
+      StateHasChanged();
+    }
+  }
+
+  public void Dispose()
+  {
+    try
+    {
+      _load = false;
+      JSRuntime.InvokeVoidAsync("ToggleOverflowHtml", _load);
+    }
+    catch (Exception ex)
+    {
+      return;
+    }
+  }
+}

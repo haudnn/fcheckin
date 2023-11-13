@@ -1,185 +1,188 @@
 ﻿@page "/gift/exchange"
+@page "/gift/exchange/{Tab}"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<section class="p-4 @(_loaded ? "" : "is-loading")">
-  <div class="card p-5">
-    <ul class="columns is-vcentered is-variable is-2 mb-5">
+<section class="main_content @(_loaded ? "" : "is-loading")">
+  <div class="card flex_column is_fullheight">
+    <ul class="columns is-vcentered is-variable is-2 mb-2">
       <li class="column is-narrow">
-        <a class="title is-5 has-text-@(isGive ? "grey" : "info")" @onclick="() => Search(false)">
-          LỊCH SỬ ĐỔI QUÀ
-        </a>
-      </li>
-      <li class="column is-narrow">
-        <a class="title is-5 has-text-@(isGive ? "info" : "grey")" @onclick="() => Search(true)">
-          QUÀ NHẬN ĐƯỢC
+        <a class="title is-5 has-text-info">
+          @(Tab == "pay" ? "LỊCH SỬ ĐỔI QUÀ" : "QUÀ NHẬN ĐƯỢC")
         </a>
       </li>
     </ul>
-    <table class="table is-fullwidth is-vcentered is-responsive mt-5">
-      <thead>
-        <tr>
-          <th width="60px">Hình</th>
-          <th>Sản phẩm</th>
-          <th width="80px">Số lượng</th>
-          <th width="80px">Sao đổi</th>
-          <th width="150px">Thời gian</th>
-          <th width="20%">@(isGive ? "Người tặng" : "Người nhận")</th>
-          <th width="120px">Trạng thái</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach (var item in dataList)
-        {
-          var status = DbGiftExchange.Status(item.status);
-
+    <div class="inner_section scrolly" style="flex:1">
+      <table class="table is-fullwidth is-vcentered is-responsive">
+        <thead>
           <tr>
-            <td align="center">
-              <a class="image is-square" @onclick="() => ViewItem(item)">
-                <img src="@item.image" alt="IMG" />
-              </a>
-            </td>
-            <td>
-              <label class="td-label">Sản phẩm</label>
-              <div class="td-value">
-                <div>
-                  <a class="has-text-weight-semibold has-text-info" @onclick="() => ViewItem(item)">@item.name</a>
-                  @if (!item.view)
-                  {
-                    <span class="has-text-success ml-2">(Mới)</span>
-                  }
-                </div>
-                @if (!string.IsNullOrEmpty(item.note))
-                {
-                  <div class="is-size-7 pt-1">
-                    <span class="has-text-weight-semibold">Ghi chú:</span>
-                    <span class="has-text-grey">@item.note</span>
-                  </div>
-                }
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Số lượng</label>
-              <div class="td-value has-text-weight-semibold">
-                @item.quantity
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Sao đổi</label>
-              <div class="td-value has-text-weight-semibold">
-                @item.price
-              </div>
-            </td>
-            <td>
-              <label class="td-label">Thời gian</label>
-              <div class="td-value">
-                @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
-              </div>
-            </td>
-            @if (isGive)
-            {
-              var user = Layout.UserList.SingleOrDefault(x => x.id == item.user_buy);
-              <td>
-                <label class="td-label">Người tặng</label>
-                <div class="td-value">
-                  @if(user != null)
-                  {
-                    <div class="user_item">
-                      <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
-                      <span>@user.FullName</span>
-                    </div>
-                  }
-                  else
-                  {
-                    <span>Người tặng không tồn tại</span>
-                  }
-                </div>
-              </td>
-            }
-            else
-            {
-              var user = Layout.UserList.SingleOrDefault(x => x.id == item.user_give);
-              <td>
-                <label class="td-label">Người nhận</label>
-                <div class="td-value">
-                  @if(user != null)
-                  {
-                    <div class="user_item">
-                      <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
-                      <span>@user.FullName</span>
-                    </div>
-                  }
-                  else
-                  {
-                    <span>Người nhận không tồn tại</span>
-                  }
-                </div>
-              </td>
-            }
-            <td>
-              <label class="td-label">Trạng thái</label>
-              <div class="td-value">
-                <span class="tag @status.color">@status.name</span>
-              </div>
-            </td>
+            <th class="pt-0"  width="60px">Hình</th>
+            <th class="pt-0" >Sản phẩm</th>
+            <th class="pt-0"  width="80px">Số lượng</th>
+            <th class="pt-0"  width="80px">Sao đổi</th>
+            <th class="pt-0"  width="150px">Thời gian</th>
+            <th class="pt-0"  width="20%">@(Tab == "receive" ? "Người tặng" : "Người nhận")</th>
+            <th class="pt-0"  width="120px">Trạng thái</th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @foreach (var item in dataList)
+          {
+            var status = DbGiftExchange.Status(item.status);
+
+            <tr>
+              <td align="center">
+                <a class="image is-square" @onclick="() => ViewItem(item)">
+                  <img src="@item.image" alt="IMG" />
+                </a>
+              </td>
+              <td>
+                <label class="td-label">Sản phẩm</label>
+                <div class="td-value">
+                  <div>
+                    <a class="has-text-weight-semibold has-text-info" @onclick="() => ViewItem(item)">@item.name</a>
+                    @if (!item.view)
+                    {
+                      <span class="has-text-success ml-2">(Mới)</span>
+                    }
+                  </div>
+                  @if (!string.IsNullOrEmpty(item.note))
+                  {
+                    <div class="is-size-7 pt-1">
+                      <span class="has-text-weight-semibold">Ghi chú:</span>
+                      <span class="has-text-grey">@item.note</span>
+                    </div>
+                  }
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Số lượng</label>
+                <div class="td-value has-text-weight-semibold">
+                  @item.quantity
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Sao đổi</label>
+                <div class="td-value has-text-weight-semibold">
+                  @item.price
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Thời gian</label>
+                <div class="td-value">
+                  @string.Format("{0:dd/MM/yyyy, HH:mm}", new DateTime(item.date))
+                </div>
+              </td>
+              @if (Tab == "receive")
+              {
+                var user = shareStorage.MemberList.SingleOrDefault(x => x.id == item.user_buy);
+                <td>
+                  <label class="td-label">Người tặng</label>
+                  <div class="td-value">
+                    @if (user != null)
+                    {
+                      <div class="user_item">
+                        <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                        <span>@user.name</span>
+                      </div>
+                    }
+                    else
+                    {
+                      <span>Người tặng không tồn tại</span>
+                    }
+                  </div>
+                </td>
+              }
+              else
+              {
+                var user = shareStorage.MemberList.SingleOrDefault(x => x.id == item.user_give);
+                <td>
+                  <label class="td-label">Người nhận</label>
+                  <div class="td-value">
+                    @if (user != null)
+                    {
+                      <div class="user_item">
+                        <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                        <span>@user.name</span>
+                      </div>
+                    }
+                    else
+                    {
+                      <span>Người nhận không tồn tại</span>
+                    }
+                  </div>
+                </td>
+              }
+              <td>
+                <label class="td-label">Trạng thái</label>
+                <div class="td-value">
+                  <span class="tag @status.color">@status.name</span>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
 
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string Tab { get; set; }
 
   private bool _loaded = false;
-  private bool _success = false;
-  private string _message = string.Empty;
+  private bool success = false;
   private string _title = "Lịch sử đổi quà";
 
+  private SharedStorage shareStorage = new();
+
   private List<GiftExchangeModel> dataList = new();
-  private bool isGive = false;
 
-  protected override async Task OnInitializedAsync()
+  protected override async Task OnParametersSetAsync()
   {
-    isGive = navigation.Uri.Contains("tab=give");
-    await Search(isGive);
-  }
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    _loaded = false;
 
-  private async Task Search(bool give)
-  {
-    isGive = give;
-    if (isGive)
+    if (string.IsNullOrEmpty(Tab))
     {
-      _title = "Quà tặng nhận được";
-      dataList = await DbGiftExchange.GetListGive(Layout.Company.id, Layout.User.id);
-      navigation.NavigateTo("/gift/exchange?tab=give", false);
+      Tab = "pay";
     }
-    else
+
+    if (Tab == "pay")
     {
       _title = "Lịch sử đổi quà";
       dataList = await DbGiftExchange.GetListBuy(Layout.Company.id, Layout.User.id, true);
-      navigation.NavigateTo("/gift/exchange?tab=history", false);
     }
+    else
+    {
+      _title = "Quà tặng nhận được";
+      dataList = await DbGiftExchange.GetListGive(Layout.Company.id, Layout.User.id);
+    }
+
     _loaded = true;
   }
 
-  private async Task ViewItem(GiftExchangeModel item)
+  private async Task<bool> ViewItem(GiftExchangeModel item)
   {
-    item.view = true;
-    await DbGiftExchange.Update(Layout.Company.id, item);
+    bool _success = true;
+    try
+    {
+      item.view = true;
+      await DbGiftExchange.Update(Layout.Company.id, item);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ViewItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

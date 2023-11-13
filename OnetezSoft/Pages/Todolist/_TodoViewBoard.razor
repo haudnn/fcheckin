@@ -1,0 +1,447 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
+
+<div style="flex:1;overflow:hidden; margin: 0 -1.5rem 0;">
+  <ul class="columns is-mobile is-variable is-0" style="height:100%;overflow:hidden;">
+    @foreach (var status in statusList)
+    {
+      var todos = todoItems.Where(x => x.status == status.id).ToList();
+      var count = todos.Where(x => !string.IsNullOrEmpty(x.id)).Count();
+      var todoName = status.name.ToLower();
+      var isAllowDrop = isTeam ? false : todolist != null ? Layout.User.id == User.id && todolist.status < 3 : Layout.User.id == User.id;
+      var index = statusList.FindIndex(x => x.name == status.name);
+
+      <li class="column flex_column" style="width: 20%;height:100%;">
+        <div class="@(index == 0 ? "pl-5" : "pl-4") @(index == statusList.Count - 1 ? "pr-5" : "pr-2") mb-2">
+          <div class="container-status @todoName is-flex is-justify-content-space-between is-align-items-center mb-0">
+            <span class="has-text-weight-semibold font_12">
+              @status.name @(count > 0 ? $"({count})" : "")
+            </span>
+            @if (Layout.User.id == User.id && !isTeam)
+            {
+              if (todolist != null && todolist.status < 3)
+              {
+                <div style="cursor: pointer;">
+                  <span class="icon-text has-text-link has-text-weight-normal" @onclick="() => Add(status.id)">
+                    <span class="icon">
+                      <i class="material-icons-outlined font_12">add</i>
+                    </span>
+                    <span class="font_12">Thêm công việc</span>
+                  </span>
+                </div>
+              }
+            }
+          </div>
+        </div>
+        <div class="flex_column scrolly pr-2 pt-2" style="flex:1">
+          <Dropzone 
+            Items="todos"
+            TItem="TodolistModel.Todo" 
+            AllowsDrag="x => isAllowDrop" 
+            OnItemDrop="x => OnItemDragdrop(x, status) "
+            Class="@(index == 0 ? "pl-5 drop_task_board" : "pl-4 drop_task_board")"
+            WrapperClass="board_todolist_item">
+            <ChildContent>
+              @{
+                var level = DbTodolist.Level(context.level);
+                var count = Convert.ToInt32(level.id) + 1;
+                var toggle = toggleList.Contains(context.id);
+                bool isDetail = !Shared.IsEmpty(context.detail);
+                bool isResult = !Shared.IsEmpty(context.result);
+                bool isFiles = context.files.Any();
+              }
+              <div class="task_board todoitem is-clickable card p-4 mb-3 is-size-7" @ondblclick="() => Edit(context)">
+                <ul class="columns is-multiline is-vcentered is-variable is-1">
+                  <li class="column is-full" style="padding-top: 0px;">
+                    @if (string.IsNullOrEmpty(context.assign_user))
+                    {
+                      <span style="word-break: break-word" class="is-block font_14 has-text-weight-semibold has-text-link">@context.name</span>
+                    }
+                    else
+                    {
+                      var assignor = UserService.GetMember(shareStorage.MemberList, context.assign_user);
+                      <span class="icon-text">
+                        <span class="icon is-small has-text-danger mr-2" title="Công việc được giao bởi @assignor.name">
+                          <i class="material-icons-outlined font_14">assignment</i>
+                        </span>
+                        <span class="is-block font_14 has-text-weight-semibold has-text-link">@context.name</span>
+                      </span>
+                    }
+                  </li>
+                  <li class="column is-full is-flex is-align-items-center" style="gap: 7px;">
+                    <span class="is-size-7 text_1_line has-text-weight-medium">
+                      @(context.start + " - " + context.end)
+                    </span>
+                    <span style="color: #8990A5" class="is-size-7">•</span>
+                    <span class="is-size-7 text_1_line @level.color has-text-weight-medium">@level.name</span>
+                  </li>
+                  @if (!toggle)
+                  {
+                    <li class="column is-full">
+                      @if (isDetail)
+                      {
+                        <span class="icon-text mr-2">
+                          <span class="icon is-small mr-2">
+                            <i class="material-icons-outlined is-size-7 is-secondary-40">chat</i>
+                          </span>
+                          <span class="is-secondary-40 is-size-7">Chi tiết</span>
+                        </span>
+                      }
+                      @if (isResult)
+                      {
+                        <span class="icon-text mr-2">
+                          <span class="icon is-small mr-2">
+                            <i class="material-icons-outlined is-size-7 is-secondary-40">text_snippet</i>
+                          </span>
+                          <span class="is-secondary-40 is-size-7">Kết quả</span>
+                        </span>
+                      }
+                      @if (isFiles)
+                      {
+                        <span class="icon-text">
+                          <span class="icon is-small mr-2">
+                            <i class="material-icons-outlined is-size-7 is-secondary-40">link</i>
+                          </span>
+                          <span class="is-secondary-40 is-size-7">Đính kèm</span>
+                        </span>
+                      }
+                    </li>
+                  }
+                  else
+                  {
+                    if (isDetail)
+                    {
+                      <li class="column is-full">
+                        <span class="icon-text">
+                          <span class="icon is-small mr-2">
+                            <i class="material-icons-outlined is-size-7 has-text-grey">chat</i>
+                          </span>
+                          <span class="has-text-grey is-size-7">Chi tiết</span>
+                        </span>
+                        <div class="is-word-break text_2_line is-size-7 has-text-black has-text-weight-medium" onclick="toggleText(this)">
+                          <span>@((MarkupString)Shared.GetLinks(context.detail))</span>
+                        </div>
+                      </li>
+                    }
+                    if (isResult)
+                    {
+                      <li class="column is-full">
+                        <span class="icon-text">
+                          <span class="icon is-small mr-2">
+                            <i class="material-icons-outlined is-size-7 has-text-grey">text_snippet</i>
+                          </span>
+                          <span class="has-text-grey is-size-7">Kết quả</span>
+                        </span>
+                        <div class="is-word-break text_2_line is-size-7 has-text-black has-text-weight-medium" onclick="toggleText(this)">
+                          <span>@((MarkupString)Shared.GetLinks(context.result)) </span>
+                        </div>
+                      </li>
+                    }
+                    if (isFiles)
+                    {
+                      <li class="column is-full">
+                        <span class="icon-text">
+                          <span class="icon is-small mr-2">
+                            <i class="material-icons-outlined is-size-7 has-text-grey">link</i>
+                          </span>
+                          <span class="has-text-grey is-size-7">File đính kèm</span>
+                        </span>
+                        <FileViews Values="context.files" />
+                      </li>
+                    }
+                  }
+                  <li class="column is-full">
+                    <div class="is-flex is-align-items-center is-justify-content-space-between">
+                      <div>
+                        @if (isDetail || isResult || isFiles)
+                        {
+
+                          if (toggle)
+                          {
+                            <span class="icon-text is-pointer" @onclick="() => ToggleItem(context.id)">
+                              <span style="color: #355CAA" class=" is-size-7">Thu gọn</span>
+                              <span style="color: #355CAA" class="icon">
+                                <i class="material-icons-outlined is-size-7">keyboard_arrow_up</i>
+                              </span>
+                            </span>
+                          }
+                          else
+                          {
+                            <span class="icon-text is-pointer" @onclick="() => ToggleItem(context.id)">
+                              <span style="color: #355CAA" class=" is-size-7">Chi tiết</span>
+                              <span style="color: #355CAA" class="icon">
+                                <i class="material-icons-outlined is-size-7">keyboard_arrow_down</i>
+                              </span>
+                            </span>
+                          }
+                        }
+                      </div>
+                      <div>
+                        @if (Layout.User.id == User.id && todolist.status < 3 && !isTeam)
+                        {
+                          if (!context.confirm)
+                          {
+                            if (string.IsNullOrEmpty(context.assign_user))
+                            {
+                              <span style="color:#BA1B1B " class="icon is-pointer" @onclick="() => Delete(context)">
+                                <i class="material-icons-outlined is-size-6">delete</i>
+                              </span>
+                            }
+                            else
+                            {
+                              <span style="color:#BA1B1B " class="icon is-pointer" @onclick="() => Reject(context)">
+                                <i class="material-icons-outlined is-size-6">history</i>
+                              </span>
+                            }
+                          }
+                          <span style="color:#355CAA" class="icon is-pointer" @onclick="() => Edit(context)">
+                            <i class="material-icons-outlined is-size-6">edit</i>
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </ChildContent>
+          </Dropzone>
+        </div>
+      </li>
+    }
+  </ul>
+</div>
+@if (!isTeam)
+{
+  <div class="is-flex is-align-items-center is-justify-content-flex-end mt-2">
+  @if (todolist.status < 3)
+  {
+    if (Layout.User.id == User.id && todolist.status < 2 && todoItems.Count > 0)
+    {
+      <div class="control">
+        <a class="button is-link" @onclick="Checkin">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">done</i>
+          </span>
+          <span>Check-in</span>
+        </a>
+      </div>
+    }
+
+    if (Layout.User.id == User.id && todolist.status == 2)
+    {
+      <div style="margin-top: @(isTeam ? "0px" : "-45px");" class="control">
+        <a class="button is-danger" @onclick="Checkout">
+          <span class="icon">
+            <i class="material-icons-outlined is-size-6">done</i>
+          </span>
+          <span>Check-out</span>
+        </a>
+      </div>
+    }
+
+    if (todolist.status == 3)
+    {
+      <span style="margin-top: @(isTeam ? "0px" : "-55px");" class="icon-text has-text-success">
+        <span class="icon">
+          <i class="material-icons-outlined is-size-6">done</i>
+        </span>
+        <span>Đã checkout</span>
+      </span>
+    }
+  }
+</div>  
+}
+
+
+@if (model != null)
+{
+  <_TodoFormPopup @ref="child" model="model" OnUpdate="Update" OnClose="() => model = null" />
+}
+
+
+@if (isShowPopupDelete)
+{
+  <_TodoRemovePopup OnCloseDelete="CloseDeleteLoop" OnConfirmDelete="ConfirmDeleteLoop" />
+}
+
+
+
+
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<StaticModel> statusList { get; set; } = new();
+  [Parameter]
+  public List<TodolistModel.Todo> todoItems { get; set; } = new();
+  [Parameter]
+  public TodolistModel todolist { get; set; }
+  [Parameter]
+  public EventCallback<TodolistModel.Todo> DeleteItem { get; set; }
+  [Parameter]
+  public EventCallback<TodolistModel.Todo> UpdateItem { get; set; }
+  [Parameter]
+  public EventCallback<TodolistModel.Todo> RejectItem { get; set; }
+  [Parameter]
+  public EventCallback OnCheckin { get; set; }
+  [Parameter]
+  public EventCallback OnCheckout { get; set; }
+  [Parameter]
+  public UserModel User { get; set; }
+  [Parameter]
+  public bool isTeam { get; set; }
+  [Parameter]
+  public DateTimeOffset? todoDate { get; set; }
+
+  private List<string> toggleList = new();
+
+  private TodolistModel.Todo model = null;
+
+  private _TodoFormPopup child;
+
+  private bool isShowPopupDelete = false;
+
+  private TodolistModel.Todo currentItem = null;
+
+  private SharedStorage shareStorage;
+
+  protected override async Task OnInitializedAsync()
+  {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+  }
+
+
+
+
+  
+  private async void OnItemDragdrop(TodolistModel.Todo item, StaticModel status)
+  {
+    try
+    {
+      item.status = status.id;
+      await DbTodoItem.Update(Layout.Company.id, item);
+      if (!string.IsNullOrEmpty(item.assign_user))
+      {
+        // Gửi thông báo cho người giao
+        int notiType = 210 + item.status;
+        await DbNotify.Create(Layout.Company.id, notiType, item.id, item.assign_user, Layout.User.id);
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeStatus()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
+  }
+  private void Add(int _status)
+  {
+    string start = "08:30";
+    string end = "09:30";
+
+    if (todoDate.Value.DateTime.ToString("yyyy-MM-dd") == DateTime.Now.ToString("yyyy-MM-dd"))
+    {
+      start = string.Format("{0:HH:30}", DateTime.Now);
+      end = string.Format("{0:HH:30}", DateTime.Now.AddHours(1));
+    }
+
+    var item = new TodolistModel.Todo()
+      {
+        id = Mongo.RandomId(),
+        type = 1,
+        level = 1,
+        status = _status,
+        date = todoDate.Value.DateTime.Ticks,
+        start = start,
+        end = end
+      };
+    model = item;
+  }
+
+  private async Task Delete(TodolistModel.Todo item)
+  {
+    if (item.is_loop)
+    {
+      currentItem = item;
+      isShowPopupDelete = true;
+    }
+    else
+      await DeleteItem.InvokeAsync(item);
+  }
+
+  private async Task Update(TodolistModel.Todo item)
+  {
+    await UpdateItem.InvokeAsync(item);
+    model = null;
+  }
+
+  private async Task Reject(TodolistModel.Todo item)
+  {
+    if (isTeam)
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Bạn không thể huỷ nhận việc tại đây!");
+    else
+      await RejectItem.InvokeAsync(item);
+  }
+
+  private void Edit(TodolistModel.Todo item)
+  {
+    if (Layout.User.id == User.id && todolist.status < 3)
+      model = item;
+  }
+
+  private void ChangeTime(TodolistModel.Todo item, string time)
+  {
+    item.start = time;
+    item.end = time;
+  }
+
+  private async Task Checkin()
+  {
+    if (model != null)
+      await child.Update();
+
+    foreach (var item in todoItems)
+    {
+      await Update(item);
+    }
+    await OnCheckin.InvokeAsync();
+  }
+
+  private async Task Checkout()
+  {
+    if (model != null)
+      await child.Update();
+
+    foreach (var item in todoItems)
+    {
+      await Update(item);
+    }
+    await OnCheckout.InvokeAsync();
+  }
+
+  private void ToggleItem(string id)
+  {
+    if (toggleList.Contains(id))
+      toggleList.Remove(id);
+    else
+      toggleList.Add(id);
+  }
+
+  private async Task ConfirmDeleteLoop(int option = 1)
+  {
+    // Công việc này và các công việc cần làm sau này
+    if (option == 2)
+      await TodolistService.HandleRemoveTodoLoop(currentItem, Layout.Company.id, Layout.User.id);
+
+    await DeleteItem.InvokeAsync(currentItem);
+    CloseDeleteLoop();
+  }
+
+  private void CloseDeleteLoop()
+  {
+    isShowPopupDelete = false;
+    currentItem = null;
+  }
+}

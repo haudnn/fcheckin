@@ -1,0 +1,189 @@
+@page "/admin/accountserror"
+@layout LayoutAdmin
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
+
+<PageTitle>@_title</PageTitle>
+
+<section class="px-4">
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-4">
+    <li class="column is-narrow">
+      <h1 class="title is-5">
+        @_title:
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <div class="field has-addons">
+        <div class="control">
+          <span class="button is-small is-static">Sắp xếp</span>
+        </div>
+        <div class="control is-expanded">
+          <div class="select is-small is-full">
+            <select @onchange="ChangeOrderby">
+              <option value="1">Số lần</option>
+              <option value="2">Chi tiết</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </li>
+  </ul>
+
+  <table class="table is-fullwidth is-vcentered is-hoverable is-responsive is_head_bg is-size-7">
+    <thead>
+      <tr>
+        <th width="100px">ID</th>
+        <th width="150px">Tài khoản</th>
+        <th width="150px">Họ và tên</th>
+        <th width="150px">Tổ chức</th>
+        <th width="80px" align="center">Số lần</th>
+        <th align="center">Chi tiết</th>
+      </tr>
+    </thead>
+    <tbody class="has-text-weight-medium">
+      <Virtualize Items="dataList" Context="item" TItem="UserLoginModel" ItemSize="40" OverscanCount="40">
+        <ItemContent>
+          @{
+            var user = allUser.FirstOrDefault(x => x.id == item.user_id);
+          }
+          @if (user != null)
+          {
+            var companys = user.companys != null ? user.companys.Select(x => x.name).ToList() : new List<string>();
+            <tr>
+              <td>
+                @if (user.delete)
+                {
+                  <del class="has-text-grey">@item.id</del>
+                }
+                else
+                {
+                  <span class="has-text-dark">@item.id</span>
+                }
+              </td>
+              <td>
+                <div class="icon-text">
+                  <a class="icon image is-24x24 is-rounded mr-2">
+                    <img src="@user.avatar" alt="IMG" />
+                  </a>
+                  <span class="has-text-dark">@user.email</span>
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Họ tên</label>
+                <div class="td-value">
+                  @user.FullName
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Tổ chức</label>
+                <div class="td-value">
+                  <div class="text_2_line">
+                    @string.Join(", ", companys)
+                  </div>
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Số lần</label>
+                <div class="td-value">
+                  @item.fail_count
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Chi tiết</label>
+                <div class="td-value">
+                  @foreach (var count in item.details)
+                  {
+                    <p class="text_1_line">
+                      @count
+                    </p>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </ItemContent>
+        <Placeholder>
+          <tr>
+            <td colspan="6">
+              <div class="has-text-grey has-text-centered py-5">
+                Không tìm thấy dữ liệu phù hợp
+              </div>
+            </td>
+          </tr>
+        </Placeholder>
+      </Virtualize>
+    </tbody>
+  </table>
+</section>
+
+
+@code {
+  [CascadingParameter]
+  public LayoutAdmin Layout { get; set; }
+  private string _title = "Quản lý tài khoản";
+  private List<UserLoginModel> dataList = new();
+  private List<CompanyModel> companys = new();
+  private List<UserModel> allUser = new();
+
+  private string filterKeyword = string.Empty;
+  private int orderby = 1;
+  private bool isLoading = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    isLoading = true;
+    companys = await DbMainCompany.GetAll();
+    allUser = await DbMainUser.GetAll();
+  }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    var uri = navigation.ToAbsoluteUri(navigation.Uri);
+
+    await GetList();
+  }
+
+  private async Task<bool> GetList()
+  {
+    bool _success = true;
+    try
+    {
+      dataList = await DbMainUserLogin.GetAll();
+
+      if (orderby == 1)
+      {
+        dataList = dataList.OrderByDescending(x => x.fail_count).ToList();
+      }
+      else if (orderby == 2)
+      {
+        dataList = dataList.OrderByDescending(x => x.details.Count).ToList();
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private void ChangeKeyword(KeyboardEventArgs args)
+  {
+    if (args.Key == "Enter")
+      navigation.NavigateTo("/admin/accounts?p=1");
+    else if (args.Key == "Escape")
+    {
+      filterKeyword = string.Empty;
+      navigation.NavigateTo("/admin/accounts?p=1");
+    }
+  }
+
+  private void ChangeOrderby(ChangeEventArgs e)
+  {
+    orderby = Convert.ToInt32(e.Value);
+    GetList();
+  }
+}

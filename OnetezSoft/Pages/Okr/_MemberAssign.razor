@@ -1,0 +1,320 @@
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<div class="dropdown @(toggle ? "is-active" : "") @(isRight && !Layout.IsMobile ? " is-right " : "") @(isUp ? " is-up " : "")">
+  <div class="dropdown-trigger">
+    <div class="avatar_list">
+      @foreach (var item in ShortList())
+      {
+        <span class="image is-rounded is-24x24 has-background-grey" title="@item.name">
+          @if (string.IsNullOrEmpty(item.avatar))
+          {
+            <span class="is-text">@item.name</span>
+          }
+          else
+          {
+            <img src="@item.avatar" alt="AVT">
+          }
+        </span>
+      }
+      @if (isEdit)
+      {
+        <a class="icon has-background-white has-text-grey is-bordered is-rounded @(usersTemp.Count == 0 ? "" : "ml-3")"
+        @onclick="Toggle">
+          <i class="material-icons-outlined is-size-6">add</i>
+        </a>
+      }
+      else
+      {
+        <a class="icon has-text-grey @(usersTemp.Count == 0 ? "" : "ml-3")" @onclick="Toggle">
+          <i class="material-icons-outlined is-size-5">@(toggle ? "expand_more" : "chevron_right")</i>
+        </a>
+      }
+    </div>
+  </div>
+  @if (toggle)
+  {
+    <div class="dropdown-menu" style="z-index: 21; width: @(Layout.IsMobile ? "320px" : "350px"); @(isLast && Layout.IsMobile ? "left: calc(100vw - 532px);" : "")">
+      <div class="dropdown-content px-3 has-text-left" style="max-height: none;">
+        @if (isEdit)
+        {
+          <ul class="columns is-vcentered is-multiline is-variable is-1 mb-3 is-mobile">
+            <li class="column is-half font_14">
+              Danh sách tài khoản
+            </li>
+            <li class="column is-half">
+              <div class="select is-small is-fullwidth">
+                <select @onchange="ChangeDepartment" class="is-family-code">
+                  <option value="">Tất cả phòng ban</option>
+                  @foreach (var item in departments)
+                  {
+                    if (department == item.id)
+                    {
+                      <option value="@item.id" selected>@item.name</option>
+                    }
+                    else
+                    {
+                      <option value="@item.id">@item.name</option>
+                    }
+                  }
+                </select>
+              </div>
+            </li>
+            <li class="column is-full">
+              <div class="control has-icons-right">
+                <input id="search_member" class="input is-small is-rounded" type="text" autocomplete="off"
+                @bind="Search" @bind:event="oninput" placeholder="Tìm tài khoản...">
+                <span class="icon is-right">
+                  <i class="material-icons-outlined is-size-6">search</i>
+                </span>
+              </div>
+            </li>
+          </ul>
+          <div class="scrolly py-1" style="max-height: 250px;">
+            @foreach (var memberId in usersTemp)
+            {
+              var item = UserService.GetMember(sources, memberId);
+              <ul class="columns is-vcentered is-variable is-1 is-mobile">
+                <li class="column is-narrow">
+                  <a class="icon is-small has-text-danger" @onclick="() => RemoveItem(memberId)">
+                    <i class="material-icons-outlined is-size-6">remove_circle_outline</i>
+                  </a>
+                </li>
+                <li class="column has-text-weight-medium">
+                  <div class="icon-text">
+                    <span class="image is-rounded is-24x24">
+                      <img src="@item.avatar" alt="AVT">
+                    </span>
+                    <span class="ml-2" style="flex-grow: 1;">@item.name</span>
+                  </div>
+                </li>
+              </ul>
+            }
+            <hr class="my-2" />
+            @if (suggests.Count > 0)
+            {
+              <a class="icon-text has-text-link mb-1" @onclick="() => CheckAll()">
+                <span class="icon is-small">
+                  <i class="material-icons-outlined is-size-6">
+                    @(checkAll && sources.Count == usersTemp.Count ? "check_box" : "check_box_outline_blank")
+                  </i>
+                </span>
+                <span class="has-text-weight-semibold ml-2">Chọn tất cả</span>
+              </a>
+            }
+            else
+            {
+              <div class="py-2 has-text-@(string.IsNullOrEmpty(keyword) ? "white" : "grey")">
+                Không tìm thấy kết quả phù hợp
+              </div>
+            }
+            @foreach (var item in suggests)
+            {
+              <ul class="columns is-vcentered is-variable is-1 is-mobile">
+                <li class="column is-narrow">
+                  <a class="icon is-small has-text-info" @onclick="() => AddItem(item.id)">
+                    <i class="material-icons-outlined is-size-6">add_circle_outline</i>
+                  </a>
+                </li>
+                <li class="column">
+                  <div class="icon-text">
+                    <span class="image is-rounded is-24x24">
+                      <img src="@item.avatar" alt="AVT">
+                    </span>
+                    <span class="ml-2" style="flex-grow: 1;">@item.name</span>
+                  </div>
+                </li>
+              </ul>
+            }
+          </div>
+          <hr class="dropdown-divider">
+          <div class="buttons is-right">
+            <a class="button is-small" @onclick="Toggle">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">close</i>
+              </span>
+              <span class="is-size-7">Hủy</span>
+            </a>
+            <a class="button is-link is-small" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">done</i>
+              </span>
+              <span class="is-size-7">Hoàn tất</span>
+            </a>
+          </div>
+        }
+        else
+        {
+          <div class="scrolly py-1" style="max-height: 250px;">
+            @foreach (var memberId in usersTemp)
+            {
+              var item = UserService.GetMember(sources, memberId);
+              <div class="icon-text mb-1">
+                <span class="image is-rounded is-24x24">
+                  <img src="@item.avatar" alt="AVT">
+                </span>
+                <span class="ml-2" style="flex-grow: 1;">@item.name</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<string> members { get; set; } = new();
+  [Parameter]
+  public List<MemberModel> sources { get; set; } = new();
+  [Parameter]
+  public string department { get; set; }
+  [Parameter]
+  public bool isEdit { get; set; }
+  [Parameter]
+  public bool isUp { get; set; }
+  [Parameter]
+  public bool isRight { get; set; }
+  [Parameter]
+  public bool isLast { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+  private List<string> usersTemp = new();
+
+  [Parameter]
+  public bool isNew { get; set; }
+
+
+  private bool toggle = false;
+  private bool checkAll = false;
+  private string keyword = string.Empty;
+  private List<MemberModel> suggests = new();
+  private List<DepartmentModel.SelectList> departments = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    departments = await DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+    departments.RemoveAll(x => x.level > 1);
+    usersTemp = members.Where(i => true).ToList();
+  }
+
+  protected override void OnParametersSet()
+  {
+    toggle = false;
+    keyword = null;
+    checkAll = false;
+    usersTemp = members.Where(i => true).ToList();
+  }
+
+  private string Search
+  {
+    get => keyword;
+    set
+    {
+      keyword = value;
+      suggests = GetSuggests();
+    }
+  }
+
+  private async Task Update()
+  {
+    toggle = false;
+    keyword = null;
+
+    members.Clear();
+    foreach (var item in usersTemp)
+    {
+      members.Add(item);
+    }
+
+    await OnUpdate.InvokeAsync(true);
+  }
+
+  private void AddItem(string id)
+  {
+    if (!usersTemp.Contains(id))
+      usersTemp.Add(id);
+    suggests.RemoveAll(x => x.id == id);
+  }
+
+  private void RemoveItem(string id)
+  {
+    usersTemp.Remove(id);
+    if (!string.IsNullOrEmpty(id))
+      suggests.Add(UserService.GetMember(sources, id));
+  }
+
+  private void ChangeDepartment(ChangeEventArgs e)
+  {
+    department = e.Value.ToString();
+    keyword = string.Empty;
+    suggests = GetSuggests();
+  }
+
+  private List<MemberModel> GetSuggests()
+  {
+    var results = new List<MemberModel>();
+    foreach (var item in sources)
+    {
+      if (!usersTemp.Contains(item.id))
+      {
+        bool check = true;
+        if (!string.IsNullOrEmpty(department) && !item.departments_id.Contains(department))
+          check = false;
+        if (!Shared.SearchKeyword(keyword, item.id + item.email + item.name))
+          check = false;
+        if (check)
+          results.Add(item);
+      }
+    }
+    return results;
+  }
+
+  private async Task Toggle()
+  {
+    await JSRuntime.InvokeVoidAsync("dropdownClose");
+    keyword = null;
+    checkAll = false;
+    toggle = !toggle;
+    if (toggle)
+      await JSRuntime.InvokeVoidAsync("setFocus", "search_member");
+    else
+      usersTemp = members.Where(i => true).ToList();
+
+    suggests = GetSuggests();
+  }
+
+  private List<MemberModel> ShortList()
+  {
+    var results = new List<MemberModel>();
+    for (int i = 0; i < members.Count; i++)
+    {
+      var item = UserService.GetMember(sources, members[i]);
+      if (!string.IsNullOrEmpty(item.id))
+      {
+        results.Add(item);
+        if (results.Count == 3)
+          break;
+      }
+    }
+
+    if (members.Count > 3)
+    {
+      int count = members.Count - 3 >= 100 ? 99 : members.Count - 3;
+      results.Add(new() { name = $"+{count}" });
+    }
+
+    return results;
+  }
+
+  private void CheckAll()
+  {
+    usersTemp = usersTemp.Union(suggests.Select(i => i.id).ToList()).ToList();
+    suggests.Clear();
+    checkAll = true;
+  }
+}

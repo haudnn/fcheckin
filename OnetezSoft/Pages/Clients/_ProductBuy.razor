@@ -1,12 +1,14 @@
 @inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
 @if (product != null)
 {
   <section class="modal is-active">
     <div class="modal-background"></div>
     <section class="modal-card has_bg">
-      <section class="modal-card-head is-link" 
-        style="background-image: url('/images/illustrations/team.png')">
+      <section class="modal-card-head is-link"
+               style="background-image: url('/images/illustrations/team.png')">
         <div class="modal-card-title">
           <div class="title">
             @product.title
@@ -35,21 +37,21 @@
             </ul>
           </li>
           <li class="column has-text-weight-bold">
-            @if(step == 1)
+            @if (step == 1)
             {
               <span>Sản phẩm sở hữu</span>
             }
-            else if(step == 2)
+            else if (step == 2)
             {
               <span>Xác nhận đơn hàng</span>
             }
-            else if(step >= 3)
+            else if (step >= 3)
             {
               <span class="has-text-success">Hoàn tất</span>
             }
           </li>
           <li class="column is-full">
-            @if(step < 3)
+            @if (step < 3)
             {
               <div class="field mb-4">
                 <label class="label">Tổ chức sử dụng</label>
@@ -57,14 +59,14 @@
                   <div class="dropdown is-fullwidth @(toggleCompany ? "is-active" : "")">
                     <div class="dropdown-trigger">
                       <a class="icon-text" @onclick="() => toggleCompany = !toggleCompany">
-                        @if(company == null)
+                        @if (company == null)
                         {
                           <span class="icon image is-24x24 mr-2">
                             <i class="material-icons-round is-size-4 has-text-grey">groups</i>
                           </span>
                           <span class="has-text-weight-medium">Chọn tổ chức</span>
                         }
-                        else 
+                        else
                         {
                           <span class="icon image is-24x24 mr-2">
                             @if (!string.IsNullOrEmpty(company.logo))
@@ -106,23 +108,23 @@
                 </div>
               </div>
 
-              @if(company != null)
+              @if (company != null)
               {
                 <div class="field mb-4">
-                  @if(product.id == "storage")
+                  @if (product.id == "storage")
                   {
                     <label class="label">Dung lượng lưu trữ <i>(Đơn vị: GB)</i></label>
-                    @if(step == 1)
+                    @if (step == 1)
                     {
                       <div class="control has-icons-left">
-                        <input @bind="staffQuantity" @bind:event="oninput" type="number" 
-                            class="input is_line font_14" min="1" max="1000" step="1" />
+                        <input @bind="staffQuantity" @bind:event="oninput" type="number"
+                               class="input is_line font_14" min="1" max="1000" step="1" />
                         <span class="icon is-left has-text-black">
                           <i class="material-icons is-size-6">cloud</i>
                         </span>
                       </div>
                     }
-                    else 
+                    else
                     {
                       <div class="control py-2">
                         <div class="icon-text">
@@ -137,17 +139,17 @@
                   else
                   {
                     <label class="label">Số lượng người dùng</label>
-                    @if(step == 1)
+                    @if (step == 1)
                     {
                       <div class="control has-icons-left">
-                        <input @bind="staffQuantity" @bind:event="oninput" type="number" 
-                            class="input is_line font_14" min="5" max="1000" step="1" />
+                        <input @bind="staffQuantity" @bind:event="oninput" type="number"
+                               class="input is_line font_14" min="5" max="1000" step="1" />
                         <span class="icon is-left has-text-black">
                           <i class="material-icons-round is-size-6">person_add</i>
                         </span>
                       </div>
                     }
-                    else 
+                    else
                     {
                       <div class="control py-2">
                         <div class="icon-text">
@@ -163,16 +165,16 @@
                     </div>
                   }
                 </div>
-                
+
                 <div class="field mb-4">
                   <label class="label">Số tháng sử dụng</label>
-                  @if(step == 1)
+                  @if (step == 1)
                   {
                     <div class="control has-icons-left">
                       <div class="dropdown is-fullwidth @(toggleMonth ? "is-active" : "")">
                         <div class="dropdown-trigger" @onclick="() => toggleMonth = !toggleMonth">
-                          <input @bind="monthQuantity" @bind:event="oninput" type="number" 
-                              class="input is_line font_14" min="3" max="120" step="1" />
+                          <input @bind="monthQuantity" @bind:event="oninput" type="number"
+                                 class="input is_line font_14" min="3" max="120" step="1" />
                           <span class="icon is-left has-text-black">
                             <i class="material-icons-round is-size-6">event</i>
                           </span>
@@ -190,7 +192,7 @@
                       </div>
                     </div>
                   }
-                  else 
+                  else
                   {
                     <div class="control py-2">
                       <div class="icon-text">
@@ -205,17 +207,17 @@
                     Tối thiểu 3 tháng.
                   </div>
                 </div>
-                
+
                 <div class="field">
                   <div class="has-text-link mb-2">
                     <span class="has-text-weight-bold mr-2">Chi phí tạm tính</span>
-                    @if(discount > 0)
+                    @if (discount > 0)
                     {
                       <span>(ưu đãi @discount%)</span>
                     }
                   </div>
                   <div class="control has-text-link">
-                    @if(discount > 0)
+                    @if (discount > 0)
                     {
                       <span class="is-size-6 has-text-weight-bold">
                         @string.Format("{0:0,0}", money - (money * discount / 100)) VNĐ
@@ -244,7 +246,7 @@
         </ul>
       </section>
       <section class="modal-card-foot is-right">
-        @if(step < 3)
+        @if (step < 3)
         {
           <a class="button" @onclick="() => Step(false)">
             <span class="icon">
@@ -252,9 +254,9 @@
             </span>
             <span class="is-size-7">Trở về</span>
           </a>
-          @if(step == 1)
+          @if (step == 1)
           {
-            if(company != null)
+            if (company != null)
             {
               <a class="button is-link" @onclick="() => Step(true)">
                 <span class="is-size-7">Tiếp tục</span>
@@ -273,7 +275,7 @@
               </a>
             }
           }
-          else if(step == 2)
+          else if (step == 2)
           {
             <a class="button is-link" @onclick="Update">
               <span class="icon">
@@ -341,31 +343,31 @@
     toggleCompany = false;
     toggleMonth = false;
 
-    if(next)
+    if (next)
       step++;
     else
       step--;
-    
-    if(step == 0)
+
+    if (step == 0)
       await Cancel();
-    else if(step == 2)
+    else if (step == 2)
     {
-      if(staff < 5 && product.id != "storage")
+      if (staff < 5 && product.id != "storage")
       {
         await JSRuntime.InvokeVoidAsync("tagline", false, "Số lượng người dùng tối thiểu là 5 người.");
         step = 1;
       }
-      else if(staff < 1 && product.id == "storage")
+      else if (staff < 1 && product.id == "storage")
       {
         await JSRuntime.InvokeVoidAsync("tagline", false, "Dung lượng lưu trữ tối thiểu là 1GB.");
         step = 1;
       }
-      else if(month < 3)
+      else if (month < 3)
       {
         await JSRuntime.InvokeVoidAsync("tagline", false, "Số tháng sử dụng tối thiểu là 3 tháng.");
         step = 1;
       }
-      else if(money > Int32.MaxValue)
+      else if (money > Int32.MaxValue)
       {
         await JSRuntime.InvokeVoidAsync("tagline", false, "Số tiền giao dịch vượt quá giới hạn cho phép.");
         step = 1;
@@ -379,92 +381,117 @@
     Reset();
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    var customer = await DbMainUser.Get(Layout.User.id);
-    if(customer != null)
+    bool _success = true;
+    try
     {
-      // Số tiền cần thanh toán
-      int price = Convert.ToInt32(discount > 0 ? money - (money * discount / 100) : money);
-      if(staff < 5 && product.id != "storage")
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Số lượng người dùng tối thiểu là 5 người.");
-      else if(staff < 1 && product.id == "storage")
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Dung lượng lưu trữ tối thiểu là 1GB.");
-      else if(month < 3)
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Số tháng sử dụng tối thiểu là 3 tháng.");
-      else if(customer.balance < price)
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Số dư của bạn không đủ để thanh toán, vui lòng nạp thêm.");
-      else
+      var customer = await DbMainUser.Get(Layout.User.id, globalService);
+      if (customer != null)
       {
-        // Thêm sản phẩm vào tổ chức
-        var module = new CompanyModel.Product();
-        module.id = product.id;
-        module.title = product.title;
-        module.active = true;
-        module.price = price;
-        module.total = staff;
-        module.start = DateTime.Today.Ticks;
-        module.end = DateTime.Today.AddMonths(month).Ticks;
-        company.products.Add(module);
-        await DbMainCompany.Update(company);
-
-        // Tạo giao dịch
-        var transaction = new TransactionModel()
-        {
-          customer = UserService.ConvertToMember(customer),
-          creator = UserService.ConvertToMember(customer),
-          product = product.id,
-          Company = company.id,
-          balance = customer.balance - price,
-          money = -price,
-          status = 2,
-          type = 3
-        };
-        // Nội dung giao dịch
-        if(product.id == "storage")
-          transaction.content = $"Mua sản phẩm <b>{product.title}</b> với <b>{staff} GB</b> trong vòng <b>{month} tháng</b> (hết hạn vào {string.Format("{0:dd/MM/yyyy}", new DateTime(module.end))}) cho <b>{company.name}</b>";
+        // Số tiền cần thanh toán
+        int price = Convert.ToInt32(discount > 0 ? money - (money * discount / 100) : money);
+        if (staff < 5 && product.id != "storage")
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Số lượng người dùng tối thiểu là 5 người.");
+        else if (staff < 1 && product.id == "storage")
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Dung lượng lưu trữ tối thiểu là 1GB.");
+        else if (month < 3)
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Số tháng sử dụng tối thiểu là 3 tháng.");
+        else if (customer.balance < price)
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Số dư của bạn không đủ để thanh toán, vui lòng nạp thêm.");
         else
-          transaction.content = $"Mua sản phẩm <b>{product.title}</b> với <b>{staff} NDSP</b> trong vòng <b>{month} tháng</b> (hết hạn vào {string.Format("{0:dd/MM/yyyy}", new DateTime(module.end))}) cho <b>{company.name}</b>";
+        {
+          // Thêm sản phẩm vào tổ chức
+          var module = new CompanyModel.Product();
+          module.id = product.id;
+          module.title = product.title;
+          module.active = true;
+          module.price = price;
+          module.total = staff;
+          module.start = DateTime.Today.Ticks;
+          module.end = DateTime.Today.AddMonths(month).Ticks;
+          company.products.Add(module);
+          await DbMainCompany.Update(company);
+          await globalService.Update(company.id);
 
-        await DbMainTransaction.Create(transaction);
+          // Tạo giao dịch
+          var transaction = new TransactionModel()
+            {
+              customer = UserService.ConvertToMember(customer),
+              creator = UserService.ConvertToMember(customer),
+              product = product.id,
+              Company = company.id,
+              balance = customer.balance - price,
+              money = -price,
+              status = 2,
+              type = 3
+            };
+          // Nội dung giao dịch
+          if (product.id == "storage")
+            transaction.content = $"Mua sản phẩm <b>{product.title}</b> với <b>{staff} GB</b> trong vòng <b>{month} tháng</b> (hết hạn vào {string.Format("{0:dd/MM/yyyy}", new DateTime(module.end))}) cho <b>{company.name}</b>";
+          else
+            transaction.content = $"Mua sản phẩm <b>{product.title}</b> với <b>{staff} NDSP</b> trong vòng <b>{month} tháng</b> (hết hạn vào {string.Format("{0:dd/MM/yyyy}", new DateTime(module.end))}) cho <b>{company.name}</b>";
 
-        // Cập nhật số dư
-        customer.balance -= price;
-        await DbMainUser.Update(customer);
+          await DbMainTransaction.Create(transaction);
 
-        MessagingCenter.Send(this, "header_" + Layout.User.id, Layout.User.id);
+          // Cập nhật số dư
+          customer.balance -= price;
+          await DbMainUser.Update(customer, globalService);
 
-        step = 3;
-        return;
+          MessagingCenter.Send(this, "header_" + Layout.User.id, Layout.User.id);
+
+          step = 3;
+          return false;
+        }
       }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Tài khoản khách hàng không tồn tại.");
+
+      step = 2;
+      return false;
     }
-    else
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Tài khoản khách hàng không tồn tại.");
-      
-    step = 2;
-    return;
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task ChangeCompany(CompanyModel item)
+  private async Task<bool> ChangeCompany(CompanyModel item)
   {
-    toggleCompany = false;
-    toggleMonth = false;
-
-    // Lấy thông tin công ty
-    company = await DbMainCompany.Get(item.id);
-    staff = company.members;
-
-    if(item.products.Where(x => x.id == product.id).Count() == 0)
+    bool _success = true;
+    try
     {
-      company = item;
-      staff = company.members > 5 ? company.members : 5;
-      ChangeQuantity();
+      toggleCompany = false;
+      toggleMonth = false;
+
+      // Lấy thông tin công ty
+      company = await DbMainCompany.Get(item.id);
+      staff = company.members;
+
+      if (item.products.Where(x => x.id == product.id).Count() == 0)
+      {
+        company = item;
+        staff = company.members > 5 ? company.members : 5;
+        ChangeQuantity();
+      }
+      else
+      {
+        company = null;
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Tổ chức {item.name} đã có sản phẩm này rồi.");
+      }
     }
-    else
+    catch (Exception ex)
     {
-      company = null;
-      await JSRuntime.InvokeVoidAsync("tagline", false, $"Tổ chức {item.name} đã có sản phẩm này rồi.");
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeCompany()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
     }
+    return _success;
   }
 
   private void PromotionStaff(int item)
@@ -499,15 +526,27 @@
     }
   }
 
-  private void ChangeQuantity()
+  private async Task<bool> ChangeQuantity()
   {
+    bool _success = true;
+    try
+    {
     // Tính chi phí
     money = ProductService.CalculateRenew(staff, product.price, month);
 
     // Áp dụng ưu đãi theo tháng
-    discount = ProductService.Promotion(1, month); 
+    discount = await ProductService.Promotion(1, month);
 
     toggleCompany = false;
     toggleMonth = false;
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeQuantity()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

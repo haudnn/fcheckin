@@ -1,8 +1,10 @@
-﻿using System;
+﻿using MongoDB.Bson.Serialization.Attributes;
+using System;
 using System.Collections.Generic;
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class ProgressModel
   {
     public string id { get; set; }

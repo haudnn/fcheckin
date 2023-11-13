@@ -1,4 +1,4 @@
-using System;
+using System.Collections.Generic;
 
 namespace OnetezSoft.Data
 {
@@ -10,7 +10,7 @@ namespace OnetezSoft.Data
 
     public static string BankHolder = "CÔNG TY TNHH CÔNG NGHỆ FASTDO";
 
-    public static string DeveloperId = "3CAE481CFC";
+    public static List<string> DeveloperId = new List<string> { "3CAE481CFC", "886C33D29C" };
 
     public static string Domain = "https://work.fastdo.vn";
 

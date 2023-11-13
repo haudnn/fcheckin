@@ -1,6 +1,6 @@
-﻿@page "/config/other/blogs"
-@inject IJSRuntime JSRuntime
+﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
@@ -10,91 +10,76 @@
 }
 else
 {
-<section class="columns is-gapless has_menu_left">
-  <div class="column is-narrow">
-    <div class="card p-3 menu_left">
-      <a href="/config/other/banner">
-        Banner
-      </a>
-      <a class="is-active" href="/config/other/blogs">
-        Tin tức
-      </a>
-      <a href="/config/other/quotes">
-        Châm ngôn
-      </a>
-    </div>
-  </div>
-  <div class="column">
-    <div class="card p-5">
-      <ul class="columns is-vcentered is-multiline is-variable is-2 mb-5">
-        <li class="column">
-          <h1 class="title is-5 has-text-info">
-            QUẢN LÝ TIN TỨC
-          </h1>
-        </li>
-        <li class="column is-one-quarter">
-            <form class="control has-icons-right" @onsubmit="Search">
-              <input @bind="filterKeyword" class="input is-rounded is_bg" type="text" placeholder="Nhập từ khóa..." />
-              <span class="icon is-right">
-                <i class="material-icons-outlined is-size-5">search</i>
-              </span>
-            </form>
-        </li>
-        <li class="column is-narrow">
-          <div class="select is-fullwidth">
-            <select @onchange="ChangeDepartment" class="is-family-code">
-              <option value="">Phòng ban</option>
-              @foreach (var item in departments)
-              {
-                <option value="@item.id">@item.name</option>
-              }
-            </select>
-          </div>
-        </li>
-        <li class="column is-narrow">
-          <a class="button is-link" @onclick="() => EditItem(null)">
-            <span class="icon">
-              <span class="material-icons-outlined is-size-6">add</span>
-            </span>
-            <span>Thêm mới</span>
-          </a>
-        </li>
-        <li class="column is-narrow">
-            <a class="button is-dark" @onclick="ShowPin">
-              <span class="icon">
-                <span class="material-icons-outlined is-size-6">push_pin</span>
-              </span>
-              <span>Thiết lập ghim</span>
-            </a>
-          </li>
-        <li class="column is-full has-text-danger">
-          Lưu ý: chỉ đăng tin tức và thiết lập tin tức được ghim cho đơn vị mà mình trực thuộc
-        </li>
-      </ul>
-      <table class="table is-fullwidth is-vcentered is-responsive mt-5">
-        <thead>
-            <tr>
-              <th width="60px">Hình</th>
-              <th>Tiêu đề</th>
-              <th width="15%">Danh mục</th>
-              <th width="100px">Loại tin</th>
-              <th width="12%">Phòng ban</th>
-              <th width="80px" align="center">Hiển thị</th>
-              <th width="70px" align="center">Xử lý</th>
-            </tr>
-        </thead>
-        <tbody>
-          @foreach (var item in dataList)
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-2">
+    <li class="column">
+      <h1 class="title is-5 has-text-info">
+        QUẢN LÝ TIN TỨC
+      </h1>
+    </li>
+    <li class="column is-one-quarter">
+      <form class="control has-icons-right" @onsubmit="Search">
+        <input @bind="filterKeyword" class="input is-rounded is_bg" type="text" placeholder="Nhập từ khóa..." />
+        <span class="icon is-right">
+          <i class="material-icons-outlined is-size-5">search</i>
+        </span>
+      </form>
+    </li>
+    <li class="column is-narrow">
+      <div class="select is-fullwidth">
+        <select @onchange="ChangeDepartment" class="is-family-code">
+          <option value="">Phòng ban</option>
+          @foreach (var item in departments)
           {
-            var department = departmentAll.SingleOrDefault(x => x.id == item.department);
+            <option value="@item.id">@item.name</option>
+          }
+        </select>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <a class="button is-link" @onclick="() => EditItem(null)">
+        <span class="icon">
+          <span class="material-icons-outlined is-size-6">add</span>
+        </span>
+        <span>Thêm mới</span>
+      </a>
+    </li>
+    <li class="column is-narrow">
+      <a class="button is-dark" @onclick="ShowPin">
+        <span class="icon">
+          <span class="material-icons-outlined is-size-6">push_pin</span>
+        </span>
+        <span>Thiết lập ghim</span>
+      </a>
+    </li>
+    <li class="column is-full has-text-danger">
+      Lưu ý: chỉ đăng tin tức và thiết lập tin tức được ghim cho đơn vị mà mình trực thuộc
+    </li>
+  </ul>
+  <div class="inner_section flex_column" style="flex:1; @(Layout.IsMobile ? "" : "overflow:hidden")">
+    <table class="table is-fullwidth is-vcentered is-responsive sticky only_desktop" style="width:100%">
+      <thead>
+        <tr>
+          <th class="sticky" style="left:0" width="60px">Hình</th>
+          <th class="sticky last" style="left:60px">Tiêu đề</th>
+          <th class="" width="15%">Danh mục</th>
+          <th class="" width="100px">Loại tin</th>
+          <th class="" width="12%">Phòng ban</th>
+          <th class="" width="80px" align="center">Hiển thị</th>
+          <th class="" width="70px" align="center">Xử lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in dataList)
+        {
+          var department = departmentAll.SingleOrDefault(x => x.id == item.department);
 
-            <tr>
-            <td align="center">
+          <tr>
+            <td align="center" class="sticky" style="left:0">
               <a class="image is-square" href="@item.image" target="_blank">
                 <img src="@item.image" alt="IMG" />
               </a>
             </td>
-            <td>
+            <td class="sticky last" style="left:60px">
               <label class="td-label">Tiêu đề</label>
               <div class="td-value">
                 <a class="text_1_line has-text-weight-semibold" @onclick="() => EditItem(item)">
@@ -104,16 +89,16 @@ else
               </div>
             </td>
             <td>
-                <label class="td-label">Danh mục</label>
-                <div class="td-value">
-                  @if(!Shared.IsEmpty(item.category))
-                  {
-                    var cat = GetCategoryName(item.category);
-                    <span class="tag is-rounded" style="background: @cat.color; color: #fff">
-                      @cat.name
-                    </span>
-                  }
-                </div>
+              <label class="td-label">Danh mục</label>
+              <div class="td-value">
+                @if (!Shared.IsEmpty(item.category))
+                {
+                  var cat = GetCategoryName(item.category);
+                  <span class="tag is-rounded" style="background: @cat.color; color: #fff">
+                    @cat.name
+                  </span>
+                }
+              </div>
             </td>
             <td>
               <label class="td-label">Loại tin</label>
@@ -166,20 +151,18 @@ else
               </a>
             </td>
           </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+        }
+      </tbody>
+    </table>
   </div>
-</section>
 }
 <BlogsPin data="pinList" mainpin="@mainPin" department="@filterDepartment"
-  departments="departments" OnClose="ClosePin" />
+          departments="departments" OnClose="ClosePin" />
 
 
 @if (model != null)
 {
- <div class="modal is-active">
+  <div class="modal is-active">
     <div class="modal-background"></div>
     <div class="modal-card is-large">
       <div class="modal-card-head">
@@ -210,7 +193,7 @@ else
                 <div class="control is-expanded">
                   <input @bind="model.image" class="input" type="text" placeholder="Nhập link hình..." />
                 </div>
-                <FileUpload Accept="image/*" Size="1000" OnUpload="x => model.image = x[0]" />
+                <FileUpload Path="blogs/thumbnail" Accept="image/*" Size="1000" Cloud OnUpload="x => model.image = x[0]" />
               </div>
             </div>
           </li>
@@ -250,11 +233,11 @@ else
                       <div class="dropdown-item">
                         <div class="field is-grouped">
                           <div class="control is-expanded">
-                             <input @bind="category.name" class="input" type="text" placeholder="Nhập tên danh mục" />
+                            <input @bind="category.name" class="input" type="text" placeholder="Nhập tên danh mục" />
                           </div>
                           <div class="control">
                             <div class="input_color"
-                              style="background: @(category.color + "30"); color: @category.color;">
+                                 style="background: @(category.color + "30"); color: @category.color;">
                               <span class="icon">
                                 <i class="material-icons-outlined is-size-5">palette</i>
                               </span>
@@ -281,7 +264,7 @@ else
                               <i class="material-icons is-size-6">fiber_manual_record</i>
                             </span>
                             <a class="has-text-weight-semibold has-text-dark" style="flex-grow: 1;"
-                              @onclick="() => SelectCategory(item.id)">
+                            @onclick="() => SelectCategory(item.id)">
                               @item.name
                             </a>
                             <a class="icon has-text-link" @onclick="() => category = item">
@@ -304,7 +287,7 @@ else
               <label class="label">Tóm tắt</label>
               <div class="control">
                 <textarea @bind="model.desc" class="textarea" rows="3" maxlength="200"
-                  placeholder="Nhập nội dung tóm tắt" />
+                          placeholder="Nhập nội dung tóm tắt" />
               </div>
             </div>
           </li>
@@ -315,7 +298,7 @@ else
               </div>
               <div class="control">
                 <label class="radio">
-                  @if(isLink)
+                  @if (isLink)
                   {
                     <input type="radio" name="type" @onclick="() => isLink = false">
                   }
@@ -328,7 +311,7 @@ else
               </div>
               <div class="control">
                 <label class="radio">
-                  @if(isLink)
+                  @if (isLink)
                   {
                     <input type="radio" name="type" @onclick="() => isLink = true" checked>
                   }
@@ -400,7 +383,7 @@ else
                 </BlazoredTextEditor>
               </div>
               <div class="is-hidden">
-                <FileUpload Accept="image/*" Multiple="true" Size="1000" FileId="fileEditor" OnUpload="UploadEditor" />
+                <FileUpload Path="blogs/content" Accept="image/*" Multiple="true" Size="1000" FileId="fileEditor" Cloud OnUpload="UploadEditor" />
               </div>
             </div>
           </li>
@@ -444,8 +427,9 @@ else
 
   protected override async Task OnInitializedAsync()
   {
-    departmentAll = DbDepartment.GetAll(Layout.Company.id);
-    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+    departmentAll = await DbDepartment.GetAll(Layout.Company.id);
+    var departs = await DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+    departments.AddRange(departs);
     departments.RemoveAll(x => x.level > 1);
 
     company = await DbMainCompany.Get(Layout.Company.id);
@@ -469,21 +453,45 @@ else
   /// Xóa bài viết
   /// </summary>
 
-  private async Task DeleteItem(BlogModel item)
+  private async Task<bool> DeleteItem(BlogModel item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
-      return;
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+        return false;
 
-    dataList.Remove(item);
-    await DbBlog.Delete(Layout.Company.id, item.id);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa bài viết thành công.");
-    Files.DeleteFile(item.image);
+      dataList.Remove(item);
+      await DbBlog.Delete(Layout.Company.id, item.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa bài viết thành công.");
+      Files.DeleteFile(item.image);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task ToggleItem(BlogModel item)
+  private async Task<bool> ToggleItem(BlogModel item)
   {
-    item.pin = !item.pin;
-    await DbBlog.Update(Layout.Company.id, item);
+    bool _success = true;
+    try
+    {
+      item.pin = !item.pin;
+      await DbBlog.Update(Layout.Company.id, item);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ToggleItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private void EditItem(BlogModel item)
@@ -516,83 +524,116 @@ else
   ///  Xử lý tạo tin tức
   /// </summary>
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (Shared.IsEmpty(model.name))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề!");
-    else if (Shared.IsEmpty(model.image))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn hình ảnh!");
-    else if(isLink && Shared.IsEmpty(model.link))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập link!");
-    else if(Shared.IsEmpty(model.department))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn phòng ban!");
-    else
+    bool _success = true;
+    try
     {
-      var department = departments.SingleOrDefault(x => x.id == model.department);
-      if(department == null || department.level == 0)
-        model.is_all = true;
-      else
-        model.is_all = false;
-      
-      if (isLink)
-      {
-        model.content = string.Empty;
-      }
+      if (Shared.IsEmpty(model.name))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tiêu đề!");
+      else if (Shared.IsEmpty(model.image))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn hình ảnh!");
+      else if (isLink && Shared.IsEmpty(model.link))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập link!");
+      else if (Shared.IsEmpty(model.department))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn phòng ban!");
       else
       {
-        model.link = string.Empty;
-        model.content = await editor.GetHTML();
-      }
+        var department = departments.SingleOrDefault(x => x.id == model.department);
+        if (department == null || department.level == 0)
+          model.is_all = true;
+        else
+          model.is_all = false;
 
-      // Set ngày kích hoạt hiển thị bài viết
-      bool isSend = false;
-      if(model.is_show && model.date == 0)
-      {
-        model.date = DateTime.Now.Ticks;
-        isSend = true;
-      }
+        if (isLink)
+        {
+          model.content = string.Empty;
+        }
+        else
+        {
+          model.link = string.Empty;
+          model.content = await editor.GetHTML();
+        }
 
-      if (string.IsNullOrEmpty(model.id))
-      {
-        await DbBlog.Create(Layout.Company.id, model);
-        dataList.Insert(0, model);
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo bài viết thành công.");
-      }
-      else
-      {
-        await DbBlog.Update(Layout.Company.id, model);
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Cập nhật bài viết thành công");
-      }
+        // Set ngày kích hoạt hiển thị bài viết
+        bool isSend = false;
+        if (model.is_show && model.date == 0)
+        {
+          model.date = DateTime.Now.Ticks;
+          isSend = true;
+        }
 
-      // Gửi thông báo
-      if(isSend)
-        await SendNotify(model);
+        if (string.IsNullOrEmpty(model.id))
+        {
+          await DbBlog.Create(Layout.Company.id, model);
+          dataList.Insert(0, model);
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo bài viết thành công.");
+        }
+        else
+        {
+          await DbBlog.Update(Layout.Company.id, model);
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Cập nhật bài viết thành công");
+        }
 
-      model = null;
-      StateHasChanged();
+        // Gửi thông báo
+        if (isSend)
+          await SendNotify(model);
+
+        model = null;
+        StateHasChanged();
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   // Search tin tức
-  private async Task Search()
+  private async Task<bool> Search()
   {
-    dataList = await DbBlog.GetList(Layout.Company.id, filterDepartment);
-    if(!Shared.IsEmpty(filterKeyword))
-      dataList.RemoveAll(x => !Shared.SearchKeyword(filterKeyword, x.name));
+    bool _success = true;
+    try
+    {
+      dataList = await DbBlog.GetList(Layout.Company.id, filterDepartment);
+      if (!Shared.IsEmpty(filterKeyword))
+        dataList.RemoveAll(x => !Shared.SearchKeyword(filterKeyword, x.name));
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Search()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   /// <summary>
-  /// Lấy số lượng phòng ban đang được pin của docorp 
+  /// Lấy số lượng phòng ban đang được pin của docorp
   /// </summary>
   /// <returns>Số lượng</returns>
   private async Task<int> GetDocorpPinCount()
   {
-    var mainList = departments.Where(x => x.level == 0).ToList();
-    if(mainList.Count > 0)
+    try
     {
-      var main = mainList[0];
-      var mainBlogs = await DbBlog.GetList(Layout.Company.id, main.id);
-      return mainBlogs.Count(x => x.pin);
+      var mainList = departments.Where(x => x.level == 0).ToList();
+      if (mainList.Count > 0)
+      {
+        var main = mainList[0];
+        var mainBlogs = await DbBlog.GetList(Layout.Company.id, main.id);
+        return mainBlogs.Count(x => x.pin);
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetDocorpPinCount()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
     }
     return 0;
   }
@@ -600,15 +641,27 @@ else
   /// <summary>
   /// Hiển thị danh sách ghim
   /// </summary>
-  private async Task ShowPin()
+  private async Task<bool> ShowPin()
   {
-    if(Shared.IsEmpty(filterDepartment))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn phòng ban cần thiết lập!");
-    else
+    bool _success = true;
+    try
     {
-      var list = await DbBlog.GetList(Layout.Company.id, filterDepartment);
-      pinList = list.Where(x => x.pin).OrderBy(x => x.pos).ToList();
+      if (Shared.IsEmpty(filterDepartment))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn phòng ban cần thiết lập!");
+      else
+      {
+        var list = await DbBlog.GetList(Layout.Company.id, filterDepartment);
+        pinList = list.Where(x => x.pin).OrderBy(x => x.pos).ToList();
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ShowPin()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   /// <summary>
@@ -626,29 +679,41 @@ else
   private CompanyModel.Category GetCategoryName(string id)
   {
     var result = company.blog_category.FirstOrDefault(x => x.id == id);
-    if(result != null)
+    if (result != null)
       return result;
     else
       return new CompanyModel.Category() { name = "Chọn danh mục" };
   }
 
-  private async Task ToggleShow(BlogModel item)
+  private async Task<bool> ToggleShow(BlogModel item)
   {
-    item.is_show = !item.is_show;
-
-    // Set ngày kích hoạt hiển thị bài viết
-    bool isSend = false;
-    if(item.is_show && item.date == 0)
+    bool _success = true;
+    try
     {
-      item.date = DateTime.Now.Ticks;
-      isSend = true;
+      item.is_show = !item.is_show;
+
+      // Set ngày kích hoạt hiển thị bài viết
+      bool isSend = false;
+      if (item.is_show && item.date == 0)
+      {
+        item.date = DateTime.Now.Ticks;
+        isSend = true;
+      }
+
+      await DbBlog.Update(Layout.Company.id, item);
+
+      // Gửi thông báo
+      if (isSend)
+        await SendNotify(item);
     }
-
-    await DbBlog.Update(Layout.Company.id, item);
-
-    // Gửi thông báo
-    if(isSend)
-      await SendNotify(item);
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ToggleShow()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
 
@@ -658,11 +723,13 @@ else
 
   private async Task SendNotify(BlogModel item)
   {
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+
     var userList = new List<string>();
-    if(item.is_all)
-      userList = Layout.UserList.Select(x => x.id).ToList();
+    if (item.is_all)
+      userList = shareStorage.MemberList.Select(x => x.id).ToList();
     else
-      userList = Layout.UserList.Where(x => x.departments_id.Contains(item.department)).Select(x => x.id).ToList();
+      userList = shareStorage.MemberList.Where(x => x.departments_id.Contains(item.department)).Select(x => x.id).ToList();
     foreach (var userId in userList)
       await DbNotify.Create(Layout.Company.id, 9, item.id, userId, Layout.User.id);
   }
@@ -671,31 +738,44 @@ else
   /// <summary>
   /// Cập nhật danh mục
   /// </summary>
-  private async Task UpdateCategory()
+  private async Task<bool> UpdateCategory()
   {
-    if(Shared.IsEmpty(category.name))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên danh mục");
-    else
+    bool _success = true;
+    try
     {
-      if(Shared.IsEmpty(category.color))
-        category.color = "#333333";
-      if(Shared.IsEmpty(category.id))
+      if (Shared.IsEmpty(category.name))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên danh mục");
+      else
       {
-        category.id = Mongo.RandomId();
-        company.blog_category.Add(category);
+        if (Shared.IsEmpty(category.color))
+          category.color = "#333333";
+        if (Shared.IsEmpty(category.id))
+        {
+          category.id = Mongo.RandomId();
+          company.blog_category.Add(category);
+        }
+        category = new();
+        await DbMainCompany.Update(company);
+        await globalService.Update(company.id);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật danh mục.");
       }
-      category = new();
-      await DbMainCompany.Update(company);
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã cập nhật danh mục.");
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateCategory()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  
+
   /// <summary>
   /// Chọn danh mục
   /// </summary>
   private void SelectCategory(string id)
-  { 
+  {
     model.category = id;
     toggleCategory = false;
   }
@@ -703,13 +783,26 @@ else
   /// <summary>
   /// Xóa danh mục
   /// </summary>
-  private async Task DeleteCategory(string id)
+  private async Task<bool> DeleteCategory(string id)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn xóa danh mục này?"))
-     return;
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn xóa danh mục này?"))
+        return false;
 
-    company.blog_category.RemoveAll(x => x.id == id);
-    await DbMainCompany.Update(company);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa danh mục.");
+      company.blog_category.RemoveAll(x => x.id == id);
+      await DbMainCompany.Update(company);
+      await globalService.Update(company.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa danh mục.");
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteCategory()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

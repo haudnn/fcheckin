@@ -1,0 +1,120 @@
+﻿<div class="control has-icons-right has-icons-left is-fullwidth">
+  @if (metric != null || IsTarget)
+  {
+    var styleIconRight = "";
+    if (IsSmall)
+      styleIconRight = "padding-right: 60px; padding-left: 50px;";
+    else
+      styleIconRight = "padding-right: 100px; padding-left: 50px;";
+
+    if (IsTarget)
+    {
+      <InputDouble FormatDouble=true Class="input is_bg" Value="Math.Round(Math.Abs(target), 3)" OnInput="(e) => ChangeValueTarget(e)"
+                   Text="Mục tiêu mong muốn..." Style="@styleIconRight" />
+    }
+    else
+    {
+      <InputDouble FormatDouble=true Class="input is_bg" Value="Math.Round(Math.Abs(checkinCreate.value_fluctuate), 3)" OnInput="(e) => ChangeValueFluctuate(e)"
+                   Text="Nhập kết quả..." Style="@styleIconRight" />
+    }
+
+    <span class="icon is-right is-italic has-text-grey-light text_1_line has-text-right pr-2" style="width: 100px; padding-top: 6px;">
+      @(metric != null ? metric.units : "")
+    </span>
+    <div class="icon is-left" style="width: 3.5em; pointer-events: unset;">
+      <Dropdown CloseOnClickMenu=true DropdownStyle="max-width: 100%;" TriggerStyle="max-width: 100%; display: flex; border-right: 2px solid #dbdbdb;">
+        <Trigger>
+          <i class="material-icons-outlined is-size-6 has-text-info is-clickable">@(IsDown ? "remove" : "add")</i>
+          <i class="material-icons-outlined is-size-6 has-text-link is-clickable">arrow_drop_down</i>
+        </Trigger>
+        <MenuContent>
+          <a class="dropdown-item" @onclick="() => ChangeUpDown(true)">
+            Giá trị âm
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeUpDown(false)">
+            Giá trị dương
+          </a>
+        </MenuContent>
+      </Dropdown>
+    </div>
+  }
+</div>
+
+@code {
+  [Parameter]
+  public KpisMetricModel metric { get; set; }
+  [Parameter]
+  public KpisCheckinModel checkinCreate { get; set; }
+  [Parameter]
+  public KpisModel model { get; set; }
+  [Parameter]
+  public EventCallback<KpisCheckinModel> OnUpdate { get; set; }
+  [Parameter]
+  public bool IsDownParameter { get; set; }
+  [Parameter]
+  public bool IsTarget { get; set; }
+  [Parameter]
+  public double target { get; set; }
+  [Parameter]
+  public EventCallback<double> OnUpdateTarget { get; set; }
+  [Parameter]
+  public bool IsSmall { get; set; }
+
+  private bool IsDown;
+
+  protected override void OnInitialized()
+  {
+    IsDown = IsDownParameter;
+  }
+
+  private async Task ChangeValueFluctuate(double value)
+  {
+    if (IsDown)
+      value = value < 0 ? value : -value;
+    else
+      value = value > 0 ? value : -value;
+
+    if (model != null && model.metrics.FirstOrDefault() != null)
+    {
+      checkinCreate.value = checkinCreate.value - checkinCreate.value_fluctuate + value;
+      checkinCreate.value_fluctuate = value;
+      await OnUpdate.InvokeAsync(checkinCreate);
+    }
+  }
+
+  private async Task ChangeUpDown(bool e)
+  {
+    if (IsDown != e)
+    {
+      IsDown = e;
+
+      if (!IsTarget)
+      {
+        var valueCheck = checkinCreate.value_fluctuate >= 0 ? checkinCreate.value_fluctuate : -checkinCreate.value_fluctuate;
+
+        if (IsDown)
+          checkinCreate.value = checkinCreate.value - (2 * valueCheck);
+        else
+          checkinCreate.value = checkinCreate.value + (2 * valueCheck);
+
+        checkinCreate.value_fluctuate = -checkinCreate.value_fluctuate;
+
+        await OnUpdate.InvokeAsync(checkinCreate);
+      }
+      else
+      {
+        await ChangeValueTarget(target);
+      }
+    }
+  }
+
+  private async Task ChangeValueTarget(double e)
+  {
+    if (IsDown)
+      target = e < 0 ? e : -e;
+    else
+      target = e > 0 ? e : -e;
+
+    await OnUpdateTarget.InvokeAsync(target);
+  }
+}

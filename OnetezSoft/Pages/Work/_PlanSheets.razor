@@ -1,0 +1,557 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
+
+<div class="sheets_container is-pointer @(Layout.IsMobile ? "is-mobile" : Layout.User.custom.sheets_less ? "" : "sheet-less") @(Layout.User.custom.sidebar_fwork ? "" : "is-less")">
+  <div class="collapsed_container" @onclick="ToogleSheet">
+    <span class="icon is-pointer">
+      <i class="material-icons-round is-size-4 has-text-black">@(Layout.User.custom.sheets_less ? "keyboard_arrow_up" : "keyboard_arrow_down") </i>
+    </span>
+  </div>
+  <div class="sheets-body">
+    <div style="border-right: 1px solid #c7c7c7" class="is-flex is-align-items-center pr-3 pb-1">
+      @if (roleManager)
+      {
+        <div class="mr-2" title="Thêm sheet" @onclick="HandleAddSheet">
+          <span class="icon is-pointer is-size-5 has-text-grey">
+            <i class="material-icons-round">add</i>
+          </span>
+        </div>
+      }
+      <div>
+        <Dropdown CloseOnClickMenu>
+          <Trigger>
+            <a class="icon has-text-grey is-size-5">
+              <i class="material-icons-round">format_list_bulleted</i>
+            </a>
+          </Trigger>
+          <MenuContent>
+            @foreach (var item in model.sheets.OrderBy(x => x.possition).ToList())
+            {
+              <a class="dropdown-item" @onclick="() => HandleChangeSheet(item.id)">
+                <div class="icon-text">
+                  @if (currentSheet.id == item.id)
+                  {
+                    <span class="icon">
+                      <i class="material-icons-outlined">done</i>
+                    </span>
+                  }
+                  else
+                  {
+                    <span class="icon">
+                      <i class="material-icons-outlined"></i>
+                    </span>
+                  }
+                  <span class="font_14 is-secondary-20 has-text-weight-normal">@item.name</span>
+                </div>
+              </a>
+            }
+          </MenuContent>
+        </Dropdown>
+      </div>
+    </div>
+
+    @if(Layout.IsMobile)
+    {
+      <div class="mx-4">
+        <ul class="sheet_list is-mobile">
+          @foreach (WorkPlanModel.Sheet sheet in model.sheets.OrderBy(x => x.possition).ToList())
+          {
+            <li class="sheet_item @(currentSheet.id == sheet.id ? "is-active" : "")" @onclick:stopPropagation="true" @onclick="() => HandleChangeSheet(sheet.id)">
+              <div class="is-flex is-align-items-center">
+                @if (isEditSheet && currentSheet.id == sheet.id)
+                {
+                  <input @onblur="() => HandleEditSheet(sheet)" @bind="sheet.name" type="text" class="input input-sheet" />
+                }
+                else
+                {
+                  <div title="@sheet.name" style="max-width: 80px;" class="font_14 text_1_line">@sheet.name</div>
+                }
+                @if (roleManager)
+                {
+                  <Dropdown isSetLeft="true" MenuStyle="position: fixed; bottom: 50px; width: 200px; height: 210px;" CloseOnClickMenu>
+                   <Trigger>
+                     <a @onclick="() => HandleChangeSheet(sheet.id)" class="icon is-small ml-2 @(currentSheet.id == sheet.id ? "is-primary-40" : "has-text-dark")">
+                       <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+                     </a>
+                   </Trigger>
+                   <MenuContent>
+                     <a class="dropdown-item" @onclick="() => EditSheet(sheet, true, false)">
+                       <span class="font_14 is-secondary-20 has-text-weight-normal">Đổi tên</span>
+                     </a>
+                     <a class="dropdown-item" @onclick="HandleExportExcelSheet">
+                       <span class="font_14 is-secondary-20 has-text-weight-normal">Xuất file Excel</span>
+                     </a>
+                     @if (model.sheets.Count == 1)
+                      {
+                        <a class="dropdown-item delete-not-active">
+                          <span class="font_14 has-text-danger">Xóa sheet</span>
+                        </a>
+                      }
+                      else
+                      {
+                        <a class="dropdown-item" @onclick="() => EditSheet(sheet, false, true)">
+                          <span class="font_14 has-text-danger">Xóa sheet</span>
+                        </a>
+                      }
+                      <hr style="margin: 8px 0px 8px 16px" />
+                      <a class="dropdown-item" @onclick="() => MoveSheet(sheet, false)">
+                        <span class="font_14 is-secondary-20 has-text-weight-normal">Di chuyển sang trái</span>
+                      </a>
+                      <a class="dropdown-item" @onclick="() => MoveSheet(sheet, true)">
+                        <span class="font_14 is-secondary-20 has-text-weight-normal">Di chuyển sang phải</span>
+                      </a>
+
+                    </MenuContent>
+                  </Dropdown>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+    else
+    {
+      <div class="mx-4">
+        <Dropzone Items="model.sheets.OrderBy(x => x.possition).ToList()"
+                  InstantReplace="true"
+                  TItem="WorkPlanModel.Sheet"
+                  OnItemDrop="x => OnItemDragdrop(x)"
+                  OnReplacedItemDrop="((p)=> OnReplacedItemDrop(p))"
+                  AllowsDrag="x => roleManager"
+                  Class="sheet_list scrollx pb-1">
+          <ChildContent>
+            <div class="sheet_item @(currentSheet.id == context.id ? "is-active" : "")" @onclick:stopPropagation="true" @onclick="() => HandleChangeSheet(context.id)">
+              <div class="is-flex is-align-items-center">
+                @if (isEditSheet && currentSheet.id == context.id)
+                {
+                  <input @onblur="() => HandleEditSheet(context)" @bind="context.name" type="text" class="input input-sheet" />
+                }
+                else
+                {
+                  <div title="@context.name" style="max-width: 80px;" class="font_14 text_1_line">@context.name</div>
+                }
+                @if (roleManager)
+                {
+                  <Dropdown isSetLeft="true" MenuStyle="position: fixed; bottom: 50px; width: 200px; height: 210px;" CloseOnClickMenu>
+                   <Trigger>
+                     <a @onclick="() => HandleChangeSheet(context.id)" class="icon is-small ml-2 @(currentSheet.id == context.id ? "is-primary-40" : "has-text-dark")">
+                       <i class="material-icons-outlined is-size-6">arrow_drop_down</i>
+                     </a>
+                   </Trigger>
+                   <MenuContent>
+                     <a class="dropdown-item" @onclick="() => EditSheet(context, true, false)">
+                       <span class="font_14 is-secondary-20 has-text-weight-normal">Đổi tên</span>
+                     </a>
+                     <a class="dropdown-item" @onclick="HandleExportExcelSheet">
+                       <span class="font_14 is-secondary-20 has-text-weight-normal">Xuất file Excel</span>
+                     </a>
+                     @if (model.sheets.Count == 1)
+                      {
+                        <a class="dropdown-item delete-not-active">
+                          <span class="font_14 has-text-danger">Xóa sheet</span>
+                        </a>
+                      }
+                      else
+                      {
+                        <a class="dropdown-item" @onclick="() => EditSheet(context, false, true)">
+                          <span class="font_14 has-text-danger">Xóa sheet</span>
+                        </a>
+                      }
+                      <hr style="margin: 8px 0px 8px 16px" />
+                      <a class="dropdown-item" @onclick="() => MoveSheet(context, false)">
+                        <span class="font_14 is-secondary-20 has-text-weight-normal">Di chuyển sang trái</span>
+                      </a>
+                      <a class="dropdown-item" @onclick="() => MoveSheet(context, true)">
+                        <span class="font_14 is-secondary-20 has-text-weight-normal">Di chuyển sang phải</span>
+                      </a>
+
+                    </MenuContent>
+                  </Dropdown>
+                }
+              </div>
+            </div>
+          </ChildContent>
+        </Dropzone>
+      </div>
+    }
+
+  </div>
+</div>
+
+
+@if (isConfirm)
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div id="plan_popup" class="modal-card">
+      <div class="modal-card-head">
+        <div class="modal-card-title">
+          Xác nhận xoá sheet kế hoạch
+        </div>
+        <a class="delete" @onclick="() => HandleDeleteSheet(false)"></a>
+      </div>
+      <div class="modal-card-body">
+        <div class="field">
+          <p class="font_14 is-secondary-40">
+            Bạn đang thực hiện xoá sheet <span class="is-secondary-10 has-text-weight-medium">@currentSheet.name</span>. Việc này sẽ sẽ khiến dữ liệu bên trong sheet bị mất đi và không thể khôi phục. Bạn có chắc chắn muốn xoá?
+          </p>
+        </div>
+        <div class="field mt-5">
+          <div class="buttons is-right">
+            <a class="button is-outlined" @onclick="() => HandleDeleteSheet(false)">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-6">close</span>
+              </span>
+              <span>Hủy</span>
+            </a>
+            <a class="button is-danger" @onclick="() => HandleDeleteSheet(true)">
+              <span class="icon">
+                <span class="material-icons-outlined is-size-6">delete</span>
+              </span>
+              <span>Xoá</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public bool roleManager { get; set; }
+  [Parameter]
+  public EventCallback<string> OnChangedSheet { get; set; }
+  [Parameter]
+  public WorkPlanModel model { get; set; }
+  [Parameter]
+  public WorkPlanModel.Sheet currentSheet { get; set; }
+  [Parameter]
+  public EventCallback<bool> OnDeleteSheet { get; set; }
+
+  private bool isEditSheet = false;
+
+  private bool isConfirm = false;
+
+  private WorkPlanModel.Sheet sheetChoosed = new();
+
+  private WorkPlanModel.Sheet dropedItem = new();
+
+  private WorkPlanModel.Sheet replacedItem = new();
+
+  private async Task ToogleSheet()
+  {
+    Layout.User.custom.sheets_less = !Layout.User.custom.sheets_less;
+    await DbUser.Update(Layout.Company.id, Layout.User, globalService);
+  }
+
+
+  private async Task HandleAddSheet()
+  {
+    var sheetCount = model.sheets.Count + 1;
+    WorkPlanModel.Sheet sheetModel = new WorkPlanModel.Sheet
+      {
+        id = Mongo.RandomId(),
+        name = "Sheet " + sheetCount,
+        possition = sheetCount,
+      };
+    model.sheets.Add(sheetModel);
+    await DbWorkPlan.AddSheet(Layout.Company.id, model.id, sheetModel);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo mới sheet thành công!");
+    await OnChangedSheet.InvokeAsync(sheetModel.id);
+  }
+
+  private async Task HandleEditSheet(WorkPlanModel.Sheet sheetItem)
+  {
+    if (string.IsNullOrEmpty(sheetItem.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Vui lòng nhập tên sheet!");
+    else
+    {
+      await DbWorkPlan.UpdateSheet(Layout.Company.id, model.id, sheetItem);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đổi tên sheet thành công!");
+      isEditSheet = false;
+    }
+  }
+
+  private async Task HandleDeleteSheet(bool isConfirmed)
+  {
+    if (!isConfirmed)
+    {
+      isConfirm = false;
+      return;
+    }
+    else
+      await OnDeleteSheet.InvokeAsync(isConfirmed);
+    isConfirm = false;
+
+  }
+
+  private async Task HandleChangeSheet(string id)
+  {
+    await OnChangedSheet.InvokeAsync(id);
+  }
+
+  ///  <summary>
+  /// Hàm xử lý các tác vụ liên quan đến sheet
+  /// </summary>
+  /// <param name="sheetItem">current sheet</param>
+  /// <param name="isEditName">Change name</param>
+  /// <param name="isDeleteSheet">Delete sheet</param>
+  private void EditSheet(WorkPlanModel.Sheet sheetItem, bool isEditName = false, bool isDeleteSheet = false)
+  {
+    isEditSheet = isEditName;
+    isConfirm = isDeleteSheet;
+    sheetChoosed = sheetItem;
+  }
+
+
+  /// <summary>
+  /// Hàm xử lý di chuyển sheet
+  /// </summary>
+  /// <param name="sheetItem">current sheet</param>
+  /// <param name="isNext">True: phải, false: trái</param>
+  private async Task MoveSheet(WorkPlanModel.Sheet sheetItem, bool isNext)
+  {
+    if (isNext)
+    {
+      var move = model.sheets.Where(x => x.possition > sheetItem.possition).OrderBy(x => x.possition).FirstOrDefault();
+      if (move != null)
+      {
+        sheetItem.possition++;
+        move.possition--;
+
+        await DbWorkPlan.UpdateSheet(Layout.Company.id, model.id, sheetItem);
+        await DbWorkPlan.UpdateSheet(Layout.Company.id, model.id, move);
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã di chuyển vị trí sheet {sheetItem.name}!");
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể di chuyển vị trí sheet!");
+
+    }
+    else
+    {
+      var move = model.sheets.Where(x => x.possition < sheetItem.possition).OrderByDescending(x => x.possition).FirstOrDefault();
+      if (move != null)
+      {
+        sheetItem.possition--;
+        move.possition++;
+        await DbWorkPlan.UpdateSheet(Layout.Company.id, model.id, sheetItem);
+        await DbWorkPlan.UpdateSheet(Layout.Company.id, model.id, move);
+        await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã di chuyển vị trí sheet {sheetItem.name}!");
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể di chuyển vị trí nhóm!");
+    }
+  }
+
+  // Hàm dùng đề lấy vị trí của item bị thay đổi
+  private void OnReplacedItemDrop(WorkPlanModel.Sheet item)
+  {
+    // Lấy item bị thay dổi
+    replacedItem = item;
+  }
+
+
+  /// <summary>
+  /// Kéo thả sheet
+  /// </summary>
+  private async Task OnItemDragdrop(WorkPlanModel.Sheet sheetItem)
+  {
+    dropedItem = sheetItem;
+    var temp = dropedItem.possition;
+    dropedItem.possition = replacedItem.possition;
+    await DbWorkPlan.UpdateSheet(Layout.Company.id, model.id, dropedItem);
+    replacedItem.possition = temp;
+    await DbWorkPlan.UpdateSheet(Layout.Company.id, model.id, replacedItem);
+    await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã di chuyển vị trí sheet {dropedItem.name}!");
+  }
+
+  private async Task HandleExportExcelSheet()
+  {
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Chúng tôi đang xử lý file Excel của bạn...");
+    var data = await DbWorkPlan.Get(Layout.Company.id, model.id);
+
+    List<WorkPlanModel.Task> tasksByPlan = await DbWorkTask.GetListInPlan(Layout.Company.id, model.id);
+    Dictionary<string, List<WorkPlanModel.Task>> tasksGrouping = new();
+
+    tasksByPlan = (from x in tasksByPlan orderby x.pos, x.date_end select x).ToList();
+    var filteredSections = model.sections.Where(x => x.sheet == currentSheet.id).ToList();
+
+
+    foreach (var group in filteredSections)
+    {
+      tasksGrouping.Add(group.id, tasksByPlan.Where(x => x.section_id == group.id).ToList());
+    }
+
+    Dictionary<string, List<List<string>>> dataExport = new();
+    List<List<string>> sheetData = new List<List<string>>();
+    var logsPlan = await DbWorkLog.GetAllListPlan(Layout.Company.id, data.id);
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    var source = shareStorage.MemberList;
+
+    sheetData.Add(new List<string>
+      {
+        "Nhóm công việc",
+        "Tên công việc chính",
+        "Tên công việc phụ",
+        "Ngày tạo",
+        "Ngày bắt đầu",
+        "Ngày kết thúc",
+        "Mô tả",
+        "Thành viên",
+        "Mức độ ưu tiên",
+        "Trạng thái",
+        "Ngày cập nhật trạng thái",
+        "Nhãn dán"
+      });
+    dataExport.Add(currentSheet.name, sheetData);
+
+    foreach (var task in filteredSections)
+    {
+      var tasks = tasksGrouping[task.id];
+      foreach (var item in tasks)
+      {
+        var logTask = logsPlan.Where(x => x.task == item.id).Last();
+        var logChangedStatus = logsPlan.FirstOrDefault(x => x.task == item.id && x.name == "Cập nhật trạng thái");
+        string memberName = string.Empty;
+        string labelName = string.Empty;
+        var priority = WorkService.Priority(item.priority);
+        var status = WorkService.Status(item.status);
+
+        foreach (var member in item.members)
+        {
+          var user = source.SingleOrDefault(x => x.id == member.id);
+          string userName = user != null ? user.name : "";
+          memberName += userName;
+
+          if (member != item.members.Last())
+            memberName += ", ";
+        }
+
+        foreach (var x in item.labels)
+        {
+          var label = data.labels.SingleOrDefault(l => x == l.id);
+          string name = label != null ? label.name : "";
+          labelName += name;
+
+          if (x != item.labels.Last())
+            labelName += ", ";
+        }
+
+
+        string groupTaskName = task.name;
+        string taskName = string.IsNullOrEmpty(item.name) ? "" : item.name;
+        string priorityName = string.IsNullOrEmpty(priority.name) ? "" : priority.name;
+
+        string statusName = string.IsNullOrEmpty(status.name) ? "" : status.name;
+        string dateStart = item.date_start > 0 ? string.Format("{0:dd/MM/yyyy - HH:mm}", new DateTime(item.date_start)) : "";
+        string dateEnd = item.date_end > 0 ? string.Format("{0:dd/MM/yyyy - HH:mm}", new DateTime(item.date_end)) : "";
+
+        string createLog = logTask != null ? string.Format("{0:dd/MM/yyyy - HH:mm}", new DateTime(logTask.date)) : "";
+        string detail = string.IsNullOrEmpty(item.detail) ? "" : "\"" + item.detail.Replace("\n", "\"\n\"") + "\"";
+        string updatedStatusLog = logChangedStatus != null ? string.Format("{0:dd/MM/yyyy - HH:mm}", new DateTime(logChangedStatus.date)) : "";
+
+        List<WorkPlanModel.Task> subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.id, item.id);
+
+        sheetData.Add(new List<string>
+        {
+          // Nhóm công việc
+          groupTaskName,
+          // Tên công việc chính
+          taskName,
+          // Tên công việc phụ
+          "",
+          // Ngày tạo
+          createLog,
+          // Ngày bắt đầu
+          dateStart,
+          // Ngày kết thúc
+          dateEnd,
+          // Mô tả
+          detail,
+          // Thành viên
+          memberName,
+          // Mức độ ưu tiên
+          priorityName,
+          // Trạng thái
+          statusName,
+          // Ngày cập nhật trạng thái
+          updatedStatusLog,
+          // Nhãn dán
+          labelName,
+        });
+        foreach (WorkPlanModel.Task sub in subTasks)
+        {
+
+          string subTaskMember = "";
+          string labelSubTask = "";
+
+          StaticModel statusSub = WorkService.Status(sub.status);
+          string subTaskName = string.IsNullOrEmpty(sub.name) ? "" : sub.name;
+
+          string subTaskStart = sub.date_start > 0 ? string.Format("{0:dd/MM/yyyy - HH:mm}", new DateTime(sub.date_start)) : "";
+          string subTaskEnd = sub.date_end > 0 ? string.Format("{0:dd/MM/yyyy - HH:mm}", new DateTime(sub.date_end)) : "";
+          string subTaskDetail = string.IsNullOrEmpty(sub.detail) ? "" : "\"" + sub.detail.Replace("\n", "\"\n\"") + "\"";
+          string subTaskStatus = string.IsNullOrEmpty(statusSub.name) ? "" : status.name;
+
+          foreach (var member in sub.members)
+          {
+            var user = source.SingleOrDefault(x => x.id == member.id);
+            string userName = user != null ? user.name : "";
+            subTaskMember += userName;
+
+            if (member != sub.members.Last())
+              subTaskMember += ", ";
+          }
+
+          foreach (var x in sub.labels)
+          {
+            var label = data.labels.SingleOrDefault(l => x == l.id);
+            string name = label != null ? label.name : "";
+            labelSubTask += name;
+
+            if (x != sub.labels.Last())
+              labelSubTask += ", ";
+          }
+
+          sheetData.Add(new List<string>
+            {
+              // Nhóm công việc
+              "",
+              // Tên công việc chính
+              "",
+              // Tên công việc phụ
+              subTaskName,
+              // Ngày tạo
+              "",
+              // Ngày bắt đầu
+              subTaskStart,
+              // Ngày kết thúc
+              subTaskEnd,
+              // Mô tả
+              subTaskDetail,
+              // Thành viên
+              subTaskMember,
+             // Mức độ ưu tiên
+              priorityName,
+              // Trạng thái
+              subTaskStatus,
+              "",
+              // Nhãn dán
+              labelSubTask
+            });
+        }
+
+      }
+    }
+    var file = Files.ExportExcelMultiSheets(dataExport, data.name);
+    await JSRuntime.InvokeAsync<string>("newTab", file);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hoàn thành việc tải xuống file Excel!");
+  }
+
+}

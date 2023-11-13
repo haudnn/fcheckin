@@ -1,101 +1,81 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
-<div class="card p-5 p-4-mobile">
-  <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3">
-    <li class="column is-full">
+<div class="card flex_column">
+  <ul class="columns is-multiline is-vcentered is-variable is-2 mb-2">
+    <li class="column">
       <h1 class="title is-5 has-text-info">
         THỐNG KÊ HOÀN THÀNH
       </h1>
-    </li>
-    <li class="column">
-      <div class="field has-addons">
-        <div class="control">
-          <span class="button is-link">
-            <i class="material-icons-outlined">calendar_today</i>
-          </span>
-        </div>
-        <div class="control" style="width: 190px;">
-          <div class="input">
-            <DateRangePicker @bind-StartDate="filterStart" @bind-EndDate="filterEnd" OnRangeSelect="ChangePicker" />
-          </div>
-        </div>
-        <div class="control">
-          <div class="select is-fullwidth">
-            <select @onchange="ChangeDate">
-              <option value="1">Tuần này</option>
-              <option value="11">Tuần trước</option>
-              <option value="2">Tháng này</option>
-              <option value="22">Tháng trước</option>
-              <option value="3">Quý này</option>
-            </select>
-          </div>
-        </div>
-      </div>
     </li>
     <li class="column is-narrow">
       <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
     </li>
     <li class="column is-one-quarter">
-      <MemberSearch department="@filterDepartment" sources="Layout.UserList" OnUpdate="ChangeFilterUser" />
+      <MemberSearch department="@filterDepartment" sources="shareStorage.MemberList" OnUpdate="ChangeFilterUser" />
     </li>
+    <li class="column is-narrow">
+      <_InputDate @bind-Start="filterStart"
+      @bind-End="filterEnd"
+                              IsRange
+                              HasDropdown
+                   ListOptions="new() {1,11,2,22,3,7}"
+                   OnRangeSelect="ChangePicker" />
+     </li>
   </ul>
-  <ul class="columns is-multiline is-variable is-2">
-    @for (int i = 0; i < chartList.Count; i++)
-    {
-      if (i < chartList.Count)
+  <div class="inner_section" style="flex:1">
+     <ul class="columns is-multiline is-variable is-2">
+       @for (int i = 0; i < chartList.Count; i++)
       {
-        var item = chartList[i];
-        <li class="column @(i == 0 ? "is-full" : "is-halt") pt-5">
-          <h2 class="title is-6 has-text-info">@item.name</h2>
-          <div class="@(Layout.IsMobile ? "" : "pl-6")">
-            <div style="height: 150px;">
-              <canvas id="chart_@item.id" height="150"></canvas>
+        if (i < chartList.Count)
+        {
+          var item = chartList[i];
+          <li class="column @(i == 0 ? "is-full" : "is-halt")">
+            <h2 class="title is-6 has-text-info">@item.name</h2>
+            <div class="@(Layout.IsMobile ? "" : "pl-6")">
+              <div style="height: 150px;">
+                <canvas id="chart_@item.id" height="150"></canvas>
+              </div>
+              <div class="has-text-info pt-2 pl-5">@item.desc</div>
             </div>
-            <div class="has-text-info pt-2 pl-5">@item.desc</div>
-          </div>
-        </li>
+          </li>
+        }
       }
-    }
-  </ul>
+    </ul>
+  </div>
 </div>
 
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   [Parameter]
-  public List<DepartmentModel> departmentAll { get; set; }
+  public List<DepartmentModel> departmentAll { get; set; } = new();
   [Parameter]
-  public List<DepartmentModel.SelectList> departments { get; set; }
+  public List<DepartmentModel.SelectList> departments { get; set; } = new();
 
   private List<ProgressModel> chartList = new();
   private string filterDepartment = string.Empty;
   private string filterUserId = string.Empty;
-  private DateTimeOffset? filterStart = null;
-  private DateTimeOffset? filterEnd = null;
+  private long filterStart;
+  private long filterEnd;
+
+  private SharedStorage shareStorage = new();
 
   protected override async Task OnInitializedAsync()
   {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
     Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
-    filterStart = start;
-    filterEnd = end;
+    filterStart = start.Ticks;
+    filterEnd = end.Ticks ;
 
     await ChangeFilterDepartment(Layout.User.department_default);
   }
 
   public async Task ChangePicker(DateRange range)
   {
-    filterStart = range.Start;
-    filterEnd = range.End;
-    await GetData();
-  }
-
-  private async Task ChangeDate(ChangeEventArgs e)
-  {
-    var type = Convert.ToInt32(e.Value);
-    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
-    filterStart = start;
-    filterEnd = end;
+    filterStart = range.Start.Ticks;
+    filterEnd = range.End.Ticks;
     await GetData();
   }
 
@@ -108,69 +88,81 @@
 
   private async Task ChangeFilterUser(string value)
   {
-    if(!string.IsNullOrEmpty(value))
+    if (!string.IsNullOrEmpty(value))
       filterUserId = value;
     await GetData();
   }
 
-  private async Task GetData()
+  private async Task<bool> GetData()
   {
-    var start = filterStart.Value.DateTime;
-    var end = filterEnd.Value.DateTime;
-    var database = await DbTodolist.GetList(Layout.Company.id, start, end);
+    bool _success = true;
+    try
+    {
+      var start = new DateTime(filterStart);
+      var end = new DateTime(filterEnd);
+      var database = await DbTodolist.GetList(Layout.Company.id, start, end);
 
-    chartList.Clear();
-    if (!string.IsNullOrEmpty(filterUserId))
-    {
-      var user = UserService.GetUser(Layout.UserList, filterUserId);
-      var item = new ProgressModel()
+      chartList.Clear();
+      if (!string.IsNullOrEmpty(filterUserId))
       {
-        id = filterUserId,
-        name = user.FullName
-      };
-      item.desc = await RenderChart(filterUserId, new List<string>() { filterUserId }, database);
-      chartList.Add(item);
-    }
-    else if (!string.IsNullOrEmpty(filterDepartment))
-    {
-      var department = departmentAll.SingleOrDefault(x => x.id == filterDepartment);
-      if (department != null)
-      {
+        var user = UserService.GetMember(shareStorage.MemberList, filterUserId);
         var item = new ProgressModel()
-        {
-          id = department.id,
-          name = department.name
-        };
-        item.desc = await RenderChart(department.id, department.members_id, database);
+          {
+            id = filterUserId,
+            name = user.name
+          };
+        item.desc = await RenderChart(filterUserId, new List<string>() { filterUserId }, database);
         chartList.Add(item);
+      }
+      else if (!string.IsNullOrEmpty(filterDepartment))
+      {
+        var department = departmentAll.SingleOrDefault(x => x.id == filterDepartment);
+        if (department != null)
+        {
+          var item = new ProgressModel()
+            {
+              id = department.id,
+              name = department.name
+            };
+          item.desc = await RenderChart(department.id, department.members_id, database);
+          chartList.Add(item);
 
-        var childs = departmentAll.Where(x => x.parent == department.id);
+          var childs = departmentAll.Where(x => x.parent == department.id);
+          foreach (var child in childs)
+          {
+            var itemChild = new ProgressModel()
+              {
+                id = child.id,
+                name = child.name
+              };
+            itemChild.desc = await RenderChart(child.id, child.members_id, database);
+            chartList.Add(itemChild);
+          }
+        }
+      }
+      else
+      {
+        var childs = departmentAll.Where(x => x.parent == null);
         foreach (var child in childs)
         {
-          var itemChild = new ProgressModel()
-          {
-            id = child.id,
-            name = child.name
-          };
-          itemChild.desc = await RenderChart(child.id, child.members_id, database);
-          chartList.Add(itemChild);
+          var item = new ProgressModel()
+            {
+              id = child.id,
+              name = child.name
+            };
+          item.desc = await RenderChart(child.id, child.members_id, database);
+          chartList.Add(item);
         }
       }
     }
-    else
+    catch (Exception ex)
     {
-      var childs = departmentAll.Where(x => x.parent == null);
-      foreach (var child in childs)
-      {
-        var item = new ProgressModel()
-        {
-          id = child.id,
-          name = child.name
-        };
-        item.desc = await RenderChart(child.id, child.members_id, database);
-        chartList.Add(item);
-      }
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetData()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
     }
+    return _success;
   }
 
   private async Task<string> RenderChart(string id, List<string> members_id, List<TodolistModel> data)

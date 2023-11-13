@@ -1,12 +1,13 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 @{
   var status = WorkService.Status(model.status);
   var priority = WorkService.Priority(parent.priority);
   var deadline = WorkService.TaskDeadline(model);
-  DateTimeOffset? dateS = new DateTime(model.date_start);
-  DateTimeOffset? dateE = new DateTime(model.date_end);
+  long dateS = model.date_start;
+  long dateE = model.date_end;
 }
 
 <div class="task_board card px-3 py-2 is-size-7">
@@ -37,26 +38,35 @@
       }
     </li>
     <li class="column is-full">
-      <a class="has-text-weight-medium has-text-@(model.status == 4 ? "success is-line-through " : "black")"
+      @if (!edit)
+      {
+        <a class="has-text-weight-medium has-text-@(model.status == 4 ? "success is-line-through " : "black")"
         @onclick="View">@model.name</a>
+        @if (EditMode)
+        {
+          <span class="icon">
+            <span class="material-icons-outlined is-size-7 ml-1" @onclick="() => edit= true">
+              edit
+            </span>
+          </span>
+        }
+      }
+      else
+      {
+        <input class="input is-small is_underline has-text-weight-medium has-text-@(model.status == 4 ? "success is-line-through " : "black")" @onfocusout="UpdateTitle" @bind="@model.name"/>
+      }
     </li>
     <li class="column is-half">
-      <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" OnRangeSelect="UpdateDate">
-        <PickerTemplate>
-          <a id="@context.Id" @onclick="context.Toggle" class="icon-text">
-            <span class="icon is-small mr-1">
-              <i class="material-icons-outlined is-size-6">calendar_today</i>
-            </span>
-            @if (context.TStartDate != null && context.TEndDate != null)
-            {
-              <span>@context.TStartDate.Value.ToString("dd/MM")</span>
-              <span class="mx-1">-</span>
-              <span>@context.TEndDate.Value.ToString("dd/MM")</span>
-            }
-          </a>
-        </PickerTemplate>
-      </DateRangePicker>
-    </li>
+      <_InputDate 
+        @bind-Start="model.date_start"
+        @bind-End="model.date_end"
+        HasTime
+        Minimal
+        IsRange
+        Format="dd/MM"
+        DefaultString="Thời gian"
+        OnRangeSelect="UpdateDate" />
+     </li>
     <li class="column is-half has-text-right">
       <_MemberList members="model.members" sources="members" isRight="true" isEdit="isEdit" 
         isTask="true" isSubTask="true" OnUpdate="UpdateMembers" />
@@ -95,15 +105,20 @@
   [Parameter]
   public WorkPlanModel.Task parent { get; set; }
   [Parameter]
-  public List<UserModel> members { get; set; }
+  public List<MemberModel> members { get; set; } = new();
   [Parameter]
   public bool isEdit { get; set; }
   [Parameter]
   public EventCallback<WorkPlanModel.Task> OnUpdate { get; set; }
   [Parameter]
   public EventCallback OnView { get; set; }
+  [Parameter]
+  public bool EditMode { get; set; }
+  [Parameter]
+  public bool edit { get; set; }
 
   private bool toggleStatus = false;
+  private string oldTitle;
 
   private async Task ToggleStatus()
   {
@@ -116,42 +131,138 @@
     await OnView.InvokeAsync();
   }
 
-  private async Task Delete()
+  private async Task<bool> Delete()
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa \"{model.name}\".\nBạn có chắc chắn muốn thực hiện?"))
-      return;
-    await DbWorkTask.Delete(Layout.Company.id, model.id);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
-    await WorkService.CreateLog(Layout.Company.id, "Xóa công việc phụ", model.name, parent.plan_id, parent.id, Layout.User);
-    await OnUpdate.InvokeAsync(model);
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa \"{model.name}\".\nBạn có chắc chắn muốn thực hiện?"))
+        return _success;
+      await DbWorkTask.Delete(Layout.Company.id, model.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
+      await WorkService.CreateLog(Layout.Company.id, "Xóa công việc phụ", model.name, parent.plan_id, parent.id, Layout.User);
+      await OnUpdate.InvokeAsync(null);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Delete()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task UpdateDate(DateRange range)
+  private async Task<bool> UpdateDate(DateRange range)
   {
-    model.date_start = range.Start.Ticks;
-    model.date_end = range.End.Ticks;
-    await DbWorkTask.Update(Layout.Company.id, model);
+    bool _success = true;
+    try
+    {
+      await DbWorkTask.Update(Layout.Company.id, model);
+      await OnUpdate.InvokeAsync(model);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateDate()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task ChangeStatus(int id)
+  private async Task<bool> ChangeStatus(int id)
   {
-    toggleStatus = false;
-    model.status = id;
-    model.date_done = model.status == 4 ? DateTime.Now.Ticks : 0;
-    await DbWorkTask.Update(Layout.Company.id, model);
-    await OnUpdate.InvokeAsync(model);
+    bool _success = true;
+    try
+    {
+      toggleStatus = false;
+      model.status = id;
+      model.date_done = model.status == 4 ? DateTime.Now.Ticks : 0;
+      await DbWorkTask.Update(Layout.Company.id, model);
+      await OnUpdate.InvokeAsync(model);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeStatus()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task UpdateLabels()
+  private async Task<bool> UpdateLabels()
   {
-    await DbWorkTask.Update(Layout.Company.id, model);
+    bool _success = true;
+    try
+    {
+      await DbWorkTask.Update(Layout.Company.id, model);
+      await OnUpdate.InvokeAsync(model);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateLabels()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task UpdateMembers()
+  private async Task<bool> UpdateMembers()
   {
-    var old = await DbWorkTask.Get(Layout.Company.id, model.id);
-    await DbWorkTask.Update(Layout.Company.id, model);
-    // Lưu lịch sử
-    await WorkService.LogTaskMembers(Layout.Company.id, old, model, Layout.User, Layout.UserList);
+    bool _success = true;
+    try
+    {
+      var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+      var userList = shareStorage.MemberList;
+
+      var old = await DbWorkTask.Get(Layout.Company.id, model.id);
+      await DbWorkTask.Update(Layout.Company.id, model);
+      // Lưu lịch sử
+      await WorkService.LogTaskMembers(Layout.Company.id, old, model, Layout.User, userList);
+
+      await OnUpdate.InvokeAsync(model);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateMembers()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task UpdateTitle()
+  {
+    edit = false;
+    if (string.IsNullOrEmpty(oldTitle))
+    {
+      if (string.IsNullOrEmpty(model.name))
+      {
+        await OnUpdate.InvokeAsync(null);
+      }
+      else
+      {
+        oldTitle = model.name;
+        await DbWorkTask.Update(Layout.Company.id, model);
+        await OnUpdate.InvokeAsync(model);
+      }
+    }
+    else
+    {
+      if (string.IsNullOrEmpty(model.name))
+      {
+        model.name = oldTitle;
+      }
+      else
+      {
+        oldTitle = model.name;
+        await DbWorkTask.Update(Layout.Company.id, model);
+        await OnUpdate.InvokeAsync(model);
+      }
+    }
   }
 }

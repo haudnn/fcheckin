@@ -146,27 +146,63 @@
     await GetList();
   }
 
-  private async Task GetList()
+  private async Task<bool> GetList()
   {
-    dataList = await DbMainBanner.GetList();
+    bool _success = true;
+    try
+    {
+      dataList = await DbMainBanner.GetList();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task DeleteItem(BannerModel item)
+  private async Task<bool> DeleteItem(BannerModel item)
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa banner {item.name} ?"))
-      return;
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa banner {item.name} ?"))
+        return false;
 
-    dataList.Remove(item);
-    await DbMainBanner.Delete(item.id);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa banner: " + item.name);
+      dataList.Remove(item);
+      await DbMainBanner.Delete(item.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa banner: " + item.name);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task EditItem(BannerModel item)
+  private async Task<bool> EditItem(BannerModel item)
   {
-    if (item == null)
-      model = new BannerModel() { pages = new Dictionary<string, string>() };
-    else
-      model = await DbMainBanner.Get(item.id);
+    bool _success = true;
+    try
+    {
+      if (item == null)
+        model = new BannerModel() { pages = new Dictionary<string, string>() };
+      else
+        model = await DbMainBanner.Get(item.id);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "EditItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task OnUpdate(bool isUpdate)

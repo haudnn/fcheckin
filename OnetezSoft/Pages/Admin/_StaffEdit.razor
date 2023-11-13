@@ -1,4 +1,6 @@
 ﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
 @if (model != null)
 {
@@ -25,7 +27,7 @@
               <img src="@model.avatar" />
             </div>
             <a class="button is-white is-small is-fullwidth @(uploading ? "is-loading" : "")"
-             onclick="document.getElementById('file').click()">
+               onclick="document.getElementById('file').click()">
               <span class="icon">
                 <i class="material-icons-sharp is-size-6">file_upload</i>
               </span>
@@ -145,19 +147,31 @@
     Reset();
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (string.IsNullOrEmpty(model.first_name) && string.IsNullOrEmpty(model.last_name))
-      await Tagline("Bạn chưa nhập họ và tên cho tài khoản !");
-    else
+    bool _success = true;
+    try
     {
-      // Xóa quyền dùng sản phẩm khi hủy kích hoạt
-      if (!model.active)
-        model.products = new();
-      await DbUser.Update(company.id, model);
-      await OnUpdate.InvokeAsync(true);
-      Reset();
+      if (string.IsNullOrEmpty(model.first_name) && string.IsNullOrEmpty(model.last_name))
+        await Tagline("Bạn chưa nhập họ và tên cho tài khoản !");
+      else
+      {
+        // Xóa quyền dùng sản phẩm khi hủy kích hoạt
+        if (!model.active)
+          model.products = new();
+        await DbUser.Update(company.id, model, globalService);
+        await OnUpdate.InvokeAsync(true);
+        Reset();
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task AccessProduct(CompanyModel.Product product)
@@ -197,7 +211,7 @@
       }
       catch (Exception ex)
       {
-        await Tagline($"Không thể tải ảnh lên: {ex.Message}");
+        await Tagline($"Không thể tải ảnh lên: {ex.ToString()}");
       }
     }
     uploading = false;

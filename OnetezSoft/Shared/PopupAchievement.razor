@@ -1,8 +1,10 @@
 @inject NavigationManager navigation
+@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
 
 @if (productGift != null)
 {
-  var buyer = Layout.UserList.SingleOrDefault(x => x.id == productGift.user_buy);
+  var buyer = shareStorage.MemberList.SingleOrDefault(x => x.id == productGift.user_buy);
 
   <div class="modal is-active">
     <div class="modal-background"></div>
@@ -16,7 +18,7 @@
           <div class="has-text-weight-bold">
             Bạn đã nhận được một món quà từ
             <span class="has-text-danger">
-              @(buyer != null ? buyer.FullName : "Tài khoản đã xóa")
+              @(buyer != null ? buyer.name : "Tài khoản đã xóa")
             </span>
             <br />
             Hãy khám phá xem đây là món quà gì nào?
@@ -36,7 +38,7 @@
             Thật tuyệt vời!
             <br />
             <span class="has-text-danger">
-              @(buyer != null ? buyer.FullName : "Tài khoản đã xóa")
+              @(buyer != null ? buyer.name : "Tài khoản đã xóa")
             </span>
             đã tặng bạn
             <span class="has-text-danger">@productGift.quantity @productGift.name</span>
@@ -56,35 +58,38 @@
 @if (achievement != null)
 {
   var image = $"/images/achievement/{Shared.RandomInt(1, 17)}.gif";
-
-  <div class="modal is-active">
-    <div class="modal-background"></div>
-    <div class="modal-card is_radius" style="width: 550px;">
-      <div class="modal-card-body has-text-centered gift_or_achi">
-        <div class="image">
-          <img src="@image" style="width: 150px; margin: 0px auto;" />
-        </div>
-        <div class="has-text-grey has-text-weight-medium pt-3">
-          <p class="pb-2">Thật tuyệt vời! Bạn đã đạt được thành tựu mới trong tháng</p>
-          <p class="pb-2 is-size-6 has-text-weight-bold has-text-link">@achievement.name</p>
-          <div class="achi_@achievement.type">@achievement.star</div>
-          <p class="pb-2">@achievement.desc</p>
-          <p class="pb-2 has-text-warning">
-            <span class="icon-text">
-              <span class="is-size-6">+ @achievement.star</span>
-              <span class="icon">
-                <i class="material-icons-outlined is-size-5">star_outline</i>
+  var option = options.FirstOrDefault(x => x.id == achievement.type_id);
+  if(option != null)
+  {
+    <div class="modal is-active">
+      <div class="modal-background"></div>
+      <div class="modal-card is_radius" style="width: 550px;">
+        <div class="modal-card-body has-text-centered gift_or_achi">
+          <div class="image">
+            <img src="@image" style="width: 150px; margin: 0px auto;" />
+          </div>
+          <div class="has-text-grey has-text-weight-medium pt-3">
+            <p class="pb-2">Thật tuyệt vời! Bạn đã đạt được thành tựu mới trong tháng</p>
+            <p class="pb-2 is-size-6 has-text-weight-bold has-text-link">@achievement.name</p>
+            <div class="achi_@achievement.type" style="background-image:url(@option.image)">@achievement.star</div>
+            <p class="pb-2">@achievement.desc</p>
+            <p class="pb-2 has-text-warning">
+              <span class="icon-text">
+                <span class="is-size-6">+ @achievement.star</span>
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-5">star_outline</i>
+                </span>
               </span>
-            </span>
-          </p>
-          <a class="button is-link is-outlined" @onclick="() => ViewAchievement(true)">
-            Xem thành tựu
-          </a>
+            </p>
+            <a class="button is-link is-outlined" @onclick="() => ViewAchievement(true)">
+              Xem thành tựu
+            </a>
+          </div>
         </div>
       </div>
+      <a class="modal-close is-large" @onclick="() => ViewAchievement(false)"></a>
     </div>
-    <a class="modal-close is-large" @onclick="() => ViewAchievement(false)"></a>
-  </div>
+  }
 }
 
 @code {
@@ -93,24 +98,58 @@
   private GiftExchangeModel productGift = null;
   private AchievementModel achievement = null;
 
+  private List<AchievementModel.Option> options = new();
+
+  private SharedStorage shareStorage = new();
+
+  protected override async Task OnInitializedAsync()
+  {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    options = await DbAchievementConfig.GetAll(Layout.Company.id);
+  }
+
   protected override async Task OnParametersSetAsync()
   {
     productGift = await DbGiftExchange.GetGiveNew(Layout.Company.id, Layout.User.id);
     achievement = await DbAchievement.GetNew(Layout.Company.id, Layout.User.id);
   }
 
-  private async Task ViewGift()
+  private async Task<bool> ViewGift()
   {
-    productGift.view = true;
-    await DbGiftExchange.Update(Layout.Company.id, productGift);
+    bool _success = true;
+    try
+    {
+      productGift.view = true;
+      await DbGiftExchange.Update(Layout.Company.id, productGift);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ViewGift()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task ViewAchievement(bool view)
+  private async Task<bool> ViewAchievement(bool view)
   {
-    achievement.view = true;
-    await DbAchievement.Update(Layout.Company.id, achievement);
-    achievement = null;
-    if (view)
-      navigation.NavigateTo($"/teams/personal/{Layout.User.id}?tab=3", false);
+    bool _success = true;
+    try
+    {
+      achievement.view = true;
+      await DbAchievement.Update(Layout.Company.id, achievement);
+      achievement = null;
+      if (view)
+        navigation.NavigateTo($"/teams/personal/{Layout.User.id}?tab=3", false);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ViewAchievement()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

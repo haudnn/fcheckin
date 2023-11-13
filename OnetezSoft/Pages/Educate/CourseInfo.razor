@@ -4,78 +4,69 @@
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
-{
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
-    </div>
-  </div>
-}
-
-<section class="p-4 @(_loaded ? "" : "is-loading")">
-  @if (course != null)
-  {
-    if (course.creator == Layout.User.id || course.teacher == Layout.User.id || Layout.User.role < 3)
+<section class="main_content @(_loaded ? "" : "is-loading")">
+  <div class="card flex_column is_fullheight" style="@(Layout.IsMobile ? "" : "overflow:hidden;")">
+    @if (course != null)
     {
-      <ul class="columns is-multiline">
-        <li class="column is-one-quarter">
-          <div class="card p-5">
-            <div class="icon-text pl-2 has-text-warning">
-              <span class="icon is-large">
-                <i class="material-icons is-size-1">people_alt</i>
-              </span>
-              <div class="ml-4">
-                <div class="is-size-4 has-text-weight-bold">@course.learned</div>
-                <div class="is-size-6 has-text-weight-medium has-text-grey">Đã tham gia học</div>
+      if (course.creator == Layout.User.id || course.teacher == Layout.User.id || Layout.User.role < 3)
+      {
+        <ul class="columns is-multiline mb-2">
+          <li class="column is-one-quarter">
+            <div class="inner_section">
+              <div class="icon-text pl-2 has-text-warning">
+                <span class="icon is-large">
+                  <i class="material-icons is-size-1">people_alt</i>
+                </span>
+                <div class="ml-4">
+                  <div class="is-size-4 has-text-weight-bold">@course.learned</div>
+                  <div class="is-size-6 has-text-weight-medium has-text-grey">Đã tham gia học</div>
+                </div>
               </div>
             </div>
-          </div>
-        </li>
-        <li class="column is-one-quarter">
-          <div class="card p-5">
-            <div class="icon-text pl-2 has-text-link">
-              <span class="icon is-large">
-                <i class="material-icons is-size-1">school</i>
-              </span>
-              <div class="ml-4">
-                <div class="is-size-4 has-text-weight-bold">@course.graduated</div>
-                <div class="is-size-6 has-text-weight-medium has-text-grey">Đã tốt nghiệp</div>
+          </li>
+          <li class="column is-one-quarter">
+            <div class="inner_section">
+              <div class="icon-text pl-2 has-text-link">
+                <span class="icon is-large">
+                  <i class="material-icons is-size-1">school</i>
+                </span>
+                <div class="ml-4">
+                  <div class="is-size-4 has-text-weight-bold">@course.graduated</div>
+                  <div class="is-size-6 has-text-weight-medium has-text-grey">Đã tốt nghiệp</div>
+                </div>
               </div>
             </div>
-          </div>
-        </li>
-        <li class="column is-one-quarter">
-          <div class="card p-5">
-            <div class="icon-text pl-2 has-text-success">
-              <span class="icon is-large">
-                <i class="material-icons is-size-1">task_alt</i>
-              </span>
-              <div class="ml-4">
-                <div class="is-size-4 has-text-weight-bold">@examPass</div>
-                <div class="is-size-6 has-text-weight-medium has-text-grey">Bài kiểm tra đạt</div>
+          </li>
+          <li class="column is-one-quarter">
+            <div class="inner_section">
+              <div class="icon-text pl-2 has-text-success">
+                <span class="icon is-large">
+                  <i class="material-icons is-size-1">task_alt</i>
+                </span>
+                <div class="ml-4">
+                  <div class="is-size-4 has-text-weight-bold">@examPass</div>
+                  <div class="is-size-6 has-text-weight-medium has-text-grey">Bài kiểm tra đạt</div>
+                </div>
               </div>
             </div>
-          </div>
-        </li>
-        <li class="column is-one-quarter">
-          <div class="card p-5">
-            <div class="icon-text pl-2 has-text-danger">
-              <span class="icon is-large">
-                <i class="material-icons is-size-2">border_color</i>
-              </span>
-              <div class="ml-4">
-                <div class="is-size-4 has-text-weight-bold">@examNews</div>
-                <div class="is-size-6 has-text-weight-medium has-text-grey">Bài chưa chấm</div>
+          </li>
+          <li class="column is-one-quarter">
+            <div class="inner_section">
+              <div class="icon-text pl-2 has-text-danger">
+                <span class="icon is-large">
+                  <i class="material-icons is-size-2">border_color</i>
+                </span>
+                <div class="ml-4">
+                  <div class="is-size-4 has-text-weight-bold">@examNews</div>
+                  <div class="is-size-6 has-text-weight-medium has-text-grey">Bài chưa chấm</div>
+                </div>
               </div>
             </div>
-          </div>
-        </li>
-
-        <li class="column is-full">
-          <div class="card p-5">
-            <ul class="columns is-vcentered is-variable is-2 mb-3">
+          </li>
+        </ul>
+        <div class="" style="flex:1;@(Layout.IsMobile ? "" : "overflow:hidden;")">
+          <div class="flex_column" style="height:100%">
+            <ul class="columns is-vcentered is-variable is-2 mb-2">
               <li class="column">
                 <h1 class="title is-5 has-text-info is-uppercase">
                   @course.name
@@ -98,80 +89,81 @@
                 </div>
               </li>
             </ul>
-            <table class="table is-fullwidth is-vcentered is-responsive mb-5">
-              <thead>
-                <tr>
-                  <th>Tiêu đề bài</th>
-                  <th width="15%">Loại bài</th>
-                  <th width="10%">Thời lượng</th>
-                  <th width="10%" align="center">Thứ tự</th>
-                  <th width="40px" align="center">Xóa</th>
-                </tr>
-              </thead>
-              <tbody>
-                @foreach (var item in dataList)
-                {
-                  var type = DbEducateLesson.Type(item.type);
+            <div class="inner_section scrolly" style="flex:1">
+              <table class="table is-fullwidth is-vcentered is-responsive">
+                <thead>
                   <tr>
-                    <td>
-                      <a class="has-text-weight-semibold" href="/educate/course/manager/lesson/@item.id">
-                        @if (string.IsNullOrEmpty(item.name))
-                        {
-                          <i>Chưa nhập tiêu đề</i>
-                        }
-                        else
-                        {
-                          <span>@item.name</span>
-                        }
-                      </a>
-                    </td>
-                    <td>
-                      <label class="td-label">Loại bài</label>
-                      <div class="td-value">
-                        @type.name
-                      </div>
-                    </td>
-                    <td>
-                      <label class="td-label">Thời lượng</label>
-                      <div class="td-value">
-                        @item.time phút
-                      </div>
-                    </td>
-                    <td align="center">
-                      <label class="td-label">Thứ tự</label>
-                      <div class="td-value">
-                        <a class="icon has-text-link" title="Lên trên" @onclick="() => MoveUp(item)">
-                          <i class="material-icons-outlined is-size-5">arrow_upward</i>
-                        </a>
-                        <a class="icon has-text-link" title="Lên trên" @onclick="() => MoveDown(item)">
-                          <i class="material-icons-outlined is-size-5">arrow_downward</i>
-                        </a>
-                      </div>
-                    </td>
-                    <td align="center">
-                      <label class="td-label">Xử lý</label>
-                      <div class="td-value">
-                        <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
-                          <i class="material-icons-outlined is-size-5">delete</i>
-                        </a>
-                      </div>
-                    </td>
+                    <th>Tiêu đề bài</th>
+                    <th width="15%">Loại bài</th>
+                    <th width="10%">Thời lượng</th>
+                    <th width="10%" align="center">Thứ tự</th>
+                    <th width="40px" align="center">Xóa</th>
                   </tr>
-                }
-                @if (dataList.Count == 0)
-                {
-                  <tr>
-                    <td colspan="5">
-                      <div class="py-5 has-text-grey">
-                        Chưa có dữ liệu
-                      </div>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-
-            <div class="field is-grouped is-grouped-right">
+                </thead>
+                <tbody>
+                  @foreach (var item in dataList)
+                  {
+                    var type = DbEducateLesson.Type(item.type);
+                    <tr>
+                      <td>
+                        <a class="has-text-weight-semibold" href="/educate/course/manager/lesson/@item.id">
+                          @if (string.IsNullOrEmpty(item.name))
+                          {
+                            <i>Chưa nhập tiêu đề</i>
+                          }
+                          else
+                          {
+                            <span>@item.name</span>
+                          }
+                        </a>
+                      </td>
+                      <td>
+                        <label class="td-label">Loại bài</label>
+                        <div class="td-value">
+                          @type.name
+                        </div>
+                      </td>
+                      <td>
+                        <label class="td-label">Thời lượng</label>
+                        <div class="td-value">
+                          @item.time phút
+                        </div>
+                      </td>
+                      <td align="center">
+                        <label class="td-label">Thứ tự</label>
+                        <div class="td-value">
+                          <a class="icon has-text-link" title="Lên trên" @onclick="() => MoveUp(item)">
+                            <i class="material-icons-outlined is-size-5">arrow_upward</i>
+                          </a>
+                          <a class="icon has-text-link" title="Lên trên" @onclick="() => MoveDown(item)">
+                            <i class="material-icons-outlined is-size-5">arrow_downward</i>
+                          </a>
+                        </div>
+                      </td>
+                      <td align="center">
+                        <label class="td-label">Xử lý</label>
+                        <div class="td-value">
+                          <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                            <i class="material-icons-outlined is-size-5">delete</i>
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                  @if (dataList.Count == 0)
+                  {
+                    <tr>
+                      <td colspan="5">
+                        <div class="py-5 has-text-grey">
+                          Chưa có dữ liệu
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="field is-grouped is-grouped-right mt-2">
               <div class="control">
                 <a class="button is-info" @onclick="() => AddItem(3)">
                   <span class="icon">
@@ -198,32 +190,28 @@
               </div>
             </div>
           </div>
-        </li>
-      </ul>
-    }
-    else
-    {
-      <div class="card p-5">
+        </div>
+      }
+      else
+      {
         <h1 class="title is-5 has-text-info is-uppercase">
           @_title
         </h1>
-        <div class="py-6 has-text-grey">
+        <div class="py-6 has-text-grey inner_section" style="flex:1">
           Bạn không đủ quyền hạn để chỉnh sửa khóa học này
         </div>
-      </div>
+      }
     }
-  }
-  else
-  {
-    <div class="card p-5">
+    else
+    {
       <h1 class="title is-5 has-text-info is-uppercase">
         @_title
       </h1>
-      <div class="py-6 has-text-grey">
+      <div class="py-6 has-text-grey inner_section" style="flex:1">
         Dữ liệu không tồn tại hoặc đã bị xóa !
       </div>
-    </div>
-  }
+    }
+  </div>
 </section>
 
 @code {
@@ -234,7 +222,7 @@
   public string Id { get; set; }
 
   private bool _loaded = false;
-  private bool _success = false;
+  private bool success = false;
   private string _message = string.Empty;
   private string _title = "Thông tin khóa học";
 
@@ -277,65 +265,120 @@
 
   private async Task Delete()
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn xóa khóa học này ?"))
-      return;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn xóa khóa học này ?"))
+        return;
 
-    await DbEducateCourse.Delete(Layout.Company.id, course.id);
-    navigation.NavigateTo("/educate/course/manager", false);
+      await DbEducateCourse.Delete(Layout.Company.id, course.id);
+      navigation.NavigateTo("/educate/course/manager", false);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Delete()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 
   private async Task AddItem(int type)
   {
-    var item = new EducateLessonModel();
-    item.course = course.id;
-    item.type = type;
-    item.questions = new();
-    item = await DbEducateLesson.Create(Layout.Company.id, item);
-    navigation.NavigateTo("/educate/course/manager/lesson/" + item.id, false);
-  }
-
-  private async Task DeleteItem(EducateLessonModel item)
-  {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
-      return;
-
-    dataList.Remove(item);
-    await DbEducateLesson.Delete(Layout.Company.id, item.id);
-  }
-
-  private async Task MoveUp(EducateLessonModel item)
-  {
-    var index = dataList.IndexOf(item);
-    if (index > 0)
+    try
     {
-      var pos = item.pos;
-      var temp = dataList[index - 1];
+      var item = new EducateLessonModel();
+      item.course = course.id;
+      item.type = type;
+      item.questions = new();
+      item = await DbEducateLesson.Create(Layout.Company.id, item);
+      navigation.NavigateTo("/educate/course/manager/lesson/" + item.id, false);
 
-      item.pos = temp.pos;
-      item = await DbEducateLesson.Update(Layout.Company.id, item);
-
-      temp.pos = pos;
-      temp = await DbEducateLesson.Update(Layout.Company.id, temp);
-
-      dataList = dataList.OrderBy(x => x.pos).ToList();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "AddItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
     }
   }
 
-  private async Task MoveDown(EducateLessonModel item)
+  private async Task<bool> DeleteItem(EducateLessonModel item)
   {
-    var index = dataList.IndexOf(item);
-    if (index < dataList.Count - 1)
+    bool _success = true;
+    try
     {
-      var pos = item.pos;
-      var temp = dataList[index + 1];
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+        return false;
 
-      item.pos = temp.pos;
-      item = await DbEducateLesson.Update(Layout.Company.id, item);
-
-      temp.pos = pos;
-      temp = await DbEducateLesson.Update(Layout.Company.id, temp);
-
-      dataList = dataList.OrderBy(x => x.pos).ToList();
+      dataList.Remove(item);
+      await DbEducateLesson.Delete(Layout.Company.id, item.id);
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> MoveUp(EducateLessonModel item)
+  {
+    bool _success = true;
+    try
+    {
+      var index = dataList.IndexOf(item);
+      if (index > 0)
+      {
+        var pos = item.pos;
+        var temp = dataList[index - 1];
+
+        item.pos = temp.pos;
+        item = await DbEducateLesson.Update(Layout.Company.id, item);
+
+        temp.pos = pos;
+        temp = await DbEducateLesson.Update(Layout.Company.id, temp);
+
+        dataList = dataList.OrderBy(x => x.pos).ToList();
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "MoveUp()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> MoveDown(EducateLessonModel item)
+  {
+    bool _success = true;
+    try
+    {
+      var index = dataList.IndexOf(item);
+      if (index < dataList.Count - 1)
+      {
+        var pos = item.pos;
+        var temp = dataList[index + 1];
+
+        item.pos = temp.pos;
+        item = await DbEducateLesson.Update(Layout.Company.id, item);
+
+        temp.pos = pos;
+        temp = await DbEducateLesson.Update(Layout.Company.id, temp);
+
+        dataList = dataList.OrderBy(x => x.pos).ToList();
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "MoveDown()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

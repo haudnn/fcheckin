@@ -1,9 +1,9 @@
-﻿using System;
+﻿using MongoDB.Bson.Serialization.Attributes;
 using System.Collections.Generic;
-using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class OkrCheckinModel
   {
     [BsonId]
@@ -43,10 +43,10 @@ namespace OnetezSoft.Models
     public bool checkin { get; set; }
 
     /// <summary>Checkin Kết quả chính</summary>
-    public List<KeyResult> key_results { get; set; }
+    public List<KeyResult> key_results { get; set; } = new();
 
     /// <summary>Phản hồi checkin</summary>
-    public List<Feedback> feedbacks { get; set; }
+    public List<Feedback> feedbacks { get; set; } = new();
 
     /// <summary>File đính kèm</summary>
     public List<string> files { get; set; } = new();

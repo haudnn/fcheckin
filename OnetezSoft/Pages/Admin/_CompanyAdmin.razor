@@ -1,4 +1,6 @@
 @inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
 @if (model != null)
 {
@@ -13,7 +15,7 @@
           <div class="subtitle has-text-white">
             Quản lý tổ chức là tài khoản khách hàng cho phép chỉnh sửa
             <br />
-             tổ chức, mua sản phẩm và thêm người dùng sản phẩm
+            tổ chức, mua sản phẩm và thêm người dùng sản phẩm
           </div>
         </div>
         <a class="delete is-medium" @onclick="Cancel"></a>
@@ -25,7 +27,7 @@
               <img src="@model.avatar" />
             </div>
             <a class="button is-white is-small is-fullwidth @(uploading ? "is-loading" : "")"
-             onclick="document.getElementById('file').click()">
+               onclick="document.getElementById('file').click()">
               <span class="icon">
                 <i class="material-icons-sharp is-size-6">file_upload</i>
               </span>
@@ -41,7 +43,7 @@
             <div class="field">
               <div class="control has-icons-left">
                 <input @onchange="ChangeEmail" value="@model.email" type="email" class="input is_line"
-                    placeholder="Nhập email (*)" />
+                       placeholder="Nhập email (*)" />
                 <span class="icon is-left has-text-black">
                   <i class="material-icons-round is-size-6">account_circle</i>
                 </span>
@@ -138,72 +140,99 @@
     await OnUpdate.InvokeAsync(null);
   }
 
-  private async Task ChangeEmail(ChangeEventArgs e)
+  private async Task<bool> ChangeEmail(ChangeEventArgs e)
   {
-    model.id = string.Empty;
-    model.email = e.Value.ToString().Trim();
-    // Kiểm tra tài khoản
-    var checkUser = await DbMainUser.GetbyEmail(model.email);
-    if (checkUser != null)
+    bool _success = true;
+    try
     {
-      model.first_name = checkUser.first_name;
-      model.last_name = checkUser.last_name;
-      model.avatar = checkUser.avatar;
-      model.social = checkUser.social;
-      model.phone = checkUser.phone;
-      model.note = checkUser.note;
+      model.id = string.Empty;
+      model.email = e.Value.ToString().Trim();
+      // Kiểm tra tài khoản
+      var checkUser = await DbMainUser.GetbyEmail(model.email, globalService);
+      if (checkUser != null)
+      {
+        model.first_name = checkUser.first_name;
+        model.last_name = checkUser.last_name;
+        model.avatar = checkUser.avatar;
+        model.social = checkUser.social;
+        model.phone = checkUser.phone;
+        model.note = checkUser.note;
+      }
+      else
+      {
+        model.first_name = string.Empty;
+        model.last_name = string.Empty;
+        model.social = string.Empty;
+        model.phone = string.Empty;
+        model.note = string.Empty;
+        model.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
+      }
     }
-    else
+    catch (Exception ex)
     {
-      model.first_name = string.Empty;
-      model.last_name = string.Empty;
-      model.social = string.Empty;
-      model.phone = string.Empty;
-      model.note = string.Empty;
-      model.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeEmail()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
     }
+    return _success;
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (await Validation())
+    bool _success = true;
+    try
     {
-      // Kiểm tra và tạo tài khoản
-      var checkUser = await DbMainUser.GetbyEmail(model.email);
-      if (checkUser == null)
+      if (await Validation())
       {
-        await DbMainUser.Create(model);
-        // Gửi email cấp tài khoản
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
-        bool send = EmailService.UserInfo(model.email, model.id, model.FullName, "tổ chức", out string message);
-        await JSRuntime.InvokeVoidAsync("tagline", send, message);
-      }
-      else
-      {
-        if(string.IsNullOrEmpty(checkUser.phone))
-          checkUser.phone = model.phone;
-        if(string.IsNullOrEmpty(checkUser.social))
-          checkUser.social = model.social;
-        checkUser.note = model.note;
-        checkUser.active = model.active;
-        checkUser.is_customer = true;
-        await DbMainUser.Update(checkUser);
-        model = checkUser;
-      }
+        // Kiểm tra và tạo tài khoản
+        var checkUser = await DbMainUser.GetbyEmail(model.email, globalService);
+        if (checkUser == null)
+        {
+          await DbMainUser.Create(model);
+          // Gửi email cấp tài khoản
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo tài khoản thành công, vui lòng kiểm tra email.");
+          new Task(() =>
+          {
+            EmailService.UserInfo(model.email, model.id, model.FullName, "tổ chức", out string message);
+          }).Start();
+        }
+        else
+        {
+          if (string.IsNullOrEmpty(checkUser.phone))
+            checkUser.phone = model.phone;
+          if (string.IsNullOrEmpty(checkUser.social))
+            checkUser.social = model.social;
+          checkUser.note = model.note;
+          checkUser.active = model.active;
+          checkUser.is_customer = true;
+          await DbMainUser.Update(checkUser, globalService);
+          model = checkUser;
+        }
 
-      // Thay đổi người quản lý tổ chức
-      company = await DbMainCompany.Get(company.id);
-      if(company != null)
-      {
-        company.admin_id = model.id;
-        await DbMainCompany.Update(company);
-        await JSRuntime.InvokeVoidAsync("console.log", "company = " + company.name);
+        // Thay đổi người quản lý tổ chức
+        company = await DbMainCompany.Get(company.id);
+        if (company != null)
+        {
+          company.admin_id = model.id;
+          await DbMainCompany.Update(company);
+          await globalService.Update(company.id);
+          await JSRuntime.InvokeVoidAsync("console.log", "company = " + company.name);
+        }
+        else
+          await JSRuntime.InvokeVoidAsync("console.log", "company = null");
+
+        await OnUpdate.InvokeAsync(model);
       }
-      else
-        await JSRuntime.InvokeVoidAsync("console.log", "company = null");
-      
-      await OnUpdate.InvokeAsync(model);
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task<bool> Validation()
@@ -211,12 +240,10 @@
     model.email = !string.IsNullOrEmpty(model.email) ? model.email.Trim().ToLower() : "";
     if (string.IsNullOrEmpty(model.email))
       await Tagline("Bạn chưa nhập địa chỉ email!");
-    else if (!model.email.Contains("@") || model.email.Length < 12)
+    else if (!model.email.Contains("@"))
       await Tagline("Địa chỉ email không đúng!");
     else if (string.IsNullOrEmpty(model.phone))
       await Tagline("Bạn chưa nhập số điện thoại!");
-    else if (model.phone.Length < 10)
-      await Tagline("Số điện thoại không đúng định dạng!");
     else if (string.IsNullOrEmpty(model.first_name) || string.IsNullOrEmpty(model.last_name))
       await Tagline("Bạn chưa nhập họ và tên cho tài khoản!");
     else
@@ -243,7 +270,9 @@
       }
       catch (Exception ex)
       {
-        await Tagline($"Không thể tải ảnh lên: {ex.Message}");
+        await Tagline($"Không thể tải ảnh lên: {ex.ToString()}");
+        uploading = false;
+        return;
       }
     }
     uploading = false;

@@ -1,83 +1,106 @@
+@using System.Text.Json
 @inject IJSRuntime JSRuntime
+@inject GlobalService globalService
+@implements IDisposable
 
 @if (model != null)
 {
-  <section class="modal is-active">
-    <div class="modal-background"></div>
-    <section class="modal-card is-medium">
-      <section class="modal-card-head">
-        <div class="modal-card-title is-flex is-align-items-center">
-          <span class="mr-2">          
-            @(string.IsNullOrEmpty(model.id) ? "Tạo mới" : "Chỉnh sửa") địa điểm chấm công
-          </span>
-          <a target="_blank" href="https://docs.google.com/document/d/1d20HWXYRt_g9Qp4htIa-rKNZ2lHJNWPt/edit" class="icon">
-            <span class="material-icons">
-              info
+  if (isEdit)
+  {
+    <section class="modal is-active">
+      <div class="modal-background"></div>
+      <section class="modal-card is-medium">
+        <section class="modal-card-head">
+          <div class="modal-card-title is-flex is-align-items-center">
+            <span class="mr-2">
+              @(string.IsNullOrEmpty(model.id) ? "Tạo mới" : "Chỉnh sửa") địa điểm chấm công
             </span>
+          </div>
+          <a class="delete is-medium" @onclick="Cancel"></a>
+        </section>
+        <section class="modal-card-body">
+          <div class="field">
+            <div class="control is-expanded mb-2">
+              <ul class="field is-grouped">
+                <li class="control is-expanded">
+                  <div class="field">
+                    <label class="label">Tên địa điểm *</label>
+                    <div class="control">
+                      <input @bind="model.name" placeholder="Nhập tên địa điểm" class="input" type="text">
+                    </div>
+                  </div>
+                </li>
+                <li class="control is-expanded">
+                  <div class="field">
+                    <label class="label">Khoảng cách hợp lệ (m)</label>
+                    <div class="control">
+                      <input value="@model.radius" id="mapDistance" class="input" type="number" min="0">
+                    </div>
+                  </div>
+                </li>
+              </ul>
+              <p style="font-size: 12px;" class="has-text-grey is-italic mt-2">(*) Khuyến nghị: Nên thiết lập khoảng cách hợp lệ trên 25m để tăng độ chính xác.</p>
+            </div>
+            <div class="control is-expanded">
+              <div id="mapSearch" class="control has-icons-right">
+                <input class="input is-rounded" type="text" placeholder="Nhập vị trí cần tìm...">
+                <span class="icon is-right">
+                  <i class="material-icons-outlined is-size-5">
+                    search
+                  </i>
+                </span>
+              </div>
+              <div id="myMap" style='position:relative;width:100%;height:100%;'></div>
+            </div>
+          </div>
+        </section>
+        <section class="modal-card-foot is-right">
+          <a class="button" @onclick="Cancel">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">close</i>
+            </span>
+            <span>Hủy</span>
           </a>
-        </div>
-        <a class="delete is-medium" @onclick="Cancel"></a>
-      </section>
-      <section class="modal-card-body">
-        <div class="columns is-variable is-2">
-          <div class="column is-narrow">
-            <img src="/images/location-setup.jpg" alt="location thumbnail" style="border-radius:10px">
-          </div>
-          <div class="column">
-            <ul class="columns is-multiline is-variable is-2">
-              <li class="column is-full">
-                <div class="field">
-                  <label class="label">Tên địa điểm *</label>
-                  <div class="control">
-                    <input @bind="model.name" placeholder="Nhập tên địa điểm" class="input" type="text">
-                  </div>
-                </div>
-              </li>
-              <li class="column is-half">
-                <div class="field">
-                  <label class="label">Vĩ độ *</label>
-                  <div class="control">
-                    <input @bind="model.latitude" placeholder="Nhập giá trị vĩ độ" class="input" type="text">
-                  </div>
-                </div>
-              </li>
-              <li class="column is-half">
-                <div class="field">
-                  <label class="label">Kinh độ *</label>
-                  <div class="control">
-                    <input @bind="model.longitude" placeholder="Nhập giá trị kinh độ" class="input" type="text">
-                  </div>
-                </div>
-              </li>
-              <li class="column is-full">
-                <div class="field">
-                  <label class="label">Khoảng cách hợp lệ (m)</label>
-                  <div class="control">
-                    <input @bind="model.radius" class="input" type="number" min="0">
-                  </div>
-																		<p style="font-size: 12px;" class="has-text-grey is-italic mt-2">(*) Khuyến nghị: Nên thiết lập khoảng cách hợp lệ trên 25m để tăng độ chính xác.</p>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-      <section class="modal-card-foot is-right">
-        <a class="button" @onclick="Cancel">
-          <span class="icon">
-            <i class="material-icons-round is-size-6">close</i>
-          </span>
-          <span>Hủy</span>
-        </a>
-        <a class="button is-link" @onclick="Update">
-          <span class="icon">
-            <i class="material-icons-round is-size-6">done</i>
-          </span>
-          <span>Cập nhật</span>
-        </a>
+          <a class="button is-link" @onclick="Update">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">done</i>
+            </span>
+            <span>Cập nhật</span>
+          </a>
+        </section>
       </section>
     </section>
-  </section>
+  }
+  else
+  {
+    <section class="modal is-active">
+      <div class="modal-background"></div>
+      <section class="modal-card is-medium">
+        <section class="modal-card-head">
+          <div class="modal-card-title is-flex is-align-items-center">
+            <span class="mr-2">Thông tin vị trí chấm công</span>
+          </div>
+          <a class="delete is-medium" @onclick="Cancel"></a>
+        </section>
+        <section class="modal-card-body">
+          <div class="field">
+            <div class="control is-expanded">
+              <input value="@model.radius" id="mapDistance" class="input" type="hidden">
+              <div id="myMap" style='position:relative;width:100%;height:100%;'></div>
+            </div>
+          </div>
+        </section>
+        <section class="modal-card-foot is-right">
+          <a class="button" @onclick="Cancel">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">close</i>
+            </span>
+            <span>Hủy</span>
+          </a>
+        </section>
+      </section>
+    </section>
+  }
 }
 
 @code {
@@ -87,6 +110,25 @@
   public HrmLocationModel model { get; set; }
   [Parameter]
   public EventCallback<bool> OnUpdate { get; set; }
+  [Parameter]
+  public bool isEdit { get; set; }
+
+  private DotNetObjectReference<LocationPopup> obj;
+
+  private readonly string APIKEY = "AoX6ip3RZr9lAezfJK_7N48AemiOoMOXo6Gs7UE60AoTlc645-1XoZNBOJPgXQD4";
+
+  protected override async Task OnInitializedAsync()
+  {
+    obj = DotNetObjectReference.Create(this);
+  }
+
+  protected override async Task OnAfterRenderAsync(bool first)
+  {
+    if (first && model != null)
+    {
+      await JSRuntime.InvokeVoidAsync("GetMap", APIKEY, obj, GetLongLat());
+    }
+  }
 
   private async Task Cancel()
   {
@@ -125,9 +167,56 @@
 
   private async Task SendNotify(int notifyType)
   {
+    var allUser = await DbUser.GetAll(Layout.Company.id, globalService);
     // Gủi thông báo chuông
-    var targetList = Layout.UserList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
+    var targetList = allUser.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
     foreach (var user in targetList)
       await DbNotify.Create(Layout.Company.id, notifyType, model.name, user.id, Layout.User.id);
+  }
+
+  private double[] GetLongLat()
+  {
+    if (model == null || (string.IsNullOrEmpty(model.longitude) && string.IsNullOrEmpty(model.latitude)))
+      return null;
+
+    double longitude = 0;
+    double latitude = 0;
+
+    if (string.IsNullOrEmpty(model.longitude))
+      longitude = 0;
+    else
+      double.TryParse(model.longitude, out longitude);
+
+    if (string.IsNullOrEmpty(model.latitude))
+      latitude = 0;
+    else
+      double.TryParse(model.latitude, out latitude);
+
+    return new double[] { latitude, longitude };
+  }
+
+  [JSInvokable]
+  public void SetLocation(JsonElement json, JsonElement distance)
+  {
+    var value = json.Deserialize<double[]>();
+    var radius = distance.Deserialize<long>();
+
+    if (value.Length < 2) return;
+
+    model.latitude = value[0].ToString();
+    model.longitude = value[1].ToString();
+    model.radius = radius;
+  }
+
+  public void Dispose()
+  {
+    try
+    {
+      obj?.Dispose();
+    }
+    catch(Exception ex)
+    {
+      return;
+    }
   }
 }

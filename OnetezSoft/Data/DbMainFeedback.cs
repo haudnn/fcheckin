@@ -1,11 +1,9 @@
-﻿using System;
+﻿using MongoDB.Driver;
+using OnetezSoft.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
 
 
 namespace OnetezSoft.Data
@@ -15,7 +13,7 @@ namespace OnetezSoft.Data
     private static IMongoDatabase _db = Mongo.DbConnect("fastdo");
     private static string _collection = "feedbacks";
 
-    public static FeedbackModel Create(FeedbackModel model)
+    public static async Task<FeedbackModel> Create(FeedbackModel model)
     {
       if (string.IsNullOrEmpty(model.id))
         model.id = Mongo.RandomId();
@@ -28,7 +26,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<FeedbackModel>(_collection);
 
-      collection.InsertOne(model);
+      collection.InsertOneAsync(model);
 
       return model;
     }
@@ -47,23 +45,23 @@ namespace OnetezSoft.Data
     }
 
 
-    public static FeedbackModel Update(FeedbackModel model)
+    public static async Task<FeedbackModel> Update(FeedbackModel model)
     {
       var collection = _db.GetCollection<FeedbackModel>(_collection);
 
       var option = new ReplaceOptions { IsUpsert = false };
 
-      collection.ReplaceOne(x => x.id.Equals(model.id), model, option);
+      await collection.ReplaceOneAsync(x => x.id.Equals(model.id), model, option);
 
       return model;
     }
 
 
-    public static FeedbackModel Get(string id)
+    public static async Task<FeedbackModel> Get(string id)
     {
       var collection = _db.GetCollection<FeedbackModel>(_collection);
 
-      var result = collection.Find(x => x.id == id).FirstOrDefault();
+      var result = await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
 
       return result;
     }
@@ -79,7 +77,9 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<FeedbackModel>.Sort.Descending("date");
 
-      return await collection.Find(x => x.user_id == userId).Sort(sorted).ToListAsync();
+      var result = await collection.FindAsync(x => x.user_id == userId).Result.ToListAsync();
+
+      return (from x in result orderby x.date descending select x).ToList();
     }
 
 
@@ -91,7 +91,7 @@ namespace OnetezSoft.Data
     /// <param name="company">Công ty</param>
     /// <param name="start">Từ ngày</param>
     /// <param name="end">Đến ngày</param>
-    public static List<FeedbackModel> GetList(string keyword, int status, string company, 
+    public static async Task<List<FeedbackModel>> GetList(string keyword, int status, string company,
       DateTime start, DateTime end)
     {
       var collection = _db.GetCollection<FeedbackModel>(_collection);
@@ -106,9 +106,9 @@ namespace OnetezSoft.Data
       if (!string.IsNullOrEmpty(company))
         filtered = filtered & builder.Eq("company_id", company);
 
-      var sorted = Builders<FeedbackModel>.Sort.Descending("date");
+      var database = await collection.FindAsync(filtered).Result.ToListAsync();
 
-      var database = collection.Find(filtered).Sort(sorted).ToList();
+      database = database.OrderByDescending(x => x.date).ToList();
 
       var results = new List<FeedbackModel>();
 
@@ -135,10 +135,10 @@ namespace OnetezSoft.Data
     /// <param name="userId"></param>
     /// <param name="content"></param>
     /// <returns></returns>
-    public static FeedbackModel Comment(string feedbackId, string content, List<string> files,
+    public static async Task<FeedbackModel> Comment(string feedbackId, string content, List<string> files,
       UserModel user, string company_name, bool isAdmin)
     {
-      var feedback = Get(feedbackId);
+      var feedback = await Get(feedbackId);
       if (feedback != null)
       {
         var comment = new FeedbackModel.Comment()
@@ -160,7 +160,7 @@ namespace OnetezSoft.Data
         else
           feedback.new_client = true;
 
-        return Update(feedback);
+        return await Update(feedback);
       }
       else
         return null;
@@ -174,9 +174,9 @@ namespace OnetezSoft.Data
     /// <param name="kaizenId"></param>
     /// <param name="userId"></param>
     /// <param name="content"></param>
-    public static FeedbackModel Note(string feedbackId, string content, List<string> files, UserModel user)
+    public static async Task<FeedbackModel> Note(string feedbackId, string content, List<string> files, UserModel user)
     {
-      var feedback = Get(feedbackId);
+      var feedback = await Get(feedbackId);
       if (feedback != null)
       {
         var note = new FeedbackModel.Note()
@@ -191,7 +191,7 @@ namespace OnetezSoft.Data
         };
         feedback.notes.Add(note);
 
-        return Update(feedback);
+        return await Update(feedback);
       }
       else
         return null;
@@ -205,7 +205,7 @@ namespace OnetezSoft.Data
     {
       var collection = _db.GetCollection<FeedbackModel>(_collection);
 
-      var results = await collection.Find(x => x.new_client).ToListAsync();
+      var results = await collection.FindAsync(x => x.new_client).Result.ToListAsync();
 
       return results.Count;
     }

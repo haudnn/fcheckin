@@ -1,5 +1,6 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 @{
   var toggle = toggleList.Contains(model.id);
@@ -8,11 +9,12 @@
   var deadline = WorkService.TaskDeadline(model);
   var start = Shared.DateToDay(new DateTime(model.date_start));
   var end = Shared.DateToDay(new DateTime(model.date_end));
-  DateTimeOffset? dateS = new DateTime(model.date_start);
-  DateTimeOffset? dateE = new DateTime(model.date_end);
+  long dateS = model.date_start;
+  long dateE = model.date_end;
 }
 
-<ul id="task_@model.id" class="task_gantt is_item columns is-gapless is-size-7">
+<ul 
+  id="task_@model.id" class="task_gantt is_item columns is-gapless is-size-7">
   <li class="column is-narrow" style="box-shadow: inset 4px 0px 0px 0px @priority.color;">
     <div class="icon-text item_title">
       <span class="icon is_drag is-hidden">
@@ -28,33 +30,62 @@
       {
         <span class="icon"></span>
       }
-      <a class="item_name has-text-weight-medium has-text-@(model.status == 4 ? "success is-line-through " : "black")"
-        @onclick="Edit" title="@model.name">
-        @model.name
-      </a>
+      @if(!edit)
+      {
+        <a 
+          class="item_name has-text-weight-medium has-text-@(model.status == 4 ? "success is-line-through " : "black")"
+          @onclick="Edit" title="@model.name">
+          @model.name
+        </a>
+      }
+      else
+      {
+        <input class="input is-small is_underline item_name has-text-weight-medium has-text-@(model.status == 4 ? "success is-line-through " : "black")" @bind-value="model.name" @onfocusout="UpdateTitle" />
+      }
+      @if (editRole && !edit)
+      {
+        <span class="icon is_hover">
+          <a 
+            class="material-icons-round is-size-7 has-text-dark" 
+            title="Chỉnh sửa tiêu đề" 
+            @onclick="() => edit = true">
+            edit
+          </a>
+        </span>
+      }
+      <span class="icon is_hover">
+        @if (editRole)
+        {
+          <a class="material-icons-round is-size-6 has-text-dark" title="Thêm công việc phụ" @onclick="AddSub">
+            add
+          </a>
+        }
+      </span>
+      @if (editRole)
+      {
+        <Dropdown DropdownClass="is-right icon is-hoverable is_hover">
+          <Trigger>
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">more_horiz</i>
+            </span>
+          </Trigger>
+          <MenuContent>
+            <a class="dropdown-item" @onclick="AddSub">Tạo công việc phụ</a>
+            <a class="dropdown-item" @onclick="AddTodo">Tạo Todolist liên kết</a>
+            <a class="dropdown-item has-text-danger" @onclick="Delete">Xóa công việc này</a>
+          </MenuContent>
+        </Dropdown>
+      }
+      else
+      {
+        <div class="dropdown is-hoverable is-right icon is_hover"></div>
+      }
       @if(deadline != null)
       {
         <span class="tag" style="background: @(deadline.color + "30"); color: #555; overflow: visible;">
           @deadline.name
         </span>
       }
-      <div class="dropdown is-hoverable is-right icon is_hover">
-        @if(editRole)
-        {
-          <div class="dropdown-trigger">
-            <span class="icon">
-              <i class="material-icons-outlined is-size-6">more_horiz</i>
-            </span>
-          </div>
-          <div class="dropdown-menu">
-            <div class="dropdown-content">
-              <a class="dropdown-item" @onclick="AddSub">Tạo công việc phụ</a>
-              <a class="dropdown-item" @onclick="AddTodo">Tạo Todolist liên kết</a>
-              <a class="dropdown-item has-text-danger" @onclick="Delete">Xóa công việc này</a>
-            </div>
-          </div>
-        }
-      </div>
     </div>
   </li>
   
@@ -64,25 +95,27 @@
     var today = day == DateTime.Today ? "is_today" : "";
     var sunday = day.DayOfWeek == DayOfWeek.Sunday ? "is_sun" : "";
     var column = end.Subtract(start).Days + 1;
+    var taskStartDate = new DateTime(taskStart);
+    var taskEndDate = new DateTime(taskEnd);
+    var dateClass = "has-background-transparent" + (taskStartDate.Date.Ticks == taskEndDate.Date.Ticks ? " has-text-transparent" : " has-text-white");
     <li class="column is-narrow item_day @today @sunday">
       @if(start == day)
       {
-        var time = string.Format("Từ ngày {0:dd/MM/yyyy, HH:mm} đến ngày {1:dd/MM/yyyy, HH:mm}", dateS, dateE);
+        var time = string.Format("Từ ngày {0:dd/MM/yyyy HH:mm} đến ngày {1:dd/MM/yyyy HH:mm}", dateS, dateE);
         <div class="is_timeline" style="width: @(column * 40)px">
-          <div class="item_task @status.color">
-            <DateRangePicker @bind-StartDate="dateS" @bind-EndDate="dateE" Drops="DropsType.Down" Opens="SideType.Left"
-              TimePicker="true" TimePicker24Hour="true" OnRangeSelect="UpdateDate">
-              <PickerTemplate>
-                <a id="@context.Id" @onclick="context.Toggle" class="pl-2 font_14" style="color: inherit;" title="@time">
-                  @if (context.TStartDate != null && context.TEndDate != null)
-                  {
-                    <span>@context.TStartDate.Value.ToString("dd/MM")</span>
-                    <span class="px-1">-</span>
-                    <span>@context.TEndDate.Value.ToString("dd/MM")</span>
-                  }
-                </a>
-              </PickerTemplate>
-            </DateRangePicker>
+          <div class="item_task pl-1 @status.color">
+            <_InputDate 
+              @bind-Start="taskStart"
+              @bind-End="taskEnd"
+              HasTime
+              Minimal
+              IsRange
+              Format="dd/MM"
+              DefaultString="Thời gian"
+              OnRangeClose="UpdateDate"
+              ShowIcon=false
+              InputClass="@dateClass" 
+              InputStyle="@(taskStartDate.Date.Ticks == taskEndDate.Date.Ticks ? "color:transparent!important" : "")" />
           </div>
           <div class="item_members">
             <_MemberList members="model.members" sources="members" isEdit="editRole" isTask="true"
@@ -98,8 +131,16 @@
 {
   foreach (var child in subTasks)
   {
-    <_TaskGanttChild model="child" parent="model" members="members" isEdit="editRole"
-      dayStart="dayStart" dayTotal="dayTotal" OnUpdate="UpdateSubTasks" OnView="AddSub" />
+    <_TaskGanttChild EditMode="editRole"
+                     model="child"
+                     parent="model"
+                     members="members"
+                     isEdit="@(editRole ? true : child.members.Find(x => x.id == Layout.User.id) != null)"
+                     edit="newList.Contains(child.id)"
+                     dayStart="dayStart"
+                     dayTotal="dayTotal"
+                     OnUpdate="e => UpdateSubTasks(e)"
+                     OnView="ViewSub" />
   }
   if(subTasks.Count == 0)
   {
@@ -120,7 +161,7 @@
   [Parameter]
   public WorkPlanModel plan { get; set; }
   [Parameter]
-  public List<UserModel> members { get; set; }
+  public List<MemberModel> members { get; set; } = new();
   [Parameter]
   public DateTime dayStart { get; set; }
   [Parameter]
@@ -132,7 +173,7 @@
   [Parameter]
   public bool showPlan { get; set; }
   [Parameter]
-  public List<string> toggleList { get; set; }
+  public List<string> toggleList { get; set; } = new();
   [Parameter]
   public EventCallback<string> OnToggle { get; set; }
   [Parameter]
@@ -143,23 +184,43 @@
   public EventCallback<WorkPlanModel.Task> OnAddSub { get; set; }
   [Parameter]
   public EventCallback<WorkPlanModel.Task> OnTodolist { get; set; }
+  [Parameter]
+  public bool edit { get; set; }
 
   private bool toggleStatus = false;
   private List<WorkPlanModel.Task> subTasks = new();
 
-  private async Task Toggle()
+  private long taskStart = 0;
+  private long taskEnd = 0;
+  private List<string> newList = new();
+  private string oldTitle;
+
+  protected override void OnInitialized()
   {
-    if(toggleList.Contains(model.id))
-      subTasks = new();
-    else
-      subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.plan_id, model.id);
-    await OnToggle.InvokeAsync(model.id);
+    oldTitle = model.name;
+    taskStart = model.date_start;
+    taskEnd = model.date_end;
   }
-  
-  private async Task ToggleStatus()
+
+  private async Task<bool> Toggle()
   {
-    await JSRuntime.InvokeVoidAsync("dropdownClose");
-    toggleStatus = !toggleStatus;
+    bool _success = true;
+    try 
+    {
+      if (toggleList.Contains(model.id))
+        subTasks = new();
+      else
+        subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.plan_id, model.id);
+      await OnToggle.InvokeAsync(model.id);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Toggle()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task Edit()
@@ -167,9 +228,49 @@
     await OnEdit.InvokeAsync(model);
   }
 
-  private async Task AddSub()
+  private async Task ViewSub()
   {
     await OnAddSub.InvokeAsync(model);
+  }
+
+  private async Task ToggleStatus()
+  {
+    await JSRuntime.InvokeVoidAsync("dropdownClose");
+    toggleStatus = !toggleStatus;
+  }
+
+  private async Task AddSub()
+  {
+    var item = new WorkPlanModel.Task()
+      {
+        id = Mongo.RandomId(),
+        status = 1,
+        name = "Công việc phụ mới",
+        plan_id = plan.id,
+        parent_id = model.id,
+        date_start = model.date_start,
+        date_end = model.date_end,
+        members = new()
+        {
+          new WorkPlanModel.Member()
+          {
+            id = Layout.User.id,
+            role = 2,
+          }
+        },
+      };
+
+    if (Layout.IsMobile)
+      subTasks.Insert(0, item);
+    else
+      subTasks.Add(item);
+
+    if (!toggleList.Contains(model.id))
+      toggleList.Add(model.id);
+
+    newList.Add(item.id);
+
+    await UpdateSubTasks(item, true);
   }
 
   private async Task AddTodo()
@@ -177,52 +278,168 @@
     await OnTodolist.InvokeAsync(model);
   }
 
-  private async Task Delete()
+  private async Task<bool> Delete()
   {
-    if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa \"{model.name}\". Việc này sẽ khiến dữ liệu công việc phụ bị mất.\nBạn có chắc chắn muốn thực hiện?"))
-      return;
-    // Thông báo chuông
-    foreach (var user in plan.members)
-      await DbNotify.ForPlan(Layout.Company.id, 717, plan.id, model.id, user.id, Layout.User.id);
-    // Xóa công việc
-    await DbWorkTask.Delete(Layout.Company.id, model.id);
-    await WorkService.CreateLog(Layout.Company.id, "Xóa công việc", model.name, model.plan_id, null, Layout.User);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
-    await OnUpdate.InvokeAsync(model);
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện xóa \"{model.name}\". Việc này sẽ khiến dữ liệu công việc phụ bị mất.\nBạn có chắc chắn muốn thực hiện?"))
+        return _success;
+      // Thông báo chuông
+      foreach (var user in plan.members)
+        await DbNotify.ForPlan(Layout.Company.id, 717, plan.id, model.id, user.id, Layout.User.id);
+      // Xóa công việc
+      await DbWorkTask.Delete(Layout.Company.id, model.id);
+      await WorkService.CreateLog(Layout.Company.id, "Xóa công việc", model.name, model.plan_id, null, Layout.User);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã xóa công việc thành công!");
+      await OnUpdate.InvokeAsync(null);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateDate()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task UpdateDate(DateRange range)
+  private async Task<bool> UpdateDate(DateRange range)
   {
-    model.date_start = range.Start.Ticks;
-    model.date_end = range.End.Ticks;
-    await DbWorkTask.Update(Layout.Company.id, model);
-    await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện", 
-      string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(model.date_start), new DateTime(model.date_end)), model.plan_id, model.id, Layout.User);
-    await OnUpdate.InvokeAsync(model);
+    bool _success = true;
+    try
+    {
+      if (model.date_start == taskStart && model.date_end == taskEnd)
+        return _success;
+
+      model.date_start = taskStart;
+      model.date_end = taskEnd;
+
+      await DbWorkTask.Update(Layout.Company.id, model);
+      await WorkService.CreateLog(Layout.Company.id, "Cập nhật thời gian thực hiện",
+        string.Format("Bắt đầu {0:dd/MM/yyyy}, kết thúc {1:dd/MM/yyyy}", new DateTime(model.date_start), new DateTime(model.date_end)), model.plan_id, model.id, Layout.User);
+      await OnUpdate.InvokeAsync(model);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateDate()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task ChangeStatus(int statusId)
+  private async Task<bool> ChangeStatus(int statusId)
   {
-    toggleStatus = false;
-    var message = await WorkService.ChangeTaskStatus(Layout.Company.id, Layout.User, model, statusId);
-    if(statusId == 4)
+    bool _success = true;
+    try
+    {
+      toggleStatus = false;
+      var message = await WorkService.ChangeTaskStatus(Layout.Company.id, Layout.User, model, statusId);
+      if (statusId == 4)
+        subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.plan_id, model.id);
+      await JSRuntime.InvokeVoidAsync("tagline", true, message);
+      await OnUpdate.InvokeAsync(model);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeStatus()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> UpdateMembers()
+  {
+    bool _success = true;
+    try
+    {
+      var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+      var old = await DbWorkTask.Get(Layout.Company.id, model.id);
+      await DbWorkTask.Update(Layout.Company.id, model);
+      await WorkService.LogTaskMembers(Layout.Company.id, old, model, Layout.User, shareStorage.MemberList);
+      await OnUpdate.InvokeAsync(model);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateMembers()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> UpdateSubTasks(WorkPlanModel.Task item, bool create = false)
+  {
+    bool _success = true;
+    try
+    {
+      if(item != null)
+      {
+        if (newList.Contains(item.id) && !create)
+          newList.Remove(item.id);
+
+        var check = await DbWorkTask.Get(Layout.Company.id, item.id);
+
+        if (check == null)
+        {
+          var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+          var memberIds = plan.members.Select(x => x.id);
+          var editMembers = shareStorage.MemberList.Where(x => memberIds.Contains(x.id)).ToList();
+
+          await DbWorkTask.Create(Layout.Company.id, item);
+          await WorkService.CreateLog(Layout.Company.id, "Thêm công việc phụ", item.name, model.plan_id, model.id, Layout.User);
+          await WorkService.LogTaskMembers(Layout.Company.id, null, item, Layout.User, editMembers);
+        }
+      }
+
       subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.plan_id, model.id);
-    await JSRuntime.InvokeVoidAsync("tagline", true, message);
-    await OnUpdate.InvokeAsync(model);
+      // Cập nhật số lượng công việc phụ
+      await WorkService.UpdateSubTaskCount(Layout.Company.id, model.id, subTasks.Count);
+      await OnUpdate.InvokeAsync(model);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateSubTasks()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task UpdateMembers()
+  private async Task UpdateTitle()
   {
-    var old = await DbWorkTask.Get(Layout.Company.id, model.id);
-    await DbWorkTask.Update(Layout.Company.id, model);
-    await WorkService.LogTaskMembers(Layout.Company.id, old, model, Layout.User, Layout.UserList);
-    await OnUpdate.InvokeAsync(model);
-  }
-
-  private async Task UpdateSubTasks(WorkPlanModel.Task item)
-  {
-    subTasks = await DbWorkTask.GetListInTask(Layout.Company.id, model.plan_id, model.id);
-    // Cập nhật số lượng công việc phụ
-    await WorkService.UpdateSubTaskCount(Layout.Company.id, model.id, subTasks.Count);
+    edit = false;
+    if (string.IsNullOrEmpty(oldTitle))
+    {
+      if (string.IsNullOrEmpty(model.name))
+      {
+        await OnUpdate.InvokeAsync(null);
+      }
+      else
+      {
+        oldTitle = model.name;
+        await DbWorkTask.Update(Layout.Company.id, model);
+        await OnUpdate.InvokeAsync(model);
+      }
+    }
+    else
+    {
+      if (string.IsNullOrEmpty(model.name))
+      {
+        model.name = oldTitle;
+      }
+      else
+      {
+        oldTitle = model.name;
+        await DbWorkTask.Update(Layout.Company.id, model);
+        await OnUpdate.InvokeAsync(model);
+      }
+    }
   }
 }

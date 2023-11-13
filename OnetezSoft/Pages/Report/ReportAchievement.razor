@@ -2,85 +2,67 @@
 @page "/reports/achievement"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
-<section class="columns is-gapless has_menu_left">
-  <div class="column is-narrow">
-    <_MenuLeft Company="Layout.Company" User="Layout.User" />
-  </div>
-  <div class="column">
-    <div class="card p-5 p-4-mobile">
-      <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
-        <li class="column is-full">
-          <h1 class="title is-5 has-text-info">
-            THÀNH TỰU
-          </h1>
-        </li>
-        <li class="column">
-          <div class="field has-addons">
-            <div class="control">
-              <span class="button is-link">
-                <i class="material-icons-outlined">calendar_today</i>
-              </span>
-            </div>
-            <div class="control" style="width: 190px;">
-              <div class="input">
-                <DateRangePicker @bind-StartDate="filterStart" @bind-EndDate="filterEnd" OnRangeSelect="ChangeFilterPicker" />
-              </div>
-            </div>
-            <div class="control">
-              <div class="select is-fullwidth">
-                <select @onchange="ChangeFilterDate">
-                  <option value="1">Tuần này</option>
-                  <option value="11">Tuần trước</option>
-                  <option value="2">Tháng này</option>
-                  <option value="22">Tháng trước</option>
-                  <option value="3">Quý này</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </li>
-        <li class="column is-narrow">
-          <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
-        </li>
-        <li class="column is-one-quarter">
-          <MemberSearch department="@filterDepartment" sources="Layout.UserList" OnUpdate="ChangeFilterUser" />
-        </li>
-      </ul>
+<section class="main_content">
+  <div class="card flex_column is_fullheight">
+    <ul class="columns is-vcentered is-multiline is-variable is-2 mb-2">
+      <li class="column">
+        <h1 class="title is-5 has-text-info">
+          THÀNH TỰU
+        </h1>
+      </li>
+      <li class="column"></li>
+      <li class="column is-narrow">
+        <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
+      </li>
+      <li class="column is-one-quarter">
+        <MemberSearch department="@filterDepartment" sources="shareStorage.MemberList" OnUpdate="ChangeFilterUser" />
+      </li>
+      <li class="column is-narrow">
+        <_InputDate @bind-Start="filterStart"
+        @bind-End="filterEnd"
+                                  IsRange
+                                  HasDropdown
+                     ListOptions="new() {1,11,2,22,3,7}"
+                     OnRangeSelect="ChangeFilterDate" />
+       </li>
+     </ul>
 
-      <ul class="columns is-vcentered">
-        <li class="column is-5 has-text-centered px-6">
-          <h2 class="title is-6 has-text-info mb-3">
-            @departmentName
-          </h2>
-          <div class="icon-achievement">
-            @achievementList.Sum(x => x.star)
-          </div>
-          <div class="title has-text-link mb-1 mt-3" style="font-size: 18px;">
-            TỔNG SỐ SAO
-          </div>
-          <div class="mb-3">
-            ĐẾN TỪ THÀNH TỰU
-          </div>
-          <ul class="columns is-variable is-2 is-mobile">
-            @for (int i = 0; i < 3; i++)
+     <div class="inner_section flex_column" style="flex:1">
+       <ul class="columns" style="flex:1;overflow:hidden">
+         <li class="column is-5 has-text-centered px-6">
+           <h2 class="title is-6 has-text-info mb-3">
+             @departmentName
+           </h2>
+           <div class="icon-achievement">
+             @achievementList.Sum(x => x.star)
+           </div>
+           <div class="title has-text-link mb-1 mt-3" style="font-size: 18px;">
+             TỔNG SỐ SAO
+           </div>
+           <div class="mb-3">
+             ĐẾN TỪ THÀNH TỰU
+           </div>
+           <ul class="columns is-variable is-2 is-mobile">
+             @for (int i = 0; i < 3; i++)
             {
               if (i < rankList.Count)
               {
                 var item = rankList[i];
                 var color = i == 0 ? "has-text-warning" : i == 1 ? "has-text-danger" : "has-text-link";
                 <li class="column is-one-third has-text-centered @color">
-                  @if(i == 0)
+                  @if (i == 0)
                   {
                     <div>1st</div>
                   }
-                  else if(i == 1)
+                  else if (i == 1)
                   {
                     <div>2nd</div>
                   }
-                  else if(i == 2)
+                  else if (i == 2)
                   {
                     <div>3rd</div>
                   }
@@ -99,45 +81,48 @@
             }
           </ul>
         </li>
-        <li class="column is-7">
-          <div class="scrolly" style="height: 400px;">
+        <li style="height: 100%; max-height: calc(100vh - 200px)" class="column is-7 scrolly">
+          <div>
             <ul class="columns is-multiline is-vcentered is-mobile is-variable is-2">
               @foreach (var item in achievementList)
               {
-                var icon = $"/images/achi_{item.type}.png";
-                var user = Layout.UserList.SingleOrDefault(x => x.id == item.user);
-                <li class="column is-1-tablet is-2-mobile">
-                  <div class="image is-32x32">
-                    <img src="@icon" />
-                  </div>
-                </li>
-                <li class="column is-8-tablet is-10-mobile">
-                  <div class="user_item">
-                    <img class="image is-36x36 mr-3" src="@user.avatar" alt="IMG">
-                    <p class="has-text-grey">
-                      <span class="has-text-weight-semibold has-text-info">@user.FullName</span>
-                      <span>đã đạt thành tựu</span>
-                      <span class="has-text-weight-semibold has-text-info">@item.name</span>
-                    </p>
-                  </div>
-                </li>
-                <li class="column is-3-tablet is-full-mobile">
-                  <div class="columns is-variable is-1 is-mobile">
-                    <div class="column has-text-warning is-flex is-vcentered">
-                      <span class="has-text-weight-semibold">@item.star</span>
-                      <i class="material-icons-round is-size-6">star_border</i>
+                var option = achievementOptions.FirstOrDefault(x => x.id == item.type_id);
+                if (option != null)
+                {
+                  var icon = option.image;
+                  var user = shareStorage.MemberList.SingleOrDefault(x => x.id == item.user);
+                  <li class="column is-1-tablet is-2-mobile">
+                    <div class="image is-32x32">
+                      <img src="@icon" />
                     </div>
-                    <div class="column is-narrow has-text-grey">
-                      @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))
+                  </li>
+                  <li class="column is-8-tablet is-10-mobile">
+                    <div class="user_item">
+                      <img class="image is-36x36 mr-3" src="@user.avatar" alt="IMG">
+                      <p class="has-text-grey">
+                        <span class="has-text-weight-semibold has-text-info">@user.name</span>
+                        <span>đã đạt thành tựu</span>
+                        <span class="has-text-weight-semibold has-text-info">@item.name</span>
+                      </p>
                     </div>
-                  </div>
-                </li>
+                  </li>
+                  <li class="column is-3-tablet is-full-mobile">
+                    <div class="columns is-variable is-1 is-mobile">
+                      <div class="column has-text-warning is-flex is-vcentered">
+                        <span class="has-text-weight-semibold">@item.star</span>
+                        <i class="material-icons-round is-size-6">star_border</i>
+                      </div>
+                      <div class="column is-narrow has-text-grey">
+                        @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date))
+                      </div>
+                    </div>
+                  </li>
+                }
               }
             </ul>
           </div>
         </li>
       </ul>
-
     </div>
   </div>
 </section>
@@ -151,55 +136,50 @@
   private List<DepartmentModel.SelectList> departments = new();
 
   private List<AchievementModel> achievementList = new();
+  private List<AchievementModel.Option> achievementOptions = new();
   private List<ProgressModel> rankList = new();
   private string filterDepartment = string.Empty;
   private List<string> filterUserList = new();
-  private DateTimeOffset? filterStart = DateTime.Today;
-  private DateTimeOffset? filterEnd = DateTime.Today;
+  private long filterStart = DateTime.Today.Ticks;
+  private long filterEnd = DateTime.Today.Ticks;
   private string departmentName = "Tất cả phòng ban";
+
+  private SharedStorage shareStorage = new();
 
   protected override async Task OnInitializedAsync()
   {
-    departmentAll = DbDepartment.GetAll(Layout.Company.id);
-    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    departmentAll = await DbDepartment.GetAll(Layout.Company.id);
+    departments.AddRange(await DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
 
     Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
-    filterStart = start;
-    filterEnd = end;
+    filterStart = start.Ticks;
+    filterEnd = end.Ticks;
 
     await ChangeFilterDepartment(Layout.User.department_default);
   }
 
-  public async Task ChangeFilterPicker(DateRange range)
+  private async Task ChangeFilterDate(DateRange e)
   {
-    filterStart = range.Start;
-    filterEnd = range.End;
-    await GetData();
-  }
-
-  private async Task ChangeFilterDate(ChangeEventArgs e)
-  {
-    var type = Convert.ToInt32(e.Value);
-    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
-    filterStart = start;
-    filterEnd = end;
+    filterStart = e.Start.Ticks;
+    filterEnd = e.End.Ticks;
     await GetData();
   }
 
   private async Task ChangeFilterDepartment(string value)
   {
     var department = departmentAll.FirstOrDefault(x => x.id == value);
-    if(department == null)
+    if (department == null)
     {
       departmentName = "Tất cả phòng ban";
       filterDepartment = string.Empty;
-      filterUserList = Layout.UserList.Select(x => x.id).ToList();
+      filterUserList = shareStorage.MemberList.Select(x => x.id).ToList();
     }
     else
     {
       departmentName = department.name;
       filterDepartment = value;
-      filterUserList = Layout.UserList.Where(x => x.departments_id.Contains(filterDepartment))
+      filterUserList = shareStorage.MemberList.Where(x => x.departments_id.Contains(filterDepartment))
         .Select(x => x.id).ToList();
     }
     await GetData();
@@ -207,38 +187,51 @@
 
   private async Task ChangeFilterUser(string value)
   {
-    if(!string.IsNullOrEmpty(value))
+    if (!string.IsNullOrEmpty(value))
       filterUserList = new() { value };
     await GetData();
   }
 
-  private async Task GetData()
+  private async Task<bool> GetData()
   {
-    var start = filterStart.Value.DateTime;
-    var end = filterEnd.Value.DateTime;
-    var database = await DbAchievement.GetList(Layout.Company.id, null, null, start, end);
-    achievementList = database.Where(x => filterUserList.Contains(x.user)).ToList();
-
-    rankList.Clear();
-    foreach (var userId in filterUserList)
+    bool _success = true;
+    try
     {
-      var user = Layout.UserList.SingleOrDefault(x => x.id == userId);
-      if (user != null)
-      {
-        var star = (from x in database
-                    where x.user == user.id
-                    select x.star).Sum();
+      var start = new DateTime(filterStart);
+      var end = new DateTime(filterEnd);
+      var database = await DbAchievement.GetList(Layout.Company.id, null, null, start, end);
+      achievementList = database.Where(x => filterUserList.Contains(x.user)).ToList();
+      achievementOptions = await DbAchievementConfig.GetAll(Layout.Company.id);
 
-        rankList.Add(new ProgressModel()
+      rankList.Clear();
+      foreach (var userId in filterUserList)
+      {
+        var user = shareStorage.MemberList.SingleOrDefault(x => x.id == userId);
+        if (user != null)
         {
-          id = user.id,
-          name = user.FullName,
-          avatar = user.avatar,
-          departments = user.departments_name,
-          value = star
-        });
+          var star = (from x in database
+                      where x.user == user.id
+                      select x.star).Sum();
+
+          rankList.Add(new ProgressModel()
+            {
+              id = user.id,
+              name = user.name,
+              avatar = user.avatar,
+              departments = user.departments_name,
+              value = star
+            });
+        }
       }
+      rankList = rankList.OrderByDescending(x => x.value).ToList();
     }
-    rankList = rankList.OrderByDescending(x => x.value).ToList();
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetData()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

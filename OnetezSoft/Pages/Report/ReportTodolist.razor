@@ -1,56 +1,104 @@
 ﻿@page "/reports/todolist"
+@page "/reports/todolist/fine"
+@page "/reports/todolist/done"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
 <PageTitle>@_title</PageTitle>
 
-@if (!string.IsNullOrEmpty(_message))
+
+
+@if (!CheckAccess())
 {
-  <div id="notify">
-    <div class="notification is-@(_success ? "success" : "danger")">
-      <button class="delete" @onclick="() => _message = string.Empty"></button>
-      <p>@((MarkupString)_message)</p>
+  <section>
+    <div class="box has-text-centered pt-5">
+      <span class="icon is-large has-text-danger">
+        <i class="material-icons-outlined is-size-1">error_outline</i>
+      </span>
+      <div class="is-size-6 py-4 has-text-weight-semibold">
+        @msgAccess
+      </div>
     </div>
-  </div>
+  </section>
 }
-
-<section class="columns is-gapless has_menu_left @(_loaded ? "" : "is-loading")">
-  <div class="column is-narrow">
-    <_MenuLeft Company="Layout.Company" User="Layout.User" />
-  </div>
-  <div class="column">
-    <div class="tabs_white is_radius mb-4">
-      <a class="button is-size-5 has-text-weight-semibold has-text-@(tab == 1 ? "link is_bg" : "grey is-white")"
-          @onclick="() => tab = 1">
-        KỶ LUẬT
-      </a>
-      <a class="button is-size-5 has-text-weight-semibold has-text-@(tab == 2 ? "link is_bg" : "grey is-white")"
-          @onclick="() => tab = 2">
-        TỶ LỆ HOÀN THÀNH
-      </a>
+else
+{
+  <div class="tabs">
+    <div class="tabs_name">
+      Todolist
     </div>
+    <ul>
+      @if (tab == 1)
+      {
+        <li class="@(subtab == "1" ? "is-active" : "")">
+          <a class="has-text-weight-normal" href="/reports/todolist/fine?subtab=1">Đúng hạn</a>
+        </li>
+        <li class="@(subtab == "2" ? "is-active" : "")">
+          <a class="has-text-weight-normal" href="/reports/todolist/fine?subtab=2">Vi phạm</a>
+        </li>
+        <li class="@(subtab == "3" ? "is-active" : "")">
+          <a class="has-text-weight-normal" href="/reports/todolist/fine?subtab=3">Danh sách</a>
+        </li>
+        <li class="@(subtab == "4" ? "is-active" : "")">
+          <a class="has-text-weight-normal" href="/reports/todolist/fine?subtab=4">Top kỷ luật</a>
+        </li>
+      }
+      else
+      {
+        <li class="@(subtab == "1" ? "is-active" : "")">
+          <a class="has-text-weight-normal" href="/reports/todolist/done?subtab=1">Thống kê</a>
+        </li>
+        <li class="@(subtab == "2" ? "is-active" : "")">
+          <a class="has-text-weight-normal" href="/reports/todolist/done?subtab=2">Top hoàn thành</a>
+        </li>
+      }
+    </ul>
+  </div>
 
+  <section class="main_content">
     @if (tab == 1)
     {
-      <TodoDate departmentAll="departmentAll" departments="departments" />
-      <TodoViolation departmentAll="departmentAll" departments="departments" />
-      <TodoList departmentAll="departmentAll" departments="departments" />
-      <TodoRank departmentAll="departmentAll" departments="departments" />
+      if (subtab == "1")
+      {
+        <TodoDate departmentAll="departmentAll" departments="departments" />
+      }
+      else if (subtab == "2")
+      {
+        <TodoViolation departmentAll="departmentAll" departments="departments" />
+      }
+      else if (subtab == "3")
+      {
+        <TodoList departmentAll="departmentAll" departments="departments" />
+      }
+      else if (subtab == "4")
+      {
+        <TodoRank departmentAll="departmentAll" departments="departments" />
+      }
     }
     else
     {
-      <TodoProgress departmentAll="departmentAll" departments="departments" />
-      <TodoDone departmentAll="departmentAll" departments="departments" />
+      if (subtab == "1")
+      {
+        <TodoProgress departmentAll="departmentAll" departments="departments" />
+      }
+      else if (subtab == "2")
+      {
+        <TodoDone departmentAll="departmentAll" departments="departments" />
+      }
     }
-  </div>
-</section>
+  </section>
+
+}
 
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
+  [Parameter]
+  [SupplyParameterFromQuery(Name = "subtab")]
+  public string? subtab { get; set; }
 
   private bool _loaded = false;
-  private bool _success = false;
+  private bool success = false;
   private string _message = string.Empty;
   private string _title = "Thống kê Todolist";
 
@@ -58,11 +106,30 @@
   private List<DepartmentModel.SelectList> departments = new();
   private int tab = 1;
 
-  protected override void OnInitialized()
+  private string msgAccess = string.Empty;
+
+  protected override async Task OnInitializedAsync()
   {
-    departmentAll = DbDepartment.GetAll(Layout.Company.id);
-    departments.AddRange(DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
+    departmentAll = await DbDepartment.GetAll(Layout.Company.id);
+    departments.AddRange(await DbDepartment.GetSelectList(Layout.Company.id, null, 0, null));
 
     _loaded = true;
+  }
+
+  protected override void OnParametersSet()
+  {
+    if (navigation.Uri.Contains("done"))
+      tab = 2;
+    else
+      tab = 1;
+
+    if (subtab.IsEmpty())
+      subtab = "1";
+  }
+
+
+  private bool CheckAccess()
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, "todolist", out msgAccess);
   }
 }

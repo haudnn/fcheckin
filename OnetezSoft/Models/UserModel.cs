@@ -1,9 +1,12 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
+using OnetezSoft.Services;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using static OnetezSoft.Models.UserModel;
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class UserModel
   {
     [BsonId]
@@ -33,6 +36,8 @@ namespace OnetezSoft.Models
 
     public long online { get; set; }
 
+    public long last_login { get; set; }
+
     public long create_date { get; set; }
 
     /// <summary>Admin hệ thống</summary>
@@ -58,17 +63,20 @@ namespace OnetezSoft.Models
     /// <summary>Tên chức danh</summary>
     public string title_name { get; set; }
 
+    /// <summary>Tên nghề nghiệp</summary>
+    public string job_title { get; set; }
+
     /// <summary>Danh sách công ty trực thuộc</summary>
-    public List<Company> companys { get; set; }
+    public List<Company> companys { get; set; } = new();
 
     /// <summary>Quyền theo chức năng</summary>
     public RoleManage role_manage { get; set; }
 
     /// <summary>Danh sách ID phòng ban trực thuộc</summary>
-    public List<string> departments_id { get; set; }
+    public List<string> departments_id { get; set; } = new();
 
     /// <summary>Danh sách ID phòng ban ghim trong đội nhóm</summary>
-    public List<string> teams_id { get; set; }
+    public List<string> teams_id { get; set; } = new();
 
     /// <summary>Danh sách tên phòng ban trực thuộc</summary>
     public string departments_name { get; set; }
@@ -97,8 +105,8 @@ namespace OnetezSoft.Models
     /// <summary>Trang mặc định khi vào phần mềm</summary>
     public string page_default { get; set; }
 
-    /// <summary>Không thống kê: OKRs</summary>
-    public bool no_report_okr { get; set; }
+    ///// <summary>Không thống kê: OKRs</summary>
+    //public bool no_report_okr { get; set; }
 
     /// <summary>Không thống kê: CFRs</summary>
     public bool no_report_cfr { get; set; }
@@ -106,8 +114,8 @@ namespace OnetezSoft.Models
     /// <summary>Không thống kê: Todolist</summary>
     public bool no_report_todolist { get; set; }
 
-    /// <summary>Không thống kê: Kaizen</summary>
-    public bool no_report_kaizen { get; set; }
+    ///// <summary>Không thống kê: Kaizen</summary>
+    //public bool no_report_kaizen { get; set; }
 
     /// <summary>Không thống kê: Thành tựu</summary>
     public bool no_report_achievement { get; set; }
@@ -125,10 +133,10 @@ namespace OnetezSoft.Models
     public string verify { get; set; }
 
     /// <summary>Các kế hoạch đã ghim</summary>
-    public List<string> plans_pin { get; set; }
+    public List<string> plans_pin { get; set; } = new();
 
     /// <summary>Các kế hoạch đã lưu trữ</summary>
-    public List<string> plans_hide { get; set; }
+    public List<string> plans_hide { get; set; } = new();
 
     /// <summary>Chế độ làm việc linh động</summary>
     public bool is_hybrid { get; set; }
@@ -139,7 +147,9 @@ namespace OnetezSoft.Models
     /// <summary>Tên thiết bị/summary>
     public string device_name { get; set; }
 
-    public List<string> sidebar_star { get; set; } = new();
+    //public List<string> sidebar_star { get; set; } = new();
+
+    public Custom custom { get; set; } = new();
 
 
     /// <summary>Công ty trực thuộc</summary>
@@ -149,6 +159,7 @@ namespace OnetezSoft.Models
       public string name { get; set; }
     }
 
+    [BsonIgnoreExtraElements]
     /// <summary>Quyền hạn chức năng</summary>
     public class RoleManage
     {
@@ -178,6 +189,15 @@ namespace OnetezSoft.Models
 
       /// <summary>Lưu trữ</summary>
       public bool storage { get; set; }
+
+      /// <summary>Ghi nhận</summary>
+      public bool cfr { get; set; }
+
+      /// <summary>kpis</summary>
+      public bool kpis { get; set; }
+
+      /// summary>todolist</summary>
+      public bool todolist { get; set; }
     }
 
     public string FullName
@@ -186,7 +206,7 @@ namespace OnetezSoft.Models
     }
   }
 
-
+  [BsonIgnoreExtraElements]
   /// <summary>Thông tin tài khoản</summary>
   public class MemberModel
   {
@@ -194,5 +214,52 @@ namespace OnetezSoft.Models
     public string name { get; set; }
     public string email { get; set; }
     public string avatar { get; set; }
+
+    /// <summary>Chức danh: 1. quản lý, 2. phó quản lý, 3. nhân viên</summary>
+    public int title { get; set; }
+
+    /// <summary>Danh sách ID phòng ban trực thuộc</summary>
+    public List<string> departments_id { get; set; }
+    /// <summary>Danh sách tên phòng ban trực thuộc</summary>
+    public string departments_name { get; set; }
+
+    /// <summary>Phòng ban mặc định cho các bộ lọc</summary>
+    public string department_default { get; set; }
+
+    /// <summary>Quyền trong công ty: 1. Admin, 2. QLHT, 3. Nhân viên</summary>
+    public int role { get; set; }
+
+    /// <summary>Quyền theo chức năng</summary>
+    public RoleManage role_manage { get; set; }
+
+    // <summary>Xử lý cho thống kê chấm công</summary>
+    public int count { get; set; }
+  }
+
+  [BsonIgnoreExtraElements]
+  public class Custom
+  {
+    public string okrs_cycle { get; set; }
+
+    public string kpis_cycle { get; set; }
+
+    public bool sidebar_pin { get; set; }
+
+    public bool sidebar_fwork { get; set; } = true;
+
+    public bool sheets_less { get; set; } = true;
+
+    public List<NotificationService.NotiType> notifications { get; set; } = new();
+
+    public bool email_notification { get; set; } = true;
+
+    //public Beta beta_user { get; set; } = new();
+  }
+  [BsonIgnoreExtraElements]
+  public class Beta
+  {
+    public bool accept { get; set; }
+
+    public long update { get; set; }
   }
 }

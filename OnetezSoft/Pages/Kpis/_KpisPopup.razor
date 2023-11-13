@@ -1,0 +1,640 @@
+﻿@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
+
+@if (kpisRoot != null && modelEdit != null && cycle != null)
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card" style="@(currentStep == 1 ? "overflow: visible;" : "")">
+      <div class="modal-card-head">
+        <div class="modal-card-title">
+          <p>@(Shared.IsEmpty(modelEdit.id) ? "Tạo KPIs" : "Chỉnh sửa KPIs")</p>
+        </div>
+        <a class="delete" @onclick="Cancel"></a>
+      </div>
+      <div class="modal-card-body @(currentStep == 2 ? "scrolly" : "")" style="@(currentStep == 1 ? "overflow: visible;" : "overflow: auto !important;")">
+        <ul class="columns is-multiline">
+          @if (currentStep == 1)
+          {
+            <li class="column is-full">
+              <span class="icon-text is-size-6 has-text-grey">
+                <span>Là KPIs</span>
+                <span class="icon" title="Cho phép tạo KPIs cao nhất trong chu kỳ hoặc tạo KPIs liên kết với các KPIs hiện có">
+                  <span class="material-icons-outlined">info</span>
+                </span>
+              </span>
+
+              <Dropdown CloseOnClickMenu=true DropdownClass="is-fullwidth mt-2" MenuClass="p-2 is-fullwidth" isFullwidth=true>
+                <Trigger>
+                  <div class="field is-grouped has_bg is-fullwidth py-1 px-2 is-clickable" style="border-radius: 4px; border: 1px solid #dbdbdb;">
+                    <div class="control" style="max-width: calc(100% - 36px);">
+                      @if (modelEdit.parent == kpisRoot.id)
+                      {
+                        <span class="icon-text is-size-6">
+                          <span class="icon mr-2">
+                            <span class="material-icons-outlined">corporate_fare</span>
+                          </span>
+                          <span class="has-text-black">KPIs cao nhất</span>
+                        </span>
+                      }
+                      else
+                      {
+                        var kpis = kpisSearch.FirstOrDefault(i => i.id == modelEdit.parent);
+                        if (kpis != null)
+                        {
+                          var kpisMetric = kpis.metrics.FirstOrDefault();
+
+                          if (kpisMetric != null)
+                          {
+                            <span class="icon-text is-size-6">
+                              <span class="icon has-text-grey mr-2">
+                                <span class="material-icons-outlined">account_tree</span>
+                              </span>
+                              <span class="mr-2 has-text-grey" style="overflow:unset;">
+                                Liên kết
+                              </span>
+                              <span class="has-text-black text_1_line">
+                                @($"{kpis.name}: {Shared.ConvertCurrencyDouble(Math.Round(kpisMetric.target, 3))} {kpisMetric.units}")
+                              </span>
+                            </span>
+                          }
+                        }
+                      }
+                    </div>
+
+                    <div class="control is-expanded has-text-right">
+                      <span class="icon">
+                        <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+                      </span>
+                    </div>
+                  </div>
+                </Trigger>
+                <MenuContent>
+                  <div class="control has-icons-right mb-2 is-fullwidth">
+                    <input class="input is-small is-rounded is_bg"
+                           type="text" autocomplete="off"
+                    @bind="Search" @bind:event="oninput" @onclick:stopPropagation
+                           placeholder="Tên KPIs liên kết...">
+                    <span class="icon is-right">
+                      <i class="material-icons-outlined is-size-6 mr-2">
+                        search
+                      </i>
+                    </span>
+                  </div>
+
+                  <a class="dropdown-item px-4 py-2" style="width: 100%;"
+                  @onclick="() => ChangeParent()">
+                    <span class="icon-text is-size-6">
+                      <span class="icon mr-2">
+                        <span class="material-icons-outlined">corporate_fare</span>
+                      </span>
+                      <span class="has-text-black">KPIs cao nhất</span>
+                    </span>
+                  </a>
+
+                  @foreach (var item in suggests)
+                  {
+                    var metricItem = item.metrics.FirstOrDefault();
+
+                    if (metricItem != null)
+                    {
+                      <a class="dropdown-item px-4 py-2" style="width: 100%;" @onclick="() => ChangeParent(item.id)">
+                        <span class="icon-text is-size-6">
+                          <span class="icon has-text-grey mr-2">
+                            <span class="material-icons-outlined">account_tree</span>
+                          </span>
+                          <span class="mr-2 has-text-grey" style="overflow: unset;">
+                            Liên kết
+                          </span>
+                          <span class="has-text-black text_1_line">
+                            @($"{item.name}: {Shared.ConvertCurrencyDouble(Math.Round(metricItem.target, 3))} {metricItem.units}")
+                          </span>
+                        </span>
+                      </a>
+                    }
+                  }
+                </MenuContent>
+              </Dropdown>
+            </li>
+
+            @if (modelEdit.parent != kpisRoot.id)
+            {
+              <li class="column is-full">
+                <div class="field is-grouped">
+                  <div class="control is-flex">
+                    <input id="kpis-auto" class="mr-2 is-clickable" type="radio" checked="@(modelEdit.type == 2)"
+                           name="kpis-type" @onchange="@(() => ChangeType(2))" />
+                    <label for="kpis-auto" class="mr-2 is-clickable">KPIs tự động</label>
+                  </div>
+
+                  <div class="control is-flex">
+                    <input id="kpis_not_auto" class="mr-2 is-clickable" type="radio" checked="@(modelEdit.type == 1)"
+                           name="kpis-type" @onchange="@(() => ChangeType(1))" />
+                    <label for="kpis_not_auto" class="is-clickable">KPIs nhập liệu</label>
+                  </div>
+                </div>
+              </li>
+            }
+          }
+          else if (currentStep == 2)
+          {
+            <li class="column is-half">
+              <span class="has-text-grey">Tiêu đề KPIs (*)</span>
+              @if (!_accessAuthorNotManager)
+              {
+                <input class="input is_bg mt-2" type="text" @bind="modelEdit.name" placeholder="Nhập tiêu đề" />
+              }
+              else
+              {
+                <span class="text_1_line mt-2 is-size-6 has-text-black has-text-weight-medium">
+                  @modelEdit.name
+                </span>
+              }
+            </li>
+
+            <li class="column is-half">
+              @if (kpisRoot != null)
+              {
+                <span class="has-text-grey">Thuộc cây KPIs</span>
+                <span class="text_1_line mt-2 is-size-6 has-text-black has-text-weight-medium">
+                  @kpisRoot.name
+                </span>
+              }
+            </li>
+
+            <li class="column is-half">
+              <span class="has-text-grey">Chỉ số KPIs (*)</span>
+              @if (Shared.IsEmpty(modelEdit.id))
+              {
+                var modelEditMetric = modelEdit.metrics.FirstOrDefault();
+
+                <div class="select is-fullwidth is_bg mt-2">
+                  <select @onchange="ChangeMetric">
+                    @if (modelEditMetric == null)
+                    {
+                      <option value="">Chọn chỉ số</option>
+                    }
+                    @foreach (var item in metrics)
+                    {
+                      @if (modelEditMetric != null)
+                      {
+                        <option value="@item.id" selected="@(item.id == modelEditMetric.id)">
+                          @item.name
+                        </option>
+                      }
+                      else
+                      {
+                        <option value="@item.id">
+                          @item.name
+                        </option>
+                      }
+                    }
+                  </select>
+                </div>
+              }
+              else
+              {
+                var modelEditMetric = modelEdit.metrics.FirstOrDefault();
+                @if (modelEditMetric != null)
+                {
+                  <span class="text_1_line mt-2 is-size-6 has-text-black has-text-weight-medium">
+                    @modelEditMetric.name
+                  </span>
+                }
+              }
+            </li>
+
+            <li class="column is-half">
+              <div class="field is-grouped mb-2">
+                <div class="control mr-1">
+                  <p class="has-text-grey" style="line-height: 0;">Mục tiêu mong muốn (*)</p>
+                </div>
+
+                <div class="control">
+                  <div class="dropdown is-hoverable is-right">
+                    <div class="dropdown-trigger">
+                      <span class="icon has-text-info">
+                        <i class="material-icons-outlined is-size-6">info</i>
+                      </span>
+                    </div>
+                    <div class="dropdown-menu" style="width: 200px;">
+                      <div class="dropdown-content">
+                        <div class="dropdown-item">
+                          Đối với những KPIs mang tính chất chi phí thì chọn dấu "-"
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              @if (!_accessAuthorNotManager)
+              {
+                var metric = modelEdit.metrics.FirstOrDefault();
+                <_InputUpDown metric="metric"
+                              IsDownParameter="target < 0"
+                              IsTarget="true"
+                              target="target"
+                              model="modelEdit"
+                              OnUpdateTarget="(e) => target=e" />
+
+              }
+              else
+              {
+                <span class="text_1_line mt-2 is-size-6 has-text-black has-text-weight-medium">
+                  @(target) @(modelEdit.metrics.FirstOrDefault() != null ? modelEdit.metrics.FirstOrDefault().units : "")
+                </span>
+              }
+            </li>
+
+            <li class="column is-half">
+              <p class="has-text-grey mb-2">Thời hạn (*)</p>
+              @if (!_accessAuthorNotManager)
+              {
+                <_InputDate Minimal IsRange DefaultString="Thời gian"
+                @bind-Start="modelEdit.start_date"
+                @bind-End="modelEdit.end_date"
+                            Format="dd/MM" />
+              }
+              else
+              {
+                <div class="icon-text is-size-7">
+                  <span class="icon mr-2">
+                    <i class="material-icons-outlined is-size-6">
+                      event
+                    </i>
+                  </span>
+                  <span>
+                    @($"{new DateTime(modelEdit.start_date).ToString("dd'/'MM")} - {new DateTime(modelEdit.end_date).ToString("dd'/'MM")}")
+                  </span>
+                </div>
+              }
+            </li>
+
+            <li class="column is-half">
+              @if (modelEdit.type == 1)
+              {
+                <span class="mr-2 has-text-grey" style="white-space: nowrap;">Người thực hiện (*)</span>
+              }
+              else if (modelEdit.type == 2)
+              {
+                <span class="mr-2 has-text-grey" style="white-space: nowrap;">Người giám sát (*)</span>
+              }
+
+              @if (!_accessAuthorNotManager)
+              {
+                <div class="control has-icons-right has_suggest mt-2">
+                  <input class="input has_bg" type="text" placeholder="@(modelEdit.type == 1 ? "Chọn người thực hiện" : "Chọn người giám sát")"
+                         autocomplete="off" @bind="UserPerform" @bind:event="oninput" />
+                  <ul class="suggest">
+                    @foreach (var item in userPerformSuggests)
+                    {
+                      <li class="rsitem" @onclick="() => UserSelected(item)">
+                        <div class="user_item">
+                          <img class="image is-24x24 mr-2" src="@item.avatar" alt="IMG">
+                          <span>@item.name</span>
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                  <span class="icon is-right">
+                    <i class="material-icons-outlined">search</i>
+                  </span>
+                </div>
+              }
+              else if (userList.Find(i => i.id == modelEdit.user) != null)
+              {
+                <span class="text_1_line mt-2 is-size-6 has-text-black has-text-weight-medium">
+                  @userList.Find(i => i.id == modelEdit.user).name
+                </span>
+              }
+
+            </li>
+
+
+            @if (modelEdit.parent != kpisRoot.id)
+            {
+              if (kpisSearch.FirstOrDefault(i => i.id == modelEdit.parent) != null)
+              {
+                <li class="column is-half">
+                  <span class="has-text-grey">Thuộc bảng KPIs</span>
+                  <span class="text_1_line mt-2 is-size-6 has-text-black has-text-weight-medium">
+                    @kpisSearch.FirstOrDefault(i => i.id == modelEdit.parent).name
+                  </span>
+                </li>
+
+              }
+
+              <li class="column is-half">
+                <span class="has-text-grey">Loại KPIs</span>
+                <span class="text_1_line mt-2 is-size-6 has-text-black has-text-weight-medium">
+                  @(modelEdit.type == 1 ? "KPIs nhập liệu" : "KPIs tự động")
+                </span>
+              </li>
+            }
+
+            <li class="column is-full">
+              <span class="has-text-grey">Kế hoạch:</span>
+              <PlanLink dataPlanKpis="modelEdit.plan_list" isEdit="true" />
+            </li>
+
+            <li class="column is-full">
+              <div class="field is-grouped">
+                <div class="control has-text-grey">
+                  File đính kèm:
+                </div>
+                <div class="control is-expanded" style="width: calc(100% - 132px)">
+                  <FileUpload Multiple="true" Small="true" Cloud="true" OnUpload="x => modelEdit.files.AddRange(x)" />
+                </div>
+              </div>
+              <div class="pb-3">
+                <FileViews Delete="true" Values="modelEdit.files" />
+              </div>
+            </li>
+          }
+
+        </ul>
+      </div>
+      <section class="modal-card-foot has-background-white">
+        <div class="field is-grouped is-fullwidth">
+          <div class="control is-expanded has-text-right">
+            @if (currentStep == 1 || (!Shared.IsEmpty(modelEdit.id) && currentStep == 2))
+            {
+              <a class="button" @onclick="Cancel">
+                <span class="icon">
+                  <span class="material-icons-outlined is-size-6">
+                    cancel
+                  </span>
+                </span>
+                <span>Huỷ</span>
+              </a>
+            }
+
+            @if (currentStep == 2 && Shared.IsEmpty(modelEdit.id))
+            {
+              <a class="button" @onclick="Return">
+                <span class="icon">
+                  <span class="material-icons-outlined is-size-6">
+                    arrow_back
+                  </span>
+                </span>
+                <span>Trở về</span>
+              </a>
+            }
+
+            @if (currentStep == 1)
+            {
+              <a class="button is-link" @onclick="Next">
+                <span class="icon">
+                  <span class="material-icons-outlined is-size-6">
+                    arrow_forward
+                  </span>
+                </span>
+                <span>Tiếp tục</span>
+              </a>
+            }
+
+            @if (currentStep == 2)
+            {
+              <a class="button is-link" @onclick="ShowUpdate">
+                <span class="icon">
+                  <span class="material-icons-outlined is-size-6">
+                    done
+                  </span>
+                </span>
+                <span>Cập nhật</span>
+              </a>
+            }
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public KpisModel model { get; set; }
+  [Parameter]
+  public List<KpisMetricModel> dataMetric { get; set; } = new();
+  [Parameter]
+  public KpisCycleModel cycle { get; set; }
+  [Parameter]
+  public KpisModel kpisRoot { get; set; }
+  [Parameter]
+  public EventCallback<KpisModel> OnUpdate { get; set; }
+
+  private bool _accessAuthorNotManager;
+
+  private KpisModel modelEdit;
+  private int currentStep = 1;
+  private string keyword = string.Empty;
+  private List<KpisModel> suggests = new();
+  private List<KpisModel> kpisSearch = new();
+  private double target;
+  private string filterUserName = string.Empty;
+  private List<MemberModel> userPerformSuggests = new();
+  private List<KpisMetricModel> metrics = new();
+  private List<KpisModel> database = new();
+  private MemberModel userAuthorOld;
+  private List<MemberModel> userList = new();
+
+
+  private string Search
+  {
+    get => keyword;
+    set
+    {
+      keyword = value;
+      suggests = GetSuggests();
+    }
+  }
+
+  private string UserPerform
+  {
+    get => filterUserName;
+    set
+    {
+      filterUserName = value;
+      userPerformSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in userList)
+        {
+          bool check = true;
+          if (!Handled.Shared.SearchKeyword(filterUserName, item.name))
+            check = false;
+
+          if (check)
+            userPerformSuggests.Add(item);
+        }
+      }
+    }
+  }
+
+  protected override async Task OnInitializedAsync()
+  {
+    userList = await globalService.GetUserList(Layout.Company.id);
+    if (cycle != null && model != null)
+      _accessAuthorNotManager = model.user == Layout.User.id
+                                && !cycle.managers.Contains(Layout.User.id)
+                                && !kpisRoot.managers.Contains(Layout.User.id);
+
+    modelEdit = Shared.Clone(model);
+
+    if(Shared.IsEmpty(modelEdit.id) && kpisRoot != null)
+    {
+      modelEdit.start_date = kpisRoot.start_date;
+      modelEdit.end_date = kpisRoot.end_date;
+    }
+
+    database = await DbKpis.GetListByKpisRoot(Layout.Company.id, Layout.CycleKpisId, kpisRoot.id);
+
+    CheckEdit();
+
+    // lấy list để tìm kiếm (KPIs chính hoặc KPIs tự động)
+    kpisSearch = database.Where(i => i.type == 2 && i.parent != i.cycle && i.root == kpisRoot.id).ToList();
+    suggests = kpisSearch.Where(i => true).ToList();
+
+    GetDataMetrics();
+  }
+
+  private void ChangeType(int type)
+  {
+    modelEdit.type = type;
+  }
+
+  private void ChangeParent(string item = "")
+  {
+    if (Shared.IsEmpty(item))
+    {
+      modelEdit.parent = kpisRoot.id;
+      modelEdit.type = 2;
+      modelEdit.metrics = new();
+    }
+    else
+      modelEdit.parent = item;
+  }
+
+  private void ChangeMetric(ChangeEventArgs e)
+  {
+    modelEdit.metrics = KpisService.ChangeMetric(metrics, e.Value.ToString());
+  }
+
+  private async Task Cancel()
+  {
+    await OnUpdate.InvokeAsync(null);
+  }
+
+  private void Return()
+  {
+    currentStep = 1;
+    modelEdit.parent = kpisRoot.id;
+    modelEdit.metrics = new();
+    modelEdit.type = 2;
+  }
+
+  private async Task Next()
+  {
+    if (Shared.IsEmpty(modelEdit.parent))
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Bạn chưa nhập Thuộc bảng KPIs!");
+    else
+      currentStep = 2;
+
+    GetDataMetrics();
+  }
+
+  private void GetDataMetrics()
+  {
+    metrics = KpisService.GetAllMetricByKpis(database, dataMetric);
+    KpisService.ChangeMetricKpis(modelEdit, metrics, database);
+  }
+
+  private async Task ShowUpdate()
+  {
+    var result = await KpisService.UpdateKpis(modelEdit, kpisRoot, database, Layout.Company.id, Layout.User.id, cycle, target, modelEdit.name, filterUserName);
+    if (!result.Item1 && Shared.IsEmpty(result.Item2) && modelEdit != null)
+    {
+      var userNew = userList.FirstOrDefault(i => i.id == modelEdit.user);
+
+      if (userAuthorOld != null)
+      {
+        if (!Shared.IsEmpty(userAuthorOld.name) && userNew != null)
+        {
+          // TH: có ảnh hướng đến checkin
+          if (await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn đang thực hiện thay đổi người giám sát từ {userAuthorOld} thành {userNew.name}. Hiện tại đang có các bản check-in của {userNew.name} cần được phê duyệt. Bạn có muốn tự động phê duyệt hay không"))
+          {
+            result = await KpisService.UpdateKpis(modelEdit, kpisRoot, database, Layout.Company.id, Layout.User.id, cycle, target, modelEdit.name, filterUserName, true);
+            await Update(result);
+          }
+          else
+          {
+            modelEdit.user = userAuthorOld.id;
+            filterUserName = userAuthorOld.name;
+          }
+        }
+      }
+    }
+    else
+      await Update(result);
+  }
+
+  private async Task Update((bool, string, bool) result)
+  {
+    if (result.Item1)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", true, $"{result.Item2}");
+      await OnUpdate.InvokeAsync(modelEdit);
+    }
+    else
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"{result.Item2}");
+    }
+  }
+
+  private void UserSelected(MemberModel item)
+  {
+    modelEdit.user = item.id;
+    filterUserName = item.name;
+    userPerformSuggests = new();
+  }
+
+  private void CheckEdit()
+  {
+    if (Shared.IsEmpty(modelEdit.id))
+    {
+      modelEdit.type = 2;
+      if (kpisRoot != null)
+        modelEdit.parent = kpisRoot.id;
+    }
+    else
+    {
+      target = modelEdit.metrics.FirstOrDefault().target;
+      var user = userList.FirstOrDefault(i => i.id == modelEdit.user);
+      if (user != null)
+      {
+        filterUserName = user.name;
+        userAuthorOld = Shared.Clone(user);
+      }
+
+      currentStep = 2;
+    }
+  }
+
+  private List<KpisModel> GetSuggests()
+  {
+    var results = new List<KpisModel>();
+    foreach (var item in kpisSearch)
+    {
+      bool check = true;
+      if (!Shared.SearchKeyword(keyword, item.name))
+        check = false;
+      if (check)
+        results.Add(item);
+    }
+    return results;
+  }
+}

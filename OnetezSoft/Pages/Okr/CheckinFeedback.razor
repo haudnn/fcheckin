@@ -1,69 +1,80 @@
 ﻿@page "/okr/checkin/{Id}/feedback"
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
+<div class="tabs">
+  <div class="tabs_name">
+    <a class="icon-text px-0 has-text-link has-text-weight-normal is-size-6" href="/okr/checkin/@okr.user_create">
+      <span class="icon">
+        <span class="material-icons-outlined">
+          keyboard_backspace
+        </span>
+      </span>
+      <span>
+        Trở về
+      </span>
+    </a>
+    <span class="icon-text">
+      <span>
+        Chi tiết OKRs
+      </span>
+    </span>
+  </div>
+  <ul>
+    <li class="">
+      <a class="has-text-weight-normal" href="/okr/checkin/@okr.id/info">Check-in 1:1</a>
+    </li>
+    <li class="is-active">
+      <a class="has-text-weight-normal" href="/okr/checkin/@okr.id/feedback">Phản hồi</a>
+    </li>
+    <li class="">
+      <a class="has-text-weight-normal" href="/okr/checkin/@okr.id/overview">Tổng quan</a>
+    </li>
+  </ul>
+</div>
+
 @if (okr != null)
 {
-  <section class="columns is-gapless has_menu_left">
-    <div class="column is-narrow">
-      <div class="card p-3 menu_left">
-        <a class="button is-transparent has-text-link mb-5" href="/okr/checkin/@okr.user_create">
-          <span class="icon">
-            <i class="material-icons-outlined">
-              arrow_back
-            </i>
-          </span>
-          <span>Trở về</span>
-        </a>
-        <a href="/okr/checkin/@okr.id/info">
-          Check-in<br />1:1
-        </a>
-        <a class="is-active" href="/okr/checkin/@okr.id/feedback">
-          Phản hồi
-        </a>
-        <a href="/okr/checkin/@okr.id/overview">
-          Tổng quan
-        </a>
-      </div>
-    </div>
-    <div class="column">
-      <div class="card p-5 p-4-mobile">
-        <ul class="columns is-vcentered is-variable is-2 mb-3">
-          <li class="column">
-            <h1 class="title is-5 has-text-info">
-              PHẢN HỒI CHECK-IN
-            </h1>
-          </li>
-          <li class="column is-narrow">
-            <div class="field is-grouped">
-              <div class="control has-text-weight-semibold">
-                Chu kỳ Check-in:
-              </div>
-              <div class="control is-expanded">
-                <div class="select is-fullwidth">
-                  <select @onchange="ChangeCheckin">
-                    @foreach (var sl in dataList)
-                    {
-                      <option value="@sl.id">
-                        @string.Format("{0:dd/MM/yyyy}", new DateTime(sl.date_create))
-                        @(sl.draft ? " - Bản nháp" : "")
-                      </option>
-                    }
-                    @if (dataList.Count == 0)
-                    {
-                      <option value="">Chưa có Check-in</option>
-                    }
-                  </select>
-                </div>
+  <section class="main_content">
+    <div class="card">
+      <ul class="columns is-vcentered is-variable is-2 mb-2">
+        <li class="column">
+          <h1 class="title is-5 has-text-info">
+            PHẢN HỒI CHECK-IN
+          </h1>
+        </li>
+        <li class="column is-narrow">
+          <div class="field is-grouped">
+            <div class="control has-text-weight-semibold">
+              Chu kỳ Check-in:
+            </div>
+            <div class="control is-expanded">
+              <div class="select is-fullwidth">
+                <select @onchange="ChangeCheckin">
+                  @foreach (var sl in dataList)
+                  {
+                    <option value="@sl.id">
+                      @string.Format("{0:dd/MM/yyyy}", new DateTime(sl.date_create))
+                      @(sl.draft ? " - Bản nháp" : "")
+                    </option>
+                  }
+                  @if (dataList.Count == 0)
+                  {
+                    <option value="">Chưa có Check-in</option>
+                  }
+                </select>
               </div>
             </div>
-          </li>
-        </ul>
+          </div>
+        </li>
+      </ul>
+      <div class="inner_section">
         @if (model == null)
         {
-          <div class="py-6 has-text-grey">
+          <div class="py-6 has-text-centered has-text-grey">
             Chưa có dữ liệu check-in
           </div>
         }
@@ -181,13 +192,13 @@
                           }
                           else
                           {
-                            var user = Layout.UserList.SingleOrDefault(x => x.id == item.user);
+                            var user = shareStorage.MemberList.SingleOrDefault(x => x.id == item.user);
                             <li class="column is-three-fifths-tablet is-full-mobile">
                               @if (user != null)
                               {
                                 <div class="user_item mb-2">
                                   <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
-                                  <span class="has-text-weight-medium">@user.FullName</span>
+                                  <span class="has-text-weight-medium">@user.name</span>
                                 </div>
                               }
                               <div class="has_bg is-word-break is-pulled-left p-3 is_radius">
@@ -232,7 +243,7 @@
             <div class="control is-expanded has-icons-right">
               <textarea @bind="replyContent" id="replyInput" class="textarea scrolly" rows="1" placeholder="Nội dung phản hồi..." />
               <a class="icon is-right has-text-link" onclick="document.getElementById('file').click()"
-             title="Đính kèm hình ảnh" style="pointer-events: auto;">
+                 title="Đính kèm hình ảnh" style="pointer-events: auto;">
                 <i class="material-icons-outlined is-size-5">image</i>
               </a>
               <InputFile OnChange="Upload" accept="image/*" class="is-hidden" id="file" />
@@ -253,8 +264,8 @@
 }
 else
 {
-  <section class="p-4">
-    <div class="card p-5">
+  <section class="main_content">
+    <div class="card">
       Dữ liệu không tồn tại hoặc đã bị xóa
     </div>
   </section>
@@ -274,12 +285,15 @@ else
   private string replyId = string.Empty;
   private string replyContent = string.Empty;
 
+  private SharedStorage shareStorage = new();
+
   protected override async Task OnInitializedAsync()
   {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
     okr = await DbOkr.Get(Layout.Company.id, Id, Layout.CycleId);
     if (okr != null)
     {
-      dataList.AddRange(DbOkrCheckin.GetList(Layout.Company.id, Layout.CycleId, okr.id, true));
+      dataList.AddRange(await DbOkrCheckin.GetList(Layout.Company.id, Layout.CycleId, okr.id, true));
       if (dataList.Count > 0)
         model = dataList[0];
       await JSRuntime.InvokeVoidAsync("textAutoSize", "replyInput");
@@ -323,42 +337,54 @@ else
       }
       catch (Exception ex)
       {
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Lỗi khi upload: " + ex.Message);
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Lỗi khi upload: " + ex.ToString());
       }
     }
   }
 
-  private async Task Send()
+  private async Task<bool> Send()
   {
-    if (Shared.IsEmpty(replyContent))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập nội dung phản hồi !");
-    else
+    bool _success = true;
+    try
     {
-      model = await DbOkrCheckin.Get(Layout.Company.id, model.id);
-      if (model.feedbacks == null)
-        model.feedbacks = new();
-
-      model.feedbacks.Add(new()
-        {
-          id = Mongo.RandomId(),
-          user = Layout.User.id,
-          date = DateTime.Now.Ticks,
-          content = replyContent.Replace("[img]", "<img src=\"").Replace("[/img]", "\" alt=\"IMG\" />"),
-          kr = replyId
-        });
-
-      model = await DbOkrCheckin.Update(Layout.Company.id, model);
-
-      // Gửi thông báo chuông
-      if (okr.user_create == Layout.User.id)
-        await DbNotify.Create(Layout.Company.id, 506, okr.id, okr.user_checkin, Layout.User.id);
+      if (Shared.IsEmpty(replyContent))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập nội dung phản hồi !");
       else
-        await DbNotify.Create(Layout.Company.id, 507, okr.id, okr.user_create, Layout.User.id);
+      {
+        model = await DbOkrCheckin.Get(Layout.Company.id, model.id);
+        if (model.feedbacks == null)
+          model.feedbacks = new();
 
-      replyId = string.Empty;
-      replyContent = string.Empty;
-      await JSRuntime.InvokeVoidAsync("setFocus", "replyInput");
-      await JSRuntime.InvokeVoidAsync("scrollDiv", "feedback", 10000);
+        model.feedbacks.Add(new()
+          {
+            id = Mongo.RandomId(),
+            user = Layout.User.id,
+            date = DateTime.Now.Ticks,
+            content = replyContent.Replace("[img]", "<img src=\"").Replace("[/img]", "\" alt=\"IMG\" />"),
+            kr = replyId
+          });
+
+        model = await DbOkrCheckin.Update(Layout.Company.id, model);
+
+        // Gửi thông báo chuông
+        if (okr.user_create == Layout.User.id)
+          await DbNotify.Create(Layout.Company.id, 506, okr.id, okr.user_checkin, Layout.User.id);
+        else
+          await DbNotify.Create(Layout.Company.id, 507, okr.id, okr.user_create, Layout.User.id);
+
+        replyId = string.Empty;
+        replyContent = string.Empty;
+        await JSRuntime.InvokeVoidAsync("setFocus", "replyInput");
+        await JSRuntime.InvokeVoidAsync("scrollDiv", "feedback", 10000);
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Send()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

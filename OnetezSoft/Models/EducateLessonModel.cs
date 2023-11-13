@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class EducateLessonModel
   {
     [BsonId]
@@ -32,15 +33,18 @@ namespace OnetezSoft.Models
     
     /// <summary>Video youtube</summary>
     public string video { get; set; }
-    
-    /// <summary>File đính kèm</summary>
+
+    /// <summary>File đính kèm => bỏ</summary>
     public string file { get; set; }
+
+    /// <summary>File đính kèm</summary>
+    public List<string> files { get; set; } = new();
     
     /// <summary>Mức điểm đạt</summary>
     public int point { get; set; }
-    
+
     /// <summary>Câu hỏi</summary>
-    public List<Question> questions { get; set; }
+    public List<Question> questions { get; set; } = new();
 
 
     public class Question
@@ -54,7 +58,7 @@ namespace OnetezSoft.Models
       public int point { get; set; }
 
       /// <summary>Đáp án</summary>
-      public List<Answer> answers { get; set; }
+      public List<Answer> answers { get; set; } = new();
 
       /// <summary>File đính kèm</summary>
       public List<string> files { get; set; } = new();

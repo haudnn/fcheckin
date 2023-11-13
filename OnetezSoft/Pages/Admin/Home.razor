@@ -3,13 +3,32 @@
 @layout LayoutAdmin
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
 <PageTitle>@_title</PageTitle>
 
 <section class="p-4 is-flex" style="min-height: 90vh; align-items: center; justify-content: center;">
-  @if(Layout.User.id == ConfigSystem.DeveloperId)
+  @if (ConfigSystem.DeveloperId.Contains(Layout.User.id))
   {
     <div>
+      <div>
+        Xử lý bộ nhớ
+      </div>
+
+      <div class="buttons">
+        <span class="button is-link has-text-weight-bold" style="width: 92px;">
+          Ảnh
+        </span>
+        <input @bind="@company" class="button" placeholder="Nhập ID công ty"title="Bỏ trống sẽ đồng bộ tất cả công ty" />
+        <input @bind="@compress" type="number" class="button" placeholder="Mức độ nén" title="Kích thước nén ảnh" />
+        <a class="button is-danger" @onclick="ResizeImageAll">
+          Nén tất cả avatar
+        </a>
+        <a class="button is-danger" @onclick="MoveImageToCloud">
+          Chuyển blog and banner lên Cloud
+        </a>
+      </div>
+
       <div class="buttons">
         <span class="button is-dark has-text-weight-bold" style="width: 92px;">BƯỚC 1</span>
         <a class="button is-danger" @onclick="DeleteCompanyList">
@@ -30,6 +49,13 @@
         </a>
         <a class="button is-link" @onclick="MoveUserList">
           Chuyển dữ liệu tài khoản
+        </a>
+      </div>
+
+      <div class="buttons">
+        <span class="button is-dark has-text-weight-bold" style="width: 92px;">BƯỚC 2</span>
+        <a class="button is-link" @onclick="UpdateUserDepartmentName">
+          Cập nhật tên phòng ban
         </a>
       </div>
 
@@ -56,7 +82,7 @@
         </a>
       </div>
 
-      @if(companys.Count > 0)
+      @if (companys.Count > 0)
       {
         <table class="table is-bordered is-vcentered">
           <thead>
@@ -77,7 +103,7 @@
                 <td>@(item.status ? "Active" : "")</td>
                 <td>@(item.delete ? "Delete" : "")</td>
                 <td>
-                  @if(!item.delete)
+                  @if (!item.delete)
                   {
                     <a class="tag is-@(item.status ? "link" : "danger")" @onclick="() => MoveCompanyData(item)">Đồng bộ</a>
                   }
@@ -104,6 +130,9 @@
   private string _title = "FASTDO CMS";
   private List<string> customers = new();
 
+  private string company;
+  private int compress = 1000;
+
   private async Task DeleteUserList()
   {
     int count = 0;
@@ -111,7 +140,7 @@
     var data = await BackupData.GetList<UserModel>("fastdo", "users");
     foreach (var item in data)
     {
-      if(!item.is_admin)
+      if (!item.is_admin)
       {
         // Xóa tài khoản cũ nhưng không xóa admin
         BackupData.Delete<UserModel>("fastdo", "users", item.id);
@@ -119,9 +148,9 @@
         count++;
       }
     }
-    await JSRuntime.InvokeVoidAsync("console.log",$"DELETE {count}/{data.Count} user");
+    await JSRuntime.InvokeVoidAsync("console.log", $"DELETE {count}/{data.Count} user");
   }
- 
+
   private async Task DeleteCompanyList()
   {
     await JSRuntime.InvokeVoidAsync("console.warn", "Xóa công ty cũ");
@@ -183,26 +212,26 @@
       }
       catch (System.Exception)
       {
-        //await JSRuntime.InvokeVoidAsync("console.warn",$"EXIST => {ex.Message}");
+        //await JSRuntime.InvokeVoidAsync("console.warn",$"EXIST => {ex.ToString()}");
       }
     }
-    await JSRuntime.InvokeVoidAsync("console.log",$".....{table_name} => Delete {count}/{data.Count} item");
+    await JSRuntime.InvokeVoidAsync("console.log", $".....{table_name} => Delete {count}/{data.Count} item");
   }
 
- private async Task MoveCompanyList()
- {
+  private async Task MoveCompanyList()
+  {
     customers = new();
     await JSRuntime.InvokeVoidAsync("console.warn", "Chuyển dữ liệu tổ chức");
     var data = await BackupData.GetList<CompanyModel>("workdo", "companys");
     foreach (var item in data)
     {
-      if(item.status && !item.delete)
+      if (item.status && !item.delete)
       {
         // Thêm tài khoản khách hàng
         customers.Add(item.admin_id);
         // Chuyển dữ liệu
         try
-        {  
+        {
           item.products = new();
           BackupData.Create<CompanyModel>("fastdo", "companys", item);
           await JSRuntime.InvokeVoidAsync("console.log", "DONE => " + item.id + " : " + item.name);
@@ -222,12 +251,12 @@
     int count = 0;
     foreach (var item in data)
     {
-      if(item.id != ConfigSystem.DeveloperId && item.active && !item.delete)
+      if (!ConfigSystem.DeveloperId.Contains(item.id) && item.active && !item.delete)
       {
         // Chuyển dữ liệu
         try
         {
-          if(customers.Contains(item.id))
+          if (customers.Contains(item.id))
             item.is_customer = true;
           BackupData.Create<UserModel>("fastdo", "users", item);
           await JSRuntime.InvokeVoidAsync("console.log", "....." + item.id + " : " + item.email);
@@ -254,7 +283,7 @@
     var data = await BackupData.GetList<CompanyModel>("fastdo", "companys");
     foreach (var item in data)
     {
-      if(item.status && !item.delete)
+      if (item.status && !item.delete)
         await MoveCompanyData(item);
     }
   }
@@ -273,8 +302,8 @@
     await MoveDataModel<OkrModel>(db_source, db_target, "okrs");
     // okr_config
     await MoveDataModel<OkrConfigModel>(db_source, db_target, "okr_config");
-    // okr_stars
-    await MoveDataModel<OkrStarModel>(db_source, db_target, "okr_stars");
+    // cfr_stars
+    await MoveDataModel<CfrStarModel>(db_source, db_target, "cfr_stars");
     // okr_cfrs
     await MoveDataModel<OkrCfrModel>(db_source, db_target, "okr_cfrs");
     // okr_checkins
@@ -303,7 +332,7 @@
     foreach (var item in data)
     {
       try
-      {  
+      {
         item.products = new();
         BackupData.Create<UserModel>(db_target, table_name, item);
         count++;
@@ -313,7 +342,7 @@
         //await JSRuntime.InvokeVoidAsync("console.warn",$"EXIST => {item.email}");
       }
     }
-    await JSRuntime.InvokeVoidAsync("console.log",$".....{table_name} => done {count}/{data.Count} item");
+    await JSRuntime.InvokeVoidAsync("console.log", $".....{table_name} => done {count}/{data.Count} item");
   }
 
   private async Task MoveDataModel<T>(string db_source, string db_target, string table_name)
@@ -329,25 +358,38 @@
       }
       catch (System.Exception)
       {
-        //await JSRuntime.InvokeVoidAsync("console.warn",$"EXIST => {ex.Message}");
+        //await JSRuntime.InvokeVoidAsync("console.warn",$"EXIST => {ex.ToString()}");
       }
     }
-    await JSRuntime.InvokeVoidAsync("console.log",$".....{table_name} => done {count}/{data.Count} item");
+    await JSRuntime.InvokeVoidAsync("console.log", $".....{table_name} => done {count}/{data.Count} item");
   }
 
-  private async Task GetCompanyList()
+  private async Task<bool> GetCompanyList()
   {
-    var data = await BackupData.GetList<CompanyModel>("fastdo", "companys");
-    await JSRuntime.InvokeVoidAsync("console.warn", "Danh sách tổ chức");
-    await JSRuntime.InvokeVoidAsync("tagline", true, $"Có {data.Count} tổ chức trong database");
-    foreach (var item in data)
+    bool _success = true;
+    try
     {
-      if(item.status && !item.delete)
+      var data = await BackupData.GetList<CompanyModel>("fastdo", "companys");
+      await JSRuntime.InvokeVoidAsync("console.warn", "Danh sách tổ chức");
+      await JSRuntime.InvokeVoidAsync("tagline", true, $"Có {data.Count} tổ chức trong database");
+      foreach (var item in data)
       {
-        await CompanyService.UpdateProductAccess(item.id);
-        await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.name + " => members: " + item.members);
+        if (item.status && !item.delete)
+        {
+          await CompanyService.UpdateProductAccess(item.id, globalService);
+          await globalService.Update(item.id);
+          await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.name + " => members: " + item.members);
+        }
       }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetCompanyList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task GetUserList()
@@ -358,7 +400,7 @@
     var members = new List<MemberModel>();
     foreach (var item in data)
     {
-      if(item.active && !item.delete)
+      if (item.active && !item.delete)
       {
         members.Add(UserService.ConvertToMember(item));
         //await JSRuntime.InvokeVoidAsync("console.log", item.id + " : " + item.email + " => customer: " + item.is_customer);
@@ -367,23 +409,178 @@
     await JSRuntime.InvokeVoidAsync("console.table", members);
   }
 
-  private async Task ResetUsersStart()
+  private async Task<bool> ResetUsersStart()
   {
-    var companys = await BackupData.GetList<CompanyModel>("fastdo", "companys");
-    foreach (var company in companys)
+    bool _success = true;
+    try
     {
-      var userList = await DbUser.GetList(company.id, null, null, 0);
-      var cftList = await DbOkrCfr.GetList(company.id, null, null);
-      await JSRuntime.InvokeVoidAsync("console.warn", $"Công ty: {company.name} | Nhân viên: {userList.Count}");
-      foreach (var item in userList)
+      var companys = await BackupData.GetList<CompanyModel>("fastdo", "companys");
+      foreach (var company in companys)
       {
-        item.star_distribute = 0;
-        item.star_receive = cftList.Where(x => x.user_receive == item.id).Sum(x => x.star);
-        item.star_give = cftList.Where(x => x.user_create == item.id).Sum(x => x.star);
-        await DbUser.Update(company.id, item);
-        await JSRuntime.InvokeVoidAsync("console.log", 
-          $"{item.FullName} | Của bạn: {item.star_total} | được cấp: {item.star_distribute} | Nhận được: {item.star_receive} | Cho đi: {item.star_give}");
+        var userList = await DbUser.GetList(company.id, null, null, 0, globalService);
+        var cftList = await DbOkrCfr.GetList(company.id, null, null);
+        await JSRuntime.InvokeVoidAsync("console.warn", $"Công ty: {company.name} | Nhân viên: {userList.Count}");
+        foreach (var item in userList)
+        {
+          item.star_distribute = 0;
+          item.star_receive = cftList.Where(x => x.user_receive == item.id).Sum(x => x.star);
+          item.star_give = cftList.Where(x => x.user_create == item.id).Sum(x => x.star);
+          await DbUser.Update(company.id, item, globalService);
+          await JSRuntime.InvokeVoidAsync("console.log",
+            $"{item.FullName} | Của bạn: {item.star_total} | được cấp: {item.star_distribute} | Nhận được: {item.star_receive} | Cho đi: {item.star_give}");
+        }
+      }
+
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ResetUsersStart()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task ResizeImageAll()
+  {
+
+    await JSRuntime.InvokeVoidAsync("tagline", false, "Đang xử lý nén ảnh...");
+    var allUser = new List<UserModel>();
+
+    if(company.IsEmpty())
+    {
+      allUser = await DbMainUser.GetAll();
+    }
+    else
+    {
+      allUser = await DbUser.GetAll(company, globalService);
+    }
+    foreach (var user in allUser)
+    {
+      if (!user.avatar.IsEmpty())
+      {
+        if (user.avatar.Contains("/upload/"))
+        {
+          await JSRuntime.InvokeVoidAsync("console.log", $"Compressing: {user.FullName}");
+          await JSRuntime.InvokeVoidAsync("console.log", $"Link: {user.avatar}");
+          Files.ResizeImage(user.avatar, compress == 0 ? 1000 : compress, out var resize);
+        }
       }
     }
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Nén hoàn tất");
+  }
+
+  private async Task MoveImageToCloud()
+  {
+    try
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Start sync...");
+
+      var allCompanys = new List<CompanyModel>();
+      var allUser =  new List<UserModel>();
+
+      if(company.IsEmpty())
+      {
+        allCompanys = await DbMainCompany.GetAll();
+        allUser = await DbMainUser.GetAll();
+      }
+      else
+      {
+        allCompanys.Add(DbMainCompany.GetById(company));
+        allUser = await DbUser.GetAll(company, globalService);
+      }
+
+      allCompanys = allCompanys.Where(x => ProductService.CheckStorage(x)).ToList();
+
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Banners & blogs sync...");
+      // Xử lý blog & banner
+      foreach (var company in allCompanys)
+      {
+        var banners = await DbBanner.GetList(company.id);
+        var blogs = await DbBlog.GetList(company.id, string.Empty);
+
+        foreach (var blog in blogs)
+        {
+          if (!blog.image.IsEmpty())
+          {
+            if (blog.image.Contains("upload/"))
+            {
+              var link = await Files.MoveLocalToCloud(blog.image, company.id, company.id, null, "blogs/thumbnail");
+              blog.image = link;
+              await DbBlog.Update(company.id, blog);
+            }
+          }
+        }
+
+        foreach (var banner in banners)
+        {
+          if (!banner.image.IsEmpty())
+          {
+            if (banner.image.Contains("upload/"))
+            {
+              var link = await Files.MoveLocalToCloud(banner.image, company.id, company.id, null, "banner");
+              banner.image = link;
+              await DbBanner.Update(company.id, banner);
+            }
+          }
+        }
+      }
+
+      await JSRuntime.InvokeVoidAsync("tagline", true, "User avatar...");
+      // Xử lý avatar
+      foreach(var user in allUser)
+      {
+        if(!user.avatar.IsEmpty())
+        {
+          if(user.avatar.Contains("upload/"))
+          {
+            var link = await Files.MoveLocalToCloud(user.avatar, "avatar","", user, "");
+            user.avatar = link;
+            await DbMainUser.Update(user, globalService);
+          }
+        }
+      }
+
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Done sync...");
+    }
+    catch(Exception ex)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"Sync fail: {ex.ToString()}");
+    }
+  }
+
+
+
+  private async Task<bool> UpdateUserDepartmentName()
+  {
+    bool _success = true;
+    try
+    {
+      var companys = await DbMainCompany.GetAll();
+      foreach (var company in companys)
+      {
+        var database = await DbDepartment.GetAll(company.id);
+        var companyId = company.id;
+        var userList = await DbUser.GetAll(companyId, globalService);
+        foreach (var user in userList)
+        {
+          var department = await DbDepartment.GetNameListOfUser(companyId, user.departments_id, database);
+          var departmentName = String.Join(" / ", department);
+          if (departmentName != user.departments_name)
+          {
+            user.departments_name = String.Join(" / ", department);
+            await DbUser.Update(companyId, user, globalService);
+          }
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UpdateUserDepartmentName()", ex.ToString(), Layout.User.id, "Admin");
+      _success = false;
+    }
+    return _success;
   }
 }

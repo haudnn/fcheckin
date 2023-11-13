@@ -1,0 +1,56 @@
+﻿@if (kpisRoot != null)
+{
+  var countKpisHighest = dataKpis.Where(i => i.parent == kpisRoot.id).ToList().Count;
+  var countKpisAuto = dataKpis.Where(i => i.parent != kpisRoot.id && i.type == 2).ToList().Count;
+  var countKpisInput = dataKpis.Where(i => i.type == 1).ToList().Count;
+
+  <div class="inner_section p-4 has-text-black h-full">
+    <p class="has-text-weight-semibold font_14">
+      Thống kê cơ bản
+    </p>
+    <div class="mt-5">
+      <p class="font_14">Tổng số KPIs</p>
+      <p style="font-size: 48px;">
+        @dataKpis.Count
+      </p>
+    </div>
+    <div class="field is-grouped mt-5" style="gap: 30px; ">
+      <div class="control pt-0">
+        <p class="p-2 has-background-link-light" style="width: fit-content; border-radius: 4px;">
+          <span class="icon has-text-link">
+            <span class="material-icons-outlined is-size-4">corporate_fare</span>
+          </span>
+        </p>
+        <p class="mt-1 font_12">KPIs cao nhất</p>
+        <p class="has-text-weight-semibold mt-1" style="font-size: 20px;">@countKpisHighest</p>
+      </div>
+
+      <div class="control pt-0">
+        <p class="p-2 has-background-link-light" style="width: fit-content; border-radius: 4px;">
+          <span class="icon has-text-link">
+            <span class="material-icons-outlined is-size-4">account_tree</span>
+          </span>
+        </p>
+        <p class="mt-1 font_12">KPIs tự động</p>
+        <p class="has-text-weight-semibold mt-1" style="font-size: 20px;">@countKpisAuto</p>
+      </div>
+
+      <div class="control pt-0">
+        <p class="p-2 has-background-link-light" style="width: fit-content; border-radius: 4px;">
+          <span class="icon has-text-link">
+            <span class="material-icons is-size-4">account_circle</span>
+          </span>
+        </p>
+        <p class="mt-1 font_12">KPIs nhập liệu</p>
+        <p class="has-text-weight-semibold mt-1" style="font-size: 20px;">@countKpisInput</p>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [Parameter]
+  public List<KpisModel> dataKpis { get; set; } = new();
+  [Parameter]
+  public KpisModel kpisRoot { get; set; }
+}

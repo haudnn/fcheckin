@@ -1,0 +1,319 @@
+﻿@page "/kpis/root"
+@inject GlobalService globalService
+@inject IJSRuntime JSRuntime
+
+<section class="main_content h-full">
+  <div class="flex_column is-fullwidth" style="height: calc(100vh - 110px);">
+    @if (cycle != null)
+    {
+      <ul class="columns is-vcentered is-variable is-2 is-mobile is-multiline">
+        <li class="column is-full-mobile">
+          <h1 class="title is-5 has-text-info is-uppercase">
+            Danh sách cây kpis
+          </h1>
+        </li>
+
+        <li class="column is-one-fifth">
+          <form @onsubmit="Filter" class="control has-icons-right">
+            <input @bind="filterNameKpis" type="text" class="input is-rounded" placeholder="Nhập tiêu đề KPIs..." />
+            <span class="icon is-right">
+              <i class="material-icons-outlined is-size-6">search</i>
+            </span>
+          </form>
+        </li>
+
+        @if (_accessCycle)
+        {
+          <li class="column is-narrow">
+            <Button Content="Tạo cây KPIs" IconLeft="account_tree"
+                    Color="@ComponentModel.ColorType.Link" Onclick="CreateItem" />
+          </li>
+        }
+      </ul>
+
+      <div class="inner_section scrolly h-full mt-5" style="flex: 1;">
+        @if (dataList.Any())
+        {
+          <table class="table is-fullwidth is-vcentered is-responsive">
+            <thead class="is-hidden-mobile">
+              <tr class="has-text-grey">
+                <th width="30%">Tiêu đề cây KPIs</th>
+                <th width="15%" align="center">Tiến độ</th>
+                <th width="15%" align="center">Thời hạn</th>
+                <th width="15%">Người quản lý cây KPIs</th>
+                <th width="15%">Người xem cây KPIs</th>
+                <th width="10%" align="center">Xử lý</th>
+              </tr>
+            </thead>
+            <tbody>
+              @if (dataFilter.Any())
+              {
+                @foreach (var item in dataFilter)
+                {
+                  var progress = KpisService.GetProgress(database, item, item.id);
+                  var color = Shared.ProgressColor(progress);
+                  var metric = item.metrics.FirstOrDefault();
+
+                  progress = Math.Round(progress, 1);
+
+                  <tr>
+                    <td>
+                      <label class="td-label">Tiêu đề cây KPIs</label>
+                      <div class="td-value">
+                        <a class="text_1_line font_14 has-text-link has-text-weight-medium is-clickable" href="/kpis/root/@(item.id)">
+                          @item.name
+                        </a>
+                      </div>
+                    </td>
+
+                    <td>
+                      <label class="td-label">Tiến độ</label>
+                      <div class="td-value">
+                        <div class="progress_has_value">
+                          <progress class="progress progress-kpis is-small @color" value="@Convert.ToInt32(progress)"
+                                    style="width: calc(100% - 45px);" max="100"></progress>
+                          <span>@Shared.FormatPercent(progress)%</span>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td align="center">
+                      <label class="td-label">Thời hạn</label>
+                      <div class="td-value">
+                        <p class="has-text-black font_14 has-text-weight-medium">
+                          @($"{new DateTime(item.start_date).ToString("dd'/'MM")} - {new DateTime(item.end_date).ToString("dd'/'MM")}")
+                        </p>
+                        <span class="font_14 has-text-grey">
+                          @($"({KpisService.CheckDate(item.end_date)})")
+                        </span>
+                      </div>
+                    </td>
+
+                    <td>
+                      <label class="td-label">Người quản lý cây KPIs</label>
+                      <div class="td-value">
+                        @if (item.managers.Any())
+                        {
+                          <MemberDropdown headerContent="Người quản lý cây KPIs" numberView="5" members="item.managers" sources="userList" />
+                        }
+                      </div>
+                    </td>
+
+                    <td>
+                      <label class="td-label">Người xem cây KPIs</label>
+                      <div class="td-value">
+                        @if (item.viewerList.Any())
+                        {
+                          <MemberDropdown headerContent="Người xem cây KPIs" numberView="5" members="new List<string>(item.viewerList.Keys)" sources="userList" />
+                        }
+                      </div>
+                    </td>
+
+                    <td align="center">
+                      <label class="td-label">Xử lý</label>
+                      <div class="td-value">
+                        @if (_accessCycle)
+                        {
+                          <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                            <i class="material-icons-outlined is-size-5">
+                              edit
+                            </i>
+                          </a>
+                          <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                            <i class="material-icons-outlined is-size-5">
+                              delete
+                            </i>
+                          </a>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+              else
+              {
+                <tr>
+                  <td align="center" colspan="6">
+                    <p class="mt-6">Không tìm thấy dữ liệu phù hợp!</p>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+        else
+        {
+          <div class="mt-5 has-text-centered">
+            @if (_accessCycle)
+            {
+              <span>
+                Không có dữ liệu cây KPIs!
+              </span>
+            }
+            else
+            {
+              <span>
+                Bạn không có quyền truy cập vào trang này!
+              </span>
+            }
+          </div>
+        }
+      </div>
+    }
+    else
+    {
+      <div class="is-flex is-align-items-center is-justify-content-center">
+        <span>
+          Bạn chưa chọn chu kỳ KPIs!
+        </span>
+      </div>
+    }
+  </div>
+</section>
+
+@if (current != null && isDelete)
+{
+  <section class="modal is-active p-2">
+    <div class="modal-background"></div>
+    <section class="modal-card">
+      <section class="modal-card-head">
+        <div class="modal-card-title">
+          Xác nhận xoá cây KPIs
+        </div>
+        <a class="delete is-medium" @onclick="CancelRemove"></a>
+      </section>
+      <section class="modal-card-body" style="word-break: break-word;">
+        Bạn đang thực hiện xoá cây KPIs
+        <span class="has-text-black has-text-weight-bold">
+          @current.name.
+        </span>
+        <span>
+          Việc này sẽ sẽ khiến dữ liệu của các KPIs liên quan bị mất. Bạn có chắc chắn muốn xoá?
+        </span>
+      </section>
+      <section class="modal-card-foot is-right">
+        <a class="button" @onclick="CancelRemove">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">close</i>
+          </span>
+          <span>Hủy</span>
+        </a>
+        <a class="button is-danger" @onclick="Remove">
+          <span class="icon">
+            <i class="material-icons-round is-size-6">delete</i>
+          </span>
+          <span>Xoá</span>
+        </a>
+      </section>
+    </section>
+  </section>
+}
+
+@if (current != null && !isDelete)
+{
+  <_KpisRootPopup model="current" OnUpdate="OnUpdate" />
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+
+  private List<KpisModel> database = new();
+  private List<KpisModel> dataList = new();
+  private List<KpisModel> dataFilter = new();
+  private List<MemberModel> userList = new();
+  private KpisCycleModel cycle;
+
+  private string filterNameKpis = string.Empty;
+  private KpisModel current = null;
+  private bool isDelete;
+  private bool _accessCycle = false;
+
+  protected override async Task OnInitializedAsync()
+  {
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+    userList = await globalService.GetUserList(Layout.Company.id);
+
+    if (!Shared.IsEmpty(Layout.CycleKpisId))
+      cycle = shareStorage.KpisCycles.Find(i => i.id == Layout.CycleKpisId);
+
+    if (cycle != null)
+    {
+      _accessCycle = cycle.managers.Contains(Layout.User.id);
+      await GetData();
+    }
+  }
+
+  private void Filter()
+  {
+    dataFilter = dataList.Where(x =>
+    {
+      return Shared.IsEmpty(filterNameKpis) ? true : Shared.SearchKeyword(filterNameKpis, x.name);
+    }).ToList();
+  }
+
+  private void CreateItem()
+  {
+    current = new();
+  }
+
+  private void EditItem(KpisModel item)
+  {
+    current = item;
+  }
+
+  private void DeleteItem(KpisModel item)
+  {
+    current = item;
+    isDelete = true;
+  }
+
+  private async Task OnUpdate(bool check)
+  {
+    current = null;
+    if (check)
+      await GetData();
+  }
+
+  private async Task GetData()
+  {
+    database = await DbKpis.GetList(Layout.Company.id, Layout.CycleKpisId);
+    dataList = KpisService.GetListRootKpis(database, cycle, Layout.User.id);
+    Filter();
+  }
+
+  private void CancelRemove()
+  {
+    isDelete = false;
+    current = null;
+  }
+
+  private async Task Remove()
+  {
+    var deleteList = KpisService.GetAllChild(database, new List<KpisModel>() { current }, current);
+    deleteList.Add(current);
+    await DbKpis.Delete(Layout.Company.id, deleteList.Select(i => i.id).ToList());
+
+    await JSRuntime.InvokeVoidAsync("tagline", true, $"Đã xoá cây KPIs thành công!");
+    await SendNotify(1022, current);
+    await GetData();
+
+    isDelete = false;
+    current = null;
+  }
+
+  private async Task SendNotify(int notifyType, KpisModel itemDelete)
+  {
+    if (itemDelete != null)
+    {
+      var target = new List<string>();
+      target.AddRange(cycle.managers);
+      target.AddRange(itemDelete.managers);
+      target.AddRange(new List<string>(itemDelete.viewerList.Keys));
+      target = target.Distinct().ToList();
+
+      foreach (var item in target)
+        await KpisService.SendNotify(notifyType, new List<string>() { item }, itemDelete, itemDelete, Layout.Company.id, Layout.User.id, cycle);
+    }
+  }
+}

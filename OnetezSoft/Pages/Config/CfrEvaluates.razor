@@ -1,0 +1,263 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
+
+<PageTitle>@_title</PageTitle>
+
+@if (Layout.User.role != 1 && !Layout.User.role_manage.cfr)
+{
+  <PopupNoRole />
+}
+else
+{
+  if (isLoading)
+  {
+    <progress class="progress is-small is-link" max="100">15%</progress>
+  }
+  else
+  {
+    <ul class="columns is-vcentered is-variable is-2 mb-2">
+      <li class="column">
+        <h1 class="title is-5 has-text-info is-uppercase">
+          Tiêu chí ghi nhận
+        </h1>
+      </li>
+      <li class="column is-narrow">
+        <a class="button" @onclick="() => EditItem(null)">
+          <span class="icon">
+            <span class="material-icons-outlined is-size-6">add</span>
+          </span>
+          <span>Thêm mới</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="scrolly inner_section" style="flex:1">
+      <table class="table is-fullwidth is-vcentered is-responsive">
+        <thead>
+          <tr>
+            <th>Tiêu chí ghi nhận</th>
+            <th width="100px">Số sao</th>
+            <th width="70px" align="center">Xử lý</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var item in dataList)
+          {
+            <tr>
+              <td>
+                <span class="has-text-weight-semibold">@item.name</span>
+              </td>
+              <td>
+                <label class="td-label">Số sao</label>
+                <div class="td-value is-flex is-vcentered">
+                  <strong>@item.star</strong>
+                  <span class="icon">
+                    <i class="material-icons-outlined is-size-6 has-text-warning">star</i>
+                  </span>
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Xử lý</label>
+                <div class="td-value">
+                  <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                    <i class="material-icons-outlined is-size-5">
+                      edit
+                    </i>
+                  </a>
+                  <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                    <i class="material-icons-outlined is-size-5">
+                      delete
+                    </i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+}
+
+@if (current != null)
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <div class="modal-card-head">
+        <div class="modal-card-title">
+          @(string.IsNullOrEmpty(current.id) ? "Tạo tiêu chí ghi nhận mới" : "Chỉnh sửa tiêu chí ghi nhận")
+        </div>
+        <a class="delete" @onclick="() => current = null"></a>
+      </div>
+      <div class="modal-card-body">
+        <form @onsubmit="Update">
+          <div class="field">
+            <label class="label">Tiêu chí ghi nhận*</label>
+            <div class="control">
+              <input @bind="current.name" type="text" class="input" />
+            </div>
+          </div>
+          <div class="field">
+            <div class="control">
+              <label class="label">Số sao</label>
+              <input class="input" @bind="current.star" type="number" />
+            </div>
+          </div>
+          <div class="field mt-5">
+            <div class="control">
+              <div class="buttons is-right">
+                <a class="button" @onclick="() => current = null">
+                  Hủy
+                </a>
+                <a class="button is-link" @onclick="Update">
+                  <span class="icon">
+                    <span class="material-icons-outlined is-size-6">
+                      done
+                    </span>
+                  </span>
+                  <span>Cập nhật</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public string Id { get; set; }
+
+  private bool success = false;
+  private string _message = string.Empty;
+  private string _title = "Cấu hình tiêu chí ghi nhận";
+  private bool isLoading = false;
+
+  private List<CfrEvaluateModel> dataList = new();
+
+  private CfrEvaluateModel current = null;
+  private string msgAccess = string.Empty;
+
+  protected override async Task OnInitializedAsync()
+  {
+    if (!Layout.Company.isUsedCfr)
+      await GetOldEvaluate();
+    else
+      dataList = await DbCfrEvaluate.GetList(Layout.Company.id);
+  }
+
+
+  private bool CheckAccess()
+  {
+    return ProductService.CheckAccess(Layout.Company, Layout.User, "okrs", out msgAccess);
+  }
+
+  private async Task DeleteItem(CfrEvaluateModel item)
+  {
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn xóa {item.name}"))
+        return;
+      dataList.Remove(item);
+      await DbCfrEvaluate.Delete(Layout.Company.id, item.id);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "DeleteItem()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
+  }
+
+  private void EditItem(CfrEvaluateModel item)
+  {
+    if (item == null)
+      current = new() { type = 2 };
+    else
+      current = item;
+  }
+
+  private async Task Update()
+  {
+    try
+    {
+      success = false;
+      _message = string.Empty;
+
+      if (string.IsNullOrEmpty(current.name))
+      {
+        _message = "Bạn cần nhập tiêu chí ghi nhận!";
+        await JSRuntime.InvokeVoidAsync("tagline", false, _message);
+      }
+      else
+      {
+        if (string.IsNullOrEmpty(current.id))
+        {
+          current.id = Mongo.RandomId();
+          await DbCfrEvaluate.Create(Layout.Company.id, current);
+        }
+        else
+          await DbCfrEvaluate.Update(Layout.Company.id, current);
+
+        dataList = await DbCfrEvaluate.GetList(Layout.Company.id);
+        dataList = (from x in dataList orderby x.type, x.star select x).ToList();
+        success = true;
+        _message = "Cập nhật tiêu chí ghi nhận thành công!";
+        await JSRuntime.InvokeVoidAsync("tagline", true, _message);
+        current = null;
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
+  }
+
+  private async Task GetOldEvaluate()
+  {
+    isLoading = true;
+
+    // Đã mua okr trước đó
+    if (CheckAccess())
+    {
+      var okr = await DbOkrConfig.Get(Layout.Company.id);
+      var evaluates = okr.evaluates;
+      if (evaluates.Any())
+      {
+        foreach (var evaluate in evaluates)
+        {
+          var model = new CfrEvaluateModel
+            {
+              id = Mongo.RandomId(),
+              name = evaluate.name,
+              star = evaluate.star,
+              type = evaluate.type,
+              special = false
+            };
+          await DbCfrEvaluate.Create(Layout.Company.id, model);
+        }
+      }
+      // Nếu mua nhưng chưa setup thì setup sẵn
+      else
+        await CfrService.SetupEvaluates(Layout.Company.id);
+    }
+    // setup sẵn
+    else
+      await CfrService.SetupEvaluates(Layout.Company.id);
+
+    Layout.Company.isUsedCfr = true;
+    await DbMainCompany.Update(Layout.Company);
+    await globalService.Update(Layout.Company.id);
+    dataList = await DbCfrEvaluate.GetList(Layout.Company.id);
+    isLoading = false;
+  }
+}

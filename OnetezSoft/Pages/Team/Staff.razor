@@ -1,163 +1,133 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
-<section class="column">
-  <div class="card p-5 p-4-mobile">
-    <ul class="columns is-vcentered is-variable is-1 is-mobile is-multiline mb-0">
-      <li class="column is-full-mobile">
-        <div class="user_item">
-          <img class="image is-40x40" src="@staff.avatar" alt="IMG">
-          <div class="pl-2">
-            <div class="has-text-weight-bold has-text-link is-size-6">
-              @staff.FullName
-            </div>
-            <div class="is-clearfix">
-              <span class="is-size-7 text_1_line is-pulled-left mt-1" style="max-width: 200px;">
-                @staff.departments_name
-              </span>
-              <a class="is-pulled-left" @onclick="() => showInfo = !showInfo">
-                <i class="material-icons-outlined is-size-5">arrow_right</i>
-              </a>
-            </div>
-          </div>
-        </div>
+<div class="tabs">
+  <div class="tabs_name has-text-grey is-size-7 has-text-weight-light is-italic text_1_line">
+    @quotes.name" — @quotes.author
+  </div>
+  <ul>
+    @if (CheckAccess("okrs"))
+    {
+      <li class="@(tab == 1 ? "is-active" : "")">
+        <a class="has-text-weight-normal" href="/teams/personal/@staff.id?tab=1">OKRs</a>
       </li>
-      @if(CheckAccess("okrs"))
-      {
-        <li class="column is-narrow-tablet is-half-mobile">
-          <a class="button is-fullwidth p-5 p-3-mobile @(tab == 1 ? "is_bg has-text-link has-text-weight-bold" : "is-white")"
-              href="/teams/personal/@staff.id?tab=1">
-            <span class="is-size-6-tablet">OKRs</span>
-          </a>
-        </li>
-      }
-      @if(CheckAccess("todolist"))
-      {
-        <li class="column is-narrow-tablet is-half-mobile">
-          <a class="button is-fullwidth p-5 p-3-mobile @(tab == 2 ? "is_bg has-text-link has-text-weight-bold" : "is-white")"
-             href="/teams/personal/@staff.id?tab=2">
-            <span class="is-size-6-tablet">Todolist</span>
-          </a>
-        </li>
-      }
-      @if(CheckAccess("work"))
-      {
-        <li class="column is-narrow-tablet is-half-mobile">
-          <a class="button is-fullwidth p-5 p-3-mobile @(tab == 4 ? "is_bg has-text-link has-text-weight-bold" : "is-white")"
-             href="/teams/personal/@staff.id?tab=4">
-            <span class="is-size-6-tablet">Kế hoạch</span>
-          </a>
-        </li>
-      }
-      <li class="column is-narrow-tablet is-half-mobile">
-        <a class="button is-fullwidth p-5 p-3-mobile @(tab == 3 ? "is_bg has-text-link has-text-weight-bold" : "is-white")"
-           href="/teams/personal/@staff.id?tab=3">
-          <span class="is-size-6-tablet">Thành tựu</span>
-        </a>
+    }
+    @if (CheckAccess("todolist"))
+    {
+      <li class="@(tab == 2 ? "is-active" : "")">
+        <a class="has-text-weight-normal" href="/teams/personal/@staff.id?tab=2">Todolist</a>
       </li>
-    </ul>
-    <div class="card_dropdown p-5 @(showInfo ? "" : "is-hidden")">
-      <div class="mb-5">
-        @foreach (var de in department)
-        {
-          DbDepartment.GetRole(Layout.Company.id, de.id, staff.id, out string title);
-          <p class="mb-1">
-            <span class="is-family-code mr-2">@((MarkupString)de.name.Replace("'", "&nbsp;"))</span>
-            @if (!string.IsNullOrEmpty(title))
-            {
-              <span class="tag is-warning">@title</span>
-            }
-          </p>
-        }
+    }
+    @if (CheckAccess("work"))
+    {
+      <li class="@(tab == 4 ? "is-active" : "")">
+        <a class="has-text-weight-normal" href="/teams/personal/@staff.id?tab=4">Kế hoạch</a>
+      </li>
+    }
+    <li class="@(tab == 3 ? "is-active" : "")">
+      <a class="has-text-weight-normal" href="/teams/personal/@staff.id?tab=3">Thành tựu</a>
+    </li>
+  </ul>
+</div>
+
+<div class="columns is-vcentered is-mobile is-multiline is-variable is-3 mb-2">
+  <div class="column is-full-mobile">
+    <a class="icon-text">
+      <span class="icon image is-32x32 is-rounded">
+        <img src="@staff.avatar" alt="" />
+      </span>
+      <div>
+        <p class="has-text-weight-bold">
+          @staff.FullName
+        </p>
+        <p class="is-size-7" style="opacity:0.8;">
+          @staff.job_title
+        </p>
       </div>
-      <ul class="columns is-multiline is-mobile is-variable is-2">
-        <li class="column is-half has-text-centered">
-          <span class="icon-text has-text-link">
-            <span class="icon">
-              <i class="material-icons-outlined is-size-5">grade</i>
-            </span>
-            <span class="has-text-weight-bold">@staff.star_distribute</span>
-          </span>
-          <div class="is-size-7">Sao được cấp</div>
-        </li>
-        <li class="column is-half has-text-centered">
-          <span class="icon-text has-text-primary">
-            <span class="icon">
-              <i class="material-icons-outlined is-size-5">grade</i>
-            </span>
-            <span class="has-text-weight-bold">@staff.star_total</span>
-          </span>
-          <div class="is-size-7">Sao của bạn</div>
-        </li>
-        <li class="column is-half has-text-centered">
-          <span class="icon-text has-text-success">
-            <span class="icon">
-              <i class="material-icons-outlined is-size-5">trending_up</i>
-            </span>
-            <span class="has-text-weight-bold">@kaizen</span>
-          </span>
-          <div class="is-size-7">Kaizen giúp ích</div>
-        </li>
-        <li class="column is-half has-text-centered">
-          <span class="icon-text has-text-danger">
-            <span class="icon">
-              <i class="material-icons-outlined is-size-5">verified</i>
-            </span>
-            <span class="has-text-weight-bold">@educate</span>
-          </span>
-          <div class="is-size-7">Chứng chỉ đã đạt</div>
-        </li>
-      </ul>
+    </a>
+  </div>
+  <div class="column is-narrow has-text-centered">
+    <span class="icon-text has-text-link">
+      <span class="icon">
+        <i class="material-icons-outlined is-size-5">grade</i>
+      </span>
+      <span class="has-text-weight-bold">@staff.star_distribute</span>
+    </span>
+    <div class="is-size-7">Sao được cấp</div>
+  </div>
+  <div class="column is-narrow has-text-centered">
+    <span class="icon-text has-text-primary">
+      <span class="icon">
+        <i class="material-icons-outlined is-size-5">grade</i>
+      </span>
+      <span class="has-text-weight-bold">@staff.star_total</span>
+    </span>
+    <div class="is-size-7">Sao của bạn</div>
+  </div>
+  <div class="column is-narrow has-text-centered">
+    <span class="icon-text has-text-success">
+      <span class="icon">
+        <i class="material-icons-outlined is-size-5">trending_up</i>
+      </span>
+      <span class="has-text-weight-bold">@kaizen</span>
+    </span>
+    <div class="is-size-7">Kaizen giúp ích</div>
+  </div>
+  <div class="column is-narrow has-text-centered">
+    <span class="icon-text has-text-danger">
+      <span class="icon">
+        <i class="material-icons-outlined is-size-5">verified</i>
+      </span>
+      <span class="has-text-weight-bold">@educate</span>
+    </span>
+    <div class="is-size-7">Chứng chỉ đã đạt</div>
+  </div>
+</div>
+
+
+@if (tab == 1)
+{
+  if (CheckAccess("okrs"))
+  {
+    <StaffOkrList User="staff" />
+  }
+  else
+  {
+    <div class="has-text-danger has-text-weight-bold has-text-centered">
+      @(staff.id == Layout.User.id ? "Bạn" : staff.FullName) không được cho phép sử dụng sản phẩm này.
     </div>
-  </div>
-  <div class="py-4 has-text-grey has-text-centered">
-    <div class="is-italic">"@quotes.name"</div>
-    <div>— @quotes.author</div>
-  </div>
-  @if (tab == 1)
-  {
-    if(CheckAccess("okrs"))
-    {
-      <StaffOkrList User="staff" />
-    }
-    else
-    {
-      <div class="card px-5 py-6 has-text-danger has-text-weight-bold has-text-centered">
-        Bạn không được cho phép sử dụng sản phẩm này.
-      </div>
-    }
   }
-  else if (tab == 2)
+}
+else if (tab == 2)
+{
+  if (CheckAccess("todolist"))
   {
-    if(CheckAccess("todolist"))
-    {
-      <StaffTodolist User="staff" />
-    }
-    else
-    {
-      <div class="card px-5 py-6 has-text-danger has-text-weight-bold has-text-centered">
-        Bạn không được cho phép sử dụng sản phẩm này.
-      </div>
-    }
+    <StaffTodolist User="staff" />
   }
-  else if (tab == 4)
+  else
   {
-    if(CheckAccess("work"))
-    {
-      <StaffWorkPlan User="staff" />
-    }
-    else
-    {
-      <div class="card px-5 py-6 has-text-danger has-text-weight-bold has-text-centered">
-        Bạn không được cho phép sử dụng sản phẩm này.
-      </div>
-    }
+    <div class="has-text-danger has-text-weight-bold has-text-centered">
+      @(staff.id == Layout.User.id ? "Bạn" : staff.FullName) không được cho phép sử dụng sản phẩm này.
+    </div>
   }
-  else if (tab == 3)
+}
+else if (tab == 4)
+{
+  if (CheckAccess("work"))
   {
-    <StaffAchievement User="staff" />
+    <StaffWorkPlan User="staff" />
   }
-</section>
+  else
+  {
+    <div class="has-text-danger has-text-weight-bold has-text-centered">
+      @(staff.id == Layout.User.id ? "Bạn" : staff.FullName) không được cho phép sử dụng sản phẩm này.
+    </div>
+  }
+}
+else if (tab == 3)
+{
+  <StaffAchievement User="staff" />
+}
 
 @code {
   [CascadingParameter]
@@ -167,45 +137,57 @@
 
   private List<DepartmentModel.SelectList> department = new();
   private QuotesModel quotes = new();
-  private int tab = 3;
+  private int tab;
   private int cfrs = 0;
   private int kaizen = 0;
   private int educate = 0;
   private bool showInfo = false;
 
+  private List<string> access = new();
+
   protected override void OnInitialized()
   {
+    tab = CheckAccess("okrs") ? 1 : CheckAccess("todolist") ? 2 : CheckAccess("work") ? 4 : 3;
     quotes = DbQuotes.GetRandom(Layout.Company.id);
   }
 
   protected override async Task OnParametersSetAsync()
   {
     showInfo = false;
-
+    List<int> tabs = new List<int> { 1, 2, 3, 4 };
     var uri = navigation.ToAbsoluteUri(navigation.Uri);
     if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("tab", out var outTab))
       tab = Convert.ToInt32(outTab);
+    if(!tabs.Contains(tab))
+      tab = 3;
 
     await GetData();
-
-    StateHasChanged();
   }
 
   private async Task GetData()
   {
-    var start = Convert.ToDateTime("2021-01-01");
-    var end = DateTime.Now;
+    try
+    {
+      var start = Convert.ToDateTime("2021-01-01");
+      var end = DateTime.Now;
 
-    var cfrsList = await DbOkrCfr.DataAchievement(Layout.Company.id, staff.id, start, end);
-    cfrs = cfrsList.Count;
+      var cfrsList = await DbOkrCfr.DataAchievement(Layout.Company.id, staff.id, start, end);
+      cfrs = cfrsList.Count;
 
-    var kaizenList = await DbKaizen.DataAchievement(Layout.Company.id, staff.id, start, end);
-    kaizen = kaizenList.Count;
+      var kaizenList = await DbKaizen.DataAchievement(Layout.Company.id, staff.id, start, end);
+      kaizen = kaizenList.Count;
 
-    var educateList = await EducateService.GetListLearned(Layout.Company.id, staff.id, 2);
-    educate = educateList.Count;
+      var educateList = await EducateService.GetListLearned(Layout.Company.id, staff.id, 2);
+      educate = educateList.Count;
 
-    department = DbDepartment.GetSelectListOfUser(Layout.Company.id, staff.departments_id, null);
+      department = await DbDepartment.GetSelectListOfUser(Layout.Company.id, staff.departments_id, null);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetData()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
   }
 
   private bool CheckAccess(string productId)

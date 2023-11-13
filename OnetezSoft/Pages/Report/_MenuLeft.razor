@@ -11,6 +11,9 @@
           <li class="@(navigation.Uri.Contains("reports/okrs") ? "is-active" : "")">
             <a href="/reports/okrs">OKRs</a>
           </li>
+        }
+        @if (CheckAccess("cfr"))
+        {
           <li class="@(navigation.Uri.Contains("reports/cfrs") ? "is-active" : "")">
             <a href="/reports/cfrs">Ghi nhận</a>
           </li>
@@ -48,6 +51,10 @@ else
       <a class="@(navigation.Uri.Contains("reports/okrs") ? "is-active" : "")" href="/reports/okrs">
         OKRs
       </a>
+
+    }
+    @if (CheckAccess("cfr"))
+    {
       <a class="@(navigation.Uri.Contains("reports/cfrs") ? "is-active" : "")" href="/reports/cfrs">
         Ghi nhận
       </a>

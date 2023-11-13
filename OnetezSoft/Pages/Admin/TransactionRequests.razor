@@ -1,6 +1,7 @@
 @page "/admin/transactions"
 @page "/admin/transactions/requests"
 @layout LayoutAdmin
+@inject GlobalService globalService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
 
@@ -105,8 +106,8 @@
     </li>
     <li class="column is-narrow">
       <div class="control is-expanded has-icons-left" style="width: 230px;">
-        <input @bind="filterKeyword" @onkeyup="ChangeKeyword" type="text" class="input is-small" 
-          placeholder="Email, họ và tên KH, mã giao dịch..." />
+        <input @bind="filterKeyword" @onkeyup="ChangeKeyword" type="text" class="input is-small"
+               placeholder="Email, họ và tên KH, mã giao dịch..." />
         <span class="icon is-left has-text-dark">
           <i class="material-icons-round is-size-6">search</i>
         </span>
@@ -177,7 +178,7 @@
             </span>
           </td>
           <td align="right">
-            @if(item.status == 1)
+            @if (item.status == 1)
             {
               <a class="button is-small is-link" @onclick="() => AcceptItem(item)">
                 <span class="icon">
@@ -273,72 +274,120 @@
   private void ChangeSort(ChangeEventArgs e)
   {
     orderBy = e.Value.ToString();
-    if(orderBy == "latest")
+    if (orderBy == "latest")
       dataList = dataList.OrderByDescending(x => x.date).ToList();
     else
       dataList = dataList.OrderBy(x => x.date).ToList();
   }
 
-  private void GetList()
+  private async Task<bool> GetList()
   {
-    dataList = DbMainTransaction.GetListRequest(filterKeyword, filterStatus, filterDateS, filterDateE);
-    if(orderBy == "latest")
-      dataList = dataList.OrderByDescending(x => x.date).ToList();
-    else
-      dataList = dataList.OrderBy(x => x.date).ToList();
-    totalMoney = dataList.Select(x => x.money).Sum();
-  }
-
-  private async Task AcceptItem(TransactionModel item)
-  {
-    var customer = await DbMainUser.Get(item.customer.id);
-    if(customer != null)
+    bool _success = true;
+    try
     {
-      // Cập nhật số dư tài khoản
-      customer.balance += item.money;
-      await DbMainUser.Update(customer);
-
-      item.status = 2;
-      item.balance = customer.balance;
-      await DbMainTransaction.Update(item);
-      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã duyệt yêu cầu nạp tiền của mã giao dịch " + item.id);
-
-      // Gửi thông báo cho khách hàng
-      await DbMainNotify.Create(101, item.id, item.customer.id, Layout.User.id);
+      dataList = await DbMainTransaction.GetListRequest(filterKeyword, filterStatus, filterDateS, filterDateE);
+      if (orderBy == "latest")
+        dataList = dataList.OrderByDescending(x => x.date).ToList();
+      else
+        dataList = dataList.OrderBy(x => x.date).ToList();
+      totalMoney = dataList.Select(x => x.money).Sum();
     }
-    else
+    catch (Exception ex)
     {
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Tài khoản khách hàng không tồn tại.");
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
     }
+    return _success;
   }
 
-  private async Task RejectItem(TransactionModel item)
+  private async Task<bool> AcceptItem(TransactionModel item)
   {
-    item.status = 3;
-    await DbMainTransaction.Update(item);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã từ chối yêu cầu nạp tiền của mã giao dịch " + item.id);
-
-    // Gửi thông báo cho khách hàng
-    await DbMainNotify.Create(102, item.id, item.customer.id, Layout.User.id);
-  }
-
-  private async Task UndoItem(TransactionModel item)
-  {
-    if(item.status == 2)
+    bool _success = true;
+    try
     {
-      var customer = await DbMainUser.Get(item.customer.id);
-      if(customer != null)
+      var customer = await DbMainUser.Get(item.customer.id, null);
+      if (customer != null)
       {
         // Cập nhật số dư tài khoản
-        customer.balance -= item.money;
-        await DbMainUser.Update(customer);
+        customer.balance += item.money;
+        await DbMainUser.Update(customer, globalService);
 
-        // Cập nhật số dư vào giao dịch
+        item.status = 2;
         item.balance = customer.balance;
+        await DbMainTransaction.Update(item);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã duyệt yêu cầu nạp tiền của mã giao dịch " + item.id);
+
+        // Gửi thông báo cho khách hàng
+        await DbMainNotify.Create(101, item.id, item.customer.id, Layout.User.id);
+      }
+      else
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Tài khoản khách hàng không tồn tại.");
       }
     }
-    item.status = 1;
-    await DbMainTransaction.Update(item);
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hoàn tác hành động kiểm duyệt yêu cầu nạp tiền của mã giao dịch " + item.id);
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "AcceptItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> RejectItem(TransactionModel item)
+  {
+    bool _success = true;
+    try
+    {
+      item.status = 3;
+      await DbMainTransaction.Update(item);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã từ chối yêu cầu nạp tiền của mã giao dịch " + item.id);
+
+      // Gửi thông báo cho khách hàng
+      await DbMainNotify.Create(102, item.id, item.customer.id, Layout.User.id);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "RejectItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> UndoItem(TransactionModel item)
+  {
+    bool _success = true;
+    try
+    {
+      if (item.status == 2)
+      {
+        var customer = await DbMainUser.Get(item.customer.id, null);
+        if (customer != null)
+        {
+          // Cập nhật số dư tài khoản
+          customer.balance -= item.money;
+          await DbMainUser.Update(customer, globalService);
+
+          // Cập nhật số dư vào giao dịch
+          item.balance = customer.balance;
+        }
+      }
+      item.status = 1;
+      await DbMainTransaction.Update(item);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã hoàn tác hành động kiểm duyệt yêu cầu nạp tiền của mã giao dịch " + item.id);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "UndoItem()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

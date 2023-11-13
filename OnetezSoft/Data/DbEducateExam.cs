@@ -1,11 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+﻿using MongoDB.Driver;
 using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -64,11 +62,11 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<EducateExamModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
-    public static EducateExamModel Get(string companyId, string lesson, string learned, string user)
+    public static async Task<EducateExamModel> Get(string companyId, string lesson, string learned, string user)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
@@ -80,7 +78,7 @@ namespace OnetezSoft.Data
         & builder.Eq("learned", learned)
         & builder.Eq("user", user);
 
-      return collection.Find(filtered).FirstOrDefault();
+      return await collection.FindAsync(filtered).Result.FirstOrDefaultAsync();
     }
 
     /// <summary>
@@ -104,23 +102,25 @@ namespace OnetezSoft.Data
         filtered = filtered & builder.Eq("lesson", lesson);
       if (!string.IsNullOrEmpty(user))
         filtered = filtered & builder.Eq("user", user);
-      if(check != null)
+      if (check != null)
         filtered = filtered & builder.Eq("check", check);
-      
+
       var sorted = Builders<EducateExamModel>.Sort.Descending("date");
 
-      var examEducateList = await collection.Find(filtered).Sort(sorted).ToListAsync();
+      var examEducateList = await collection.FindAsync(filtered).Result.ToListAsync();
 
-      if(examEducateList.Count > 0)
+      examEducateList = examEducateList.OrderByDescending(x => x.date).ToList();
+
+      if (examEducateList.Count > 0)
       {
         var result = new List<EducateExamModel>();
 
-        foreach(var exam in examEducateList)
+        foreach (var exam in examEducateList)
         {
           var courseModel = await DbEducateCourse.Get(companyId, exam.course);
-          if(courseModel != null)
+          if (courseModel != null)
           {
-            if(courseModel.examiner.Contains(teacher) || courseModel.teacher == teacher)
+            if (courseModel.examiner.Contains(teacher) || courseModel.teacher == teacher)
             {
               result.Add(exam);
             }
@@ -129,9 +129,7 @@ namespace OnetezSoft.Data
         return result;
       }
 
-      return await collection.Find(filtered).Sort(sorted).ToListAsync();
+      return examEducateList;
     }
-
   }
-
 }

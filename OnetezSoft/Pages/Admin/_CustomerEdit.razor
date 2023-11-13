@@ -1,4 +1,6 @@
 ﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
 @if (model != null)
 {
@@ -25,7 +27,7 @@
               <img src="@model.avatar" />
             </div>
             <a class="button is-white is-small is-fullwidth @(uploading ? "is-loading" : "")"
-             onclick="document.getElementById('file').click()">
+               onclick="document.getElementById('file').click()">
               <span class="icon">
                 <i class="material-icons-sharp is-size-6">file_upload</i>
               </span>
@@ -167,45 +169,71 @@
     await OnUpdate.InvokeAsync(false);
   }
 
-  private async Task Create()
+  private async Task<bool> Create()
   {
-    if (await Validation())
+    bool _success = true;
+    try
     {
-      var check = await DbMainUser.GetbyEmail(model.email);
-      if (check == null)
+      if (await Validation())
       {
-        await DbMainUser.Create(model);
-        // Gửi email cấp tài khoản
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
-        bool send = EmailService.UserInfo(model.email, model.id, model.FullName, "công ty bạn", out string message);
-        await JSRuntime.InvokeVoidAsync("tagline", send, message);
-        
-        await OnUpdate.InvokeAsync(true);
+        var check = await DbMainUser.GetbyEmail(model.email, globalService);
+        if (check == null)
+        {
+          await DbMainUser.Create(model);
+          // Gửi email cấp tài khoản
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo tài khoản thành công, vui lòng kiểm tra email");
+          new Task(() =>
+          {
+            EmailService.UserInfo(model.email, model.id, model.FullName, "công ty bạn", out string message);
+          }).Start();
+
+          await OnUpdate.InvokeAsync(true);
+        }
+        else if (!check.is_customer)
+        {
+          if (string.IsNullOrEmpty(check.phone))
+            check.phone = model.phone;
+          if (string.IsNullOrEmpty(check.social))
+            check.social = model.social;
+          check.note = model.note;
+          check.active = model.active;
+          check.is_customer = true;
+          await DbMainUser.Update(check, globalService);
+          await OnUpdate.InvokeAsync(true);
+        }
+        else
+          await Tagline("Email này đã được sử dụng, vui lòng sử dụng email khác!");
       }
-      else if (!check.is_customer)
-      {
-        if(string.IsNullOrEmpty(check.phone))
-          check.phone = model.phone;
-        if(string.IsNullOrEmpty(check.social))
-          check.social = model.social;
-        check.note = model.note;
-        check.active = model.active;
-        check.is_customer = true;
-        await DbMainUser.Update(check);
-        await OnUpdate.InvokeAsync(true);
-      }
-      else
-        await Tagline("Email này đã được sử dụng, vui lòng sử dụng email khác!");
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Create()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (await Validation())
+    bool _success = true;
+    try
     {
-      await DbMainUser.Update(model);
-      await OnUpdate.InvokeAsync(true);
+      if (await Validation())
+      {
+        await DbMainUser.Update(model, globalService);
+        await OnUpdate.InvokeAsync(true);
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task<bool> Validation()
@@ -217,8 +245,6 @@
       await Tagline("Địa chỉ email không đúng!");
     else if (string.IsNullOrEmpty(model.phone))
       await Tagline("Bạn chưa nhập số điện thoại!");
-    else if (model.phone.Length < 10)
-      await Tagline("Số điện thoại không đúng định dạng!");
     else if (string.IsNullOrEmpty(model.first_name) || string.IsNullOrEmpty(model.last_name))
       await Tagline("Bạn chưa nhập họ và tên cho tài khoản!");
     else
@@ -245,7 +271,9 @@
       }
       catch (Exception ex)
       {
-        await Tagline($"Không thể tải ảnh lên: {ex.Message}");
+        await Tagline($"Không thể tải ảnh lên: {ex.ToString()}");
+        uploading = false;
+        return;
       }
     }
     uploading = false;

@@ -1,14 +1,24 @@
 
 <div class="control is-expanded has-icons-left has-icons-right has_suggest">
-  <input class="input is-rounded" type="text" placeholder="Nhập tên nhân viên..."
-    autocomplete="off" @bind="Searching" @bind:event="oninput" />
+  <input class="input is-rounded is-small" type="text" placeholder="Nhập tên nhân viên..."
+         autocomplete="off" @bind="Searching" @bind:event="oninput" />
   <span class="icon is-left">
-    <i class="material-icons-outlined is-size-5">search</i>
+    <i class="material-icons-outlined is-size-6">search</i>
   </span>
   <a class="@(string.IsNullOrEmpty(keyword) ? "is-hidden" : "icon is-right has-text-danger")" @onclick="Cancel">
     <i class="material-icons-outlined">close</i>
   </a>
   <ul class="suggest">
+    @if (storage)
+    {
+      <li class="rsitem" @onclick="() => Selected(null)">
+        <div class="user_item">
+          <img class="image is-24x24 mr-2" src="" alt="IMG">
+          <span>Không có người tải lên</span>
+        </div>
+      </li>
+    }
+
     @foreach (var item in suggests)
     {
       <li class="rsitem" @onclick="() => Selected(item)">
@@ -27,7 +37,9 @@
   [Parameter]
   public string department { get; set; }
   [Parameter]
-  public List<UserModel> sources { get; set; }
+  public List<MemberModel> sources { get; set; }
+  [Parameter]
+  public bool storage { get; set; } = false;
   [Parameter]
   public EventCallback<string> OnUpdate { get; set; }
   private List<MemberModel> suggests = new();
@@ -48,13 +60,13 @@
     foreach (var item in sources)
     {
       bool check = true;
-      if(!string.IsNullOrEmpty(department) && !item.departments_id.Contains(department))
+      if (!string.IsNullOrEmpty(department) && !item.departments_id.Contains(department))
         check = false;
-      if (!Shared.SearchKeyword(keyword, item.id + item.email + item.FullName))
+      if (!Shared.SearchKeyword(keyword, item.id + item.email + item.name))
         check = false;
-      if(check)
-        results.Add(UserService.ConvertToMember(item));
-      if(results.Count >= 5)
+      if (check)
+        results.Add(item);
+      if (results.Count >= 5)
         break;
     }
     return results;
@@ -62,9 +74,17 @@
 
   private async Task Selected(MemberModel item)
   {
-    suggests.Clear();
-    keyword = item.name;
-    await OnUpdate.InvokeAsync(item.id);
+    if (item == null)
+    {
+      await OnUpdate.InvokeAsync("no_member");
+    }
+    else
+    {
+      suggests.Clear();
+      keyword = item.name;
+      await OnUpdate.InvokeAsync(item.id);
+
+    }
   }
 
   private async Task Cancel()

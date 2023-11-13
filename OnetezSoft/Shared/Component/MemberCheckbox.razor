@@ -1,0 +1,208 @@
+﻿@inject IJSRuntime JSRuntime
+
+<Dropdown CloseOnClickMenu=false MenuClass="px-2" MenuStyle="width: 380px;" @bind-Toggle="toggle">
+  <Trigger>
+    <div class="field is-grouped is-fullwidth py-1 px-2 is-clickable has-text-link">
+      <div class="control m-0">
+        Nhân viên
+      </div>
+
+      <div class="control is-expanded has-text-right">
+        <span class="icon">
+          <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
+        </span>
+      </div>
+    </div>
+  </Trigger>
+
+  <MenuContent>
+    <div class="field">
+      <label class="label">Nhân viên áp dụng</label>
+      <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
+        <li class="column is-half">
+          <div class="select is-fullwidth">
+            <select @onchange="ChangeDepartment">
+              <option value="" selected="@string.IsNullOrEmpty(selectDepart)">Phòng ban</option>
+              @foreach (var item in departments)
+              {
+                <option value="@item.id" selected="@(selectDepart == item.id)">@item.name</option>
+              }
+            </select>
+          </div>
+        </li>
+
+        <li class="column is-half">
+          <form class="control is-expanded scrolly has-icons-right" @onsubmit="Search">
+            <input @bind="filterKeyword" class="input is-rounded" type="text" placeholder="Tìm tên nhân viên">
+            <span class="icon is-right">
+              <i class="material-icons-outlined is-size-5">search</i>
+            </span>
+          </form>
+        </li>
+      </ul>
+      <div class="control is-expanded scrolly" style="max-height: 250px;">
+        @if (dataFilter.Any())
+        {
+          <div class="mb-3">
+            <a class="icon-text" @onclick="() => AddMember()">
+              <span class="icon">
+                @if (resutList.Any() && dataFilter.Select(i => i.id).All(i => resutList.Contains(i)))
+                {
+                  <span class="material-icons has-text-link is-clickable">
+                    check_box
+                  </span>
+                }
+                else
+                {
+                  <span class="material-icons is-clickable">
+                    check_box_outline_blank
+                  </span>
+                }
+              </span>
+              <span>
+                Chọn tất cả
+              </span>
+            </a>
+          </div>
+          @foreach (var user in dataFilter)
+          {
+            <div class="mb-3">
+              <span class="icon-text" @onclick="() => AddMember(user.id)">
+                <span class="icon">
+                  @if (resutList.Contains(user.id))
+                  {
+                    <span class="material-icons has-text-link is-clickable">
+                      check_box
+                    </span>
+                  }
+                  else
+                  {
+                    <span class="material-icons is-clickable">
+                      check_box_outline_blank
+                    </span>
+                  }
+                </span>
+                <span>
+                  <a class="user_item has-text-black">
+                    <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                    <span class="text_1_line">@user.name</span>
+                  </a>
+                </span>
+              </span>
+            </div>
+          }
+        }
+        else
+        {
+          <span>Không tìm thấy dữ liệu phù hợp!</span>
+        }
+      </div>
+    </div>
+
+
+    <hr class="dropdown-divider">
+    <div class="buttons is-right">
+      <a class="button is-small" @onclick="Cancel">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">close</i>
+        </span>
+        <span class="is-size-7">Hủy</span>
+      </a>
+      <a class="button is-link is-small" @onclick="Update">
+        <span class="icon">
+          <i class="material-icons-round is-size-6">done</i>
+        </span>
+        <span class="is-size-7">Hoàn tất</span>
+      </a>
+    </div>
+  </MenuContent>
+</Dropdown>
+
+@code {
+  [Parameter]
+  public List<MemberModel> database { get; set; } = new();
+  [Parameter]
+  public List<DepartmentModel> departments { get; set; } = new();
+  [Parameter]
+  public List<string> usersIdSelect { get; set; } = new();
+  [Parameter]
+  public EventCallback<List<string>> OnUpdate { get; set; }
+
+  private bool toggle = false;
+  private List<string> resutList = new();
+  private List<MemberModel> dataFilter = new();
+  private string selectDepart = "";
+  private string filterKeyword = "";
+
+  protected override void OnInitialized()
+  {
+    resutList = usersIdSelect.Where(i => true).ToList();
+    Filter();
+  }
+
+  /// <summary>Tìm kiếm</summary>
+  private void Search()
+  {
+    Filter();
+  }
+
+  /// <summary>Đổi phòng ban</summary>
+  private void ChangeDepartment(ChangeEventArgs e)
+  {
+    selectDepart = e.Value.ToString();
+    Filter();
+  }
+
+  private void AddMember(string id = null)
+  {
+    if (id == null)
+      if (dataFilter.Select(x => x.id).All(i => resutList.Contains(i)))
+        resutList.RemoveAll(i => dataFilter.Select(x => x.id).Contains(i));
+      else
+      {
+        resutList.AddRange(dataFilter.Select(x => x.id));
+        resutList.Distinct();
+      }
+    else
+       if (resutList.Contains(id))
+      resutList.Remove(id);
+    else
+      resutList.Add(id);
+  }
+
+  /// <summary>Lọc kết quả tìm kiếm và phòng ban</summary>
+  private void Filter()
+  {
+    dataFilter = new();
+
+    dataFilter = database.Where(x =>
+    {
+      return (string.IsNullOrEmpty(selectDepart) ? true : x.departments_id.Contains(selectDepart)) &&
+             (string.IsNullOrEmpty(filterKeyword) ? true : Shared.SearchKeyword(filterKeyword, x.name));
+    }).ToList();
+
+    StateHasChanged();
+  }
+
+  private void Cancel()
+  {
+    ResetFilter();
+    resutList = dataFilter.Select(i => i.id).ToList();
+    Filter();
+  }
+
+  private async Task Update()
+  {
+    dataFilter = database.Where(i => resutList.Contains(i.id)).ToList();
+    ResetFilter();
+    Filter();
+    await OnUpdate.InvokeAsync(resutList);
+  }
+
+  private void ResetFilter()
+  {
+    selectDepart = "";
+    filterKeyword = "";
+    toggle = false;
+  }
+}

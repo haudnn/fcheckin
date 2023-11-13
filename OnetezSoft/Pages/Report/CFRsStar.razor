@@ -1,48 +1,21 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager navigation
+@inject GlobalService globalService
 
-<div class="card p-5 p-4-mobile">
-  <ul class="columns is-multiline is-vcentered is-variable is-2 mb-3">
-    <li class="column is-full">
+<div class="card flex_column is_fullheight">
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-2">
+    <li class="column">
       <h1 class="title is-5 has-text-info">
         LỊCH SỬ @(type == 2 ? "GHI NHẬN" : "TẶNG SAO")
       </h1>
     </li>
-    <li class="column">
-      <div class="field has-addons">
-        <div class="control">
-          <span class="button is-link">
-            <i class="material-icons-outlined">calendar_today</i>
-          </span>
-        </div>
-        <div class="control" style="width: 200px;">
-          <div class="input">
-            <DateRangePicker @bind-StartDate="filterStart" @bind-EndDate="filterEnd" OnRangeSelect="ChangePicker" />
-          </div>
-        </div>
-        <div class="control">
-          <div class="select is-fullwidth">
-            <select @onchange="ChangeDate">
-              <option value="1">Tuần này</option>
-              <option value="11">Tuần trước</option>
-              <option value="2">Tháng này</option>
-              <option value="22">Tháng trước</option>
-              <option value="3">Quý này</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </li>
     <li class="column is-narrow">
       <DepartmentDropdown department="@filterDepartment" OnUpdate="ChangeFilterDepartment" />
     </li>
-    <li class="column is-one-quarter">
-      <MemberSearch department="@filterDepartment" sources="Layout.UserList" OnUpdate="ChangeFilterUser" />
-    </li>
     <li class="column is-narrow">
-      <div class="dropdown is-hoverable is-right">
-        <div class="dropdown-trigger">
-          <a class="icon-text has-text-link has-text-right">
+      <Dropdown>
+        <Trigger>
+          <a class="icon-text has-text-link">
             @if (isCreate == null)
             {
               <span class="text_1_line" style="width: 80px;">Tất cả</span>
@@ -59,31 +32,42 @@
               <i class="material-icons-outlined is-size-5">arrow_drop_down</i>
             </span>
           </a>
-        </div>
-        <div class="dropdown-menu">
-          <div class="dropdown-content">
-            <a class="dropdown-item" @onclick="() => ChangeCreate(null)">
-              Tất cả
-            </a>
-            <a class="dropdown-item" @onclick="() => ChangeCreate(true)">
-              Người @(type == 2 ? "ghi nhận" : "tặng sao")
-            </a>
-            <a class="dropdown-item" @onclick="() => ChangeCreate(false)">
-              Người được @(type == 2 ? "ghi nhận" : "tặng sao")
-            </a>
-          </div>
-        </div>
-      </div>
+        </Trigger>
+        <MenuContent>
+          <a class="dropdown-item" @onclick="() => ChangeCreate(null)">
+            Tất cả
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeCreate(true)">
+            Người @(type == 2 ? "ghi nhận" : "tặng sao")
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeCreate(false)">
+            Người được @(type == 2 ? "ghi nhận" : "tặng sao")
+          </a>
+        </MenuContent>
+      </Dropdown>
     </li>
-  </ul>
+    <li class="column is-one-quarter">
+      <MemberSearch department="@filterDepartment" sources="shareStorage.MemberList" OnUpdate="ChangeFilterUser" />
+    </li>
+    <li class="column is-narrow">
+      <_InputDate 
+        @bind-Start="filterStart"
+        @bind-End="filterEnd"
+        IsRange
+        HasDropdown
+        ListOptions="new() {1,11,2,22,3,7}"
+        OnRangeSelect="ChangePicker" 
+       />
+     </li>
+   </ul>
 
-  <div class="scrolly pr-2" style="max-height: 400px;">
-    <table class="table is-fullwidth is-noborder is-striped is-responsive">
-      <tbody>
-        @foreach (var item in cfrList)
+   <div class="scrolly inner_section pr-2" style="flex:1;">
+     <table class="table is-fullwidth is-noborder is-responsive">
+       <tbody>
+         @foreach (var item in cfrList)
         {
-          var create = Layout.UserList.SingleOrDefault(x => x.id == item.user_create);
-          var receive = Layout.UserList.SingleOrDefault(x => x.id == item.user_receive);
+          var create = shareStorage.MemberList.SingleOrDefault(x => x.id == item.user_create);
+          var receive = shareStorage.MemberList.SingleOrDefault(x => x.id == item.user_receive);
 
           <tr>
             <td class="py-4" width="25%">
@@ -91,14 +75,14 @@
               {
                 <div class="user_item mb-2">
                   <img class="image is-36x36 mr-2" src="@create.avatar" alt="IMG">
-                  <span>@create.FullName</span>
+                  <span>@create.name</span>
                 </div>
               }
               @if (receive != null)
               {
                 <div class="user_item pl-6" style="background: url(/images/arrow_sub.png) 20px 0px no-repeat;">
                   <img class="image is-36x36 mr-2" src="@receive.avatar" alt="IMG">
-                  <span>@receive.FullName</span>
+                  <span>@receive.name</span>
                 </div>
               }
             </td>
@@ -133,20 +117,6 @@
                     </span>
                   </span>
                 </div>
-                @if (type == 2)
-                {
-                  <div class="control">•</div>
-                  <div class="control has-text-weight-medium text_1_line">
-                    @if (string.IsNullOrEmpty(item.okr_name))
-                    {
-                      <span>Tất cả OKRs</span>
-                    }
-                    else
-                    {
-                      <span>@item.okr_name</span>
-                    }
-                  </div>
-                }
                 <div class="control">•</div>
                 <div class="control">
                   @string.Format("{0:dd/MM/yyyy}", new DateTime(item.date_create))
@@ -157,9 +127,9 @@
         }
         @if (cfrList.Count == 0)
         {
-          <tr class="has-background-white">
+          <tr class="">
             <td colspan="5">
-              <div class="has-text-grey py-6">
+              <div class="has-text-grey py-6 has-text-centered">
                 Không có dữ liệu !
               </div>
             </td>
@@ -174,43 +144,37 @@
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
   [Parameter]
-  public List<DepartmentModel> departmentAll { get; set; }
+  public List<DepartmentModel> departmentAll { get; set; } = new();
   [Parameter]
-  public List<DepartmentModel.SelectList> departments { get; set; }
+  public List<DepartmentModel.SelectList> departments { get; set; } = new();
   [Parameter]
   public int type { get; set; }
 
   private List<OkrCfrModel> cfrList = new();
   private string filterUserId = string.Empty;
-  private DateTimeOffset? filterStart { get; set; }
-  private DateTimeOffset? filterEnd { get; set; }
+  private long filterStart { get; set; }
+  private long filterEnd { get; set; }
   private string filterDepartment = null;
   private bool? isCreate = null;
 
+  private SharedStorage shareStorage = new();
+
   protected override async Task OnInitializedAsync()
   {
+    shareStorage = await globalService.GetShareStorage(Layout.Company.id);
     Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
-    filterStart = start;
-    filterEnd = end;
+    filterStart = start.Ticks;
+    filterEnd = end.Ticks;
 
     filterDepartment = Layout.User.department_default;
-    
+
     await ChangeFilterDepartment(filterDepartment);
   }
 
   public async Task ChangePicker(DateRange range)
   {
-    filterStart = range.Start;
-    filterEnd = range.End;
-    await GetData();
-  }
-
-  private async Task ChangeDate(ChangeEventArgs e)
-  {
-    var type = Convert.ToInt32(e.Value);
-    Shared.GetTimeSpan(type, out DateTime start, out DateTime end);
-    filterStart = start;
-    filterEnd = end;
+    filterStart = range.Start.Ticks;
+    filterEnd = range.End.Ticks;
     await GetData();
   }
 
@@ -223,7 +187,7 @@
 
   private async Task ChangeFilterUser(string value)
   {
-    if(!string.IsNullOrEmpty(value))
+    if (!string.IsNullOrEmpty(value))
       filterUserId = value;
     await GetData();
   }
@@ -234,65 +198,77 @@
     await GetData();
   }
 
-  private async Task GetData()
+  private async Task<bool> GetData()
   {
-    var data = await DbOkrCfr.GetList(Layout.Company.id, type, filterStart.Value.DateTime, filterEnd.Value.DateTime);
-    if (!string.IsNullOrEmpty(filterUserId))
+    bool _success = true;
+    try
     {
-      if(isCreate == null)
-      {
-        cfrList = (from x in data
-                   where x.user_create == filterUserId || x.user_receive == filterUserId
-                   orderby x.date_create descending
-                   select x).ToList();
-      }
-      else if (isCreate == true)
-      {
-        cfrList = (from x in data
-                   where x.user_create == filterUserId
-                   orderby x.date_create descending
-                   select x).ToList();
-      }
-      else
-      {
-        cfrList = (from x in data
-                   where x.user_receive == filterUserId
-                   orderby x.date_create descending
-                   select x).ToList();
-      }
-    }
-    else if (!string.IsNullOrEmpty(filterDepartment))
-    {
-      var department = departmentAll.SingleOrDefault(x => x.id == filterDepartment);
-      if (department != null)
+      var data = await DbOkrCfr.GetList(Layout.Company.id, type, new DateTime(filterStart), new DateTime(filterEnd));
+      if (!string.IsNullOrEmpty(filterUserId))
       {
         if (isCreate == null)
         {
           cfrList = (from x in data
-                     where department.members_id.Contains(x.user_create) 
-                      || department.members_id.Contains(x.user_receive)
+                     where x.user_create == filterUserId || x.user_receive == filterUserId
                      orderby x.date_create descending
                      select x).ToList();
         }
         else if (isCreate == true)
         {
           cfrList = (from x in data
-                     where department.members_id.Contains(x.user_create)
+                     where x.user_create == filterUserId
                      orderby x.date_create descending
                      select x).ToList();
         }
         else
         {
           cfrList = (from x in data
-                     where department.members_id.Contains(x.user_receive)
+                     where x.user_receive == filterUserId
                      orderby x.date_create descending
                      select x).ToList();
         }
       }
+      else if (!string.IsNullOrEmpty(filterDepartment))
+      {
+        var department = departmentAll.SingleOrDefault(x => x.id == filterDepartment);
+        if (department != null)
+        {
+          if (isCreate == null)
+          {
+            cfrList = (from x in data
+                       where department.members_id.Contains(x.user_create)
+                        || department.members_id.Contains(x.user_receive)
+                       orderby x.date_create descending
+                       select x).ToList();
+          }
+          else if (isCreate == true)
+          {
+            cfrList = (from x in data
+                       where department.members_id.Contains(x.user_create)
+                       orderby x.date_create descending
+                       select x).ToList();
+          }
+          else
+          {
+            cfrList = (from x in data
+                       where department.members_id.Contains(x.user_receive)
+                       orderby x.date_create descending
+                       select x).ToList();
+          }
+        }
+      }
+      else
+      {
+        cfrList = data;
+      }
     }
-    else
+    catch (Exception ex)
     {
-      cfrList = data;
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetData()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
     }
+    return _success;
   }
 }

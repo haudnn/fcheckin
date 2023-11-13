@@ -1,4 +1,6 @@
 ﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
 <div class="modal is-active">
 	<div class="modal-background"></div>
@@ -68,19 +70,20 @@
 	[Parameter]
 	public EventCallback<bool> OnUpdate { get; set; }
 	[Parameter]
-	public List<UserModel> users { get; set; } = new();
+	public List<MemberModel> users { get; set; } = new();
 	[Parameter]
 	public HrmRulesModel dataRules { get; set; }
 
-	private List<UserModel> usersUpdate = new();
+	private List<MemberModel> usersUpdate = new();
 	private List<string> usersId = new();
 	private bool isLoading = false;
 	private DateTimeOffset? startDate = DateTime.Today;
 	private DateTimeOffset? endDate = DateTime.Today;
 
-	protected override void OnInitialized()
+	protected override async Task OnInitializedAsync()
 	{
-		users = Layout.UserList.Where(x => x.role != 1 && !(x.role == 2 && x.role_manage.timekeeping) && dataRules.register_shift.users.Contains(x.id)).ToList();
+		var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+		users = shareStorage.MemberList.Where(x => x.role != 1 && !(x.role == 2 && x.role_manage.timekeeping) && dataRules.register_shift.users.Contains(x.id)).ToList();
 		Shared.GetTimeSpan(1, out DateTime start, out DateTime end);
 		startDate = DateTime.Today.AddDays(1);
 		endDate = startDate.Value.AddDays(6);
@@ -93,50 +96,59 @@
 
 	private async Task Update()
 	{
-		if (usersId.Count == 0)
-			await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn nhân viên áp dụng!");
-		else if (startDate.Value.Ticks > endDate.Value.Ticks)
-			await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc phải lớn hơn hoặc bằng ngày áp dụng!");
-		else
+		try
 		{
-			var shiftUpdate = await DbHrmTimeListRegister.GetByRangeAndUsers(Layout.Company.id, usersId, new DateTime(startDate.Value.Ticks).Date.Ticks, new DateTime(endDate.Value.Ticks).Date.Ticks);
-
-			var from = new DateTime(startDate.Value.Date.Ticks);
-			var to = new DateTime(endDate.Value.Date.Ticks);
-
-			for (DateTime i = from; i <= to; i = i.AddDays(1))
+			if (usersId.Count == 0)
+				await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn nhân viên áp dụng!");
+			else if (startDate.Value.Ticks > endDate.Value.Ticks)
+				await JSRuntime.InvokeVoidAsync("tagline", false, "Ngày kết thúc phải lớn hơn hoặc bằng ngày áp dụng!");
+			else
 			{
-				var date = i;
-				var shifts_id = new List<string>();
+				var shiftUpdate = await DbHrmTimeListRegister.GetByRangeAndUsers(Layout.Company.id, usersId, new DateTime(startDate.Value.Ticks).Date.Ticks, new DateTime(endDate.Value.Ticks).Date.Ticks);
 
-				foreach (var userId in usersId)
+				var from = new DateTime(startDate.Value.Date.Ticks);
+				var to = new DateTime(endDate.Value.Date.Ticks);
+
+				for (DateTime i = from; i <= to; i = i.AddDays(1))
 				{
-					var shiftUser = shiftUpdate.FirstOrDefault(i => i.id == userId);
-					if(shiftUser != null)
+					var date = i;
+					var shifts_id = new List<string>();
+
+					foreach (var userId in usersId)
 					{
-						var shifts = shiftUser.shifts_register.FirstOrDefault(y => y.day == date.Ticks);
-						if(shifts != null)
+						var shiftUser = shiftUpdate.FirstOrDefault(i => i.id == userId);
+						if (shiftUser != null)
 						{
-							await DbHrmTimeList.HandleData(shiftUser.id, shifts.shifts_id, Layout.Company.id, new DateTime(date.Ticks));
-							await DbHrmTimeListRegister.HandleData(shiftUser.id, shifts.shifts_id, Layout.Company.id, new DateTime(date.Ticks), null, false, true);
+							var shifts = shiftUser.shifts_register.FirstOrDefault(y => y.day == date.Ticks);
+							if (shifts != null)
+							{
+								await DbHrmTimeList.HandleData(shiftUser.id, shifts.shifts_id, Layout.Company.id, new DateTime(date.Ticks));
+								await DbHrmTimeListRegister.HandleData(shiftUser.id, shifts.shifts_id, Layout.Company.id, new DateTime(date.Ticks), null, false, true);
+							}
+							else
+							{
+								await DbHrmTimeList.HandleData(shiftUser.id, shifts_id, Layout.Company.id, new DateTime(date.Ticks));
+								await DbHrmTimeListRegister.HandleData(shiftUser.id, shifts_id, Layout.Company.id, new DateTime(date.Ticks), null, false, true);
+							}
 						}
 						else
 						{
-							await DbHrmTimeList.HandleData(shiftUser.id, shifts_id, Layout.Company.id, new DateTime(date.Ticks));
-							await DbHrmTimeListRegister.HandleData(shiftUser.id, shifts_id, Layout.Company.id, new DateTime(date.Ticks), null, false, true);
+							await DbHrmTimeList.HandleData(userId, shifts_id, Layout.Company.id, new DateTime(date.Ticks));
+							await DbHrmTimeListRegister.HandleData(userId, shifts_id, Layout.Company.id, new DateTime(date.Ticks), null, false, true);
 						}
 					}
-					else
-					{
-						await DbHrmTimeList.HandleData(userId, shifts_id, Layout.Company.id, new DateTime(date.Ticks));
-						await DbHrmTimeListRegister.HandleData(userId, shifts_id, Layout.Company.id, new DateTime(date.Ticks), null, false, true);
-					}
 				}
-			}
 
-			await JSRuntime.InvokeVoidAsync("tagline", true, "Đã phê duyệt thành công!");
-			await SendNotify(819);
-			await OnUpdate.InvokeAsync(true);
+				await JSRuntime.InvokeVoidAsync("tagline", true, "Đã phê duyệt thành công!");
+				await SendNotify(819);
+				await OnUpdate.InvokeAsync(true);
+			}
+		}
+		catch(Exception ex)
+		{
+			var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+			StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+			await Layout.Tagline();
 		}
 	}
 
@@ -147,16 +159,26 @@
 
 	private async Task SendNotify(int notifyType)
 	{
-		var content = "";
-		if (startDate.Value.Date.Ticks != endDate.Value.Date.Ticks)
-			content = "từ " + new DateTime(startDate.Value.Ticks).ToString("dd'/'MM'/'yyyy") + " đến " + new DateTime(endDate.Value.Ticks).ToString("dd'/'MM'/'yyyy");
-		else
-			content = "ngày " + new DateTime(startDate.Value.Ticks).ToString("dd'/'MM'/'yyyy");
+		try
+		{
+			var content = "";
+			if (startDate.Value.Date.Ticks != endDate.Value.Date.Ticks)
+				content = "từ " + new DateTime(startDate.Value.Ticks).ToString("dd'/'MM'/'yyyy") + " đến " + new DateTime(endDate.Value.Ticks).ToString("dd'/'MM'/'yyyy");
+			else
+				content = "ngày " + new DateTime(startDate.Value.Ticks).ToString("dd'/'MM'/'yyyy");
 
-		var targetList = Layout.UserList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping)).Select(i => i.id).ToList();
-		targetList.AddRange(usersId);
-		// Gủi thông báo chuông
-		foreach (var userId in targetList.Distinct().ToList())
-			await DbNotify.Create(Layout.Company.id, notifyType, content, userId, Layout.User.id);
+			var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
+			var targetList = shareStorage.MemberList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping)).Select(i => i.id).ToList();
+			targetList.AddRange(usersId);
+			// Gủi thông báo chuông
+			foreach (var userId in targetList.Distinct().ToList())
+				await DbNotify.Create(Layout.Company.id, notifyType, content, userId, Layout.User.id);
+		}
+		catch(Exception ex)
+		{
+			var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+			StorageService.CatchLog(formatLink, "SendNotify()", ex.ToString(), Layout.User.id, Layout.Company.name);
+			await Layout.Tagline();
+		}
 	}
 }

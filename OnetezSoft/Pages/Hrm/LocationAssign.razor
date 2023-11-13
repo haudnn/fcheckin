@@ -1,184 +1,196 @@
-@page "/hrm/setup/location-assign"
+@page "/config/timekeeping/location-assign"
 @inject IJSRuntime JSRuntime
+@inject GlobalService globalService
 @inject NavigationManager navigation
 
 <PageTitle>@_title</PageTitle>
 
 @if (_access)
 {
-  <section class="p-4">
-   <div class="card p-5">
-      <ul class="columns is-vcentered is-multiline is-variable is-2 mb-3">
-        <li class="column">
-          <h1 class="title is-5 has-text-info is-uppercase">
-            @_title
-          </h1>
-        </li>
-        <li class="column is-narrow" style="width: 200px;">
-          <div class="select is-fullwidth">
-            <select @onchange="ChangeDepartment">
-              <option value="">Phòng ban</option>
-              @foreach (var item in departmentAll)
-              {
-                <option value="@item.id" selected="@(filterDepartment == item.id)">@item.name</option>
-              }
-            </select>
-          </div>
-        </li>
-        <li class="column is-narrow">
-          <form class="control has-icons-right" @onsubmit="GetList">
-            <input @bind="filterKeyword" class="input" type="text" placeholder="Tên nhân viên...">
-            <span class="icon is-right">
-              <i class="material-icons-outlined is-size-5">search</i>
-            </span>
-          </form>
-        </li>
-        @if (editStep == 0)
-        {
-          <li class="column is-narrow">
-            <a class="button is-link" @onclick="() => ChangeStep(1)">
-              <span>Phân địa điểm</span>
-            </a>
-          </li>
-        }
-      </ul>
-      <div class="is-flex is-align-items-center has-text-weight-semibold">
-        <span class="material-icons-outlined has-text-success">
-          check_box
+  <ul class="columns is-vcentered is-multiline is-variable is-2 mb-2">
+    <li class="column">
+      <h1 class="title is-5 has-text-info is-uppercase">
+        @_title
+      </h1>
+    </li>
+    <li class="column is-narrow" style="width: 200px;">
+      <div class="select is-fullwidth">
+        <select @onchange="ChangeDepartment">
+          <option value="">Phòng ban</option>
+          @foreach (var item in departmentAll)
+          {
+            <option value="@item.id" selected="@(filterDepartment == item.id)">@item.name</option>
+          }
+        </select>
+      </div>
+    </li>
+    <li class="column is-narrow">
+      <form class="control has-icons-right" @onsubmit="GetList">
+        <input @bind="filterKeyword" class="input" type="text" placeholder="Tên nhân viên...">
+        <span class="icon is-right">
+          <i class="material-icons-outlined is-size-5">search</i>
         </span>
-        <span class="mx-2">:</span>
-        <span class="mr-2">Chế độ linh động<span class="ml-1 has-text-grey has-text-weight-normal">(Nhân viên có thể chấm công mà không cần kiểm tra địa điểm)</span></span>
-      </div>
-      <div class="scrolly" style="max-height: calc(100vh - 250px);">
-        <table class="table is-fullwidth is-vcentered is-responsive mt-5">
-          <thead>
-            <tr>
-              @if (editStep > 0)
-              {
-                <th width="5%" align="center">
-                  <input style="margin-top: 5px;" type="checkbox" @onchange="CheckAll" />
-                </th>
-              }
-              <th width="10%">Tên nhân viên</th>
-              <th width="20%" align="center">Chế độ linh động</th>
-              <th width="35%">Phòng ban</th>
-              <th width="30%">Vị trí chấm công</th>
-            </tr>
-          </thead>
-          <tbody>
-            @foreach (var user in userSelect)
-            {
-              var shifts = dataList.FirstOrDefault(x => x.id == user.id);
-              var userLocation = locationList.Where(x => x.members_id.Contains(user.id));
-              <tr>
-                @if (editStep > 0)
-                {
-                  <td align="center">
-                    @if (checkList.Contains(user.id))
-                    {
-                     <input type="checkbox" @onchange="() => CheckItem(user.id)" checked />
-                    }
-                    else
-                    {
-                     <input type="checkbox" @onchange="() => CheckItem(user.id)" />
-                    }
-                  </td>
-                }
-                <td>
-																		<label class="td-label">Tên nhân viên</label>
-                  <div class="user_item is-clickable td-value" @onclick="() => EditItem(user.id)">
-                    <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
-                    <span class="text_1_line">@user.FullName</span>
-                  </div>
-                </td>
-                <td align="center">
-																	<label class="td-label">Chế độ hybrid</label>
-																	<div class="td-value">
-																		<span class="material-icons-outlined @(user.is_hybrid ? "has-text-success" : "has-text-grey")">
-                    @(user.is_hybrid ? "check_box" : "check_box_outline_blank")
-                  </span>
-																	</div>
-                </td>
-                <td>
-																	<label class="td-label">Phòng ban</label>
-                 <div class="text_1_line td-value">
-                  <span>@user.departments_name</span>
-                 </div>
-                </td>
-																<td>
-																	<label class="td-label">Vị trí chấm công</label>
-                	@if (userLocation.Count() == 0)
-                	{
-                  <div class="is-size-7 has-text-danger td-value">
-                    Chưa phân vị trí
-                  </div>
-                	}
-                	else
-                	{
-																		<div class="is-size-7 td-value">
-																			@foreach (var location in userLocation)
-																			{
-																			<div>
-																				<a href="@($"https://www.google.com/maps/place/{location.latitude}+{location.longitude}/{location.latitude},{location.longitude}")"
-																							target="_blank"
-																							class="has-text-weight-semibold text_1_line">
-																							@location.name
-																				</a>
-																			</div>
-																			}
-																		</div>
-                	}
-																</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-        @if (userSelect.Count == 0)
+      </form>
+    </li>
+    @if (editStep == 0)
+    {
+      <li class="column is-narrow">
+        <a class="button is-link" @onclick="() => ChangeStep(1)">
+          <span>Phân địa điểm</span>
+        </a>
+      </li>
+    }
+  </ul>
+  <div class="is-flex is-align-items-center has-text-weight-semibold mb-2">
+    <span class="material-icons-outlined has-text-success">
+      check_box
+    </span>
+    <span class="mx-2">:</span>
+    <span class="mr-2">Chế độ linh động<span class="ml-1 has-text-grey has-text-weight-normal">(Nhân viên có thể chấm công mà không cần kiểm tra địa điểm)</span></span>
+  </div>
+  <div id="scrollbox" class="scrolly inner_section" style="flex:1;">
+    <table class="table is-fullwidth sticky only_desktop is-vcentered is-responsive">
+      <thead>
+        <tr>
+          @if (editStep > 0)
+          {
+            <th class="sticky" style="left:0" width="40px" align="center">
+              <input style="margin-top: 5px;" type="checkbox" @onchange="CheckAll" />
+            </th>
+            <th class="sticky last" style="left:40px" width="150px">Tên nhân viên</th>
+          }
+          else
+          {
+            <th class="sticky last" style="left:0" width="150px">Tên nhân viên</th>
+          }
+          <th width="15%" align="center">Chế độ linh động</th>
+          <th width="30%">Phòng ban</th>
+          <th width="30%">Vị trí chấm công</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var user in userSelect)
         {
-          <div class="has-text-centered py-6">
-            Không tìm thấy dữ liệu phù hợp!
-          </div>
+          var shifts = dataList.FirstOrDefault(x => x.id == user.id);
+          var userLocation = locationList.Where(x => x.members_id.Contains(user.id));
+          <tr>
+            @if (editStep > 0)
+            {
+              <td align="center" class="sticky" style="left:0">
+                @if (checkList.Contains(user.id))
+                {
+                  <input type="checkbox" @onchange="() => CheckItem(user.id)" checked />
+                }
+                else
+                {
+                  <input type="checkbox" @onchange="() => CheckItem(user.id)" />
+                }
+              </td>
+              <td class="sticky last" style="left:40px;">
+                <label class="td-label">Tên nhân viên</label>
+                <div class="user_item is-clickable td-value" @onclick="() => EditItem(user.id)">
+                  <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                  <span class="text_1_line">@user.FullName</span>
+                </div>
+              </td>
+            }
+            else
+            {
+              <td class="sticky last" style="left:0">
+                <label class="td-label">Tên nhân viên</label>
+                <div class="user_item is-clickable td-value" @onclick="() => EditItem(user.id)">
+                  <img class="image is-24x24 mr-2" src="@user.avatar" alt="IMG" />
+                  <span class="text_1_line">@user.FullName</span>
+                </div>
+              </td>
+              
+            }
+            <td align="center">
+              <label class="td-label">Chế độ hybrid</label>
+              <div class="td-value">
+                <span class="material-icons-outlined @(user.is_hybrid ? "has-text-success" : "has-text-grey")">
+                  @(user.is_hybrid ? "check_box" : "check_box_outline_blank")
+                </span>
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Phòng ban</label>
+              <div class="text_1_line td-value">
+                <span>@user.departments_name</span>
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Vị trí chấm công</label>
+              @if (userLocation.Count() == 0)
+              {
+                <div class="is-size-7 has-text-danger td-value">
+                  Chưa phân vị trí
+                </div>
+              }
+              else
+              {
+                <div class="is-size-7 td-value">
+                  @foreach (var location in userLocation)
+                  {
+                    <div>
+                      <a href="@($"https://www.google.com/maps/place/{location.latitude}+{location.longitude}/{location.latitude},{location.longitude}")"
+                         target="_blank"
+                         class="has-text-weight-semibold text_1_line">
+                        @location.name
+                      </a>
+                    </div>
+                  }
+                </div>
+              }
+            </td>
+          </tr>
         }
+      </tbody>
+    </table>
+    @if (userSelect.Count == 0)
+    {
+      <div class="has-text-centered py-6">
+        Không tìm thấy dữ liệu phù hợp!
       </div>
-   </div>
-  </section>
+    }
+  </div>
   if (editStep == 2)
   {
-   var users = userList.Where(x => checkList.Contains(x.id)).ToList();
-   <_AssignLocationPopup locationEditList="locationEditList" locations="locationList" OnUpdate="OnUpdate" isHybrid="isHybrid" users="users" />
+    var users = userList.Where(x => checkList.Contains(x.id)).ToList();
+    <_AssignLocationPopup locationEditList="locationEditList" locations="locationList" OnUpdate="OnUpdate" isHybrid="isHybrid" users="users" />
   }
 
   @if (editStep > 0)
   {
-  <section class="buttons_footer px-5 py-3">
-   <div class="columns is-multiline is-mobile is-vcentered">
-    <div class="column">
-     @checkList.Count nhân viên được chọn
-    </div>
-    <div class="column is-narrow">
-     <div class="buttons">
-      <a class="button" @onclick="() => ChangeStep(0)">
-       Hủy
-      </a>
-      <a class="button is-link" @onclick="() => ChangeStep(2)">
-       Tiếp tục
-      </a>
-     </div>
-    </div>
-   </div>
-  </section>
+    <section class="buttons_footer px-5 py-3">
+      <div class="columns is-multiline is-mobile is-vcentered">
+        <div class="column">
+          @checkList.Count nhân viên được chọn
+        </div>
+        <div class="column is-narrow">
+          <div class="buttons">
+            <a class="button" @onclick="() => ChangeStep(0)">
+              Hủy
+            </a>
+            <a class="button is-link" @onclick="() => ChangeStep(2)">
+              Tiếp tục
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
   }
 }
 else
 {
- <PopupNoRole />
+  <PopupNoRole />
 }
 
 
 @code {
   [CascadingParameter]
   public LayoutMain Layout { get; set; }
-  private string _title = "Phân địa điểm làm việc";
+  private string _title = "Phân địa điểm";
   private bool _access = false;
   private List<HrmUserShiftModel> dataList = new();
   private List<UserModel> userList = new();
@@ -192,29 +204,48 @@ else
   private List<string> checkList = new();
   private int editStep = 0;
   private bool isHybrid;
+  private bool isLoading = false;
 
   protected override async Task OnInitializedAsync()
   {
     // Quyền truy cập trang
     _access = Layout.User.role == 1 || (Layout.User.role == 2 && Layout.User.role_manage.timekeeping);
+    if (_access)
+      await GetList();
+  }
 
-    // Set dữ liệu mặc định
-    userList = Layout.UserList;
-    departmentAll = DbDepartment.GetAll(Layout.Company.id);
-    locationList = await DbHrmLocation.GetList(Layout.Company.id, false);
-    await GetList();
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+      await JSRuntime.InvokeVoidAsync("dragScrollX");
   }
 
   private async Task GetList()
   {
-    userSelect = new();
-    dataList = await DbHrmUserShift.GetList(Layout.Company.id);
-
-    userSelect = userList.Where(x =>
+    isLoading = true;
+    try
     {
-      return (string.IsNullOrEmpty(filterDepartment) ? true : x.departments_id.Contains(filterDepartment)) &&
-             (string.IsNullOrEmpty(filterKeyword) ? true : Shared.SearchKeyword(filterKeyword, x.FullName));
-    }).ToList();
+      userSelect = new();
+      departmentAll = await DbDepartment.GetAll(Layout.Company.id);
+      locationList = await DbHrmLocation.GetList(Layout.Company.id, false);
+      dataList = await DbHrmUserShift.GetList(Layout.Company.id);
+      userList = await DbUser.GetAll(Layout.Company.id, globalService);
+      userSelect = userList.Where(x =>
+      {
+        return (string.IsNullOrEmpty(filterDepartment) ? true : x.departments_id.Contains(filterDepartment)) &&
+        (string.IsNullOrEmpty(filterKeyword) ? true : Shared.SearchKeyword(filterKeyword, x.FullName));
+      }).ToList();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "GetList()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+    }
+    finally
+    {
+      isLoading = false;
+    }
   }
 
   private void CheckAll(ChangeEventArgs e)
@@ -288,10 +319,10 @@ else
       isHybrid = locationEditList.Contains("1");
       foreach (var userId in checkList)
       {
-								var list = DbUser.GetAll(Layout.Company.id);
+        var list = await DbUser.GetAll(Layout.Company.id, globalService);
         var user = list.FirstOrDefault(x => x.id == userId);
         user.is_hybrid = isHybrid;
-        await DbUser.Update(Layout.Company.id, user);
+        await DbUser.Update(Layout.Company.id, user, globalService);
       }
 
 

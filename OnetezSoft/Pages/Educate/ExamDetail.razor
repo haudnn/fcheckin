@@ -1,13 +1,14 @@
 ﻿@page "/educate/exam/manager/{Id}"
 @inject IJSRuntime JSRuntime
+@inject GlobalService globalService
 @inject NavigationManager navigation
 
 <PageTitle>@_title</PageTitle>
 
-<section class="p-4">
+<section class="main_content">
   @if (model != null)
   {
-    <div class="card p-5">
+    <div class="card flex_column is_fullheight">
       <ul class="columns is-vcentered is-variable is-2 mb-3">
         <li class="column">
           <h1 class="title is-5 has-text-info is-uppercase">
@@ -79,10 +80,10 @@
               <span class="has-text-weight-semibold">Câu @index:</span>
               <span class="has-text-weight-medium has_link">@((MarkupString)Shared.GetLinks(item.content))</span>
             </div>
-            @if(lesson != null)
+            @if (lesson != null)
             {
               var question = lesson.questions.SingleOrDefault(x => x.id == item.id);
-              if(question != null && question.files.Count > 0)
+              if (question != null && question.files.Count > 0)
               {
                 <div class="field mb-2">
                   <div class="has-text-grey">File đính kèm của câu hỏi</div>
@@ -101,7 +102,7 @@
                 <i>Không có câu trả lời</i>
               }
             </div>
-            @if(item.files.Count > 0)
+            @if (item.files.Count > 0)
             {
               <div class="field mt-2">
                 <div class="has-text-grey">File đính kèm của câu trả lời</div>
@@ -113,7 +114,7 @@
                 <label class="label">Nhận xét câu trả lời</label>
                 <div class="control">
                   <input @bind="item.comment" type="text" class="input is_bg"
-                    placeholder="Nhận xét của giảng viên về câu trả lời..." />
+                         placeholder="Nhận xét của giảng viên về câu trả lời..." />
                 </div>
               </div>
               <div class="control" style="width: 120px;">
@@ -121,7 +122,7 @@
                 <div class="field has-addons">
                   <div class="control" style="width: 60px;">
                     <input @bind="item.point_exam" type="number" class="input has-text-right"
-                       min="0" max="@item.point_max" />
+                           min="0" max="@item.point_max" />
                   </div>
                   <div class="control is-expanded">
                     <div class="button is-static is-fullwidth">/ @item.point_max</div>
@@ -164,11 +165,11 @@
   }
   else
   {
-    <div class="card p-5">
+    <div class="card flex_column is_fullheight">
       <h1 class="title is-5 has-text-info is-uppercase">
         @_title
       </h1>
-      <div class="py-6 has-text-grey">
+      <div class="py-6 has-text-grey inner_section">
         Dữ liệu không tồn tại hoặc đã bị xóa !
       </div>
     </div>
@@ -193,37 +194,49 @@
     if (model != null)
     {
       lesson = await DbEducateLesson.Get(Layout.Company.id, model.lesson);
-      student = await DbUser.Get(Layout.Company.id, model.user);
+      student = await DbUser.Get(Layout.Company.id, model.user, globalService);
       learned = await DbEducateLearned.Get(Layout.Company.id, model.learned);
     }
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (learned != null)
+    bool _success = true;
+    try
     {
-      if (model.questions.Where(x => x.point_exam > x.point_max).Count() > 0)
-        await JSRuntime.InvokeVoidAsync("tagline", false, "Điểm của câu hỏi không được cao hơn số điểm tối đa !");
-      else
+      if (learned != null)
       {
-        model.point_exam = model.questions.Select(x => x.point_exam).Sum();
-        model.check = true;
-        model.date_check = DateTime.Now.Ticks;
-        model.examiner = Layout.User.id;
-        model = await DbEducateExam.Update(Layout.Company.id, model);
+        if (model.questions.Where(x => x.point_exam > x.point_max).Count() > 0)
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Điểm của câu hỏi không được cao hơn số điểm tối đa !");
+        else
+        {
+          model.point_exam = model.questions.Select(x => x.point_exam).Sum();
+          model.check = true;
+          model.date_check = DateTime.Now.Ticks;
+          model.examiner = Layout.User.id;
+          model = await DbEducateExam.Update(Layout.Company.id, model);
 
-        // Cập nhật kỳ học
-        var learn = learned.lessons.SingleOrDefault(x => x.id == model.lesson);
-        learn.done = true;
-        learn.pass = model.point_exam >= model.point_pass;
-        learned = await DbEducateLearned.Update(Layout.Company.id, learned);
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Đã lưu kết quả chấm bài thi");
+          // Cập nhật kỳ học
+          var learn = learned.lessons.SingleOrDefault(x => x.id == model.lesson);
+          learn.done = true;
+          learn.pass = model.point_exam >= model.point_pass;
+          learned = await DbEducateLearned.Update(Layout.Company.id, learned);
+          await JSRuntime.InvokeVoidAsync("tagline", true, "Đã lưu kết quả chấm bài thi");
 
-        // Gửi thông báo chuông
-        await DbNotify.Create(Layout.Company.id, 603, model.id, model.user, Layout.User.id);
+          // Gửi thông báo chuông
+          await DbNotify.Create(Layout.Company.id, 603, model.id, model.user, Layout.User.id);
+        }
       }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không tìm thấy thông tin kỳ học của học viên !");
     }
-    else
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Không tìm thấy thông tin kỳ học của học viên !");
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 }

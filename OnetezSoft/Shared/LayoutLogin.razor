@@ -1,48 +1,65 @@
-﻿@inherits LayoutComponentBase
+﻿@using System.Threading;
+@inherits LayoutComponentBase
 @inject NavigationManager navigation
+@inject IJSRuntime JSRuntime
+@implements IDisposable
 
 <CascadingValue Value="this">
-  @if(string.IsNullOrEmpty(link) || link.StartsWith("password"))
+  @if (!loading)
   {
-    <main id="login">
-      <section class="login_fr">
+    @if (string.IsNullOrEmpty(link) || link.StartsWith("password"))
+    {
+      <main id="login" style="overflow: hidden">
+        <section class="login_fr">
+          @Body
+        </section>
+        <section class="login_bg">
+          <div class="carousel">
+            <BlazorSlickCarousel Configurations="configurations">
+              <BlazorSlickCarouselContent>
+                @foreach (var item in slides)
+                {
+                  <div class="item">
+                    <div class="item_image">
+                      <img src="@item.Key" alt="img" />
+                    </div>
+                    <div class="item_desc">
+                      @((MarkupString)item.Value)
+                    </div>
+                  </div>
+                }
+              </BlazorSlickCarouselContent>
+            </BlazorSlickCarousel>
+            <div class="dots"></div>
+            <div class="arrows"></div>
+          </div>
+        </section>
+      </main>
+    }
+    else
+    {
+      <main>
         @Body
-      </section>
-      <section class="login_bg">
-        <div class="carousel">
-          <BlazorSlickCarousel Configurations="configurations">
-            <BlazorSlickCarouselContent>
-              @foreach (var item in slides)
-              {
-                <div class="item">
-                  <div class="item_image">
-                    <img src="@item.Key" alt="img" />
-                  </div>
-                  <div class="item_desc">
-                    @((MarkupString)item.Value)
-                  </div>
-                </div>
-              }
-            </BlazorSlickCarouselContent>
-          </BlazorSlickCarousel>
-          <div class="dots"></div>
-          <div class="arrows"></div>
-        </div>
-      </section>
-    </main>
+      </main>
+    }
+    @if (consentCookie)
+    {
+      <OnetezSoft.Pages.CookieConsent />
+    }
   }
-  else
-  {
-    <main>
-      @Body
-    </main>
-  }
+  <p class="fastdo_version">@("v" + LoginService.GetVersion())</p>
 </CascadingValue>
 
 @code {
   public WMBSCInitialSettings configurations;
   private Dictionary<string, string> slides = new();
   private string link = string.Empty;
+  private bool loading = true;
+
+  public bool consentCookie = false;
+
+  private CancellationTokenSource jsCancel = new CancellationTokenSource();
+  private Timer timer;
 
   protected override void OnInitialized()
   {
@@ -69,5 +86,47 @@
   protected override void OnParametersSet()
   {
     link = navigation.Uri.Replace(navigation.BaseUri, "");
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (loading)
+    {
+      try
+      {
+        consentCookie = await JSRuntime.InvokeAsync<bool>("checkCookie", jsCancel.Token);
+
+        loading = false;
+        StateHasChanged();
+
+        await Task.Delay(30000).ContinueWith(arg =>
+        {
+          if (jsCancel != null && loading == true)
+          {
+            loading = false;
+            jsCancel?.Cancel();
+          }
+        });
+      }
+      catch
+      {
+
+      }
+    }
+  }
+
+  public void Dispose()
+  {
+    try
+    {
+      loading = false;
+
+      jsCancel?.Cancel();
+      jsCancel?.Dispose();
+    }
+    catch (Exception ex)
+    {
+      return;
+    }
   }
 }

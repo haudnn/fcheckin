@@ -1,11 +1,8 @@
-﻿using System;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+﻿using MongoDB.Driver;
 using OnetezSoft.Models;
-using MongoDB.Bson;
-using MongoDB.Driver;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -17,7 +14,7 @@ namespace OnetezSoft.Data
     {
       if (string.IsNullOrEmpty(model.id))
         model.id = Mongo.RandomId();
-      model.pos = GetPos(companyId, model.course) + 1;
+      model.pos = await GetPos(companyId, model.course) + 1;
 
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
@@ -64,7 +61,7 @@ namespace OnetezSoft.Data
 
       var collection = _db.GetCollection<EducateLessonModel>(_collection);
 
-      return await collection.Find(x => x.id == id).FirstOrDefaultAsync();
+      return await collection.FindAsync(x => x.id == id).Result.FirstOrDefaultAsync();
     }
 
 
@@ -82,7 +79,9 @@ namespace OnetezSoft.Data
 
       var sorted = Builders<EducateLessonModel>.Sort.Ascending("pos");
 
-      var results = await collection.Find(x => x.course == course).Sort(sorted).ToListAsync();
+      var results = await collection.FindAsync(x => x.course == course).Result.ToListAsync();
+
+      results = results.OrderBy(x => x.pos).ToList();
 
       // Xóa khóa học chưa nhập
       var delete = results.Where(x => string.IsNullOrEmpty(x.name)).ToList();
@@ -94,13 +93,37 @@ namespace OnetezSoft.Data
       return results.Where(x => !string.IsNullOrEmpty(x.name)).ToList();
     }
 
-    public static int GetPos(string companyId, string course)
+    public static async Task<List<EducateLessonModel>> GetList(string companyId)
     {
       var _db = Mongo.DbConnect("fastdo_" + companyId);
 
       var collection = _db.GetCollection<EducateLessonModel>(_collection);
 
-      return collection.Find(x => x.course == course).ToList().Count;
+      var sorted = Builders<EducateLessonModel>.Sort.Ascending("pos");
+
+      var results = await collection.FindAsync(x => true).Result.ToListAsync();
+
+      results = results.OrderBy(x => x.pos).ToList();
+
+      // Xóa khóa học chưa nhập
+      var delete = results.Where(x => string.IsNullOrEmpty(x.name)).ToList();
+      foreach (var item in delete)
+      {
+        await Delete(companyId, item.id);
+      }
+
+      return results.Where(x => !string.IsNullOrEmpty(x.name)).ToList();
+    }
+
+    public static async Task<int> GetPos(string companyId, string course)
+    {
+      var _db = Mongo.DbConnect("fastdo_" + companyId);
+
+      var collection = _db.GetCollection<EducateLessonModel>(_collection);
+
+      var result = await collection.FindAsync(x => x.course == course).Result.ToListAsync();
+
+      return result.Count;
     }
 
     #region Dữ liệu cố định

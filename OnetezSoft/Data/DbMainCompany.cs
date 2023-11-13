@@ -1,11 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using OnetezSoft.Models;
-using MongoDB.Bson;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
 using MongoDB.Driver;
+using Newtonsoft.Json.Serialization;
+using OnetezSoft.Models;
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace OnetezSoft.Data
 {
@@ -63,16 +64,13 @@ namespace OnetezSoft.Data
     {
       var collection = _db.GetCollection<CompanyModel>(_collection);
 
-      var result = await collection.Find(x => x.id == id && !x.delete).FirstOrDefaultAsync();
+      var result = await collection.FindAsync(x => x.id == id && !x.delete).Result.FirstOrDefaultAsync();
 
       if (result != null)
       {
-        if (result.products == null)
-          result.products = new();
-        if (result.todolist == null)
-          result.todolist = new();
-        if (result.kaizen == null)
-          result.kaizen = new();
+        result.products ??= new();
+        result.todolist ??= new();
+        result.kaizen ??= new();
       }
 
       return result;
@@ -106,11 +104,9 @@ namespace OnetezSoft.Data
     {
       var collection = _db.GetCollection<CompanyModel>(_collection);
 
-      var sorted = Builders<CompanyModel>.Sort.Descending("create_date");
+      var results = await collection.FindAsync(x => x.delete == false).Result.ToListAsync();
 
-      var results = await collection.Find(x => x.delete == false).Sort(sorted).ToListAsync();
-
-      return results;
+      return (from x in results orderby x.create_date descending select x).ToList();
     }
 
 
@@ -121,17 +117,48 @@ namespace OnetezSoft.Data
     {
       var collection = _db.GetCollection<CompanyModel>(_collection);
 
-      var sorted = Builders<CompanyModel>.Sort.Descending("create_date");
+      var results = await collection.FindAsync(x => x.delete == false && x.admin_id == customerId).Result.ToListAsync();
 
-      var results = await collection.Find(x => x.delete == false && x.admin_id == customerId).Sort(sorted).ToListAsync();
+      results = results.OrderByDescending(x => x.create_date).ToList();
 
       foreach (var item in results)
       {
-        if(item.products == null)
-          item.products = new();
+        item.products ??= new();
       }
 
       return results;
+    }
+
+    /// <summary>
+    /// Filter công ty còn được kích hoạt hoặc chưa được xoá
+    /// </summary>
+
+    public static async Task<List<CompanyModel>> GetActiveCompany(List<UserModel.Company> companys)
+    {
+      var collection = _db.GetCollection<CompanyModel>(_collection);
+      var builder = Builders<CompanyModel>.Filter;
+      var companyIds = companys.Select(c => c.id).ToList();
+
+      var filter = builder.In(x => x.id, companyIds) & builder.Eq(x => x.delete, false) & builder.Eq(x => x.status, true);
+
+      var result = await collection.FindAsync(filter).Result.ToListAsync();
+
+      return result;
+
+    }
+
+    public static async Task<bool> ChangeStateSync(string company)
+    {
+      var collection = _db.GetCollection<CompanyModel>(_collection);
+
+      var builder = Builders<CompanyModel>.Filter;
+
+      // Find one and update
+      var filter = builder.Eq(x => x.id, company);
+      var update = Builders<CompanyModel>.Update.Set(x => x.is_sync_plan, true);
+      var result = await collection.UpdateOneAsync(filter, update);
+      return true;
+
     }
   }
 }

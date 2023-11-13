@@ -1,0 +1,413 @@
+﻿@inject IJSRuntime JSRuntime
+@inject GlobalService globalService
+
+@if (!isEdit)
+{
+  <div class="field is-grouped">
+    <div class="control is-expanded has-text-black has-text-weight-bold is-size-6">
+      Lịch sử check-in
+    </div>
+    <div class="control">
+      <_InputDate Minimal IsRange
+      @bind-Start="filterStart"
+      @bind-End="filterEnd"
+                  OnRangeSelect="Filter"
+                  Format="dd/MM" />
+    </div>
+
+    <div class="control">
+      <Dropdown CloseOnClickMenu=true>
+      <Trigger>
+        <div class="field is-grouped is-fullwidth is-clickable has-text-link">
+          <div class="control font_12">
+            @if (typeDate == 1)
+              {
+                <span>Tuần này</span>
+              }
+              else if (typeDate == 11)
+              {
+                <span>Tuần trước</span>
+              }
+              else if (typeDate == 2)
+              {
+                <span>Tháng này</span>
+              }
+              else if (typeDate == 22)
+              {
+                <span>Tháng trước</span>
+              }
+              else if (typeDate == 3)
+              {
+                <span>Quý này</span>
+              }
+              else if (typeDate == 7)
+              {
+                <span>Quý trước</span>
+              }
+            </div>
+
+            <div class="control is-expanded has-text-right">
+              <span class="icon">
+                <i class="material-icons-outlined">arrow_drop_down</i>
+              </span>
+            </div>
+          </div>
+        </Trigger>
+        <MenuContent>
+          <a class="dropdown-item" @onclick="() => ChangeDate(1)">
+            Tuần này
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeDate(11)">
+            Tuần trước
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeDate(2)">
+            Tháng này
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeDate(22)">
+            Tháng trước
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeDate(3)">
+            Quý này
+          </a>
+          <a class="dropdown-item" @onclick="() => ChangeDate(7)">
+            Quý trước
+          </a>
+        </MenuContent>
+      </Dropdown>
+    </div>
+  </div>
+
+  @if (dataCheckin.Any() && model != null)
+  {
+    var metric = model.metrics.FirstOrDefault();
+
+    <div class="px-2">
+      <div class="timeline font_14">
+        @if (filterList.Any())
+        {
+          <Virtualize Items="filterList" Context="item" ItemSize="40">
+            @{
+              double progress = 0;
+              if (model.metrics.FirstOrDefault() != null)
+              {
+                progress = KpisService.GetProgressCheckin(item.value, model.metrics.FirstOrDefault().target);
+              }
+
+              var kpis = database.FirstOrDefault(i => i.id == item.kpis);
+
+              var color = Shared.ProgressColor(progress);
+
+              var userCreate = new MemberModel();
+              var userConfirm = new MemberModel();
+              if (model.type == 2)
+              {
+                userCreate = userList.FirstOrDefault(i => i.id == item.user_create);
+                userConfirm = userList.FirstOrDefault(i => i.id == item.user_confirm);
+              }
+              else
+              {
+                userCreate = null;
+                userConfirm = null;
+              }
+            }
+
+            <div class="item pb-4">
+              <div class="has-text-grey icon-text">
+                @if (item.status_checkin == 2 && item.date_confirm > 0)
+                {
+                  <span>
+                    @($"{new DateTime(item.date_confirm).ToString("dd'/'MM'/'yyyy")} - {new DateTime(item.date_confirm).ToString("HH':'mm")}")
+                  </span>
+                }
+                else
+                {
+                  <span>
+                    @($"{new DateTime(item.date_create).ToString("dd'/'MM'/'yyyy")} - {new DateTime(item.date_create).ToString("HH':'mm")}")
+                  </span>
+                }
+
+                @if (item.status_checkin == 1)
+                {
+                  <span class="mx-1">-</span>
+                  <span>Bản nháp</span>
+                }
+
+                <span class="icon is-clickable" @onclick="() => ShowDetail(item.id)">
+                  <i class="material-icons-outlined is-size-6">@(listShow.Contains(item.id) ? "arrow_drop_down" : "arrow_right")</i>
+                </span>
+              </div>
+
+              @if (userCreate != null && userConfirm != null && kpis != null)
+              {
+                <div class="mt-2">
+                  <div class="user_item">
+                    <img class="image is-24x24 mr-2" src="@userCreate.avatar" alt="IMG">
+                    <span class="text_1_line has-text-black has-text-weight-semibold">@($"{userCreate.name} • {kpis.name}")</span>
+                  </div>
+                </div>
+              }
+
+              <p class="text_1_line mt-2">
+                @if (metric != null)
+                {
+                  <span class="text_1_line" title="@($"{Shared.ConvertCurrencyDouble(Math.Round(item.value, 3))} {metric.units}")">
+                    <span class="has-text-grey">Thực đạt: </span>
+                    <span class="has-text-black">@($"{Shared.ConvertCurrencyDouble(Math.Round(item.value, 3))} {metric.units}")</span>
+                    @if (model.type == 1)
+                    {
+                      <span class="mx-1">•</span>
+                      <span class="@(color.Replace("is-", "has-text-")) has-text-weight-semibold">@Shared.FormatPercent(progress)%</span>
+                    }
+                  </span>
+                }
+              </p>
+
+              <div class="mt-2">
+                @if (metric != null)
+                {
+                  <span class="has-text-black">
+                    @Shared.ConvertCurrencyDouble(Math.Round(item.value_fluctuate, 3)) @metric.units
+                  </span>
+                }
+              </div>
+
+              @if (listShow.Contains(item.id))
+              {
+                if (userCreate != null && userConfirm != null)
+                {
+                  <div class="mt-2 is-flex is-align-items-center text_1_line" style="height: 24px;">
+                    <span class="has-text-grey mr-2">Phê duyệt: </span>
+                    <div class="user_item">
+                      <img class="image is-24x24 mr-2" src="@userConfirm.avatar" alt="IMG">
+                      <span class="has-text-black">@($"{userConfirm.name}")</span>
+                    </div>
+                  </div>
+                }
+
+                <p class="mt-2 has-text-grey">
+                  Nhận xét:
+                </p>
+                <p class="mt-2" style="word-break: break-word;">@item.comment</p>
+
+                <p class="my-2 has-text-grey">
+                  File đính kèm:
+                </p>
+
+                @if (item.files.Any())
+                {
+                  <FileViews Delete="false" Values="item.files" />
+                }
+                else
+                {
+                  <p class="is-italic">Chưa có file đính kèm</p>
+                }
+              }
+
+              @if (hasEdit && filterList.FirstOrDefault().id == item.id && !isTree
+        && item.status_checkin == 1 && item.user_create == Layout.User.id && !isManager)
+              {
+                <a class="button is-link is-small mt-2" @onclick="() => ShowEdit(item)" style="border-radius: 5px;">
+                  <span class="icon">
+                    <span class="material-icons-outlined">edit</span>
+                  </span>
+                  <span>Sửa bản check-in</span>
+                </a>
+              }
+            </div>
+          </Virtualize>
+        }
+        else
+        {
+          <div class="is-flex is-align-items-center is-justify-content-center">
+            <p class="has-text-grey mt-2">Không tìm thấy dữ liệu phù hợp!</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
+  else
+  {
+    <div class="is-flex is-align-items-center is-justify-content-center is-flex-direction-column" style="height: calc(100% - 96px);">
+      <img class="image" src="/images/no-history.png" alt="IMG" />
+      <p class="has-text-grey mt-2">Không có dữ liệu check-in!</p>
+    </div>
+  }
+}
+else if (checkinEdit != null && model != null && model.metrics.Any())
+{
+  var metric = model.metrics.FirstOrDefault();
+
+  <div class="field is-grouped mb-5">
+    <span class="control icon has-text-link is-size-5 is-clickable" @onclick="() => isEdit = false">
+      <span class="material-icons-outlined">
+        arrow_back
+      </span>
+    </span>
+    <div class="control has-text-black has-text-weight-bold is-size-6">
+      Lịch sử check-in
+    </div>
+
+    <div class="control is-expanded has-text-right has-text-black has-text-weight-medium font_14">
+      @($"{new DateTime(checkinEdit.date_create).ToString("dd'/'MM'/'yyyy")} - {new DateTime(checkinEdit.date_create).ToString("HH':'mm")}")
+    </div>
+  </div>
+
+  <ul class="columns is-mobile is-multiline">
+    <li class="column is-full">
+      <p class="font_14 has-text-grey mb-2">Cập nhật kết quả thay đổi:</p>
+
+      <_InputUpDown metric="metric"
+                    IsDownParameter="metric != null && checkinEdit.value_fluctuate < 0"
+                    checkinCreate="checkinEdit"
+                    model="model"
+                    OnUpdate="ChangeValueFluctuate" />
+
+      <p class="is-italic has-text-grey font_12">Đối với những KPIs mang tính chất chi phí thì chọn dấu "-"</p>
+    </li>
+
+    <li class="column is-full">
+      <p class="font_14 has-text-grey">Nhận xét:</p>
+      <textarea @bind="checkinEdit.comment" class="textarea is_bg mt-2" rows="6" placeholder="Nhập nhận xét..." />
+    </li>
+
+    <li class="column is-full">
+      <div class="field is-grouped">
+        <div class="control has-text-grey">
+          File đính kèm:
+        </div>
+        <div class="control is-expanded" style="width: calc(100% - 132px)">
+          <FileUpload Multiple="true" Small="true" Cloud="true" OnUpload="x => checkinEdit.files.AddRange(x)" />
+        </div>
+      </div>
+      <div class="pb-3">
+        <FileViews Delete="true" Values="checkinEdit.files" />
+      </div>
+    </li>
+  </ul>
+
+  <div class="column is-full mt-2">
+    <div class="field is-grouped is-justify-content-end">
+      <div class="control">
+        <a class="button has-text-grey-dark font_12" style="border: none; background: none" @onclick="CancelCheckin">
+          <span class="icon">
+            <span class="material-icons-outlined">close</span>
+          </span>
+          <span>Huỷ</span>
+        </a>
+      </div>
+
+      <div class="control">
+        <a class="button is-link font_12" @onclick="CreateCheckin">
+          <span class="icon">
+            <span class="material-icons-outlined">check</span>
+          </span>
+          <span>Cập nhật</span>
+        </a>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public List<KpisCheckinModel> dataCheckin { get; set; } = new();
+  [Parameter]
+  public KpisModel model { get; set; }
+  [Parameter]
+  public KpisModel kpisRoot { get; set; }
+  [Parameter]
+  public bool hasEdit { get; set; } = true;
+  [Parameter]
+  public bool isTree { get; set; }
+  [Parameter]
+  public KpisCycleModel cycle { get; set; }
+  [Parameter]
+  public bool isManager { get; set; }
+  [Parameter]
+  public List<KpisModel> database { get; set; } = new();
+
+  private int typeDate = 1;
+  private KpisCheckinModel checkinEdit = null;
+  private List<string> listShow = new();
+  private bool isEdit;
+  private List<KpisCheckinModel> filterList = new();
+  private long filterStart = DateTime.Today.Ticks;
+  private long filterEnd = DateTime.Today.Ticks;
+  private List<MemberModel> userList = new();
+
+
+  protected override async Task OnInitializedAsync()
+  {
+    userList = await globalService.GetUserList(Layout.Company.id);
+  }
+
+  protected override void OnParametersSet()
+  {
+    ChangeDate(1);
+  }
+
+  private void ShowEdit(KpisCheckinModel item)
+  {
+    checkinEdit = Shared.Clone(item);
+    isEdit = true;
+  }
+
+  private void ChangeValueFluctuate(KpisCheckinModel itemUpdate)
+  {
+    checkinEdit = itemUpdate;
+  }
+
+  private void CancelCheckin()
+  {
+    isEdit = false;
+    checkinEdit = null;
+  }
+
+  private async Task CreateCheckin()
+  {
+    var result = await KpisService.UpdateCheckin(checkinEdit, model, kpisRoot, database, cycle, Layout.Company.id, Layout.User.id);
+    if (result.Item1)
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", true, $"{result.Item2}");
+      isEdit = false;
+
+      int index = dataCheckin.FindIndex(i => i.id == checkinEdit.id);
+      if (index != -1)
+      {
+        dataCheckin.RemoveAll(i => i.id == checkinEdit.id);
+        dataCheckin.Insert(index, checkinEdit);
+      }
+      else
+        dataCheckin.Add(checkinEdit);
+
+      ChangeDate(typeDate);
+    }
+    else
+      await JSRuntime.InvokeVoidAsync("tagline", false, $"{result.Item2}");
+  }
+
+  private void ShowDetail(string id)
+  {
+    if (listShow.Contains(id))
+      listShow.Remove(id);
+    else
+      listShow.Add(id);
+  }
+
+  private void ChangeDate(int e)
+  {
+    typeDate = e;
+    Shared.GetTimeSpan(typeDate, out DateTime start, out DateTime end);
+    filterStart = start.Ticks;
+    filterEnd = end.Ticks;
+    Filter();
+  }
+
+  private void Filter()
+  {
+    filterList = dataCheckin.Where(i => filterStart <= i.date_create && i.date_create <= new DateTime(filterEnd).AddDays(1).AddTicks(-1).Ticks)
+                            .OrderByDescending(i => i.date_create).ToList();
+  }
+}

@@ -1,0 +1,955 @@
+﻿@charset "UTF-8";
+@import "/css/connect.css";
+@import "/css/app.css";
+@import "/css/mobile.css";
+@import "/css/timekeeping.css";
+@import "/css/mention.css";
+@import "/css/storage.css";
+@import "/css/custom.css";
+:root {
+  --form-small: 600px;
+  --form-medium: 1000px;
+  --form-large: 1280px;
+  --form-full: calc(100vw - 40px);
+  --color-main: #355caa;
+  --color-extra: #585c7d;
+  --color-bg: #ecf0ff;
+}
+
+#blazor-error-ui {
+  display: none;
+}
+#blazor-error-ui .modal {
+  height: fit-content;
+  width: fit-content;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  overflow: visible;
+}
+#blazor-error-ui .modal .modal-content {
+  width: fit-content !important;
+  max-width: 320px;
+}
+#blazor-error-ui .modal-content {
+  border-radius: 8px;
+  box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+#components-reconnect-modal {
+  width: 60px;
+  height: 28px;
+  background: none !important;
+  left: calc(50% - 30px) !important;
+  top: 18px !important;
+}
+#components-reconnect-modal div {
+  width: 16px !important;
+  height: 16px !important;
+  border-width: 2px !important;
+}
+
+#components-reconnect-modal h5 {
+  display: none;
+}
+
+#components-reconnect-modal button {
+  font-size: 0px;
+}
+
+#components-reconnect-modal button::before {
+  content: "TẢI LẠI";
+  font-size: 14px !important;
+}
+
+section.is-loading,
+.card.is-loading {
+  position: relative;
+}
+
+section.is-loading > *,
+.card.is-loading > * {
+  opacity: 0.1;
+}
+
+section.is-loading::after,
+.card.is-loading::after {
+  -webkit-animation: spinAround 75s infinite linear;
+  animation: spinAround 0.75s infinite linear;
+  border-radius: 9999px;
+  border: 2px solid #dbdbdb;
+  border-right-color: #355caa;
+  border-top-color: #585c7d;
+  content: "";
+  display: block;
+  height: 4rem;
+  width: 4rem;
+  left: calc(50% - 2rem);
+  top: calc(50% - 2rem);
+  position: absolute;
+}
+
+html {
+  background: #fbfbfb;
+  height: var(--window-height);
+  overflow: auto;
+}
+
+body {
+  display: flex;
+  width: 100%;
+  font-size: 14px;
+  font-family: "Inter", Arial, sans-serif;
+  margin: 0px auto;
+  min-height: 100%;
+}
+
+.scrolly::-webkit-scrollbar-track, .scrolly::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrolly::-webkit-scrollbar-thumb, .scrolly::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+.scrolly::-webkit-scrollbar-thumb:hover, .scrolly::-webkit-scrollbar-thumb:hover {
+  background: transparent;
+}
+.scrolly:hover::-webkit-scrollbar-track, .scrolly:hover::-webkit-scrollbar-track {
+  background: #f9f9f9;
+}
+.scrolly:hover::-webkit-scrollbar-thumb, .scrolly:hover::-webkit-scrollbar-thumb {
+  background: #eaebeb;
+}
+.scrolly:hover::-webkit-scrollbar-thumb:hover, .scrolly:hover::-webkit-scrollbar-thumb:hover {
+  background: #bebfbf;
+}
+
+#main:not(.client) {
+  width: 100vw;
+  margin: 0px;
+  min-height: var(--window-height);
+  height: fit-content;
+  position: relative;
+  overflow: auto;
+  flex-wrap: nowrap;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  padding-top: 51px;
+}
+#main:not(.client) .title.is-5 {
+  white-space: nowrap;
+  line-height: 1.5;
+}
+#main:not(.client) > .column.is-full:nth-of-type(1) {
+  position: fixed;
+  z-index: 2;
+  top: 0;
+}
+#main:not(.client) > .column.is-full:nth-of-type(2) {
+  flex: 1;
+  z-index: 1;
+  display: flex;
+  align-items: stretch;
+}
+#main:not(.client) > .column.is-full:nth-of-type(2) > .columns {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+#main:not(.client) > .column.is-full:nth-of-type(2):has(.modal.is-active:not(.is_under)) {
+  z-index: 9;
+}
+#main:not(.client) .sidebar {
+  position: relative;
+  border-right: 1px solid rgba(0, 0, 0, 0.14);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.14);
+  z-index: 99;
+  transition: all 200ms ease;
+  width: 52px;
+}
+#main:not(.client) #sidebar {
+  width: 250px;
+  background: #ECF0FF;
+  padding: 1rem 0 3rem !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  z-index: 99;
+  overflow: hidden;
+  transition: all 200ms ease;
+  transition-delay: 200ms;
+}
+#main:not(.client) #sidebar:hover {
+  overflow: visible;
+}
+#main:not(.client) #sidebar .module-pin {
+  position: absolute;
+  top: 1rem;
+  right: 4px;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: all;
+  transition: all 200ms ease;
+  transition-delay: 200ms;
+}
+#main:not(.client) #sidebar .module-name {
+  display: none;
+}
+#main:not(.client) #sidebar > a.button.is-white.toggle {
+  margin: 0 0.5rem;
+  width: fit-content;
+  height: fit-content;
+  padding: 0;
+}
+#main:not(.client) #sidebar > a.button.is-white.toggle .icon {
+  font-size: 20px;
+  color: var(--color-main);
+}
+#main:not(.client) #sidebar a.button .icon {
+  margin: 0;
+}
+#main:not(.client) #sidebar a.button {
+  padding: calc(0.5em - 1px);
+  gap: 8px;
+}
+#main:not(.client) #sidebar .scrolly {
+  width: fit-content;
+}
+#main:not(.client) #sidebar .scrolly ul li {
+  margin-bottom: 0;
+}
+#main:not(.client) #sidebar .scrolly ul li.is-active > a.button, #main:not(.client) #sidebar .scrolly ul li:has(li.is-active) > a.button {
+  color: #355CAA;
+  background: #AEC6FF;
+}
+#main:not(.client) #sidebar .scrolly ul li:hover {
+  color: #355CAA;
+}
+#main:not(.client) #sidebar .scrolly ul li a.button * > a.button {
+  color: #355CAA;
+}
+#main:not(.client) #sidebar .scrolly ul li + li {
+  margin-top: 16px;
+}
+#main:not(.client) #sidebar a.button:not(.toggle) {
+  gap: 0;
+}
+#main:not(.client) #sidebar a.button:not(.toggle) span:not(.icon), #main:not(.client) #sidebar a.button:not(.toggle) span.icon:not(:first-child) {
+  max-width: 500px;
+  white-space: nowrap;
+  opacity: 1;
+  margin-left: 5px;
+  visibility: visible;
+  pointer-events: all;
+  transition: all 200ms ease;
+  transition-delay: 200ms;
+}
+#main:not(.client) #sidebar .btn_logout {
+  align-content: stretch;
+}
+#main:not(.client) #sidebar.is_less:not(.is_pin):not(:hover) {
+  max-width: 51px;
+}
+#main:not(.client) #sidebar.is_less:not(.is_pin):not(:hover) a.button:not(.toggle) {
+  gap: 0;
+}
+#main:not(.client) #sidebar.is_less:not(.is_pin):not(:hover) a.button:not(.toggle) span:not(.icon), #main:not(.client) #sidebar.is_less:not(.is_pin):not(:hover) a.button:not(.toggle) span.icon:not(:first-child) {
+  max-width: 0;
+  display: block;
+  opacity: 0;
+  visibility: hidden;
+  margin-left: 0;
+  pointer-events: none;
+}
+#main:not(.client) #sidebar.is_less:not(.is_pin):not(:hover) .scrolly ul li:hover a.button span:not(.icon) {
+  display: block;
+  width: fit-content;
+  max-width: 1000px;
+  left: calc(100% + 12px);
+}
+#main:not(.client) #sidebar:not(.is_less) .scrolly ul li:has(ul):hover > a.button, #main:not(.client) #sidebar:not(.is_less) .scrolly ul li:has(ul).is-active > a.button, #main:not(.client) #sidebar:not(.is_less) .scrolly ul li:has(ul):has(li.is-active) > a.button {
+  background: transparent;
+}
+#main:not(.client) #sidebar:not(.is_less):not(.is_pin) ~ .sidebar_overlay, #main:not(.client) #sidebar:not(.is_pin):hover ~ .sidebar_overlay {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: all;
+}
+#main:not(.client) .sidebar_overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 9;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+#main:not(.client) #header {
+  box-shadow: 0px 0px 7px 0px rgba(0, 0, 0, 0.2);
+  z-index: 9;
+  position: relative;
+}
+#main:not(.client) #header .header_product .dropdown-menu {
+  border-radius: 4px;
+  overflow: hidden;
+  padding: 0;
+  box-shadow: 0px 4px 14px 0px rgba(0, 0, 0, 0.4);
+}
+#main:not(.client) #header .header_product .dropdown-content {
+  width: calc(100vw - 32px);
+  box-shadow: none;
+  max-width: 520px;
+}
+#main:not(.client) #header.header_main {
+  width: 100vw;
+  height: fit-content;
+  flex: none;
+  padding: 8px 14px;
+  border: none;
+}
+#main:not(.client) #header.header_main .dropdown .dropdown-menu {
+  top: calc(100% + 1rem);
+}
+#main:not(.client) #header.header_main > .columns {
+  gap: 16px;
+  margin: 0;
+}
+#main:not(.client) #header.header_main > .columns .column {
+  padding: 0;
+}
+#main:not(.client) .is_expand, #main:not(.client) #content {
+  scrollbar-color: #3d4160 #2e3250;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-color: #3d4160 #f1f1f1;
+  scrollbar-width: thin;
+}
+#main:not(.client) .is_expand::-webkit-scrollbar, #main:not(.client) #content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+#main:not(.client) .is_expand::-webkit-scrollbar-track, #main:not(.client) #content::-webkit-scrollbar-track {
+  background: #f9f9f9;
+}
+#main:not(.client) .is_expand::-webkit-scrollbar-thumb, #main:not(.client) #content::-webkit-scrollbar-thumb {
+  background: #eaebeb;
+}
+#main:not(.client) .is_expand::-webkit-scrollbar-thumb:hover, #main:not(.client) #content::-webkit-scrollbar-thumb:hover {
+  background: #bebfbf;
+}
+#main:not(.client) .flex_column {
+  display: flex;
+  flex-direction: column;
+}
+#main:not(.client) #content {
+  flex: 1;
+  min-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-items: stretch;
+  padding: 1.5rem;
+  background: inherit;
+}
+#main:not(.client) #content.has_column {
+  height: calc(100vh - 51px);
+  padding: 0;
+  z-index: 5;
+}
+#main:not(.client) #content.has_column .main_content {
+  column-gap: 1.5rem;
+}
+#main:not(.client) #content.has_column .tabs {
+  margin-top: 1rem;
+}
+#main:not(.client) #content #page_fwork {
+  height: 100%;
+}
+#main:not(.client) #content #page_fwork .card.teams_left {
+  height: 100%;
+}
+#main:not(.client) #content #page_fwork .is_expanded {
+  height: 100%;
+}
+#main:not(.client) #content .tabs {
+  min-height: 43px;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+#main:not(.client) #content .tabs .tabs_name {
+  flex: 1;
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#main:not(.client) #content .tabs .tabs_name > .icon-text:first-of-type {
+  font-size: 14px;
+  border-bottom: none;
+}
+#main:not(.client) #content .tabs ul {
+  width: fit-content;
+  max-width: 100%;
+  flex: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: fit-content;
+  border-bottom-color: #F1F7F7;
+}
+#main:not(.client) #content .tabs li {
+  height: fit-content;
+}
+#main:not(.client) #content .tabs li.is-active a {
+  border-bottom-color: var(--color-main);
+}
+#main:not(.client) #content .tabs a {
+  font-size: 14px;
+  font-weight: 500 !important;
+  border-bottom-color: #F1F7F7;
+  padding: 10px;
+}
+#main:not(.client) #content .card:not(.task_board):not(.is_nav):not(.teams_left) {
+  box-shadow: none !important;
+  border: none !important;
+}
+#main:not(.client) #content .flex_column .expand_height {
+  flex: 1 1 0%;
+}
+#main:not(.client) #content .main_content {
+  flex: 1 1 0%;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+}
+#main:not(.client) #content .main_content .inner_section {
+  background: #FAFAFA;
+  padding: 1.5rem;
+  border-radius: 8px;
+  position: relative;
+}
+#main:not(.client) #content .main_content .inner_section:not(:has(.table-container)):has(.table.sticky) {
+  padding-top: 0;
+}
+#main:not(.client) #content .main_content .inner_section:not(:has(.table-container)):has(.table.sticky) .table.sticky {
+  background: #FAFAFA;
+}
+#main:not(.client) #content .main_content .inner_section:not(:has(.table-container)):has(.table.sticky) .table.sticky:not(.only_desktop) tbody td {
+  max-width: 0;
+}
+#main:not(.client) #content .main_content .inner_section:not(:has(.table-container)):has(.table.sticky) .table.sticky thead tr:nth-of-type(1) th, #main:not(.client) #content .main_content .inner_section:not(:has(.table-container)):has(.table.sticky) .table.sticky thead tr:nth-of-type(1) td {
+  overflow: visible;
+  padding-top: 1.5rem;
+  background-color: #FAFAFA;
+}
+#main:not(.client) #content .main_content .inner_section:not(:has(.table-container)):has(.table.sticky) .table.sticky tbody td {
+  background-color: #FAFAFA;
+}
+#main:not(.client) #content .main_content .inner_section:not(:has(.table-container)):has(.table.sticky) .table.sticky tbody, #main:not(.client) #content .main_content .inner_section:not(:has(.table-container)):has(.table.sticky) .table.sticky thead {
+  background-color: #FAFAFA;
+}
+#main:not(.client) #content .main_content .inner_section:not(:has(.table-container)):has(.table.sticky) .table.sticky tbody td.sticky:first-child::after, #main:not(.client) #content .main_content .inner_section:not(:has(.table-container)):has(.table.sticky) .table.sticky tbody th.sticky:first-child::after, #main:not(.client) #content .main_content .inner_section:not(:has(.table-container)):has(.table.sticky) .table.sticky thead td.sticky:first-child::after, #main:not(.client) #content .main_content .inner_section:not(:has(.table-container)):has(.table.sticky) .table.sticky thead th.sticky:first-child::after {
+  content: "";
+  display: block;
+  position: absolute;
+  right: 100%;
+  top: -1px;
+  width: 1.5rem;
+  height: calc(100% + 2px);
+  background: #FAFAFA;
+  z-index: 9;
+}
+#main:not(.client) #content .main_content .table {
+  background: transparent;
+}
+#main:not(.client) #content .main_content .title.is-5 {
+  font-size: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+#main:not(.client) #content .main_content .title.is-5 * {
+  text-transform: none;
+}
+#main:not(.client) #content .main_content:has(.is_fullheight) {
+  overflow: hidden;
+}
+#main:not(.client) #content .main_content:has(.is_fullheight) > .card {
+  height: 100%;
+}
+#main:not(.client) #content .main_content.homepage {
+  background: white;
+  flex-wrap: nowrap;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(1) {
+  width: 100%;
+  max-width: 350px;
+  background: #F1F7F7;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  border-radius: 0;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(1) .image {
+  margin-bottom: 1.5rem;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(1) .image img {
+  width: 250px;
+  height: auto;
+  max-height: 250px;
+  object-fit: contain;
+  object-position: center center;
+  margin: auto;
+  margin-bottom: 1rem;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(1) .image p {
+  font-size: 12px;
+  text-align: center;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(1) h5 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(1) .scrolly {
+  flex: 1;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(1) .columns {
+  row-gap: 0.5rem;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(1) .columns .column {
+  font-size: 14px;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(1) .columns .column:nth-of-type(1) {
+  font-size: 12px;
+  padding-bottom: 0;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(1) .columns .column .control:nth-of-type(3n) {
+  text-align: right;
+  margin-left: auto;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(2) {
+  padding: 1rem;
+  padding-left: 0;
+  margin-top: 0;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(2) .banner {
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(2) .banner img {
+  aspect-ratio: 4/1;
+  width: 100%;
+  object-fit: cover;
+  object-position: center center;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(2) h5 {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(2) .module-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(2) .module-list .module-item {
+  display: flex;
+  width: 160px;
+  border: 1px solid #ECF0FF;
+  border-radius: 4px;
+  user-select: none;
+  cursor: pointer;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(2) .module-list .module-item.is_disable {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(2) .module-list .module-item .field {
+  padding: 10px 0 10px 10px;
+  margin-bottom: 0;
+  flex: 1;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(2) .module-list .module-item > .control {
+  padding: 10px 10px 10px 0;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(2) .module-list .module-item > .control .icon:not(.has-text-warning) {
+  opacity: 0.2;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(2) .module-list .module-item:hover {
+  border-color: #6B8FE0;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(2) .module-list .module-item:hover .control:last-child .icon:not(.has-text-warning) {
+  color: #ffdb67;
+  opacity: 1;
+}
+#main:not(.client) #content .main_content.homepage .card:nth-of-type(2) .module-list .module-item span.text_1_line {
+  font-weight: 500;
+  color: #2b2b2b;
+}
+#main:not(.client) #content .main_content.config #sidebar {
+  position: relative;
+  width: fit-content;
+}
+#main:not(.client) #content .main_content#page_teams > .is_expanded {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: calc(100vh - 51px);
+  margin-right: -16px;
+  padding-right: 16px;
+}
+#main:not(.client) #content .main_content#page_fwork > .card {
+  width: fit-content;
+  padding: inherit;
+}
+#main:not(.client) #content .main_content#page_fwork > .is_expanded {
+  padding: 1.5rem 1.5rem 1.5rem 0;
+}
+#main:not(.client) #content .main_content#page_fwork > .is_expanded .card {
+  height: 100%;
+}
+#main:not(.client) #content .main_content#page_fwork > .is_expanded .card.is_small + .card {
+  height: calc(100% - 62px - 1rem);
+}
+#main:not(.client) #content .main_content .card {
+  width: 100%;
+  /*padding: 1.5rem;*/
+  min-height: fit-content;
+}
+#main:not(.client) #content .main_content .card.is_small {
+  padding: 1rem;
+  height: fit-content !important;
+}
+#main:not(.client) #content .main_content .card.teams_left {
+  padding: 0;
+  width: 210px;
+  border-radius: 4px;
+  height: calc(100vh - 51px);
+  display: flex;
+  flex-direction: column;
+}
+#main:not(.client) #content .main_content .card.teams_left .scrolly {
+  flex: 1 1 0%;
+  height: auto;
+  overflow-y: auto !important;
+}
+#main:not(.client) #content .main_content .is_half {
+  width: calc((100% - 1rem) / 2);
+}
+#main:not(.client) #content .main_content .is_expanded {
+  width: calc(100% - 210px - 1.5rem);
+}
+#main:not(.client) .category_item {
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+#main:not(.client) .category_item.is-active {
+  background: rgba(53, 92, 170, 0.062745098);
+}
+#main:not(.client) .modal {
+  z-index: 99999;
+}
+
+#main.client > aside {
+  height: 100vh;
+  width: fit-content;
+}
+#main.client > aside #sidebar {
+  transition: all 200ms ease;
+}
+#main.client #content {
+  height: 100vh;
+}
+
+.has_preview {
+  position: relative;
+}
+.has_preview:hover .file_preview {
+  bottom: 100%;
+  opacity: 1;
+  transition-delay: 0;
+  pointer-events: all;
+}
+.has_preview .file_preview {
+  position: absolute;
+  bottom: 90%;
+  opacity: 0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.14);
+  border-radius: 4px;
+  padding: 0.5rem;
+  left: 0;
+  z-index: 9;
+  background: #FAFAFA;
+  transition: all 200ms ease;
+  transition-delay: 200ms;
+  cursor: pointer;
+  pointer-events: none;
+}
+.has_preview .file_preview.is_zoom img {
+  min-width: 500px;
+}
+.has_preview .file_preview img {
+  min-width: 250px;
+  min-height: fit-content;
+  object-fit: contain;
+  object-position: center center;
+}
+
+.task_list {
+  position: relative;
+}
+.task_list .is_drag {
+  cursor: grab;
+}
+.task_list.is_sub:last-child > li:first-child {
+  padding-left: 60px !important;
+}
+.task_list.is_sub:last-child > li:first-child::before {
+  height: 100%;
+}
+.task_list .column {
+  min-height: 35px;
+  display: flex;
+  align-items: center;
+}
+.task_list .column.is-full:has(.is_sub):last-child .is_sub > li:first-child::before {
+  height: 50%;
+}
+.task_list .task_priority {
+  position: absolute;
+  left: 0;
+  width: 4px;
+  height: 100%;
+}
+.task_list .item_title {
+  padding: 0;
+  padding-right: 5px;
+}
+
+#drag_ghost {
+  position: fixed;
+  max-width: calc(100% - 2rem);
+  z-index: 9999;
+  height: fit-content;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.14);
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+}
+#drag_ghost > :nth-child(1) {
+  box-shadow: none !important;
+  border: none !important;
+  margin: 0;
+}
+
+.plk-dd-dropzone {
+  touch-action: pan-y;
+}
+
+.avatar_upload {
+  position: relative;
+  z-index: 99;
+}
+.avatar_upload:hover .file_upload, .avatar_upload:has(.upload_progress) .file_upload {
+  opacity: 1;
+}
+.avatar_upload .file_upload {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.3;
+}
+.avatar_upload .file_upload .button {
+  background: transparent;
+}
+.avatar_upload .upliad_progress {
+  z-index: 999;
+}
+
+@media (max-width: 780px) {
+  #main:not(.client):has(.header-sticky) {
+    padding-top: 0;
+  }
+  #main:not(.client):has(.header-sticky) > .column.is-full:nth-of-type(1) {
+    top: -51px;
+  }
+  #main:not(.client):has(.header-sticky) > .column.is-full:nth-of-type(2) {
+    padding-top: 0 !important;
+    z-index: 99;
+  }
+  #main:not(.client) > .column.is-full {
+    width: 100%;
+  }
+  #main:not(.client) > .column.is-full:nth-of-type(2) > .columns {
+    flex-direction: column;
+  }
+  #main:not(.client) > .column.is-full:nth-of-type(2) > .columns:has(.sidebar) {
+    padding-top: 51px !important;
+  }
+  #main:not(.client) .sidebar {
+    position: fixed;
+    top: 51px;
+    background: white;
+    width: 100%;
+    height: calc(35px + 1rem);
+  }
+  #main:not(.client) #sidebar.is_less:not(.is_pin) {
+    max-width: 500px !important;
+  }
+  #main:not(.client) #content {
+    width: 100vw;
+  }
+  #main:not(.client) #content:not(.has_sidebar) {
+    height: calc(100vh - 51px);
+  }
+  #main:not(.client) #content .main_content#page_teams {
+    width: 100%;
+    flex-direction: column;
+  }
+  #main:not(.client) #content .main_content#page_teams .card.teams_left {
+    width: 100%;
+    max-height: 300px;
+  }
+  #main:not(.client) #content .main_content#page_teams > .is_expanded {
+    margin-right: 0;
+    padding-right: 0;
+    height: fit-content;
+    overflow: visible;
+    width: 100%;
+    padding: 1.5rem;
+  }
+  #main:not(.client) #content .main_content.homepage .card:nth-of-type(1), #main:not(.client) #content .main_content.homepage .card:nth-of-type(2) {
+    max-width: 100%;
+    padding: 1rem;
+  }
+  #main:not(.client) #content .main_content:has(.is_fullheight) {
+    overflow: visible;
+  }
+  #main:not(.client) #content .tabs {
+    flex-wrap: wrap;
+    height: fit-content;
+  }
+  #main:not(.client) #content .tabs .tabs_name {
+    display: none;
+  }
+  #main:not(.client) #content .main_content#page_fwork {
+    height: 100%;
+    width: 100%;
+  }
+  #main:not(.client) #content .main_content#page_fwork .is_nav {
+    width: 100%;
+    height: 100%;
+    background: white;
+  }
+  #main:not(.client) #content .main_content#page_fwork .is_nav > .card.teams_left {
+    background: white;
+    width: 100%;
+    padding: 1rem !important;
+  }
+  #main:not(.client) #content .main_content#page_fwork .is_nav > .card.teams_left .scrolly {
+    width: 100%;
+    overflow-x: hidden !important;
+  }
+  #main:not(.client) #content .main_content#page_fwork .is_expanded {
+    width: 100%;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  #main:not(.client) #content .main_content#page_fwork .is_expanded > div:not(.header-sticky):not(.card) {
+    flex: 1;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+  #main:not(.client) #content .card.is_half {
+    width: 100%;
+  }
+  #main:not(.client) #content .main_content.homepage {
+    flex-wrap: wrap;
+  }
+  #main:not(.client) #content .main_content.homepage .card {
+    width: 100%;
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+  #main:not(.client) #sidebar {
+    position: absolute;
+    width: 100vw;
+    padding: 0.5rem 2px !important;
+    height: calc(100vh - 52px);
+    height: calc(var(--window-height) - 52px);
+  }
+  #main:not(.client) #sidebar .module-name {
+    display: flex;
+    position: absolute;
+    left: 55px;
+    width: fit-content;
+    align-items: center;
+    height: 30px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-extra);
+  }
+  #main:not(.client) #sidebar .module-name span:not(.icon) {
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: unset;
+  }
+  #main:not(.client) #sidebar .module-pin {
+    display: none;
+  }
+  #main:not(.client) #sidebar .scrolly {
+    display: block;
+  }
+  #main:not(.client) #sidebar.is_less {
+    background: transparent;
+    height: calc(35px + 1rem);
+  }
+  #main:not(.client) #sidebar.is_less .scrolly {
+    display: none;
+  }
+  #main:not(.client) #sidebar.is_less .btn_logout {
+    display: none;
+  }
+  .table.sticky.only_desktop {
+    width: 100%;
+  }
+  .table.sticky.only_desktop thead tr th.last, .table.sticky.only_desktop thead tr td.last, .table.sticky.only_desktop tbody tr th.last, .table.sticky.only_desktop tbody tr td.last {
+    box-shadow: none;
+  }
+}
+@media (min-width: 781px) {
+  #main:not(.client) .sidebar:has(#sidebar.is_pin) {
+    width: 250px;
+  }
+  #main:not(.client) .sidebar:has(#sidebar.is_pin) #sidebar {
+    position: relative;
+  }
+  #main:not(.client) .sidebar:has(#sidebar.is_pin) #sidebar.is_less.is_pin {
+    width: 100%;
+  }
+}

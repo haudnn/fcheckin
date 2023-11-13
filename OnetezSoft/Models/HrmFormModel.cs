@@ -5,6 +5,8 @@ using OnetezSoft.Data;
 
 
 namespace OnetezSoft.Models;
+
+[BsonIgnoreExtraElements]
 public class HrmFormModel
 {
   [BsonId]
@@ -37,8 +39,17 @@ public class HrmFormModel
   /// <summary>Danh sách id user cần duyệt đơn từ</summary>
   public List<string> users { get; set; } = new();
 
+  /// <summary>Danh sách id user được bình luận</summary>
+  public List<string> users_comment { get; set; } = new();
+
   /// <summary>Danh sách cần duyệt đơn từ</summary>
-  public List<FormConfirm> confirm_users { get; set;} = new();
+  public List<FormConfirm> confirm_users { get; set; } = new();
+
+  /// <summary>Số lượng bình luận</summary>
+  public int comment { get; set; }
+
+  /// <summary>File đính kèm</summary>
+  public List<string> files { get; set; } = new();
 
   public class WorkDateShift
   {
@@ -62,5 +73,32 @@ public class HrmFormModel
 
     /// <summary> trạng thái xác nhận 1: Chờ xác nhận, 2: Đã xác nhận, 3: Đã từ chối</summary>
     public int status { get; set; } = 1;
+
+    /// <summary>Thời gian phê duyệt theo user</summary>
+    public long date { get; set; }
+  }
+
+  /// <summary>
+  /// Bình luận
+  /// </summary> 
+  public class Comment
+  {
+    [BsonId]
+    public string id { get; set; }
+
+    /// <summary>Mô tả</summary>
+    public string detail { get; set; }
+
+    /// <summary>Ngày tạo</summary>
+    public long date { get; set; }
+
+    /// <summary>Kế hoạch</summary>
+    public string form_id { get; set; }
+
+    /// <summary>Người tạo</summary>
+    public string user_id { get; set; }
+
+    /// <summary>File đính kèm</summary>
+    public List<string> files { get; set; } = new();
   }
 }

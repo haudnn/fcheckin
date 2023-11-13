@@ -1,4 +1,6 @@
 ﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
 @if (model != null)
 {
@@ -74,7 +76,7 @@
               }
             </div>
             <a class="button is-white is-small is-fullwidth @(uploading ? "is-loading" : "")"
-              onclick="document.getElementById('file').click()">
+               onclick="document.getElementById('file').click()">
               <span class="icon">
                 <i class="material-icons-sharp is-size-6">file_upload</i>
               </span>
@@ -295,71 +297,97 @@
     Reset();
   }
 
-  private async Task Create()
+  private async Task<bool> Create()
   {
-    if (Validation())
+    bool _success = true;
+    try
     {
-      // Tạo tài khoản trong database chính
-      var checkUser = await DbMainUser.GetbyEmail(manager.email);
-      if (checkUser == null)
+      if (Validation())
       {
-        if (string.IsNullOrEmpty(manager.email) || string.IsNullOrEmpty(manager.email.Trim()))
+        // Tạo tài khoản trong database chính
+        var checkUser = await DbMainUser.GetbyEmail(manager.email, globalService);
+        if (checkUser == null)
         {
-          message = "Bạn chưa nhập email tài khoản quản lý.";
-          step = 1;
-          return;
-        }
-        else if (string.IsNullOrEmpty(manager.password) || string.IsNullOrEmpty(manager.password.Trim()))
-        {
-          message = "Bạn chưa nhập mật khẩu tài khoản quản lý.";
-          step = 1;
-          return;
-        }
-        else if (string.IsNullOrEmpty(manager.last_name) || string.IsNullOrEmpty(manager.first_name))
-        {
-          message = "Bạn chưa nhập họ tên tài khoản quản lý.";
-          step = 1;
-          return;
+          if (string.IsNullOrEmpty(manager.email) || string.IsNullOrEmpty(manager.email.Trim()))
+          {
+            message = "Bạn chưa nhập email tài khoản quản lý.";
+            step = 1;
+            return false;
+          }
+          else if (string.IsNullOrEmpty(manager.password) || string.IsNullOrEmpty(manager.password.Trim()))
+          {
+            message = "Bạn chưa nhập mật khẩu tài khoản quản lý.";
+            step = 1;
+            return false;
+          }
+          else if (string.IsNullOrEmpty(manager.last_name) || string.IsNullOrEmpty(manager.first_name))
+          {
+            message = "Bạn chưa nhập họ tên tài khoản quản lý.";
+            step = 1;
+            return false;
+          }
+          else
+            manager = await DbMainUser.Create(manager);
         }
         else
-          manager = await DbMainUser.Create(manager);
+          manager = checkUser;
+
+        // Tạo tổ chức trong database chính
+        model.members = 1;
+        model = await DbMainCompany.Create(model);
+
+        // Liên kết tài khoản với tổ chức
+        manager.companys.Add(new UserModel.Company { id = model.id, name = model.name });
+        manager.active = true;
+        await DbMainUser.Update(manager, globalService);
+
+        // Tạo tài khoản trong database tổ chức
+        manager.role = 1;
+        manager.role_manage = new();
+        manager.role_manage.system = true;
+        manager.role_manage.okrs = true;
+        manager.role_manage.kaizen = true;
+        manager.role_manage.educate = true;
+        manager.role_manage.store = true;
+        manager.role_manage.other = true;
+        manager.role_manage.kpis = true;
+        await DbUser.Create(model.id, manager);
+        await globalService.Update(model.id);
+        await OnUpdate.InvokeAsync(true);
+        Reset();
       }
-      else
-        manager = checkUser;
-
-      // Tạo tổ chức trong database chính
-      model.members = 1;
-      model = await DbMainCompany.Create(model);
-
-      // Liên kết tài khoản với tổ chức
-      manager.companys.Add(new UserModel.Company { id = model.id, name = model.name });
-      manager.active = true;
-      await DbMainUser.Update(manager);
-
-      // Tạo tài khoản trong database tổ chức
-      manager.role = 1;
-      manager.role_manage = new();
-      manager.role_manage.system = true;
-      manager.role_manage.okrs = true;
-      manager.role_manage.kaizen = true;
-      manager.role_manage.educate = true;
-      manager.role_manage.store = true;
-      manager.role_manage.other = true;
-      await DbUser.Create(model.id, manager);
-
-      await OnUpdate.InvokeAsync(true);
-      Reset();
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Create()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (Validation())
+    bool _success = true;
+    try
     {
-      await DbMainCompany.Update(model);
-      await OnUpdate.InvokeAsync(true);
-      Reset();
+      if (Validation())
+      {
+        await DbMainCompany.Update(model);
+        await globalService.Update(model.id);
+        await OnUpdate.InvokeAsync(true);
+        Reset();
+      }
     }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private bool Validation()
@@ -400,7 +428,7 @@
       }
       catch (Exception ex)
       {
-        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.Message}");
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.ToString()}");
       }
     }
     uploading = false;

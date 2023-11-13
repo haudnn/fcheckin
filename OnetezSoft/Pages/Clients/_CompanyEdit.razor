@@ -1,4 +1,6 @@
 @inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
 
 @if (model != null)
 {
@@ -39,19 +41,19 @@
               </ul>
             </div>
             <div class="column has-text-weight-bold">
-              @if(step == 1)
+              @if (step == 1)
               {
                 <span>Tài khoản quản lý</span>
               }
-              else if(step == 2)
+              else if (step == 2)
               {
                 <span>Thông tin tổ chức</span>
               }
-              else if(step == 3)
+              else if (step == 3)
               {
                 <span>Xác nhận</span>
               }
-              else if(step == 4)
+              else if (step == 4)
               {
                 <span class="has-text-success">Hoàn tất</span>
               }
@@ -94,7 +96,7 @@
               }
             </div>
             <a class="button is-white is-small is-fullwidth @(uploading ? "is-loading" : "")"
-              onclick="document.getElementById('file').click()">
+               onclick="document.getElementById('file').click()">
               <span class="icon">
                 <i class="material-icons-sharp is-size-6">file_upload</i>
               </span>
@@ -104,7 +106,7 @@
           </div>
           <div class="column @(step < 3 ? "is-10" : "is-full")">
             <div class="columns is-multiline">
-              @if(step == 1 && create)
+              @if (step == 1 && create)
               {
                 <div class="column is-full">
                   <div class="field has-text-weight-bold">
@@ -226,8 +228,8 @@
                     <a class="has-text-warning has-text-weight-semibold" href="https://fastdo.vn/lien-he/">Yêu cầu hỗ trợ</a>
                   </div>
                   <div class="py-6">
-                    <input @bind="verify" class="input_code has-text-danger" type="text" 
-                        maxlength="6" placeholder="______">
+                    <input @bind="verify" class="input_code has-text-danger" type="text"
+                           maxlength="6" placeholder="______">
                   </div>
                   <div class="has-text-weight-medium is-italic">
                     <span>Không nhận được mã xác thực?</span>
@@ -250,7 +252,7 @@
         </div>
       </section>
       <section class="modal-card-foot is-right">
-        @if(create)
+        @if (create)
         {
           if (step < 4)
           {
@@ -331,137 +333,203 @@
 
   private async Task Step(bool next)
   {
-    if(next)
+    if (next)
       step++;
     else
       step--;
-    
-    if(step == 0)
+
+    if (step == 0)
       await Cancel();
-    else if(step == 2)
+    else if (step == 2)
       await JSRuntime.InvokeVoidAsync("textAutoSize", "note");
-    else if(step == 3)
+    else if (step == 3)
       await Create();
-    else if(step == 4)
+    else if (step == 4)
       await Active();
   }
 
-  private async Task Cancel()
+  private async Task<bool> Cancel()
   {
-    // Xóa tổ chức nếu chưa xác thực
-    if(create && !model.status && !string.IsNullOrEmpty(model.id))
-      await DbMainCompany.Delete(model.id);
+    bool _success = true;
+    try
+    {
+      // Xóa tổ chức nếu chưa xác thực
+      if (create && !model.status && !string.IsNullOrEmpty(model.id))
+        await DbMainCompany.Delete(model.id);
 
-    await OnUpdate.InvokeAsync(false);
-    Reset();
+      await OnUpdate.InvokeAsync(false);
+      Reset();
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Cancel()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private async Task<bool> Verify()
   {
-    await JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email xác nhận...");
+    bool send = false;
+    try
+    {
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email xác nhận...");
 
-    model.status = false;
-    model.verify = Shared.RandomInt(100000, 999999).ToString();
-    await DbMainCompany.Update(model);
-
-    bool send = EmailService.CompanyActive(Layout.User.email, model.verify, model.name, out message);
-    await JSRuntime.InvokeVoidAsync("tagline", send, message);
+      model.status = false;
+      model.verify = Shared.RandomInt(100000, 999999).ToString();
+      await DbMainCompany.Update(model);
+      await globalService.Update(model.id);
+      send = EmailService.CompanyActive(Layout.User.email, model.verify, model.name, out message);
+      await JSRuntime.InvokeVoidAsync("tagline", send, message);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Verify()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+    }
     return send;
   }
 
-  private async Task Active()
+  private async Task<bool> Active()
   {
-    if(string.IsNullOrEmpty(verify))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập mã xác thực.");
-    else if(verify != model.verify)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Mã xác thực không chính xác.");
-    else
+    bool _success = true;
+    try
     {
-      model.status = true;
-      await DbMainCompany.Update(model);
-      return;
+      if (string.IsNullOrEmpty(verify))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập mã xác thực.");
+      else if (verify != model.verify)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Mã xác thực không chính xác.");
+      else
+      {
+        model.status = true;
+        await DbMainCompany.Update(model);
+        await globalService.Update(model.id);
+        return false;
+      }
+      step = 3;
     }
-    step = 3;
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Active()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
-  private async Task Create()
+  private async Task<bool> Create()
   {
-    if (Validation())
+    bool _success = true;
+    try
     {
-      // Tạo tài khoản trong database chính
-      var checkUser = await DbMainUser.GetbyEmail(manager.email);
-      if (checkUser == null)
+      if (Validation())
       {
-        if (string.IsNullOrEmpty(manager.email) || string.IsNullOrEmpty(manager.email.Trim()))
+        // Tạo tài khoản trong database chính
+        var checkUser = await DbMainUser.GetbyEmail(manager.email, globalService);
+        if (checkUser == null)
         {
-          message = "Bạn chưa nhập email tài khoản quản lý.";
-          step = 1;
-          return;
-        }
-        else if (string.IsNullOrEmpty(manager.password) || string.IsNullOrEmpty(manager.password.Trim()))
-        {
-          message = "Bạn chưa nhập mật khẩu tài khoản quản lý.";
-          step = 1;
-          return;
-        }
-        else if (string.IsNullOrEmpty(manager.last_name) || string.IsNullOrEmpty(manager.first_name))
-        {
-          message = "Bạn chưa nhập họ tên tài khoản quản lý.";
-          step = 1;
-          return;
+          if (string.IsNullOrEmpty(manager.email) || string.IsNullOrEmpty(manager.email.Trim()))
+          {
+            message = "Bạn chưa nhập email tài khoản quản lý.";
+            step = 1;
+            return false;
+          }
+          else if (string.IsNullOrEmpty(manager.password) || string.IsNullOrEmpty(manager.password.Trim()))
+          {
+            message = "Bạn chưa nhập mật khẩu tài khoản quản lý.";
+            step = 1;
+            return false;
+          }
+          else if (string.IsNullOrEmpty(manager.last_name) || string.IsNullOrEmpty(manager.first_name))
+          {
+            message = "Bạn chưa nhập họ tên tài khoản quản lý.";
+            step = 1;
+            return false;
+          }
+          else
+          {
+            await DbMainUser.Create(manager);
+            // Gửi email cấp tài khoản
+            await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo tài khoản thành công, vui lòng kiểm tra email.");
+            new Task(() =>
+            {
+              EmailService.UserInfo(manager.email, manager.id, manager.FullName, model.name, out string message);
+            }).Start();
+
+          }
         }
         else
-        {
-          await DbMainUser.Create(manager);
-          // Gửi email cấp tài khoản
-          await JSRuntime.InvokeVoidAsync("tagline", true, "Đang gửi email thông tin tài khoản...");
-          bool send = EmailService.UserInfo(manager.email, manager.id, manager.FullName, model.name, out string message);
-          await JSRuntime.InvokeVoidAsync("tagline", send, message);
-        }
+          manager = checkUser;
+
+        // Tạo tổ chức trong database chính
+        model.members = 1;
+        model = await DbMainCompany.Create(model);
+
+        // Liên kết tài khoản với tổ chức
+        manager.companys.Add(new UserModel.Company { id = model.id, name = model.name });
+        manager.active = true;
+        await DbMainUser.Update(manager, globalService);
+
+        // Tạo tài khoản trong database tổ chức
+        manager.role = 1;
+        manager.role_manage = new();
+        manager.role_manage.system = true;
+        manager.role_manage.okrs = true;
+        manager.role_manage.kaizen = true;
+        manager.role_manage.educate = true;
+        manager.role_manage.store = true;
+        manager.role_manage.other = true;
+        manager.role_manage.kpis = true;
+        manager.products = new();
+        manager.departments_id = new();
+        await DbUser.Create(model.id, manager);
+        await globalService.Update(model.id);
+        // Gửi email xác nhận
+        await Verify();
       }
       else
-        manager = checkUser;
-
-      // Tạo tổ chức trong database chính
-      model.members = 1;
-      model = await DbMainCompany.Create(model);
-
-      // Liên kết tài khoản với tổ chức
-      manager.companys.Add(new UserModel.Company { id = model.id, name = model.name });
-      manager.active = true;
-      await DbMainUser.Update(manager);
-
-      // Tạo tài khoản trong database tổ chức
-      manager.role = 1;
-      manager.role_manage = new();
-      manager.role_manage.system = true;
-      manager.role_manage.okrs = true;
-      manager.role_manage.kaizen = true;
-      manager.role_manage.educate = true;
-      manager.role_manage.store = true;
-      manager.role_manage.other = true;
-      await DbUser.Create(model.id, manager);
-
-      // Gửi email xác nhận
-      await Verify();
+      {
+        step = 2;
+        await JSRuntime.InvokeVoidAsync("tagline", false, message);
+      }
     }
-    else
+    catch (Exception ex)
     {
-      step = 2;
-      await JSRuntime.InvokeVoidAsync("tagline", false, message);
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Create()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
     }
+    return _success;
   }
 
-  private async Task Update()
+  private async Task<bool> Update()
   {
-    if (Validation())
+    bool _success = true;
+    try
     {
-      await DbMainCompany.Update(model);
-      await OnUpdate.InvokeAsync(true);
-      Reset();
+      if (Validation())
+      {
+        await DbMainCompany.Update(model);
+        await globalService.Update(model.id);
+        await OnUpdate.InvokeAsync(true);
+        Reset();
+      }
+      else
+        await JSRuntime.InvokeVoidAsync("tagline", false, message);
     }
-    else
-      await JSRuntime.InvokeVoidAsync("tagline", false, message);
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
   }
 
   private bool Validation()
@@ -504,7 +572,9 @@
       }
       catch (Exception ex)
       {
-        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.Message}");
+        await JSRuntime.InvokeVoidAsync("tagline", false, $"Không thể tải ảnh lên: {ex.ToString()}");
+        uploading = false;
+        return;
       }
     }
     uploading = false;

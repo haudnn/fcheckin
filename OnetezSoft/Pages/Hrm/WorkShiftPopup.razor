@@ -1,4 +1,5 @@
 @inject IJSRuntime JSRuntime
+@inject GlobalService globalService
 
 @if (model != null)
 {
@@ -7,82 +8,276 @@
     <section class="modal-card" style="padding: 0 10px;">
       <section class="modal-card-head">
         <div class="modal-card-title">
-          @(string.IsNullOrEmpty(model.id) ? "Tạo mới" : "Chỉnh sửa") ca làm việc
+          Tạo mới ca làm việc
         </div>
         <a class="delete is-medium" @onclick="Cancel"></a>
       </section>
-      <section class="modal-card-body">
-        <ul class="columns is-multiline is-variable is-2">
-          <li class="column is-full">
-            <div class="field">
-              <label class="label">Tên ca làm việc *</label>
-              <div class="control">
-                <input @bind="model.name" class="input" type="text">
-              </div>
-            </div>
-          </li>
-          <li class="column is-half">
-            <div class="field">
-              <label class="label">Giờ bắt đầu *</label>
-              <div class="control">
-                <div class="select is-fullwidth">
-                  <select @bind="model.checkin">
-                    <option value="">- chọn -</option>
-                    @foreach (var item in Shared.TimeList(0, 23))
-                    {
-                      <option value="@item.name">@item.name</option>
-                    }
-                  </select>
+      @if (currentStep == 1)
+      {
+        <section class="modal-card-body">
+          <ul class="columns is-multiline is-variable is-2">
+            <li class="column is-full">
+              <div class="field">
+                <label class="label">Tên ca làm việc *</label>
+                <div class="control">
+                  <input @bind="model.name" class="input" type="text">
                 </div>
               </div>
-            </div>
-          </li>
-          <li class="column is-half">
-            <div class="field">
-              <label class="label">Giờ kết thúc *</label>
-              <div class="control">
-                <div class="select is-fullwidth">
-                  <select @bind="model.checkout">
-                    <option value="">- chọn -</option>
-                    @foreach (var item in Shared.TimeList(0, 23))
-                    {
-                      <option value="@item.name">@item.name</option>
-                    }
-                  </select>
+            </li>
+            <li class="column is-half">
+              <div class="field">
+                <label class="label">Giờ bắt đầu *</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select @bind="model.checkin">
+                      <option value="">- chọn -</option>
+                      @foreach (var item in Shared.TimeList(0, 23))
+                      {
+                        <option value="@item.name">@item.name</option>
+                      }
+                    </select>
+                  </div>
                 </div>
               </div>
-            </div>
-          </li>
-          <li class="column is-full">
-            <div class="field">
-              <label class="label">Số công *</label>
-              <div class="control">
-                <input @bind="model.value" class="input" type="number" min="0" step="0.5">
+            </li>
+            <li class="column is-half">
+              <div class="field">
+                <label class="label">Giờ kết thúc *</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select @bind="model.checkout">
+                      <option value="">- chọn -</option>
+                      @foreach (var item in Shared.TimeList(0, 23))
+                      {
+                        <option value="@item.name">@item.name</option>
+                      }
+                    </select>
+                  </div>
+                </div>
               </div>
-            </div>
-          </li>
-        </ul>
-      </section>
-      <section class="modal-card-foot is-right">
-        <div style="flex-grow: 1;" class="mr-2">
-          <label class="checkbox has-text-link">
-            <input type="checkbox" @bind="model.is_overday">
-            <span>Ca làm kéo dài qua ngày</span>
-          </label>
-        </div>
-        <a class="button" @onclick="Cancel">
-          <span class="icon">
-            <i class="material-icons-round is-size-6">close</i>
-          </span>
-          <span>Hủy</span>
-        </a>
-        <a class="button is-link" @onclick="Update">
-          <span class="icon">
-            <i class="material-icons-round is-size-6">done</i>
-          </span>
-          <span>Cập nhật</span>
-        </a>
-      </section>
+            </li>
+
+            <li class="column is-half">
+              <div class="field">
+                <label class="label">Loại ca làm*</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select @bind="currentType">
+                      <option value="1">Ca làm bình thường</option>
+                      <option value="2">Ca làm tính công theo giờ</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li class="column is-half">
+              <div class="field">
+                <label class="label">Thời gian ca làm*</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select @bind="currentTime">
+                      <option value="1">Ca trong ngày</option>
+                      <option value="2">Ca làm kéo dài qua ngày</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li class="column is-full">
+              <div class="field">
+                <label class="label">Số công *</label>
+                <div class="control">
+                  <input @bind="model.value" class="input" type="number" min="0" step="0.5">
+                </div>
+              </div>
+            </li>
+            <li class="column is-full">
+              <div class="field">
+                <label class="label">Màu sắc</label>
+                <div class="control is-flex is-align-items-center">
+                  <ul class="is-flex is-align-items-center" style="gap: 10px;">
+                    @foreach (var item in DbHrmWorkShift.ColorList())
+                    {
+                      <li class="rounded-color-wrapper" style="border-color: @item.color;" @onclick="() => SetColor(item)">
+                        <div class="rounded-color-item" style="background-color: @item.color;">
+                          @if (currentColor.id == item.id)
+                          {
+                            <span class="icon">
+                              <i class="material-icons-round is-size-6 has-text-white">done</i>
+                            </span>
+                          }
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                  <span class="icon-text ml-4">
+                    <span class="icon">
+                      <i class="material-icons-round is-size-3">navigate_next</i>
+                    </span>
+                  </span>
+                  <div class="tag ml-4" style="min-width: 100px; background-color: @(@currentColor.color + "30");">
+                    <span style="color: @currentColor.color;" class="text_1_line has-text-weight-medium">@(Shared.IsEmpty(model.name) ? "Xem trước" : model.name)</span>
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </section>
+        <section class="modal-card-foot is-right">
+          <a class="button" @onclick="Cancel">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">close</i>
+            </span>
+            <span>Hủy</span>
+          </a>
+          @if (currentType == "2")
+          {
+            <a class="button is-link" @onclick="() => OnChangeStep(2)">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">navigate_next</i>
+              </span>
+              <span>Bước tiếp theo</span>
+            </a>
+          }
+          else
+          {
+            <a class="button is-link" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">done</i>
+              </span>
+              <span>Cập nhật</span>
+            </a>
+          }
+        </section>
+      }
+      else if ( currentStep == 2)
+      {
+        <section class="modal-card-body">
+          <p class="mb-2 label mb-0">Thời gian ca: <span class="tag has-text-weight-normal">@(model.checkin + " - " + model.checkout)</span></p>
+          <ul class="columns is-multiline is-variable is-2">
+            @for (int i = 0; i < model.break_times.Count; i++)
+            {
+              var index = i;
+              <li class="column is-full">
+                <div class="field">
+                  <label class="label">Thời gian nghỉ @(index + 1):</label>
+                </div>
+                <div class="columns">
+                  <div class="column is-5 is-5-mobile">
+                    <div class="field">
+                      <label class="label">Giờ bắt đầu *</label>
+                      <div class="control">
+                        <div class="select is-fullwidth">
+                          <select @bind="model.break_times[index].start">
+                            <option value="">- chọn -</option>
+                            @foreach (var item in Shared.TimeList(0, 23))
+                            {
+                              <option value="@item.name">@item.name</option>
+                            }
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="column is-5 is-5-mobile">
+                    <div class="field">
+                      <label class="label">Giờ kết thúc *</label>
+                      <div class="control">
+                        <div class="select is-fullwidth">
+                          <select @bind="model.break_times[index].end">
+                            <option value="">- chọn -</option>
+                            @foreach (var item in Shared.TimeList(0, 23))
+                            {
+                              <option value="@item.name">@item.name</option>
+                            }
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  @if (currentTime == "1")
+                  {
+                    <div class="column is-2 is-2-mobile">
+                      <div style="height: 100%; margin-top: 15px;" class="field is-flex is-align-items-center is-block-fullhd">
+                        <a class="icon has-text-danger is-clickable" @onclick="() => DeleteItem(index)">
+                          <i class="material-icons-outlined is-size-5">delete_outline</i>
+                        </a>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </li>
+            }
+            @if (currentTime == "1")
+            {
+              <li class="column is-full">
+                <div class="has-text-centered">
+                  <a class="icon-text has-text-link" @onclick="AddItem">
+                    <span class="icon">
+                      <i class="material-icons-outlined is-size-6">add</i>
+                    </span>
+                    <span>Thêm thời gian nghỉ</span>
+                  </a>
+                </div>
+              </li>
+            }
+          </ul>
+        </section>
+        <section class="modal-card-foot is-right">
+          <a class="button" @onclick="() => OnChangeStep(1)">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">navigate_before</i>
+            </span>
+            <span>Quay lại</span>
+          </a>
+          <a class="button is-link" @onclick="() => Update()">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">navigate_next</i>
+            </span>
+            <span>Bước tiếp theo</span>
+          </a>
+        </section>
+      }
+      else
+      {
+        <section class="modal-card-body">
+          <p class="mb-2 label mb-0">Thời gian ca: <span class="tag has-text-weight-normal">@(model.checkin + " - " + model.checkout)</span></p>
+          <p class="mb-2 label mb-0">Tổng công ca làm: <span class="has-text-weight-normal">@(model.value) công</span></p>
+          <p class="mb-2 label mb-0">Công theo giờ: <span class="has-text-weight-normal">@(Math.Round((60 * model.value) / model.minutes, 2)) công/giờ</span></p>
+          <div class="mb-2 is-flex is-align-items-center" style="gap: 10px">
+            <span class="label mb-0">Thời gian tính đủ công: </span>
+            <input style="max-width: 70px;" class="input" type="number" @bind="currentHour">
+            <span class="label mb-0">giờ</span>
+            <input style="max-width: 70px;" class="input" type="number" @bind="currentMinute">
+            <span class="label mb-0">phút</span>
+          </div>
+          <ul class="columns is-multiline is-variable is-2">
+            @for (int i = 0; i < model.break_times.Count; i++)
+            {
+              var index = i;
+              <li class="column is-full">
+                <div class="field">
+                  <label class="label">Thời gian nghỉ @(index + 1): <span>@(model.break_times[index].start + " - " + model.break_times[index].end)</span></label>
+                </div>
+              </li>
+            }
+          </ul>
+        </section>
+        <section class="modal-card-foot is-right">
+          <a class="button" @onclick="() => currentStep = 2">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">navigate_before</i>
+            </span>
+            <span>Quay lại</span>
+          </a>
+          <a class="button is-link" @onclick="() => Update()">
+            <span class="icon">
+              <i class="material-icons-round is-size-6">navigate_next</i>
+            </span>
+            <span>Cập nhật</span>
+          </a>
+        </section>
+      }
     </section>
   </section>
 }
@@ -95,47 +290,182 @@
   [Parameter]
   public EventCallback<bool> OnUpdate { get; set; }
 
+  private StaticModel currentColor = DbHrmWorkShift.ColorList().First();
+  private int currentStep = 1;
+  private string currentType = "1";
+  private string currentTime = "1";
+  private long minutesAllowed = 0;
+  private int currentMinute = 0;
+  private int currentHour = 0;
+
   private async Task Cancel()
   {
     await OnUpdate.InvokeAsync(false);
+    currentColor = DbHrmWorkShift.ColorList().First();
+    currentStep = 1;
+    currentType = "1";
+    currentTime = "1";
+    currentMinute = 0;
+    currentHour = 0;
+    minutesAllowed = 0;
   }
 
   private async Task Update()
   {
-    if(Shared.IsEmpty(model.name))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên ca làm việc!");
-    else if(Shared.IsEmpty(model.checkin))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn giờ bắt đầu!");
-    else if(Shared.IsEmpty(model.checkout))
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập giờ kết thúc!");
-    else if(model.value <= 0)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập số công!");
-    else if (!model.is_overday && TimeSpan.Parse(model.checkin).Ticks >= TimeSpan.Parse(model.checkout).Ticks)
-      await JSRuntime.InvokeVoidAsync("tagline", false, "Không phải ca qua ngày, giờ kết thúc phải lớn hơn giờ bắt đầu!");
-    else
+    var isOverDay = currentTime == "2";
+    if (currentStep == 2)
     {
-      model.value = Math.Round(model.value, 2);
-      if(string.IsNullOrEmpty(model.id))
-      {
-        await DbHrmWorkShift.Create(Layout.Company.id, model);
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo ca làm thành công!");
-        await SendNotify(800);
-      }
+      if (model.break_times.Any(x => Shared.IsEmpty(x.start) || Shared.IsEmpty(x.end)))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Vui lòng chọn đầy đủ thời gian bắt đầu hoặc kết thúc nghỉ!");
+      else if (model.break_times.Any(x => TimeSpan.Parse(x.start).Ticks == TimeSpan.Parse(x.end).Ticks))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Thời gian bắt đầu nghỉ và kết thúc nghỉ không được trùng nhau!");
+      else if (!isOverDay && model.break_times.Any(x => TimeSpan.Parse(x.start).Ticks < TimeSpan.Parse(model.checkin).Ticks))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Thời gian bắt đầu nghỉ phải diễn ra sau thời gian bắt đầu ca!");
+      else if (!isOverDay && model.break_times.Any(x => TimeSpan.Parse(x.end).Ticks > TimeSpan.Parse(model.checkout).Ticks))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Thời gian kết thúc nghỉ phải diễn ra trước thời gian kết thúc ca!");
+      else if (!isOverDay && model.break_times.Any(x => TimeSpan.Parse(x.start).Ticks > TimeSpan.Parse(x.end).Ticks))
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Thời gian kết thúc nghỉ phải lớn hơn thời gian bắt đầu nghỉ!");
+      else if (!ValidateTimeGap())
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Khoảng thời gian các khoảng nghỉ không được đè lên nhau!");
       else
       {
-        await DbHrmWorkShift.Update(Layout.Company.id, model);
-        await JSRuntime.InvokeVoidAsync("tagline", true, "Chỉnh sửa ca làm thành công!");
-        await SendNotify(801);
+        model.minutes = currentTime == "1" ? (long)(TimeSpan.Parse(model.checkout) - TimeSpan.Parse(model.checkin)).TotalMinutes : (long)(DateTime.Parse(model.checkout).AddDays(1) - DateTime.Parse(model.checkin)).TotalMinutes;
+        minutesAllowed = model.minutes;
+        model.minutes -= currentTime == "1" ? 
+          model.break_times.Sum(x => (long)(TimeSpan.Parse(x.end) - TimeSpan.Parse(x.start)).TotalMinutes) : 
+          model.break_times.Sum(x => (long)(TimeSpan.Parse(x.end) - TimeSpan.Parse(x.start)).TotalMinutes > 0 ? (long)(TimeSpan.Parse(x.end) - TimeSpan.Parse(x.start)).TotalMinutes : (long)((DateTime.Parse(x.end).AddDays(1) - DateTime.Parse(x.start)).TotalMinutes));
+        Shared.MinutesToHours2(model.minutes, out currentMinute, out currentHour);
+        currentStep = 3;
       }
-      await OnUpdate.InvokeAsync(true);
+    }
+    else if (currentStep == 3)
+    {
+      var formatToMinutes = (currentHour * 60) + currentMinute;
+      if (formatToMinutes <= 0)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Thời gian tính đủ công không được nhỏ hơn hoặc bằng 0!");
+      else if (formatToMinutes > minutesAllowed)
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Thời gian tính đủ công đang vượt quá số phút thực tế của ca làm!");
+      else
+      {
+        model.minutes = formatToMinutes;
+        await CreateShift();
+      }
+    }
+
+    else
+    {
+      if (await Validation())
+        await CreateShift();
     }
   }
 
   private async Task SendNotify(int notifyType)
   {
+    var shareStorage = await globalService.GetShareStorage(Layout.Company.id);
     // Gủi thông báo chuông
-    var targetList = Layout.UserList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
+    var targetList = shareStorage.MemberList.Where(x => x.role == 1 || (x.role == 2 && x.role_manage.timekeeping));
     foreach (var user in targetList)
       await DbNotify.Create(Layout.Company.id, notifyType, model.name, user.id, Layout.User.id);
+  }
+
+  private void SetColor(StaticModel data)
+  {
+    currentColor = data;
+    model.color = data.color;
+  }
+
+  // Thay đổi thời gian ca làm
+  private void OnChangeTimeShift(ChangeEventArgs e)
+  {
+    model.is_overday = Convert.ToInt32(e.Value) == 1 ? false : true;
+  }
+
+  private async void OnChangeStep(int step)
+  {
+    if (await Validation())
+    {
+      currentStep = step;
+      if (model.break_times.Count() == 0)
+      {
+        model.break_times.Add(new()
+          {
+            start = string.Empty,
+            end = string.Empty
+          });
+      }
+    }
+  }
+
+  private void AddItem()
+  {
+    model.break_times.Add(new()
+      {
+        start = string.Empty,
+        end = string.Empty
+      });
+  }
+
+  private void DeleteItem(int index)
+  {
+    var data = model.break_times.FindIndex(x => x == model.break_times[index]);
+    model.break_times.RemoveAt(data);
+  }
+
+  // Hàm kiểm tra khoảng k có khoảng gap giữa các quãng nghỉ
+  private bool ValidateTimeGap()
+  {
+    var sortedBreakTimes = model.break_times.OrderBy(x => TimeSpan.Parse(x.start)).ToList();
+    for (int i = 0; i < sortedBreakTimes.Count - 1; i++)
+    {
+      var fBreak = sortedBreakTimes[i];
+      var sBreak = sortedBreakTimes[i + 1];
+
+      TimeSpan fEnd = TimeSpan.Parse(fBreak.end);
+      TimeSpan sStart = TimeSpan.Parse(sBreak.start);
+      if (sStart < fEnd)
+        return false;
+    }
+    return true;
+  }
+
+  private async Task<bool> Validation()
+  {
+    var isOverDay = currentTime == "2";
+    if (Shared.IsEmpty(model.name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập tên ca làm việc!");
+    else if (Shared.IsEmpty(model.checkin))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa chọn giờ bắt đầu!");
+    else if (Shared.IsEmpty(model.checkout))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập giờ kết thúc!");
+    else if (model.value <= 0)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập số công!");
+    else if (!isOverDay && TimeSpan.Parse(model.checkin).Ticks >= TimeSpan.Parse(model.checkout).Ticks)
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Không phải ca qua ngày, giờ kết thúc phải lớn hơn giờ bắt đầu!");
+    else
+      return true;
+    return false;
+  }
+
+  private async Task CreateShift()
+  {
+    if (!await JSRuntime.InvokeAsync<bool>("confirm", "Vui lòng kiểm tra kỹ, sau khi tạo bạn sẽ không thể chỉnh sửa nó!"))
+      return;
+    model.color = currentColor.color;
+    model.value = Math.Round(model.value, 2);
+    model.is_byhour = currentType == "2";
+    model.is_overday = currentTime == "2";
+
+    await DbHrmWorkShift.Create(Layout.Company.id, model);
+    await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo ca làm thành công!");
+    await SendNotify(800);
+    await OnUpdate.InvokeAsync(true);
+
+    currentColor = DbHrmWorkShift.ColorList().First();
+    currentStep = 1;
+    currentType = "1";
+    currentTime = "1";
+    currentMinute = 0;
+    currentHour = 0;
+    minutesAllowed = 0;
   }
 }

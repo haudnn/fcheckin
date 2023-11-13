@@ -1,0 +1,468 @@
+﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+@inject GlobalService globalService
+
+<PageTitle>@_title</PageTitle>
+
+@if (Layout.User.role != 1 && !Layout.User.role_manage.cfr)
+{
+  <PopupNoRole />
+}
+else
+{
+  <ul class="columns is-vcentered is-variable is-2 mb-2">
+    <li class="column">
+      <h1 class="title is-5 has-text-info is-uppercase">
+        @_title
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <a class="button" @onclick="() => OnUpdate.InvokeAsync(false)">
+        <span class="icon">
+          <i class="material-icons-outlined">arrow_back_ios</i>
+        </span>
+        <span>Quay lại</span>
+      </a>
+    </li>
+  </ul>
+  <ul class="columns is-variable is-2 mb-2">
+    <li class="column is-one-quarter">
+      <div class="select is-fullwidth">
+        <select @onchange="ChangeDepartment" class="is-family-code">
+          <option value="">Tất cả phòng ban</option>
+          @foreach (var item in departments)
+          {
+            <option value="@item.id">@item.name</option>
+          }
+        </select>
+      </div>
+    </li>
+    <li class="column is-one-fifth">
+      <div class="select is-fullwidth">
+        <select @onchange="ChangeTitle">
+          <option value="0">Tất cả cấp bậc</option>
+          <option value="1">Quản lý</option>
+          <option value="2">Phó quản lý</option>
+          <option value="3">Nhân viên</option>
+        </select>
+      </div>
+    </li>
+    <li class="column is-one-third">
+      <div class="control has-icons-right">
+        <input class="input" type="text" placeholder="Nhập tên nhân viên..."
+               autocomplete="off" @bind="userSearch" @bind:event="oninput" />
+        <span class="icon is-right">
+          <i class="material-icons-outlined">
+            search
+          </i>
+        </span>
+      </div>
+    </li>
+  </ul>
+  <div class="pt-5 pb-3 pl-2">
+    <label class="checkbox">
+      <input type="checkbox" @onchange="CheckAll" />
+      @dataList.Count kết quả hiển thị
+    </label>
+  </div>
+  <hr class="m-0" />
+  <div class="scrolly" style="flex:1;max-height: calc(100vh - 300px);">
+    <table class="table is-fullwidth is-vcentered is-responsive is-striped is-noborder">
+      <thead>
+        <tr>
+          <th width="40px"></th>
+          <th width="30%">Nhân viên</th>
+          <th>Phòng ban</th>
+          <th width="120px">Cấp bậc</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in dataList)
+        {
+          <tr>
+            <td>
+              <label class="checkbox">
+                @if (checkList.Contains(item.id))
+                {
+                  <input type="checkbox" @onchange="() => CheckItem(item.id)" checked />
+                }
+                else
+                {
+                  <input type="checkbox" @onchange="() => CheckItem(item.id)" />
+                }
+              </label>
+            </td>
+            <td>
+              <label class="td-label">Nhân viên</label>
+              <div class="td-value">
+                <div class="is-flex is-vcentered">
+                  <figure class="image is-rounded is-24x24 mr-2" style="min-width: 24px;">
+                    <img src="@item.avatar" alt="IMG" />
+                  </figure>
+                  <a class="text_1_line has-text-weight-semibold">@item.name</a>
+                </div>
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Phòng ban</label>
+              <div class="td-value">
+                <div class="text_1_line">
+                  @item.departments_name
+                </div>
+              </div>
+            </td>
+            <td>
+              <label class="td-label">Cấp bậc</label>
+              <div class="td-value">
+                @if (item.title == 1)
+                {
+                  <span>Quản lý</span>
+                }
+                else if (item.title == 2)
+                {
+                  <span>Phó quản lý</span>
+                }
+                else
+                {
+                  <span>Nhân viên</span>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <section class="buttons_footer px-5 py-3">
+    <div class="columns is-multiline is-mobile is-vcentered">
+      <div class="column has-text-right">
+        @checkList.Count nhân viên được chọn
+      </div>
+      <div class="column is-one-fifth pl-5">
+        <div class="field is-grouped">
+          <div class="control">
+            @(isPlus ? "Cấp sao" : "Trừ sao")
+          </div>
+          <div class="control is-expanded has-icons-right">
+            <input class="input" type="number" @bind="star" @bind:event="oninput" min="1" />
+            <span class="icon is-right">
+              <i class="material-icons-outlined is-size-6">
+                star_rate
+              </i>
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="column is-one-fifth">
+        <span>Tổng sao @(isPlus ? "cấp" : "trừ"):</span>
+        <strong>@(checkList.Count * star)</strong>
+      </div>
+      <div class="column is-narrow pr-5">
+        <div class="select">
+          <select @bind="wallet">
+            <option value="0" selected disabled>Chọn ví</option>
+            <option value="1">Ghi nhận</option>
+            <option value="2">Cá nhân</option>
+          </select>
+        </div>
+      </div>
+      <div class="column is-narrow">
+        <div class="buttons mr-6">
+          <a class="button" @onclick="() => OnUpdate.InvokeAsync(false)">
+            Hủy
+          </a>
+          <a class="button is-link" @onclick="Preview">
+            <span class="icon">
+              <i class="material-icons-outlined is-size-6">
+                done
+              </i>
+            </span>
+            <span>Cập nhật</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  @if (preview)
+  {
+    <div class="modal is-active">
+      <div class="modal-background"></div>
+      <div class="modal-card">
+        <div class="modal-card-head">
+          <div class="modal-card-title">
+            Xác nhận @(isPlus ? "cấp" : "trừ") sao
+          </div>
+          <a class="delete" @onclick="() => preview = false"></a>
+        </div>
+        <div class="modal-card-body">
+          <div class="field">
+            Bạn đang thực hiện hành động @(isPlus ? "cấp" : "trừ")
+            <b>@star</b> sao cho các nhân viên sau:
+          </div>
+          <div class="field scrolly py-3" style="max-height: calc(100vh - 260px);">
+            <ul class="columns is-multiline is-vcentered is-mobile is-variable is-2">
+              @foreach (var id in checkList)
+              {
+                var item = userList.SingleOrDefault(x => x.id == id);
+                var department = departsByUser.FirstOrDefault(x => x.Key == item.id);
+                if(department.Value != null && department.Value.Count > 0)
+                {
+                  <li class="column is-two-fifths">
+                    <div class="is-flex is-vcentered">
+                      <figure class="image is-rounded is-24x24 mr-2" style="min-width: 24px;">
+                        <img src="@item.avatar" alt="IMG" />
+                      </figure>
+                      <a class="text_1_line has-text-weight-semibold">@item.name</a>
+                    </div>
+                  </li>
+                  <li class="column is-two-fifths">
+                    <div class="text_1_line">
+                      @foreach (var de in department.Value)
+                      {
+                        <span>@de.name.Replace("'", "").Replace("└─", " /")</span>
+                      }
+                    </div>
+                  </li>
+                  <li class="column is-one-fifth">
+                    @if (item.title == 1)
+                    {
+                      <span>Quản lý</span>
+                    }
+                    else if (item.title == 2)
+                    {
+                      <span>Phó quản lý</span>
+                    }
+                    else
+                    {
+                      <span>Nhân viên</span>
+                    }
+                  </li>
+                }
+              }
+            </ul>
+          </div>
+          <div class="field is-grouped mt-5">
+            <div class="control is-expanded has-text-danger">
+              Bạn có chắc chắn thực hiện ?
+            </div>
+            <div class="control">
+              <a class="button" @onclick="() => preview = false">
+                Hủy
+              </a>
+            </div>
+            <div class="control">
+              <a class="button is-link" @onclick="Update">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">done</i>
+                </span>
+                <span>Xác nhận</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+}
+
+@code {
+  [CascadingParameter]
+  public LayoutMain Layout { get; set; }
+  [Parameter]
+  public bool isPlus { get; set; } = true;
+  [Parameter]
+  public EventCallback<bool> OnUpdate { get; set; }
+
+  private bool _loaded = false;
+  private bool success = false;
+  private string _message = string.Empty;
+  private string _title = string.Empty;
+
+  private List<MemberModel> dataList = new();
+  private List<string> checkList = new();
+  private List<DepartmentModel> departmentAll = new();
+  private Dictionary<string, List<DepartmentModel.SelectList>> departsByUser = new();
+  private List<DepartmentModel.SelectList> departments = new();
+
+  private string filterDepartment = string.Empty;
+  private string filterUser = string.Empty;
+  private int filterTitle = 0;
+
+  private int wallet = 0;
+  private int star = 0;
+  private bool preview = false;
+
+  private List<MemberModel> userList = new();
+
+  protected override async Task OnParametersSetAsync()
+  {
+    var sharedStorage = await globalService.GetShareStorage(Layout.Company.id);
+    userList = sharedStorage.MemberList;
+
+    _title = isPlus ? "Cấp sao" : "Trừ sao";
+
+    departmentAll = await DbDepartment.GetAll(Layout.Company.id);
+    var departs = await DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
+    departments.AddRange(departs);
+    dataList = userList;
+    _loaded = true;
+
+    foreach(var user in userList)
+    {
+      if(!departsByUser.ContainsKey(user.id))
+      {
+        var depart = await DbDepartment.GetSelectListOfUser(Layout.Company.id, user.departments_id, departmentAll);
+        departsByUser.TryAdd(user.id, depart);
+      }
+    }
+  }
+
+  private void ChangeDepartment(ChangeEventArgs e)
+  {
+    filterDepartment = e.Value.ToString();
+    SearchUser();
+  }
+
+  private void ChangeTitle(ChangeEventArgs e)
+  {
+    filterTitle = Convert.ToInt32(e.Value.ToString());
+    SearchUser();
+  }
+
+  private void SearchUser()
+  {
+    dataList = new();
+    foreach (var item in userList)
+    {
+      bool check = true;
+      if (!string.IsNullOrEmpty(filterDepartment))
+        if (item.departments_id == null || !item.departments_id.Contains(filterDepartment))
+          check = false;
+      if (filterTitle != 0)
+        if (filterTitle != item.title)
+          check = false;
+      if (!Handled.Shared.SearchKeyword(filterUser, item.name))
+        check = false;
+
+      if (check)
+        dataList.Add(item);
+    }
+  }
+
+  private string userSearch
+  {
+    get => filterUser;
+    set
+    {
+      filterUser = value;
+      SearchUser();
+    }
+  }
+
+  private void CheckItem(string id)
+  {
+    if (checkList.Contains(id))
+      checkList.Remove(id);
+    else
+      checkList.Add(id);
+  }
+
+  private void CheckAll(ChangeEventArgs e)
+  {
+    if (Convert.ToBoolean(e.Value))
+      checkList = (from x in dataList select x.id).ToList();
+    else
+      checkList = new();
+  }
+
+  private async Task Preview()
+  {
+    success = false;
+    if (checkList.Count == 0)
+    {
+      _message = "Bạn chưa chọn nhân viên cần " + (isPlus ? "cấp sao !" : "trừ sao !");
+      await JSRuntime.InvokeVoidAsync("tagline", false, _message);
+    }
+    else if (star <= 0)
+    {
+      _message = "Bạn chưa nhập số sao muốn " + (isPlus ? "cấp !" : "trừ !");
+      await JSRuntime.InvokeVoidAsync("tagline", false, _message);
+    }
+    else if(wallet == 0)
+    {
+      _message = "Bạn chưa chọn ví " + (isPlus ? "nhận sao !" : "trừ sao !");
+      await JSRuntime.InvokeVoidAsync("tagline", false, _message);
+    }
+    else
+    {
+      preview = true;
+      _message = string.Empty;
+    }
+  }
+
+  private async Task<bool> Update()
+  {
+    bool _success = true;
+    try
+    {
+      foreach (var id in checkList)
+      {
+        var user = await DbUser.Get(Layout.Company.id, id, globalService);
+        if (user != null)
+        {
+          // Create model
+          var item = new CfrStarModel
+            {
+              user = user.id,
+              star = isPlus ? star : -star,
+              wallet = wallet,
+              create_id = Layout.User.id
+            };
+
+          // Create data Star for User
+          await DbCfrStar.Create(Layout.Company.id, item);
+
+          // Update start of User
+          if (isPlus)
+          {
+            if (wallet == 2)
+              user.star_total += star;
+            else
+              user.star_distribute += star;
+          }
+          else
+          {
+            if (wallet == 2)
+              user.star_total -= star;
+            else
+              user.star_distribute -= star;
+          }
+          await DbUser.Update(Layout.Company.id, user, globalService);
+          MessagingCenter.Send(this, "starChanged", user.id);
+
+          // Gửi thông báo chuông
+          await DbNotify.Create(Layout.Company.id, 900, (isPlus ? star : -star).ToString(), user.id, Layout.User.id);
+        }
+      }
+
+      _message = $"Bạn đã {(isPlus ? "cấp" : "trừ")} {star} sao cho {checkList.Count} nhân viên.";
+      await JSRuntime.InvokeVoidAsync("tagline", true, _message);
+      success = true;
+
+      checkList = new();
+      preview = false;
+
+      await OnUpdate.InvokeAsync(true);
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "Update()", ex.ToString(), Layout.User.id, Layout.Company.name);
+      await Layout.Tagline();
+      _success = false;
+    }
+    return _success;
+  }
+}

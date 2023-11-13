@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Configuration;
+using DocumentFormat.OpenXml.Presentation;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models
 {
+  [BsonIgnoreExtraElements]
   public class WorkPlanModel
   {
     [BsonId]
@@ -33,20 +36,23 @@ namespace OnetezSoft.Models
     /// <summary>Ngày kết thúc</summary>
     public long date_end { get; set; }
 
+    /// <summary>Files đính kèm</summary>
+    public List<string> files { get; set; } = new();
+
     /// <summary>Thành viên dự án. role = 1: quản lý, 2: thành viên</summary>
-    public List<Member> members { get; set; }
+    public List<Member> members { get; set; } = new();
 
     /// <summary>Nhãn công việc</summary>
-    public List<Label> labels { get; set; }
+    public List<Label> labels { get; set; } = new();
 
     /// <summary>Nhóm công việc</summary>
-    public List<Section> sections { get; set; }
+    public List<Section> sections { get; set; } = new();
 
     /// <summary>Cột mốc kế hoạch</summary>
-    public List<Timeline> timelines { get; set; }
+    public List<Timeline> timelines { get; set; } = new();
 
-
-
+    /// <summary>Sheets kế hoạch</summary>
+    public List<Sheet> sheets { get; set; } = new();
 
     /// <summary>
     /// Thành viên
@@ -88,6 +94,8 @@ namespace OnetezSoft.Models
 
       /// <summary>Thứ tự</summary>
       public int pos { get; set; }
+
+      public string sheet { get; set; }
     }
 
     /// <summary>
@@ -162,7 +170,7 @@ namespace OnetezSoft.Models
       public List<string> files { get; set; } = new();
 
       /// <summary>Người tham gia. role = 1: người nhận xét, 2: người thực hiện</summary>
-      public List<Member> members { get; set; }
+      public List<Member> members { get; set; } = new();
     }
 
     /// <summary>
@@ -187,6 +195,21 @@ namespace OnetezSoft.Models
 
       /// <summary>Người tạo</summary>
       public string user_id { get; set; }
+
+      /// <summary>File đính kèm</summary>
+      public List<string> files { get; set; } = new();
+    }
+
+    public class Sheet
+    {
+      [BsonId]
+      public string id { get; set; }
+
+      public string name { get; set; }
+
+      public int possition { get; set; }
+
+      public bool isDefault { get; set; }
     }
 
     /// <summary>
