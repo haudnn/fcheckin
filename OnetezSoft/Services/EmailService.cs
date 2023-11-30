@@ -170,11 +170,10 @@ namespace OnetezSoft.Services
     /// </summary>
     public static bool CompanyActive(string email, string code, string company, out string msg)
 		{
-			string title = "FASTDO | Thư xác nhận tạo tổ chức";
+			string title = "Thư xác nhận tạo tổ chức";
 			string content = "Đường link truy cập: https://work.fastdo.vn";
 			content += $"<br>Tên tổ chức: {company}";
 			content += $"<br>Mã xác thực: {code}";
-			content += "<br>Hướng dẫn sử dụng hệ thống Fastdo: https://help.fastdo.vn";
 
 			return SendMail(email, title, content, null, out msg);
 		}
@@ -185,7 +184,7 @@ namespace OnetezSoft.Services
 		/// </summary>
 		public static bool ForgotPassword(string email, string code, out string msg)
 		{
-			string title = "FASTDO | Mã xác thực tài khoản";
+			string title = "Mã xác thực tài khoản";
 			string content = $"<br>Tên đăng nhập: {email}";
 			content += $"<br>Mã xác thực: {code}";
 
@@ -206,7 +205,6 @@ namespace OnetezSoft.Services
 			content += "<p>TÀI KHOẢN ĐƯỢC KÍCH HOẠT THÀNH CÔNG</p>";
 			content += "<p>";
 			content += "<strong>1. Thông tin tài khoản:</strong>";
-			content += "<br>Liên kết đăng nhập: https://work.fastdo.vn";
 			content += $"<br>Tên đăng nhập: {email}";
 			content += $"<br>Mật khẩu: {password}";
 			content += "</p>";
@@ -354,186 +352,5 @@ namespace OnetezSoft.Services
       }
     }
 
-		/// <summary>
-		/// Đã tham gia được kế hoạch
-		/// email: mail người nhận
-		/// name: tên người nhận
-		/// fromName: tên người gửi
-		/// planName: tên kế hoạch
-		/// link: đường dẫn kế hoạch
-		/// </summary>
-		public static bool JoinedPlan(string email, string name, string fromName, string planName, string link, out string msg)
-		{
-      if (email.IsEmpty() || email.Trim().IsEmpty())
-      {
-        msg = "Người nhận rỗng";
-        return false;
-      }
-
-      var now = DateTime.Now.ToString("HH:mm '-' dd/MM/yyyy");
-			string title = $"FASTDO | Bạn đã được {fromName} thêm vào kế hoạch {planName}";
-			string content = $"<p>Xin chào, {name}</p>";
-
-			content += $"Bạn đã được <strong>{fromName}</strong> thêm vào kế hoạch <strong>{planName}</strong> vào lúc {now}.";
-			content += $"<br>";
-			content += $"Đường dẫn kế hoạch tại <a href=\"{link}\" target=\"_blank\">đây.</a>";
-
-			content += $"<br>";
-			content += "<p>Trân trọng,<br>Fastdo</p>";
-
-			return SendMail(email, title, content, null, out msg);
-		}
-
-    public static bool JoinedPlan(List<MemberModel> list , string fromName, string planName, string link, out string msg)
-    {
-			if (list.Count == 0)
-			{
-				msg = "Danh sách rỗng";
-        return false;
-      }
-
-      var now = DateTime.Now.ToString("HH:mm '-' dd/MM/yyyy");
-      string title = $"FASTDO | Bạn đã được {fromName} thêm vào kế hoạch {planName}";
-      string content = $"<p>Xin chào,</p>";
-
-      content += $"Bạn đã được <strong>{fromName}</strong> thêm vào kế hoạch <strong>{planName}</strong> vào lúc {now}.";
-      content += $"<br>";
-      content += $"Đường dẫn kế hoạch tại <a href=\"{link}\" target=\"_blank\">đây.</a>";
-
-      content += $"<br>";
-      content += "<p>Trân trọng,<br>Fastdo</p>";
-
-      return SendMail(list.Select(x => x.email).ToList(), title, content, null, out msg);
-    }
-
-    /// <summary>
-    /// Đã có công việc giao
-    /// </summary>
-    public static bool AssignedJob(string email, string name, string fromName, string planName, string link, string jobName, out string msg)
-		{
-      if (email.IsEmpty() || email.Trim().IsEmpty())
-      {
-        msg = "Người nhận rỗng";
-        return false;
-      }
-
-      var now = DateTime.Now.ToString("HH:mm '-' dd/MM/yyyy");
-			string title = $"FASTDO | Bạn đã được {fromName} giao công việc {jobName} thuộc kế hoạch {planName}";
-			string content = $"<p>Xin chào, {name}</p>";
-			content += $"Bạn đã được <strong>{fromName}</strong> giao công việc {jobName} thuộc kế hoạch <strong>{planName}</strong> vào lúc {now}.";
-			content += $"<br>";
-			content += $"Đường dẫn công việc tại <a href=\"{link}\" target=\"_blank\">đây.</a>";
-
-			content += $"<br>";
-			content += "<p>Trân trọng,<br>Fastdo</p>";
-			return SendMail(email, title, content, null, out msg);
-		}
-
-    public static bool AssignedJob(List<MemberModel> list, string fromName, string planName, string link, string jobName, out string msg)
-    {
-      if (list.Count == 0)
-      {
-        msg = "Danh sách rỗng";
-        return false;
-      }
-
-      var now = DateTime.Now.ToString("HH:mm '-' dd/MM/yyyy");
-      string title = $"FASTDO | Bạn đã được {fromName} giao công việc {jobName} thuộc kế hoạch {planName}";
-      string content = $"<p>Xin chào,</p>";
-      content += $"Bạn đã được <strong>{fromName}</strong> giao công việc {jobName} thuộc kế hoạch <strong>{planName}</strong> vào lúc {now}.";
-      content += $"<br>";
-      content += $"Đường dẫn công việc tại <a href=\"{link}\" target=\"_blank\">đây.</a>";
-
-      content += $"<br>";
-      content += "<p>Trân trọng,<br>Fastdo</p>";
-
-      return SendMail(list.Select(x => x.email).ToList(), title, content, null, out msg);
-    }
-
-    /// <summary>
-    /// Tag tên bình luận fWork
-    /// </summary>
-    public static bool TaggedComment(string email, string name, string fromName, string planName, string jobName, string link, out string msg)
-		{
-      if (email.IsEmpty() || email.Trim().IsEmpty())
-      {
-        msg = "Người nhận rỗng";
-        return false;
-      }
-
-      var now = DateTime.Now.ToString("HH:mm '-' dd/MM/yyyy");
-			string title = $"FASTDO | Bạn đã được {fromName} nhắc đến trong 1 bình luận của công việc {jobName} thuộc kế hoạch {planName}";
-			string content = $"<p>Xin chào, {name}</p>";
-			content += $"Bạn đã được <strong>{fromName}</strong> nhắc đến trong 1 bình luận của công việc <strong>{jobName}</strong> thuộc kế hoạch <strong>{planName}</strong> vào lúc {now}.";
-			content += $"<br>";
-			content += $"Đường dẫn bình luận tại <a href=\"{link}\" target=\"_blank\">đây.</a>";
-
-			content += $"<br>";
-			content += "<p>Trân trọng,<br>Fastdo</p>";
-			return SendMail(email, title, content, null, out msg);
-		}
-    public static bool TaggedComment(List<MemberModel> list, string fromName, string planName, string jobName, string link, out string msg)
-    {
-      if (list.Count == 0)
-      {
-        msg = "Danh sách rỗng";
-        return false;
-      }
-
-      var now = DateTime.Now.ToString("HH:mm '-' dd/MM/yyyy");
-      string title = $"FASTDO | Bạn đã được {fromName} nhắc đến trong 1 bình luận của công việc {jobName} thuộc kế hoạch {planName}";
-      string content = $"<p>Xin chào</p>";
-      content += $"Bạn đã được <strong>{fromName}</strong> nhắc đến trong 1 bình luận của công việc <strong>{jobName}</strong> thuộc kế hoạch <strong>{planName}</strong> vào lúc {now}.";
-      content += $"<br>";
-      content += $"Đường dẫn bình luận tại <a href=\"{link}\" target=\"_blank\">đây.</a>";
-
-      content += $"<br>";
-      content += "<p>Trân trọng,<br>Fastdo</p>";
-      return SendMail(list.Select(x => x.email).ToList(), title, content, null, out msg);
-    }
-
-
-    /// <summary>
-    /// Công việc được done
-    /// </summary>
-    public static bool DoneJob(string email, string name, string fromName, string planName, string jobName, string link, out string msg)
-		{
-      if (email.IsEmpty() || email.Trim().IsEmpty())
-      {
-        msg = "Người nhận rỗng";
-        return false;
-      }
-
-      var now = DateTime.Now.ToString("HH:mm '-' dd/MM/yyyy");
-			string title = $"FASTDO | Công việc {jobName} thuộc kế hoạch {planName} đã hoàn thành";
-			string content = $"<p>Xin chào, {name}</p>";
-			content += $"<strong>{fromName}</strong> đã chuyển trạng thái công việc <strong>{jobName}</strong> sang hoàn thành trong kế hoạch <strong>{planName}</strong> vào lúc {now}.";
-			content += $"<br>";
-			content += $"Đường dẫn công việc tại <a href=\"{link}\" target=\"_blank\">đây.</a>";
-
-			content += $"<br>";
-			content += "<p>Trân trọng,<br>Fastdo</p>";
-			return SendMail(email, title, content, null, out msg);
-		}
-
-    public static bool DoneJob(List<MemberModel> list, string fromName, string planName, string jobName, string link, out string msg)
-    {
-      if (list.Count == 0)
-      {
-        msg = "Danh sách rỗng";
-        return false;
-      }
-
-      var now = DateTime.Now.ToString("HH:mm '-' dd/MM/yyyy");
-      string title = $"FASTDO | Công việc {jobName} thuộc kế hoạch {planName} đã hoàn thành";
-      string content = $"<p>Xin chào,</p>";
-      content += $"<strong>{fromName}</strong> đã chuyển trạng thái công việc <strong>{jobName}</strong> sang hoàn thành trong kế hoạch <strong>{planName}</strong> vào lúc {now}.";
-      content += $"<br>";
-      content += $"Đường dẫn công việc tại <a href=\"{link}\" target=\"_blank\">đây.</a>";
-
-      content += $"<br>";
-      content += "<p>Trân trọng,<br>Fastdo</p>";
-      return SendMail(list.Select(x => x.email).ToList(), title, content, null, out msg);
-    }
   }
 }
