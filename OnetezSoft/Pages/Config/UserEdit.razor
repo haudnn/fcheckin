@@ -71,38 +71,6 @@ else
           </li>
           <li class="column is-half">
             <div class="field">
-              <label class="label">Thuộc công ty</label>
-              <div class="control">
-                <div class="select is-fullwidth">
-                  <select @bind="user.company_id">
-                    <option value="">- chọn công ty -</option>
-                    @foreach (var sl in companyOptions)
-                    {
-                      <option value="@sl.id">@sl.name</option>
-                    }
-                  </select>
-                </div>
-              </div>
-            </div>
-          </li>
-          <li class="column is-half">
-            <div class="field">
-              <label class="label">Thuộc phòng ban</label>
-              <div class="control">
-                <div class="select is-fullwidth">
-                  <select @bind="user.department_id">
-                    <option value="">- chọn phòng ban -</option>
-                    @foreach (var sl in departmentOptions)
-                    {
-                      <option value="@sl.id">@sl.name</option>
-                    }
-                  </select>
-                </div>
-              </div>
-            </div>
-          </li>
-          <li class="column is-half">
-            <div class="field">
               <label class="label">Quyền hạn *</label>
               <div class="control">
                 <div class="select is-fullwidth">
@@ -124,33 +92,7 @@ else
             </div>
           </li>
           <li class="column is-full">
-            @if (user.role == 1)
-            {
-              <hr class="mt-0" />
-              <div class="field">
-                <div class="control">
-                  <label class="checkbox">
-                    <input type="checkbox" @bind="user.noti_store" />
-                    <span class="has-text-weight-bold has-text-link">THÔNG BÁO ĐỔI QUÀ</span>
-                  </label>
-                </div>
-                <div class="control has-text-grey mt-2">
-                  Nhận thông báo khi có người yêu cầu <b>Đổi quà</b>
-                </div>
-              </div>
-              <div class="field">
-                <div class="control">
-                  <label class="checkbox">
-                    <input type="checkbox" @bind="user.okr_checkin" />
-                    <span class="has-text-weight-bold has-text-link">TỰ CHECKIN OKRs</span>
-                  </label>
-                </div>
-                <div class="control has-text-grey mt-2">
-                  Cho phép người dùng tự checkin OKRs mà không cần người khác xác nhận <b>OKRs</b>
-                </div>
-              </div>
-            }
-            else if (user.role == 2)
+            @if (user.role == 2)
             {
               <hr class="mt-0" />
               <div class="field">
@@ -161,75 +103,9 @@ else
                   </label>
                 </div>
                 <div class="control has-text-grey mt-2">
-                  Truy cập tất cả chức năng trong trang <b>Cấu hình / Cơ cấu</b> bao gồm:
-                  <b>Phòng ban, Nhân sự, Thiết lập ngày nghỉ</b>
+                  Truy cập tất cả chức năng trong trang Cấu hình - <b>Cơ cấu</b>
                 </div>
               </div>
-              if (CheckAccess("okrs"))
-              {
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.role_manage.okrs" />
-                      <span class="has-text-weight-bold has-text-link">OKRs</span>
-                    </label>
-                  </div>
-                  <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Cấu hình / OKRs</b> bao gồm:
-                    <b>Chu kỳ OKRs, Phiếu góp ý</b>
-                  </div>
-                </div>
-              }
-
-              if (CheckAccess("cfr"))
-              {
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.role_manage.cfr" />
-                      <span class="has-text-weight-bold has-text-link">GHI NHẬN</span>
-                    </label>
-                  </div>
-                  <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Cấu hình / Ghi nhận</b> bao gồm:
-                    <b>Tiêu chí ghi nhận, Cấp sao, Trừ sao</b>
-                  </div>
-                </div>
-              }
-              if (CheckAccess("kaizen"))
-              {
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.role_manage.kaizen" />
-                      <span class="has-text-weight-bold has-text-link">KAIZEN</span>
-                    </label>
-                  </div>
-                  <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Cấu hình / Kaizen</b>
-                    <br />
-                    Truy cập tất cả chức năng nâng cao tại trang <b>Kaizen</b> bao gồm:
-                    <b>Xóa góp ý Kaizen, Đánh giá quản lý cho góp ý Kaizen, Ghim, Xóa phản hồi Kaizen</b>
-                  </div>
-                </div>
-              }
-              if (CheckAccess("train"))
-              {
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.role_manage.educate" />
-                      <span class="has-text-weight-bold has-text-link">ĐÀO TẠO</span>
-                    </label>
-                  </div>
-                  <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Cấu hình / Đào tạo</b> bao gồm:
-                    <b>Danh mục, Mẫu chứng chỉ</b>
-                    <br />
-                    Truy cập, chỉnh sửa tất cả các khóa học tại trang <b>Đào tạo / Quản lý khóa học</b>
-                  </div>
-                </div>
-              }
               if (CheckAccess("timekeeping"))
               {
                 <div class="field">
@@ -240,50 +116,10 @@ else
                     </label>
                   </div>
                   <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Chấm công</b>
+                    Truy cập tất cả chức năng trong trang Cấu hình - <b>Chấm công</b>
                   </div>
                 </div>
               }
-              if (CheckAccess("todolist"))
-              {
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.role_manage.todolist" />
-                      <span class="has-text-weight-bold has-text-link">TODOLIST</span>
-                    </label>
-                  </div>
-                  <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Cấu hình / Todolist </b>
-                  </div>
-                </div>
-              }
-              <div class="field">
-                <div class="control">
-                  <label class="checkbox">
-                    <input type="checkbox" @bind="user.role_manage.store" />
-                    <span class="has-text-weight-bold has-text-link">ĐỔI QUÀ</span>
-                  </label>
-                </div>
-                <div class="control has-text-grey mt-2">
-                  Truy cập tất cả chức năng trong trang <b>Cấu hình / Đổi quà</b> bao gồm:
-                  <b>Cửa hàng, Đơn hàng, Ưu đãi</b>
-                </div>
-              </div>
-
-              <div class="field">
-                <div class="control">
-                  <label class="checkbox">
-                    <input type="checkbox" @bind="user.role_manage.other" />
-                    <span class="has-text-weight-bold has-text-link">TIỆN ÍCH</span>
-                  </label>
-                </div>
-                <div class="control has-text-grey mt-2">
-                  Truy cập tất cả chức năng trong trang <b>Cấu hình / Tiện ích</b> bao gồm:
-                  <b>Banner, Điểm tin, Châm ngôn, Thành tựu</b>
-                </div>
-              </div>
-
               @if (Layout.Company.products.Any(x => x.id == "storage" && x.active))
               {
                 <div class="field">
@@ -294,23 +130,7 @@ else
                     </label>
                   </div>
                   <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang Cấu hình - <b>Quản lý lưu trữ</b> bao gồm:
-                    <b>Quản lý lưu trữ, Lịch sử xóa file</b>
-                  </div>
-                </div>
-              }
-              @if (Layout.Company.products.Any(x => x.id == "kpis" && x.active))
-              {
-                <div class="field">
-                  <div class="control">
-                    <label class="checkbox">
-                      <input type="checkbox" @bind="user.role_manage.kpis" />
-                      <span class="has-text-weight-bold has-text-link">QUẢN LÝ KPIs</span>
-                    </label>
-                  </div>
-                  <div class="control has-text-grey mt-2">
-                    Truy cập tất cả chức năng trong trang <b>Cấu hình / KPIs</b> bao gồm:
-                    <b>Chu kỳ và Chỉ số KPIs</b>
+                    Truy cập tất cả chức năng trong trang Cấu hình - <b>Quản lý lưu trữ</b>
                   </div>
                 </div>
               }
@@ -432,7 +252,6 @@ else
   private List<HrmOptionModel> companyOptions = new();
   private List<HrmOptionModel> departmentOptions = new();
   private bool isCreate;
-
   private bool Enable;
 
   protected override async Task OnParametersSetAsync()

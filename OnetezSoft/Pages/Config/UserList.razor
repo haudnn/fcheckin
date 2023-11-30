@@ -36,14 +36,6 @@ else
       </li>
       <li class="column is-one-fifth">
         <div class="select is-fullwidth">
-          <select @bind="filterStatus">
-            <option value="1">Đang hoạt động</option>
-            <option value="2">Không hoạt động</option>
-          </select>
-        </div>
-      </li>
-      <li class="column is-one-fifth">
-        <div class="select is-fullwidth">
           <select @onchange="ChangeSort">
             <option value="role">Sắp xếp: quyền hạn</option>
             <option value="online">Sắp xếp: truy cập</option>
@@ -59,6 +51,14 @@ else
           <span>Tìm kiếm</span>
         </a>
       </li>
+      <li class="column is-narrow">
+        <a class="button is-link" @onclick="() => isShowPopup = true">
+          <span class="icon">
+            <i class="material-icons-outlined">add</i>
+          </span>
+          <span>Thêm nhân sự</span>
+        </a>
+      </li>
     </ul>
     <div class="scrolly inner_section" style="margin-right:-16px;flex:1">
       <table class="table is-fullwidth is-vcentered is-responsive">
@@ -69,7 +69,6 @@ else
             <th class="pt-0">Phòng ban</th>
             <th class="pt-0" width="10%">Quyền hạn</th>
             <th class="pt-0" width="9%" align="center">Trạng thái</th>
-            <th class="pt-0" width="9%">Online</th>
             <th class="pt-0" width="50px" align="center">Xử lý</th>
           </tr>
         </thead>
@@ -78,79 +77,65 @@ else
           {
             var department = departsByUser.FirstOrDefault(x => x.Key == item.id);
             var role = DbUser.Role(item.role);
-            if (department.Value != null && department.Value.Count > 0)
-            {
-              <tr>
-                <td>
-                  <div class="user_item">
-                    <img class="image is-32x32 mr-2" src="@item.avatar" alt="IMG" />
-                    <a class="text_1_line" @onclick="() => {Id = item.id;view = 2;}">@item.email</a>
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Họ tên</label>
-                  <div class="td-value">
-                    @item.FullName
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Phòng ban</label>
-                  <div class="td-value is-family-code">
-                    @foreach (var de in department.Value)
+            <tr>
+              <td>
+                <div class="user_item">
+                  <img class="image is-32x32 mr-2" src="@item.avatar" alt="IMG" />
+                  <a class="text_1_line" @onclick="() => {Id = item.id;view = 2;}">@item.email</a>
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Họ tên</label>
+                <div class="td-value">
+                  @item.FullName
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Phòng ban</label>
+                <div class="td-value is-family-code">
+                  @foreach (var de in department.Value)
+                  {
+                    <p>@((MarkupString)de.name.Replace("'", "&nbsp;"))</p>
+                  }
+                </div>
+              </td>
+              <td>
+                <label class="td-label">Quyền hạn</label>
+                <div class="td-value">
+                  @if (item.role != 3)
+                  {
+                    <span class="tag @role.color">@role.name</span>
+                  }
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Trạng thái</label>
+                <div class="td-value">
+                  <a class="icon" @onclick="() => ActiveItem(item)">
+                    @if (item.active)
                     {
-                      <p>@((MarkupString)de.name.Replace("'", "&nbsp;"))</p>
-                    }
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Quyền hạn</label>
-                  <div class="td-value">
-                    @if (item.role != 3)
-                    {
-                      <span class="tag @role.color">@role.name</span>
-                    }
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Trạng thái</label>
-                  <div class="td-value">
-                    <a class="icon" @onclick="() => ActiveItem(item)">
-                      @if (item.active)
-                      {
-                        <span class="material-icons-outlined is-size-4 has-text-success">
-                          toggle_on
-                        </span>
-                      }
-                      else
-                      {
-                        <span class="material-icons-outlined is-size-4 has-text-black">
-                          toggle_off
-                        </span>
-                      }
-                    </a>
-                  </div>
-                </td>
-                <td>
-                  <label class="td-label">Online</label>
-                  <div class="td-value">
-                    @if (item.online > 0)
-                    {
-                      <span class="text_inline">
-                        @Handled.Shared.ConvertDate(new DateTime(item.online)).Replace(" trước", "")
+                      <span class="material-icons-outlined is-size-4 has-text-success">
+                        toggle_on
                       </span>
                     }
-                  </div>
-                </td>
-                <td align="center">
-                  <label class="td-label">Xử lý</label>
-                  <div class="td-value">
-                    <a class="icon has-text-danger" title="Xóa tài khoản" @onclick="() => DeleteItem(item)">
-                      <i class="material-icons-outlined is-size-5">delete</i>
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            }
+                    else
+                    {
+                      <span class="material-icons-outlined is-size-4 has-text-black">
+                        toggle_off
+                      </span>
+                    }
+                  </a>
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Xử lý</label>
+                <div class="td-value">
+                  <a class="icon has-text-danger" title="Xóa tài khoản" @onclick="() => DeleteItem(item)">
+                    <i class="material-icons-outlined is-size-5">delete</i>
+                  </a>
+                </div>
+              </td>
+            </tr>
           }
         </tbody>
       </table>
@@ -160,6 +145,104 @@ else
   {
     <UserEdit Id="@Id" OnCallback="Callback" UserList="dataList"/>
   }
+}
+
+@if (isShowPopup)
+{
+  <section class="modal is-active">
+    <div class="modal-background"></div>
+    <section class="modal-card has_bg">
+      <section class="modal-card-head is-success" style="background-image: url('/images/illustrations/users.png')">
+        <div class="modal-card-title">
+          <div class="title has-text-white">
+            Thêm nhân viên
+          </div>
+        </div>
+        <a class="delete is-medium" @onclick="Cancel"></a>
+      </section>
+      <section class="modal-card-body">
+        <form class="columns" autocomplete="off">
+          <div class="column is-one-quarter">
+            <div class="image is-128x128 is-radius mb-3">
+              <img src="@model.avatar" />
+            </div>
+            <a class="button is-white is-small is-fullwidth @(isLoading ? "is-loading" : "")"
+               onclick="document.getElementById('file').click()">
+              <span class="icon">
+                <i class="material-icons-sharp is-size-6">file_upload</i>
+              </span>
+              <span>Tải ảnh lên</span>
+            </a>
+            <InputFile OnChange="Upload" accept="image/*" class="is-hidden" id="file" />
+          </div>
+
+          <div class="column is-three-quarters">
+            <div class="field has-text-weight-bold">
+              Thông tin nhân viên
+            </div>
+            <ul class="columns is-multiline is-variable is-2">
+              <li class="column is-full">
+                <div class="field">
+                  <div class="control has-icons-left">
+                    <input @onchange="ChangeEmail" value="@model.email" type="email" class="input is_line"
+                           placeholder="Nhập địa chỉ email của người dùng..." />
+                    <span class="icon is-left has-text-black">
+                      <i class="material-icons-round is-size-6">account_circle</i>
+                    </span>
+                  </div>
+                </div>
+              </li>
+              <li class="column is-half">
+                <div class="field">
+                  <div class="control has-icons-left">
+                    <input @bind="model.last_name" type="text" class="input is_line" placeholder="Nhập họ" />
+                    <span class="icon is-left has-text-black">
+                      <i class="material-icons-round is-size-6">person</i>
+                    </span>
+                  </div>
+                </div>
+              </li>
+              <li class="column is-half">
+                <div class="field">
+                  <div class="control has-icons-left">
+                    <input @bind="model.first_name" type="text" class="input is_line" placeholder="Nhập tên" />
+                    <span class="icon is-left has-text-black">
+                      <i class="material-icons-round is-size-6">person</i>
+                    </span>
+                  </div>
+                </div>
+              </li>
+              <li class="column is-full">
+                <div class="field">
+                  <spa class="is-italic font_12 has-text-grey">Mật khẩu mặc định khi tạo tài khoản là: <span class="has-text-weight-medium has-text-black">fastdo@123</span>. Vui lòng nhắc nhở nhân sự thay đổi nó nếu cần thiết!</spa>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </form>
+      </section>
+      <section class="modal-card-foot">
+        <div class="field is-grouped is-fullwidth">
+          <div class="control">
+            <a class="button" @onclick="Cancel">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">chevron_left</i>
+              </span>
+              <span class="is-size-7">Trở về</span>
+            </a>
+          </div>
+          <div class="control">
+            <a class="button @(string.IsNullOrEmpty(model.id) ? "is-link" : "is-static")" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-round is-size-6">done</i>
+              </span>
+              <span class="is-size-7">Xác nhận</span>
+            </a>
+          </div>
+        </div>
+      </section>
+    </section>
+  </section>
 }
 
 
@@ -176,6 +259,8 @@ else
   private List<UserModel> filteredList = new();
   private List<DepartmentModel> departmentAll = new();
   private List<DepartmentModel.SelectList> departments = new();
+  private List<string> products = new();
+  private UserModel model = new();
   private string filterKey = string.Empty;
   private string filterDepartment = string.Empty;
   private int filterStatus = 1;
@@ -184,14 +269,16 @@ else
   private Dictionary<string, List<DepartmentModel.SelectList>> departsByUser = new();
 
   private int view = 1;
+  private bool isLoading = false;
 
+  private bool isShowPopup;
   protected override async Task OnInitializedAsync()
   {
     dataList = await DbUser.GetAll(Layout.Company.id, globalService);
     departmentAll = await DbDepartment.GetAll(Layout.Company.id);
     var departs = await DbDepartment.GetSelectList(Layout.Company.id, null, 0, null);
     departments.AddRange(departs);
-    await Search();
+    Search();
 
     foreach (var user in dataList)
     {
@@ -203,13 +290,13 @@ else
     }
   }
 
-  private async Task ChangeSort(ChangeEventArgs e)
+  private void ChangeSort(ChangeEventArgs e)
   {
     filterSort = e.Value.ToString();
-    await Search();
+    Search();
   }
 
-  private async Task Search()
+  private void Search()
   {
     filteredList = dataList.Where(x => true).ToList();
     if (!filterKey.IsEmpty())
@@ -356,7 +443,7 @@ else
     if (e)
     {
       dataList = await DbUser.GetAll(Layout.Company.id, globalService);
-      await Search();
+      Search();
     }
   }
 
@@ -365,4 +452,108 @@ else
     view = 2;
     Id = string.Empty;
   }
+
+
+
+  private void Cancel()
+  {
+    isShowPopup = false;
+    model = new();
+  }
+
+
+
+  private async Task Upload(InputFileChangeEventArgs e)
+  {
+    isLoading = true;
+    foreach (var file in e.GetMultipleFiles())
+    {
+      try
+      {
+        if (file.Size <= Layout.MaxFileSize)
+        {
+          var fileStream = new StreamContent(file.OpenReadStream(Layout.MaxFileSize));
+          model.avatar = await Files.SaveFileAsync(fileStream, file.Name);
+        }
+      }
+      catch (Exception ex)
+      {
+        await JSRuntime.InvokeVoidAsync("tagline", false, "Không thể tải ảnh lên. Vui lòng thử lại..");
+      }
+    }
+    isLoading = false;
+  }
+  private async Task ChangeEmail(ChangeEventArgs e)
+  {
+    try
+    {
+      model.id = string.Empty;
+      model.email = e.Value.ToString().Trim();
+      UserModel user = await DbMainUser.GetbyEmail(model.email, globalService);
+      if (user != null)
+      {
+        // Assign user existed in system to current model
+        model.first_name = user.first_name;
+        model.last_name = user.last_name;
+        model.avatar = user.avatar;
+        // Check user did existed in current Company?
+        UserModel userInCompany = await DbUser.Get(Layout.Company.id, user.id, globalService);
+        if (userInCompany != null)
+        {
+          model.id = user.id;
+          await JSRuntime.InvokeVoidAsync("tagline", false, "Nhân sự này đã tồn tại trong tổ chức của bạn!");
+        }
+      }
+      else
+      {
+        model.first_name = string.Empty;
+        model.last_name = string.Empty;
+        model.avatar = $"https://avatars.dicebear.com/api/micah/{DateTime.Now.Minute}.svg?background=grey";
+      }
+    }
+    catch (Exception ex)
+    {
+      var formatLink = navigation.Uri.Replace(navigation.BaseUri, "/");
+      StorageService.CatchLog(formatLink, "ChangeEmail()", ex.ToString(), Layout.User.id);
+      await Layout.Tagline();
+    }
+  }
+
+  private async Task Update()
+  {
+    if (string.IsNullOrEmpty(model.email))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập địa chỉ email!");
+    else if (!model.email.Contains("@"))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Địa chỉ email không đúng định dạng!");
+    else if (string.IsNullOrEmpty(model.first_name) || string.IsNullOrEmpty(model.last_name))
+      await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập họ và tên cho tài khoản!");
+    else
+    {
+      // Kiểm tra tài khoản
+      var checkUser = await DbMainUser.GetbyEmail(model.email, globalService);
+      if (checkUser == null)
+      {
+        model.password = "fastdo@123";
+        await DbMainUser.Create(model);
+        await JSRuntime.InvokeVoidAsync("tagline", true, "Tạo tài khoản thành công. Vui lòng kiểm tra email.");
+
+        new Task(() =>
+        {
+          EmailService.UserInfo(model.email, "fastdo@123", model.FullName, Layout.Company.name, out string message);
+        }).Start();
+      }
+      else
+        model = checkUser;
+      model.products.Add("timekeeping");
+      model.page_default = null;
+      // Thêm tài khoản vào tổ chức
+      await CompanyService.AddStaff(Layout.Company, model, globalService);
+      await JSRuntime.InvokeVoidAsync("tagline", true, "Đã thêm tài khoản người dùng sản phẩm!");
+      products = new();
+      isShowPopup = false;
+    };
+  }
+
+
+
 }

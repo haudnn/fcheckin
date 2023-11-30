@@ -424,11 +424,10 @@
           if (userInCompany != null)
           {
             await JSRuntime.InvokeVoidAsync("setCookie", "_company", companyId);
-            string link = string.IsNullOrEmpty(userInCompany.page_default) ? "/homepage" : userInCompany.page_default;
             if (Layout.consentCookie)
-              navigation.NavigateTo(link, true);
+              navigation.NavigateTo("/hrm/timekeeping", true);
             else
-              navigation.NavigateTo(link, false);
+              navigation.NavigateTo("/hrm/timekeeping", false);
           }
           else
             await JSRuntime.InvokeVoidAsync("tagline", true, $"Tài khoản của bạn đã bị xóa khỏi công ty {company.name}!");

@@ -198,11 +198,10 @@ namespace OnetezSoft.Services
 		/// </summary>
 		public static bool UserInfo(string email, string password, string name, string company, out string msg)
 		{
-			string title = "FASTDO | Thư cung cấp tài khoản giải pháp Fastdo ";
+			string title = "Thư cung cấp tài khoản";
 			string content = $"<p>Kính chào {name},</p>";
 			content += "<p>";
-			content += $"Fastdo rất vui khi được cùng đồng hành trong quá trình chuyển đổi số của {company}. ";
-			content += "Dưới đây chính là thông tin tài khoản đăng nhập bộ giải pháp quản trị Doanh nghiệp Fastdo.";
+			content += "Dưới đây chính là thông tin tài khoản đăng nhập.";
 			content += "</p>";
 			content += "<p>TÀI KHOẢN ĐƯỢC KÍCH HOẠT THÀNH CÔNG</p>";
 			content += "<p>";
@@ -212,11 +211,7 @@ namespace OnetezSoft.Services
 			content += $"<br>Mật khẩu: {password}";
 			content += "</p>";
 			content += "<p>";
-			content += "<strong>2. Tài nguyên đi kèm:</strong>";
-			content += "<br>Hướng dẫn sử dụng hệ thống Fastdo: https://help.fastdo.vn";
-			content += "<br>Trong trường hợp cần hỗ trợ gấp, Anh/Chị có thể liên hệ trực tiếp qua Hotline  Fastdo: 0905.852.933";
-			content += "</p>";
-			content += "<p>Trân trọng,<br>Fastdo team</p>";
+			content += "<p>Trân trọng</p>";
 
 			return SendMail(email, title, content, null, out msg);
 		}

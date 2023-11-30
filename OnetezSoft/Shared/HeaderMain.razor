@@ -5,110 +5,8 @@
 
 <section id="header" class="header_main">
   <ul class="columns is-mobile is-vcentered is-variable is-2">
-    <li class="column is-narrow header_product">
-      <Dropdown @bind-Toggle="toggleModule"
-                CloseOnClickMenu=false
-                MenuClass="flex_column">
-        <Trigger>
-          <a class="icon">
-            <span class="material-icons is-size-5">
-              dashboard
-            </span>
-          </a>
-        </Trigger>
-        <MenuContent>
-          <div class="scrolly is-mobile" style="flex:1">
-            <div class="product_group">
-              Ứng dụng yêu thích
-            </div>
-            <div class="columns is-multiline is-mobile is-variable is-0 is-vcentered">
-              @foreach (var item in Layout.User.products_favorite)
-              {
-                var product = navigationList.FirstOrDefault(x => x.link.Contains(item.Replace("#", "")));
-                var module = product != null ? product.link.Split("/").FirstOrDefault() : null;
-                if (product != null && (modules.Contains(module) ? CheckAccess(module) : true))
-                {
-                  <div class="column is-narrow">
-                    <a class="icon favorite" @onclick="() => RemoveFavorite(item)">
-                      <span class="material-icons has-text-warning">star</span>
-                    </a>
-                    <a class="dropdown-item p-4 @CheckActiveModule(product.link)" href="@product.link">
-                      <div class="mb-2">
-                        <span class="icon image is-24x24">
-                          <img src="/images/modules/@(product.icon).png" alt="module-image" />
-                        </span>
-                      </div>
-                      <div class="has-text-centered">
-                        @product.name
-                      </div>
-                    </a>
-                  </div>
-                }
-              }
-            </div>
-            <div class="product_group">
-              Danh sách ứng dụng
-            </div>
-            <div class="columns is-multiline is-mobile is-variable is-0 is-vcentered">
-              @foreach (var item in navigationList.Where(x => !Layout.User.products_favorite.Contains(x.link.Split("/").First())))
-              {
-                var module = item.link.Split("/").FirstOrDefault();
-                if (modules.Contains(module) ? CheckAccess(module) : true)
-                {
-                  <div class="column is-narrow">
-                    @if (Layout.User.products_favorite.Contains(item.link))
-                    {
-                      <a class="icon favorite" @onclick='() => RemoveFavorite(item.link)'>
-                        <span class="material-icons has-text-warning">star</span>
-                      </a>
-                    }
-                    else
-                    {
-                      <a class="icon favorite" @onclick='() => AddFavorite(item.link)'>
-                        <span class="material-icons-outlined has-text-warning">star</span>
-                      </a>
-                    }
-                    <a class="dropdown-item p-4 @CheckActiveModule(item.link)" href="@item.link">
-                      <div class="mb-2">
-                        <span class="icon image is-24x24">
-                          <img src="/images/modules/@(item.icon).png" alt="module-image" />
-                        </span>
-
-                      </div>
-                      <div class="has-text-centered">
-                        @item.name
-                      </div>
-                    </a>
-                  </div>
-                }
-              }
-              @if (Layout.User.role < 3)
-              {
-                var item = ModuleService.GetConfig(Layout.Company, Layout.User);
-                <div class="column is-narrow">
-                  <a class="dropdown-item p-4 @CheckActiveModule("config")" href="/configs">
-                    <div class="mb-2">
-                      <span class="icon image is-24x24">
-                        <img src="/images/modules/@(item.icon).png" alt="module-image" />
-                      </span>
-
-                    </div>
-                    <div class="has-text-centered">
-                      @item.name
-                    </div>
-                  </a>
-                </div>
-              }
-            </div>
-          </div>
-          <a href="/homepage" class="button is-link is-fullwidth has-text-centered mt-4">
-            Về trang chủ
-          </a>
-        </MenuContent>
-      </Dropdown>
-    </li>
     <li class="column is-hidden-mobile is-narrow">
-      <a href="/homepage">
+      <a href="/hrm/timekeeping">
         <img class="image pr-2" src="/images/logo.png" style="height:24px" />
       </a>
     </li>
@@ -125,203 +23,13 @@
         </a>
       </li>
     }
+
     <li class="column is-hidden-mobile">
       <div style="max-width:400px">
-        <_Search PlaceHolder="Tên ứng dụng..."
-                 IsInstant=true
-                            IsSmall
-                 SearchType='new () {"link","name"}'
-                 IsRound=true
-                 ImageType=""
-                 OnChange="Navigate"
-                 NameType="name"
-                 TItem="NavModel"
-                 Lists="searchList.OrderBy(x => x.name).ThenBy(x => x.name.Length).ToList()"
-                            ResetOnSelect
-                            IsCollapse
-                            ShowSuggestionOnEmty />
       </div>
     </li>
     <li class="column is-hidden-tablet"></li>
-
-    <!-- Online -->
-    <li class="column is-hidden-mobile is-narrow">
-      <_OnlineUser MaxShow="5" Size="is-24x24" Module=""></_OnlineUser>
-    </li>
-
-    <!-- OKRs -->
-    @if (Layout.ListNav != null && Layout.ListNav.name == "OKRs" && CheckAccess("okrs"))
-    {
-      <li class="column is-hidden-mobile is-narrow">
-        <Dropdown CloseOnClickMenu=true>
-          <Trigger>
-            <Button Color="@ComponentModel.ColorType.Link"
-                    IsInverted=true
-                    Content="@cycleName"
-                    IconRight="arrow_drop_down" />
-          </Trigger>
-          <MenuContent>
-            @if (shareStorage.OkrConfig == null || shareStorage.OkrConfig.cycles.Count == 0)
-            {
-              <a class="dropdown-item"
-                 style="height: auto; max-width: 150px;">
-                Chưa có chu kỳ
-              </a>
-            }
-            else
-            {
-              @foreach (var item in shareStorage.OkrConfig.cycles)
-              {
-                <a class="dropdown-item" @onclick="() => ChangeCycle(item.id)"
-                   style="height: auto; width: 150px;">
-                  @item.name
-                </a>
-              }
-            }
-          </MenuContent>
-        </Dropdown>
-      </li>
-    }
-
-    <!--KPIs-->
-    @if (Layout.ListNav != null && Layout.ListNav.name == "KPIs" && CheckAccess("kpis"))
-    {
-      <li class="column is-hidden-mobile is-narrow">
-        <Dropdown CloseOnClickMenu=true>
-          <Trigger>
-            <Button Color="@ComponentModel.ColorType.Link"
-                    IsInverted=true
-                    Content="@cycleKpisName"
-                    IconRight="arrow_drop_down" />
-          </Trigger>
-          <MenuContent>
-            @if (shareStorage.KpisCycles.Count == 0)
-            {
-              <a class="dropdown-item"
-                 style="height: auto; max-width: 150px;">
-                Chưa có chu kỳ
-              </a>
-            }
-            else
-            {
-              @foreach (var item in shareStorage.KpisCycles)
-              {
-                <a class="dropdown-item" @onclick="() => ChangeKpisCycle(item.id)"
-                   style="height: auto; width: 150px;">
-                  @item.name
-                </a>
-              }
-            }
-          </MenuContent>
-        </Dropdown>
-      </li>
-    }
-
-    <li class="column is-narrow">
-      <Dropdown CloseOnClickMenu=true MenuStyle="max-width:300px;">
-        <Trigger>
-          <a class="icon-text" title="Đổi tổ chức">
-            <span class="icon image is-24x24 is-rounded">
-              <img src="@Layout.Company.logo" alt="Logo" />
-            </span>
-            <span class="is-hidden-mobile text_1_line" style="max-width:200px">
-              @Layout.Company.name
-            </span>
-            <span class="icon">
-              <span class="material-icons-outlined">
-                arrow_drop_down
-              </span>
-            </span>
-          </a>
-        </Trigger>
-        <MenuContent>
-          @foreach (var item in Layout.User.companys)
-          {
-            var company = companys.FirstOrDefault(x => x.id == item.id);
-            if (company != null)
-            {
-              <a class="dropdown-item" @onclick="() => ChangeCompany(company.id)">
-                <div class="icon-text">
-                  <span class="icon image is-24x24 is-rounded">
-                    <img src="@company.logo" alt="Logo" />
-                  </span>
-                  <span>
-                    @company.name
-                  </span>
-                </div>
-              </a>
-            }
-          }
-          @if (Layout.User.is_customer)
-          {
-            <a class="dropdown-divider"></a>
-            <a class="dropdown-item" href="/client/home">
-              <div class="icon-text">
-                <span class="icon image is-24x24 is-size-4">
-                  <span class="material-icons-outlined">
-                    store
-                  </span>
-                </span>
-                <span>
-                  Quản lý tổ chức
-                </span>
-              </div>
-            </a>
-          }
-          @if (Layout.User.is_admin)
-          {
-            <a class="dropdown-divider"></a>
-            <a class="dropdown-item" href="/admin">
-              <div class="icon-text">
-                <span class="icon image is-24x24 is-size-4">
-                  <span class="material-icons-outlined">
-                    admin_panel_settings
-                  </span>
-                </span>
-                <span>
-                  Phân hệ admin
-                </span>
-              </div>
-            </a>
-          }
-        </MenuContent>
-      </Dropdown>
-    </li>
-    <li class="column is-narrow">
-      <Dropdown CloseOnClickMenu=true>
-        <Trigger>
-          <Button Color="@ComponentModel.ColorType.Link"
-                  IsInverted=true
-                  IconRight="help_outline" />
-        </Trigger>
-        <MenuContent>
-          <div class="dropdown-item">
-            <a class="icon-text" href="https://help.fastdo.vn/" target="_blank">
-              <span class="icon">
-                <span class="material-icons-outlined">
-                  book
-                </span>
-              </span>
-              <span>
-                Hướng dẫn sử dụng
-              </span>
-            </a>
-          </div>
-          <div class="dropdown-item">
-            <a class="icon-text" href="/feedback">
-              <span class="icon">
-                <span class="material-icons-outlined">
-                  feedback
-                </span>
-              </span>
-              <span>
-                Góp ý hệ thống
-              </span>
-            </a>
-          </div>
-        </MenuContent>
-      </Dropdown>
-    </li>
+    <li class="column is-narrow"></li>
     <li class="column is-narrow" style="z-index:9">
       <Notification />
     </li>
@@ -355,157 +63,23 @@
               </div>
             </div>
           </div>
-          <div class="dropdown-item">
-            <div class="columns is-multiline is-vcentered is-variable is-2">
-              <div class="column is-half">
-                <span class="icon-text">
-                  <span class="icon">
-                    <span class="material-icons-outlined has-text-link">
-                      star_border
-                    </span>
-                  </span>
-                  <span>
-                    @Layout.User.star_total
-                  </span>
-                </span>
-              </div>
-              <div class="column is-half">
-                <span class="icon-text">
-                  <span class="icon">
-                    <span class="material-icons-outlined has-text-warning">
-                      assignment
-                    </span>
-                  </span>
-                  <span>
-                    @cfr
-                  </span>
-                </span>
-              </div>
-              <div class="column is-half">
-                <span class="icon-text">
-                  <span class="icon">
-                    <span class="material-icons-outlined has-text-success">
-                      trending_up
-                    </span>
-                  </span>
-                  <span>
-                    @kaizen
-                  </span>
-                </span>
-              </div>
-              <div class="column is-half">
-                <span class="icon-text">
-                  <span class="icon">
-                    <span class="material-icons-outlined has-text-danger">
-                      local_library
-                    </span>
-                  </span>
-                  <span>
-                    @educate
-                  </span>
-                </span>
-              </div>
-            </div>
-          </div>
 
-          @if (Layout.ListNav != null && CheckAccess("okrs") || Layout.ListNav != null && CheckAccess("kpis"))
+          @if (Layout.User.role == 1 || Layout.User.role_manage.system || Layout.User.role_manage.timekeeping)
           {
             <hr class="my-2 mx-4">
+            <a class="dropdown-item" href="/configs">
+              <div class="icon-text">
+                <span class="icon">
+                  <span class="material-icons-outlined">
+                    settings
+                  </span>
+                </span>
+                <span>
+                  Cấu hình
+                </span>
+              </div>
+            </a>
           }
-
-          @if (Layout.ListNav != null && CheckAccess("okrs"))
-          {
-            <div class="dropdown-item">
-              <Dropdown>
-                <Trigger>
-                  <a class="icon-text">
-                    <span class="icon">
-                      <span class="material-icons-outlined">
-                        track_changes
-                      </span>
-                    </span>
-                    <span class="mr-1">
-                      OKRs:
-                    </span>
-                    <span style="max-width: 100px; height: unset;">
-                      @cycleName
-                    </span>
-                    <span class="icon">
-                      <span class="material-icons-outlined">
-                        arrow_drop_down
-                      </span>
-                    </span>
-                  </a>
-                </Trigger>
-                <MenuContent>
-                  @if (shareStorage.OkrConfig == null || shareStorage.OkrConfig.cycles.Count == 0)
-                  {
-                    <a class="dropdown-item"
-                       style="height: auto; max-width: 150px;">
-                      Chưa có chu kỳ
-                    </a>
-                  }
-                  else
-                  {
-                    @foreach (var item in shareStorage.OkrConfig.cycles)
-                    {
-                      <a class="dropdown-item" @onclick="() => ChangeCycle(item.id)"
-                         style="height: auto; width: 150px;">
-                        @item.name
-                      </a>
-                    }
-                  }
-                </MenuContent>
-              </Dropdown>
-            </div>
-          }
-
-          <!--KPIs-->
-          @if (Layout.ListNav != null && CheckAccess("kpis"))
-          {
-            <div class="dropdown-item">
-              <Dropdown>
-                <Trigger>
-                  <a class="icon-text">
-                    <span class="icon image is-rounded">
-                      <img src="/images/kpis-icon.png" alt="" style="width: 14px; height: 14px;">
-                    </span>
-                    <span class="mr-1">
-                      KPIs:
-                    </span>
-                    <span style="max-width: 100px; height: unset;">
-                      @cycleKpisName
-                    </span>
-                    <span class="icon">
-                      <span class="material-icons-outlined">
-                        arrow_drop_down
-                      </span>
-                    </span>
-                  </a>
-                </Trigger>
-                <MenuContent>
-                  @if (shareStorage.KpisCycles.Count == 0)
-                  {
-                    <a class="dropdown-item"
-                       style="height: auto; max-width: 150px;">
-                      Chưa có chu kỳ
-                    </a>
-                  }
-                  else
-                  {
-                    @foreach (var item in shareStorage.KpisCycles)
-                    {
-                      <a class="dropdown-item" @onclick="() => ChangeKpisCycle(item.id)"
-                         style="height: auto; width: 150px;">
-                        @item.name
-                      </a>
-                    }
-                  }
-                </MenuContent>
-              </Dropdown>
-            </div>
-          }
-
           <hr class="my-2 mx-4">
 
           <div class="dropdown-item">
@@ -592,21 +166,6 @@
                   @Layout.User.email
                 </div>
               </div>
-              <div class="field">
-                <label class="label">Chức danh</label>
-                @if (editArea == 1)
-                {
-                  <div class="control">
-                    <input class="input is_underline" @bind="@Layout.User.job_title" placeholder="Nhập chức danh..." />
-                  </div>
-                }
-                else
-                {
-                  <div class="control" @onclick="() => editArea = 1">
-                    @(Layout.User.job_title.IsEmpty() ? "Chưa có chức danh" : Layout.User.job_title)
-                  </div>
-                }
-              </div>
             </div>
           </div>
           <div class="field is-grouped">
@@ -650,29 +209,6 @@
               }
             </div>
           </div>
-          <div class="field">
-            <label class="label" @onclick="() => Layout.User.custom.email_notification = !Layout.User.custom.email_notification">
-              <a class="icon-text">
-                <span class="icon">
-                  @if (Layout.User.custom.email_notification)
-                  {
-                    <span class="material-icons">
-                      check_box
-                    </span>
-                  }
-                  else
-                  {
-                    <span class="material-icons-outlined">
-                      check_box_outline_blank
-                    </span>
-                  }
-                </span>
-                <span>
-                  Nhận thông báo Email
-                </span>
-              </a>
-            </label>
-          </div>
         }
         <hr class="my-2"/>
         <div class=" has-text-weight-bold" @onclick="() => ToggleSection(3)">
@@ -698,20 +234,6 @@
                   @foreach (var sl in departments)
                   {
                     <option value="@sl.id">@sl.name</option>
-                  }
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="field mt-4">
-            <label class="label">Trang mặc định khi vào phần mềm</label>
-            <div class="control">
-              <div class="select is-fullwidth">
-                <select @bind="Layout.User.page_default">
-                  <option value="">Không chọn</option>
-                  @foreach (var sl in pageList)
-                  {
-                    <option value="@sl.Key">@sl.Value</option>
                   }
                 </select>
               </div>
@@ -827,8 +349,6 @@
     var kaizenList = await DbKaizen.DataAchievement(Layout.Company.id, Layout.User.id, start, end);
     kaizen = kaizenList.Count;
 
-    var educateList = await EducateService.GetListLearned(Layout.Company.id, Layout.User.id, 2);
-    educate = educateList.Count;
 
     modules = ModuleService.GetModules();
     companys = await DbMainCompany.GetAll();
