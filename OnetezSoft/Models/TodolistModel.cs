@@ -1,6 +1,5 @@
-﻿using System;
+﻿using MongoDB.Bson.Serialization.Attributes;
 using System.Collections.Generic;
-using MongoDB.Bson.Serialization.Attributes;
 
 namespace OnetezSoft.Models;
 
@@ -56,6 +55,7 @@ public class TodolistModel
   public List<Todo> todos { get; set; }
 
 
+  [BsonIgnoreExtraElements]
   /// <summary>
   /// Công việc trong Todolist
   /// </summary>
@@ -130,5 +130,54 @@ public class TodolistModel
     /// <summary>Ngày kết thúc chu kỳ lặp</summary>
     public long dateEnd_cycle { get; set; }
 
+    /// <summary>
+    /// Công việc liên kết
+    /// </summary>
+    public bool isTodoLink { get; set; }
+
+    /// <summary>
+    /// Thông tin công việc liên kết
+    /// </summary>
+    public TodoLink todoLink { get; set; }
+
+
+    /// <summary>
+    /// Id liên kết với công việc
+    /// </summary>
+    public string meetingID { get; set; }
+
+
+    /// <summary>
+    /// Kiểm tra đã kết thúc cuộc họp chưa
+    /// </summary>
+    public bool isDoneMeeting { get; set; }
   }
+
+
+  /// <summary>
+  ///  Todolist liên kết trong fwork
+  /// </summary>
+  public class TodoLink
+  {
+    /// <summary>
+    /// Kế hoạch liên kết
+    /// </summary>
+    public string planId { get; set; }
+
+    /// <summary>
+    /// Công việc của kế hoạch liên kết
+    /// </summary>
+    public string taskId { get; set; }
+
+    /// <summary>
+    /// Sheet của kế hoạch liên kết
+    /// </summary>
+    public string sheetId { get; set; }
+
+    /// <summary>
+    /// Người tạo todo này
+    /// </summary>
+    public string ownerId { get; set; }
+  }
+
 }

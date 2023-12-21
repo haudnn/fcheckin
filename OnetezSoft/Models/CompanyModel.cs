@@ -91,6 +91,9 @@ namespace OnetezSoft.Models
 
       /// <summary>Chế độ xem: 1: all, 2: chỉ bên trong</summary>
       public int view_type { get; set; } = 1;
+
+      /// <summary>Kiểm tra cấp dưới có được xem todolist cấp trên</summary>
+      public bool isViewSuperior { get; set; }
     }
 
     /// <summary>Cấu hình danh mục Kaizen</summary>
